@@ -3,11 +3,15 @@
 // See COPYING for details
 
 using System;
+using System.Net.Sockets;
 
 namespace NDesk.DBus
 {
 	public class Transport
 	{
-		//TODO
+		//TODO: design this properly
+
+		//this is just a temporary solution
+		public Socket socket;
 	}
 }

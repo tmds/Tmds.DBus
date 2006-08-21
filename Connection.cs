@@ -75,11 +75,9 @@ namespace NDesk.DBus
 		{
 			msg.Serial = GenerateSerial ();
 
-			sock.Poll (-1, SelectMode.SelectWrite);
 			ns.Write (msg.HeaderData, 0, msg.HeaderSize);
 			if (msg.Body != null) {
 				Message.Pad (msg.Body, 8);
-				sock.Poll (-1, SelectMode.SelectWrite);
 				//ns.Write (msg.Body, 0, msg.BodySize);
 				msg.Body.WriteTo (ns);
 			}
@@ -93,7 +91,6 @@ namespace NDesk.DBus
 
 			byte[] buf = new byte[1024];
 
-			sock.Poll (-1, SelectMode.SelectRead);
 			//ns.Read (buf, 0, buf.Length);
 			ns.Read (buf, 0, 16);
 
@@ -116,7 +113,6 @@ namespace NDesk.DBus
 
 			int read;
 
-			sock.Poll (-1, SelectMode.SelectRead);
 			read = ns.Read (buf, 16, toRead);
 
 			if (read != toRead)
@@ -135,7 +131,6 @@ namespace NDesk.DBus
 				//msg.Body = new byte[(int)msg.Header->Length];
 				byte[] body = new byte[(int)msg.Header->Length];
 
-				sock.Poll (-1, SelectMode.SelectRead);
 				//int len = ns.Read (msg.Body, 0, msg.Body.Length);
 				int len = ns.Read (body, 0, body.Length);
 

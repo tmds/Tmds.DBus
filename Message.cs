@@ -83,7 +83,7 @@ namespace NDesk.DBus
 
 		public static void Write (Stream stream, Signature val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream, System.Text.Encoding.ASCII);
+			BinaryWriter bw = new BinaryWriter (stream);
 
 			Pad (stream, 1);
 			Write (stream, (byte)val.Value.Length);
@@ -98,7 +98,7 @@ namespace NDesk.DBus
 
 		public static void Write (Stream stream, byte val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream, System.Text.Encoding.ASCII);
+			BinaryWriter bw = new BinaryWriter (stream);
 
 			Pad (stream, 1);
 			bw.Write (val);
@@ -106,7 +106,7 @@ namespace NDesk.DBus
 
 		public static void Write (Stream stream, uint val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream, System.Text.Encoding.ASCII);
+			BinaryWriter bw = new BinaryWriter (stream);
 
 			Pad (stream, 4);
 			bw.Write (val);
@@ -114,7 +114,7 @@ namespace NDesk.DBus
 
 		public static void Write (Stream stream, string val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream, System.Text.Encoding.ASCII);
+			BinaryWriter bw = new BinaryWriter (stream);
 
 			Write (stream, (uint)val.Length);
 
@@ -158,7 +158,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out Signature val)
 		{
-			BinaryReader br = new BinaryReader (stream, System.Text.Encoding.ASCII);
+			BinaryReader br = new BinaryReader (stream);
 
 			//Pad (stream, 1); //TODO: alignment for signature is meant to be 1?
 			//Pad (stream, 4);
@@ -287,7 +287,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out HeaderField val)
 		{
-			BinaryReader br = new BinaryReader (stream, System.Text.Encoding.ASCII);
+			BinaryReader br = new BinaryReader (stream);
 
 			Pad (stream, 8); //alignment for struct, right?
 			val.Code = (FieldCode)br.ReadByte ();
@@ -297,7 +297,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out byte val)
 		{
-			BinaryReader br = new BinaryReader (stream, System.Text.Encoding.ASCII);
+			BinaryReader br = new BinaryReader (stream);
 
 			Pad (stream, 1);
 			val = br.ReadByte ();
@@ -305,7 +305,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out uint val)
 		{
-			BinaryReader br = new BinaryReader (stream, System.Text.Encoding.ASCII);
+			BinaryReader br = new BinaryReader (stream);
 
 			Pad (stream, 4);
 			val = br.ReadUInt32 ();
@@ -319,7 +319,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out string val)
 		{
-			BinaryReader br = new BinaryReader (stream, System.Text.Encoding.ASCII);
+			BinaryReader br = new BinaryReader (stream);
 
 			uint ln;
 			GetValue (stream, out ln);
@@ -507,7 +507,7 @@ namespace NDesk.DBus
 				return;
 			}
 
-			//BinaryReader br = new BinaryReader (stream, System.Text.Encoding.ASCII);
+			//BinaryReader br = new BinaryReader (stream);
 
 			int len = PadNeeded ((int)stream.Position, alignment);
 			for (int i = 0 ; i != len ; i++) {

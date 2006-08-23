@@ -30,8 +30,7 @@ namespace NDesk.DBus
 
 		public override string AuthString ()
 		{
-			//TODO: get this from the system
-			uint uid = 1000;
+			long uid = UnixUserInfo.GetRealUserId ();
 
 			return uid.ToString ();
 		}

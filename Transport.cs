@@ -7,11 +7,17 @@ using System.Net.Sockets;
 
 namespace NDesk.DBus
 {
-	public class Transport
+	public interface IAuthenticator
+	{
+		string AuthString ();
+	}
+
+	public abstract class Transport : IAuthenticator
 	{
 		//TODO: design this properly
 
 		//this is just a temporary solution
 		public Socket socket;
+		public abstract string AuthString ();
 	}
 }

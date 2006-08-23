@@ -21,6 +21,7 @@ namespace NDesk.DBus
 
 		public Socket sock = null;
 		Stream ns = null;
+		Transport transport;
 
 		public Connection ()
 		{
@@ -34,7 +35,7 @@ namespace NDesk.DBus
 			if (path == null)
 				path = SYSTEM_BUS;
 
-			Transport transport = new UnixTransport (path, abstr);
+			transport = new UnixTransport (path, abstr);
 
 			sock = transport.socket;
 

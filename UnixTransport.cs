@@ -12,7 +12,7 @@ using Mono.Unix.Native;
 
 namespace NDesk.DBus
 {
-	public class UnixTransport : Transport
+	public class UnixTransport : Transport, IAuthenticator
 	{
 		/*
 		public UnixTransport (int fd)
@@ -26,6 +26,14 @@ namespace NDesk.DBus
 				socket = OpenAbstractUnix (path);
 			else
 				socket = OpenUnix (path);
+		}
+
+		public override string AuthString ()
+		{
+			//TODO: get this from the system
+			uint uid = 1000;
+
+			return uid.ToString ();
 		}
 
 		protected Socket OpenAbstractUnix (string path)

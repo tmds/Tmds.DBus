@@ -87,7 +87,7 @@ namespace NDesk.DBus
 
 			Pad (stream, 1);
 			Write (stream, (byte)val.Value.Length);
-			bw.Write (System.Text.Encoding.ASCII.GetBytes (val.Value));
+			bw.Write (val.Data);
 			bw.Write ((byte)0); //NULL signature terminator
 		}
 
@@ -165,8 +165,7 @@ namespace NDesk.DBus
 			byte ln;
 			GetValue (stream, out ln);
 
-			byte[] rbytes = br.ReadBytes ((int)ln);
-			val.Value = System.Text.Encoding.ASCII.GetString (rbytes);
+			val.Data = br.ReadBytes ((int)ln);
 			br.ReadByte (); //null string terminator
 		}
 
@@ -233,7 +232,7 @@ namespace NDesk.DBus
 			Signature sig;
 			GetValue (stream, out sig);
 			//TODO: more flexibilty needed here
-			DType t = (DType)sig.Value[0];
+			DType t = (DType)sig.Data[0];
 			//System.Console.WriteLine ("var type " + t);
 			GetValue (stream, t, out val);
 		}

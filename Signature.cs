@@ -3,6 +3,8 @@
 // See COPYING for details
 
 using System;
+using System.Text;
+using System.IO;
 using System.Runtime.InteropServices;
 
 namespace NDesk.DBus
@@ -13,36 +15,113 @@ namespace NDesk.DBus
 
 		public Signature (string value)
 		{
-			this.Value = value;
+			this.Data = System.Text.Encoding.ASCII.GetBytes (value);
 		}
 
 		public Signature (params DType[] value)
 		{
-			string val = "";
+			this.Data = new byte[value.Length];
+
+			MemoryStream ms = new MemoryStream (this.Data);
 
 			foreach (DType t in value)
-				val += (char)t;
-
-			this.Value = val;
+				ms.WriteByte ((byte)t);
 		}
 
-		//DType[] Value;
-		public string Value;
+		public byte[] Data;
+
+		public string Value
+		{
+			get {
+				return System.Text.Encoding.ASCII.GetString (Data);
+			} set {
+				Data = System.Text.Encoding.ASCII.GetBytes (value);
+			}
+		}
 
 		public override string ToString ()
 		{
-			//return Value;
-
-			byte[] ts = (byte[])System.Text.Encoding.ASCII.GetBytes (Value);
-
 			string ret = "";
+			StringBuilder sb = new StringBuilder ();
 
-			foreach (DType t in ts)
-				ret += t.ToString () + " ";
+			foreach (DType t in Data) {
+				sb.Append (t);
+				sb.Append (" ");
+			}
 
-			return ret;
+			return sb.ToString ();
 		}
 
+		public static DType TypeCodeToDType (TypeCode typeCode)
+		{
+			switch (typeCode)
+			{
+				case TypeCode.Empty:
+					return DType.Invalid;
+				case TypeCode.Object:
+					return DType.Invalid;
+				case TypeCode.DBNull:
+					return DType.Invalid;
+				case TypeCode.Boolean:
+					return DType.Boolean;
+				case TypeCode.Char:
+					return DType.UInt16;
+				case TypeCode.SByte:
+					return DType.Byte;
+				case TypeCode.Byte:
+					return DType.Byte;
+				case TypeCode.Int16:
+					return DType.Int16;
+				case TypeCode.UInt16:
+					return DType.UInt16;
+				case TypeCode.Int32:
+					return DType.Int32;
+				case TypeCode.UInt32:
+					return DType.UInt32;
+				case TypeCode.Int64:
+					return DType.Int64;
+				case TypeCode.UInt64:
+					return DType.UInt64;
+				case TypeCode.Single:
+					return DType.Float;
+				case TypeCode.Double:
+					return DType.Double;
+				case TypeCode.Decimal:
+					return DType.Invalid;
+				case TypeCode.DateTime:
+					return DType.Invalid;
+				case TypeCode.String:
+					return DType.String;
+				default:
+					return DType.Invalid;
+			}
+		}
+
+		public static DType TypeToDType (Type type)
+		{
+			//System.Console.WriteLine (type);
+			//System.Console.WriteLine (Type.GetTypeCode (type));
+			if (type.IsPrimitive)
+				return TypeCodeToDType (Type.GetTypeCode (type));
+
+			//type = type.UnderlyingSystemType;
+
+			if (type == typeof (string))
+				return DType.String;
+
+			if (type == typeof (ObjectPath))
+				return DType.ObjectPath;
+
+			if (type == typeof (Signature))
+				return DType.Signature;
+
+			//if (type.UnderlyingSystemType != null)
+			//	return TypeToDType (type.UnderlyingSystemType);
+
+			return DType.Invalid;
+		}
+
+		/*
 		public static DType TypeToDType (Type type)
 		{
 			if (type == null)
@@ -76,6 +155,7 @@ namespace NDesk.DBus
 			else
 				return DType.Invalid;
 		}
+		*/
 
 		public static Type DTypeToType (DType dtype)
 		{

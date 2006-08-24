@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Runtime.Remoting.Proxies;
 using System.Runtime.Remoting.Messaging;
@@ -80,12 +81,15 @@ namespace NDesk.DBus
 				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
 					callMsg.Body = new System.IO.MemoryStream ();
 
+					inSig.Data = new byte[mcm.InArgs.Length];
+					MemoryStream ms = new MemoryStream (inSig.Data);
+
 					//for (int i = 0 ; i != mcm.InArgs.Length ; i++)
 					foreach (object arg in mcm.InArgs)
 					{
 						//System.Console.Error.WriteLine ("INarg: ." + arg + ".");
 						DType dtype = Signature.TypeToDType (arg.GetType ());
-						inSig.Value += (char)dtype;
+						ms.WriteByte ((byte)dtype);
 						Message.Write (callMsg.Body, dtype, arg);
 					}
 				}
@@ -93,7 +97,7 @@ namespace NDesk.DBus
 				//Signature outSig = new Signature ("");
 				//System.Console.Error.WriteLine ("INSIG: ." + inSig.Value + ".");
 
-				if (inSig.Value == "")
+				if (inSig.Data.Length == 0)
 					callMsg.WriteHeader (opath, iface, mcm.MethodName, dest);
 				else
 					callMsg.WriteHeader (opath, iface, mcm.MethodName, dest, inSig);
@@ -119,11 +123,12 @@ namespace NDesk.DBus
 				//System.Console.Error.WriteLine ("out: " + mcm.MethodName);
 				//System.Console.Error.WriteLine ("outSig: " + outSig.Value);
 
-				if (outSig.Value == "")
+				if (outSig.Data.Length == 0)
 					return (IMethodReturnMessage) newRet;
 
 				//special case array of string for now
-				if (outSig.Value == "as")
+				//if (outSig.Value == "as")
+				if (outSig.Data[0] == (byte)'a' && outSig.Data[1] == (byte)'s')
 				{
 					string[] arg;
 
@@ -135,7 +140,7 @@ namespace NDesk.DBus
 				{
 					object arg;
 
-					DType dtype = (DType)outSig.Value[0];
+					DType dtype = (DType)outSig.Data[0];
 					Message.GetValue (retMsg.Body, dtype, out arg);
 
 					newRet.ReturnValue = arg;

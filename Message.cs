@@ -79,7 +79,11 @@ namespace NDesk.DBus
 		}
 
 
-
+		public static void Close (Stream stream)
+		{
+			Pad (stream, 8);
+			//this needs more thought
+		}
 
 		public static void Write (Stream stream, Signature val)
 		{
@@ -455,7 +459,7 @@ namespace NDesk.DBus
 			//ms.Position = 12;
 
 			Message.Write (ms, fields);
-			Pad (ms, 8);
+			Message.Close (ms);
 
 			msg.HeaderData = ms.GetBuffer ();
 

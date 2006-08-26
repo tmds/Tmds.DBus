@@ -480,6 +480,10 @@ namespace NDesk.DBus
 				msg.Header->Length = (uint)msg.Body.Position;
 				//msg.Header->Length = (uint)(msg.HeaderSize + msg.BodySize);
 				//Console.WriteLine ("DataSize: " + msg.BodySize);
+
+				//pad the end of the message body
+				//this could be done elsewhere
+				Message.Close (msg.Body);
 			}
 		}
 

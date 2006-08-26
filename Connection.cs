@@ -78,7 +78,6 @@ namespace NDesk.DBus
 
 			ns.Write (msg.HeaderData, 0, msg.HeaderSize);
 			if (msg.Body != null) {
-				Message.Pad (msg.Body, 8);
 				//ns.Write (msg.Body, 0, msg.BodySize);
 				msg.Body.WriteTo (ns);
 			}

@@ -4,24 +4,6 @@
 
 using System;
 
-namespace NDesk.DBus
-{
-	public class MyDBus
-	{
-		public string Hello ()
-		{
-			return null;
-		}
-
-		public string[] ListNames ()
-		{
-			return null;
-		}
-	}
-}
-
-// Hand-written interfaces for bootstrapping
-
 //namespace org.freedesktop.DBus
 namespace org.freedesktop.DBus
 {
@@ -83,12 +65,8 @@ namespace org.freedesktop.DBus
 	[Interface ("org.freedesktop.DBus")]
 	public interface Bus : Introspectable
 	{
-		//return enum won't work until type mapping is done
-
-		//NameReply RequestName (string name, NameFlag flags);
-		uint RequestName (string name, NameFlag flags);
-		//ReleaseNameReply ReleaseName (string name);
-		uint ReleaseName (string name);
+		NameReply RequestName (string name, NameFlag flags);
+		ReleaseNameReply ReleaseName (string name);
 		string Hello ();
 		string[] ListNames ();
 		bool NameHasOwner (string name);

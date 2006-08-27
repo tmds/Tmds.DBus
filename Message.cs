@@ -108,6 +108,14 @@ namespace NDesk.DBus
 			bw.Write (val);
 		}
 
+		public static void Write (Stream stream, int val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 4);
+			bw.Write (val);
+		}
+
 		public static void Write (Stream stream, uint val)
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
@@ -197,6 +205,11 @@ namespace NDesk.DBus
 					Write (stream, (byte)val);
 				}
 				break;
+				case DType.Int32:
+				{
+					Write (stream, (int)val);
+				}
+				break;
 				case DType.UInt32:
 				{
 					Write (stream, (uint)val);
@@ -265,6 +278,13 @@ namespace NDesk.DBus
 					val = vval;
 				}
 				break;
+				case DType.Int32:
+				{
+					int vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
 				case DType.UInt32:
 				{
 					uint vval;
@@ -316,6 +336,14 @@ namespace NDesk.DBus
 
 			Pad (stream, 1);
 			val = br.ReadByte ();
+		}
+
+		public static void GetValue (Stream stream, out int val)
+		{
+			BinaryReader br = new BinaryReader (stream);
+
+			Pad (stream, 4);
+			val = br.ReadInt32 ();
 		}
 
 		public static void GetValue (Stream stream, out uint val)

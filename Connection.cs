@@ -246,12 +246,22 @@ namespace NDesk.DBus
 			return replyMsg;
 		}
 
+		//not particularly efficient and needs to be generalized
 		public void HandleMethodCall (Message msg)
 		{
 			if (RegisteredObjects.ContainsKey (msg.Interface)) {
 				object obj = RegisteredObjects[msg.Interface];
 				Type type = obj.GetType ();
-				object retObj = type.InvokeMember (msg.Member, System.Reflection.BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
+				//object retObj = type.InvokeMember (msg.Member, System.Reflection.BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
+
+				//FIXME: breaks for overloaded methods
+				System.Reflection.MethodInfo mi = type.GetMethod (msg.Member, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+				System.Reflection.ParameterInfo[]  parms = mi.GetParameters ();
+				Type[] sig = new Type[parms.Length];
+				for (int i = 0 ; i != parms.Length ; i++)
+					sig[i] = parms[i].ParameterType;
+				object retObj = mi.Invoke (obj, GetDynamicValues (msg, sig));
+
 				if (msg.ReplyExpected) {
 					object[] retObjs;
 
@@ -271,6 +281,27 @@ namespace NDesk.DBus
 		}
 
 		public Dictionary<string,object> RegisteredObjects = new Dictionary<string,object> ();
+
+		public object[] GetDynamicValues (Message msg, Type[] types)
+		{
+			List<object> vals = new List<object> ();
+
+			if (msg.Body != null) {
+				foreach (Type type in types) {
+					object arg;
+
+					DType dtype = Signature.TypeToDType (type);
+					Message.GetValue (msg.Body, dtype, out arg);
+
+					if (type.IsEnum)
+						arg = Enum.ToObject (type, arg);
+
+					vals.Add (arg);
+				}
+			}
+
+			return vals.ToArray ();
+		}
 
 		public object[] GetDynamicValues (Message msg)
 		{

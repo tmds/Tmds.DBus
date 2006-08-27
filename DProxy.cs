@@ -5,6 +5,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Runtime.Remoting.Proxies;
 using System.Runtime.Remoting.Messaging;
 
@@ -105,8 +106,8 @@ namespace NDesk.DBus
 
 			bool needsReply = true;
 
-			//FIXME: hack to not read a reply when none expected
-			if (mcm.MethodName == "AddMatch")
+			MethodInfo mi = newRet.MethodBase as MethodInfo;
+			if (mi.ReturnType == typeof (void))
 				needsReply = false;
 
 			if (!needsReply) {
@@ -117,6 +118,27 @@ namespace NDesk.DBus
 			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
 
 			//handle the reply message
+			{
+				object arg;
+
+				Signature outSig = retMsg.Signature;
+				DType dtype = Signature.TypeToDType (mi.ReturnType);
+
+				//hack to handle string array for now
+				if (mi.ReturnType == typeof (string[])) {
+					string[] argArr;
+					Message.GetValue (retMsg.Body, out argArr);
+					arg = argArr;
+				} else {
+					Message.GetValue (retMsg.Body, dtype, out arg);
+				}
+
+				if (mi.ReturnType.IsEnum)
+					arg = Enum.ToObject (mi.ReturnType, arg);
+
+				newRet.ReturnValue = arg;
+			}
+			/*
 			{
 				Signature outSig = retMsg.Signature;
 
@@ -146,6 +168,7 @@ namespace NDesk.DBus
 					newRet.ReturnValue = arg;
 				}
 			}
+			*/
 
 			//System.Console.Error.WriteLine ("INVOKE: " + mcm.MethodName);
 

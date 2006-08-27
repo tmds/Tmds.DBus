@@ -17,6 +17,7 @@ namespace NDesk.DBus
 {
 	public partial class Connection
 	{
+		//unix:path=/var/run/dbus/system_bus_socket
 		const string SYSTEM_BUS = "/var/run/dbus/system_bus_socket";
 
 		public Socket sock = null;
@@ -26,6 +27,7 @@ namespace NDesk.DBus
 		public Connection ()
 		{
 			string sessAddr = System.Environment.GetEnvironmentVariable ("DBUS_SESSION_BUS_ADDRESS");
+			//string sysAddr = System.Environment.GetEnvironmentVariable ("DBUS_SYSTEM_BUS_ADDRESS");
 			bool abstr;
 			string path;
 

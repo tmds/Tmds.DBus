@@ -83,8 +83,12 @@ namespace org.freedesktop.DBus
 	[Interface ("org.freedesktop.DBus")]
 	public interface Bus : Introspectable
 	{
-		NameReply RequestName (string name, NameFlag flags);
-		ReleaseNameReply ReleaseName (string name);
+		//return enum won't work until type mapping is done
+
+		//NameReply RequestName (string name, NameFlag flags);
+		uint RequestName (string name, NameFlag flags);
+		//ReleaseNameReply ReleaseName (string name);
+		uint ReleaseName (string name);
 		string Hello ();
 		string[] ListNames ();
 		bool NameHasOwner (string name);

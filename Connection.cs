@@ -57,10 +57,9 @@ namespace NDesk.DBus
 
 		public Message SendWithReplyAndBlock (Message msg)
 		{
-			SendWithReply (msg);
+			uint id = SendWithReply (msg);
 
-			//TODO: async
-			Message retMsg = ReadMessage ();
+			Message retMsg = WaitForReplyTo (id);
 
 			return retMsg;
 		}
@@ -71,18 +70,39 @@ namespace NDesk.DBus
 			return Send (msg);
 		}
 
-		//could be cleaner
 		public uint Send (Message msg)
 		{
 			msg.Serial = GenerateSerial ();
 
+			WriteMessage (msg);
+
+			//Outbound.Enqueue (msg);
+			//temporary
+			//Flush ();
+
+			return msg.Serial;
+		}
+
+		//could be cleaner
+		protected void WriteMessage (Message msg)
+		{
 			ns.Write (msg.HeaderData, 0, msg.HeaderSize);
 			if (msg.Body != null) {
 				//ns.Write (msg.Body, 0, msg.BodySize);
 				msg.Body.WriteTo (ns);
 			}
+		}
 
-			return msg.Serial;
+		protected Queue<Message> Inbound = new Queue<Message> ();
+		protected Queue<Message> Outbound = new Queue<Message> ();
+
+		public void Flush ()
+		{
+			//should just iterate the enumerator here
+			while (Outbound.Count != 0) {
+				Message msg = Outbound.Dequeue ();
+				WriteMessage (msg);
+			}
 		}
 
 		public unsafe Message ReadMessage ()
@@ -149,6 +169,34 @@ namespace NDesk.DBus
 			return msg;
 		}
 
+		//this is just a start
+		//needs to be done properly
+		protected Message WaitForReplyTo (uint id)
+		{
+			//Message msg = Inbound.Dequeue ();
+			//HandleMessage (msg);
+
+			Message msg;
+
+			while ((msg = ReadMessage ()) != null) {
+				switch (msg.MessageType) {
+					case MessageType.Invalid:
+						break;
+					case MessageType.MethodCall:
+						break;
+					case MessageType.MethodReturn:
+					case MessageType.Error:
+						if (msg.ReplySerial == id)
+							return msg;
+						break;
+					case MessageType.Signal:
+						HandleMessage (msg);
+						break;
+				}
+			}
+
+			return null;
+		}
 
 
 		//temporary convenience method

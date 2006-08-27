@@ -25,9 +25,6 @@ public class ManagedDBusTest
 		string myName = bus.Hello ();
 		Console.WriteLine ("myName: " + myName);
 
-		//hack to process the NameAcquired signal synchronously
-		conn.HandleMessage (conn.ReadMessage ());
-
 		DProxy prox2 = new DProxy (conn, opath, "org.freedesktop.DBus.Introspectable", name, typeof (Introspectable));
 		Introspectable bus2 = (Introspectable)prox2.GetTransparentProxy ();
 

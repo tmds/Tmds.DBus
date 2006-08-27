@@ -20,8 +20,8 @@ public class ManagedDBusTestNotifications
 		DProxy prox = new DProxy (conn, opath, name, typeof (Bus));
 		Bus bus = (Bus)prox.GetTransparentProxy ();
 
-		bus.NameAcquired += delegate (string name) {
-			Console.WriteLine ("NameAcquired: " + name);
+		bus.NameAcquired += delegate (string acquired_name) {
+			Console.WriteLine ("NameAcquired: " + acquired_name);
 		};
 
 		string myName = bus.Hello ();

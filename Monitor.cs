@@ -43,10 +43,8 @@ public class ManagedDBusTest
 				Console.WriteLine ("\tBody:");
 				//System.IO.MemoryStream ms = new System.IO.MemoryStream (msg.Body);
 				//System.IO.MemoryStream ms = msg.Body;
-				Signature sig = msg.Signature;
 
-				byte[] ts = System.Text.Encoding.ASCII.GetBytes (sig.Value);
-				foreach (DType dtype in ts) {
+				foreach (DType dtype in msg.Signature.Data) {
 					if (dtype == DType.Invalid)
 						continue;
 					object arg;

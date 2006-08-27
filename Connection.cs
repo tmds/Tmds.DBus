@@ -219,10 +219,7 @@ namespace NDesk.DBus
 			List<object> vals = new List<object> ();
 
 			if (msg.Body != null) {
-				Signature sig = msg.Signature;
-
-				byte[] ts = System.Text.Encoding.ASCII.GetBytes (sig.Value);
-				foreach (DType dtype in ts) {
+				foreach (DType dtype in msg.Signature.Data) {
 					object arg;
 					Message.GetValue (msg.Body, dtype, out arg);
 					vals.Add (arg);

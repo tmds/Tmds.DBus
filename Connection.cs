@@ -214,13 +214,57 @@ namespace NDesk.DBus
 
 		public Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
 
-		//TODO: return/out values
+		//should generalize this method
+		protected Message ConstructReplyFor (Message req, object[] vals)
+		{
+			Message replyMsg = new Message ();
+
+			Signature inSig = new Signature ("");
+
+			if (vals != null && vals.Length != 0) {
+				replyMsg.Body = new System.IO.MemoryStream ();
+
+				inSig.Data = new byte[vals.Length];
+				MemoryStream ms = new MemoryStream (inSig.Data);
+
+				foreach (object arg in vals)
+				{
+					DType dtype = Signature.TypeToDType (arg.GetType ());
+					ms.WriteByte ((byte)dtype);
+					Message.Write (replyMsg.Body, dtype, arg);
+				}
+			}
+
+			if (inSig.Data.Length == 0)
+				replyMsg.WriteHeader (new HeaderField (FieldCode.ReplySerial, req.Serial), new HeaderField (FieldCode.Destination, req.Sender));
+			else
+				replyMsg.WriteHeader (new HeaderField (FieldCode.ReplySerial, req.Serial), new HeaderField (FieldCode.Destination, req.Sender), new HeaderField (FieldCode.Signature, inSig));
+
+			replyMsg.MessageType = MessageType.MethodReturn;
+			replyMsg.ReplyExpected = false;
+
+			return replyMsg;
+		}
+
 		public void HandleMethodCall (Message msg)
 		{
 			if (RegisteredObjects.ContainsKey (msg.Interface)) {
 				object obj = RegisteredObjects[msg.Interface];
 				Type type = obj.GetType ();
-				type.InvokeMember (msg.Member, System.Reflection.BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
+				object retObj = type.InvokeMember (msg.Member, System.Reflection.BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
+				if (msg.ReplyExpected) {
+					object[] retObjs;
+
+					if (retObj == null) {
+						retObjs = new object[0];
+					} else {
+						retObjs = new object[1];
+						retObjs[0] = retObj;
+					}
+
+					Message reply = ConstructReplyFor (msg, retObjs);
+					Send (reply);
+				}
 			} else {
 				System.Console.Error.WriteLine ("No method handler for " + msg.Member);
 			}

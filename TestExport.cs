@@ -53,6 +53,7 @@ public class DemoObject
 		Console.WriteLine (text);
 	}
 
+	//dbus-send --type=method_call --print-reply --dest=org.ndesk.test /demo org.ndesk.test.EchoCaps string:'foo'
 	public string EchoCaps (string text)
 	{
 		return text.ToUpper ();

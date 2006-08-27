@@ -105,7 +105,7 @@ namespace NDesk.DBus
 				return TypeCodeToDType (Type.GetTypeCode (type));
 
 			if (type.IsEnum)
-				TypeToDType (type.GetElementType ());
+				return TypeToDType (type.GetElementType ());
 
 			if (type == typeof (string))
 				return DType.String;

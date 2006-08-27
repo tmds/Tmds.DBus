@@ -104,7 +104,8 @@ namespace NDesk.DBus
 			if (type.IsPrimitive)
 				return TypeCodeToDType (Type.GetTypeCode (type));
 
-			//type = type.UnderlyingSystemType;
+			if (type.IsEnum)
+				TypeToDType (type.GetElementType ());
 
 			if (type == typeof (string))
 				return DType.String;

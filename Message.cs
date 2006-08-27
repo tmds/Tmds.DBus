@@ -192,6 +192,11 @@ namespace NDesk.DBus
 					Write (stream, (string)val);
 				}
 				break;
+				case DType.Byte:
+				{
+					Write (stream, (byte)val);
+				}
+				break;
 				case DType.UInt32:
 				{
 					Write (stream, (uint)val);
@@ -249,6 +254,13 @@ namespace NDesk.DBus
 				case DType.String:
 				{
 					string vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
+				case DType.Byte:
+				{
+					byte vval;
 					GetValue (stream, out vval);
 					val = vval;
 				}

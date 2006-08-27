@@ -204,19 +204,33 @@ namespace NDesk.DBus
 		//temporary convenience method
 		public void HandleMessage (Message msg)
 		{
-			string val;
-			Message.GetValue (msg.Body, out val);
-
-			Console.WriteLine ("Signal out value: " + val);
-
 			if (Handlers.ContainsKey (msg.Member)) {
 				Delegate dlg = Handlers[msg.Member];
-				org.freedesktop.DBus.NameAcquiredHandler handler = dlg as org.freedesktop.DBus.NameAcquiredHandler;
-				handler (val);
+				dlg.DynamicInvoke (GetDynamicValues (msg));
+			} else {
+				System.Console.Error.WriteLine ("No handler for " + msg.Member);
 			}
 		}
 
 		public Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
+
+		public object[] GetDynamicValues (Message msg)
+		{
+			List<object> vals = new List<object> ();
+
+			if (msg.Body != null) {
+				Signature sig = msg.Signature;
+
+				byte[] ts = System.Text.Encoding.ASCII.GetBytes (sig.Value);
+				foreach (DType dtype in ts) {
+					object arg;
+					Message.GetValue (msg.Body, dtype, out arg);
+					vals.Add (arg);
+				}
+			}
+
+			return vals.ToArray ();
+		}
 	}
 
 	//hacky dummy debug console

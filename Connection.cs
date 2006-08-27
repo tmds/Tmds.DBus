@@ -173,10 +173,9 @@ namespace NDesk.DBus
 
 		//this is just a start
 		//needs to be done properly
-		protected Message WaitForReplyTo (uint id)
+		public Message WaitForReplyTo (uint id)
 		{
 			//Message msg = Inbound.Dequeue ();
-			//HandleMessage (msg);
 
 			Message msg;
 
@@ -185,6 +184,7 @@ namespace NDesk.DBus
 					case MessageType.Invalid:
 						break;
 					case MessageType.MethodCall:
+						HandleMethodCall (msg);
 						break;
 					case MessageType.MethodReturn:
 					case MessageType.Error:
@@ -192,7 +192,7 @@ namespace NDesk.DBus
 							return msg;
 						break;
 					case MessageType.Signal:
-						HandleMessage (msg);
+						HandleSignal (msg);
 						break;
 				}
 			}
@@ -202,17 +202,31 @@ namespace NDesk.DBus
 
 
 		//temporary convenience method
-		public void HandleMessage (Message msg)
+		public void HandleSignal (Message msg)
 		{
 			if (Handlers.ContainsKey (msg.Member)) {
 				Delegate dlg = Handlers[msg.Member];
 				dlg.DynamicInvoke (GetDynamicValues (msg));
 			} else {
-				System.Console.Error.WriteLine ("No handler for " + msg.Member);
+				System.Console.Error.WriteLine ("No signal handler for " + msg.Member);
 			}
 		}
 
 		public Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
+
+		//TODO: return/out values
+		public void HandleMethodCall (Message msg)
+		{
+			if (RegisteredObjects.ContainsKey (msg.Interface)) {
+				object obj = RegisteredObjects[msg.Interface];
+				Type type = obj.GetType ();
+				type.InvokeMember (msg.Member, System.Reflection.BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
+			} else {
+				System.Console.Error.WriteLine ("No method handler for " + msg.Member);
+			}
+		}
+
+		public Dictionary<string,object> RegisteredObjects = new Dictionary<string,object> ();
 
 		public object[] GetDynamicValues (Message msg)
 		{
@@ -222,6 +236,7 @@ namespace NDesk.DBus
 				foreach (DType dtype in msg.Signature.Data) {
 					object arg;
 					Message.GetValue (msg.Body, dtype, out arg);
+					//System.Console.WriteLine (arg);
 					vals.Add (arg);
 				}
 			}

@@ -28,7 +28,7 @@ public class ManagedDBusTestNotifications
 		Console.WriteLine ("myName: " + myName);
 
 		//hack to process the NameAcquired signal synchronously
-		conn.HandleMessage (conn.ReadMessage ());
+		conn.HandleSignal (conn.ReadMessage ());
 
 		DProxy notificationsProxy = new DProxy (conn, new ObjectPath ("/org/freedesktop/Notifications"), "org.freedesktop.Notifications", typeof (Notifications));
 		Notifications notifications = (Notifications)notificationsProxy.GetTransparentProxy ();

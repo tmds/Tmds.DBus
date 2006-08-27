@@ -25,7 +25,7 @@ public class ManagedDBusTest
 		bus.Hello ();
 
 		//hack to process the NameAcquired signal synchronously
-		conn.HandleMessage (conn.ReadMessage ());
+		conn.HandleSignal (conn.ReadMessage ());
 
 		bus.AddMatch ("type='signal'");
 		bus.AddMatch ("type='method_call'");

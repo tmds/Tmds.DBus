@@ -31,9 +31,6 @@ public class ManagedDBusTestExport
 		string myName = bus.Hello ();
 		Console.WriteLine ("myName: " + myName);
 
-		//hack to process the NameAcquired signal synchronously
-		conn.HandleMessage (conn.ReadMessage ());
-
 		string myNameReq = "org.ndesk.test";
 
 		//NameReply nameReply = bus.RequestName (myNameReq, NameFlag.None);
@@ -41,6 +38,23 @@ public class ManagedDBusTestExport
 
 		Console.WriteLine ("nameReply: " + nameReply);
 
-		System.Threading.Thread.Sleep (60000);
+		DemoObject demo = new DemoObject ();
+		conn.RegisteredObjects["org.ndesk.test"] = demo;
+
+		conn.WaitForReplyTo (0);
+	}
+}
+
+public class DemoObject
+{
+	//dbus-send --type=method_call --dest=org.ndesk.test /demo org.ndesk.test.Say string:'foo'
+	public void Say (string text)
+	{
+		Console.WriteLine (text);
+	}
+
+	public string EchoCaps (string text)
+	{
+		return text.ToUpper ();
 	}
 }

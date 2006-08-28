@@ -112,9 +112,9 @@ namespace NDesk.DBus
 				//Console.Error.WriteLine ("INSIG: ." + inSig.Value + ".");
 
 				if (inSig.Data.Length == 0)
-					callMsg.WriteHeader (opath, iface, mcm.MethodName, dest);
+					callMsg.WriteHeader (new HeaderField (FieldCode.Path, opath), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, dest));
 				else
-					callMsg.WriteHeader (opath, iface, mcm.MethodName, dest, inSig);
+					callMsg.WriteHeader (new HeaderField (FieldCode.Path, opath), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, dest), new HeaderField (FieldCode.Signature, inSig));
 			}
 
 			bool needsReply = true;

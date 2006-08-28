@@ -63,19 +63,6 @@ namespace NDesk.DBus
 
 		public bool Locked;
 
-
-		//temporary convenience methods
-		public void WriteHeader (ObjectPath opath, string iface, string member, string dest)
-		{
-			WriteHeader (new HeaderField (FieldCode.Path, opath), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, member), new HeaderField (FieldCode.Destination, dest));
-		}
-
-		public void WriteHeader (ObjectPath opath, string iface, string member, string dest, Signature sig)
-		{
-			WriteHeader (new HeaderField (FieldCode.Path, opath), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, member), new HeaderField (FieldCode.Destination, dest), new HeaderField (FieldCode.Signature, sig));
-		}
-
-
 		public static void Close (Stream stream)
 		{
 			Pad (stream, 8);

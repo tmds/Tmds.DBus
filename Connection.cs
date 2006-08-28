@@ -124,28 +124,28 @@ namespace NDesk.DBus
 			fixed (byte* pbuf = buf) {
 				msg.Header = (DHeader*)pbuf;
 				//Console.WriteLine (msg.MessageType);
-				//System.Console.WriteLine ("Length: " + msg.Header->Length);
-				//System.Console.WriteLine ("Header Length: " + msg.Header->HeaderLength);
+				//Console.WriteLine ("Length: " + msg.Header->Length);
+				//Console.WriteLine ("Header Length: " + msg.Header->HeaderLength);
 			}
 
 			int toRead = 0;
 			toRead += Message.Padded ((int)msg.Header->HeaderLength, 8);
 
-			//System.Console.WriteLine ("toRead: " + toRead);
+			//Console.WriteLine ("toRead: " + toRead);
 
 			int read;
 
 			read = ns.Read (buf, 16, toRead);
 
 			if (read != toRead)
-				System.Console.Error.WriteLine ("Read length mismatch: " + read + " of expected " + toRead);
+				Console.Error.WriteLine ("Read length mismatch: " + read + " of expected " + toRead);
 
 			msg.HeaderData = buf;
 
 			/*
-			System.Console.WriteLine ("Len: " + msg.Header->Length);
-			System.Console.WriteLine ("HLen: " + msg.Header->HeaderLength);
-			System.Console.WriteLine ("toRead: " + toRead);
+			Console.WriteLine ("Len: " + msg.Header->Length);
+			Console.WriteLine ("HLen: " + msg.Header->HeaderLength);
+			Console.WriteLine ("toRead: " + toRead);
 			*/
 			//read the body
 			if (msg.Header->Length != 0) {
@@ -158,7 +158,7 @@ namespace NDesk.DBus
 
 				//if (len != msg.Body.Length)
 				if (len != body.Length)
-					System.Console.Error.WriteLine ("Message body size mismatch");
+					Console.Error.WriteLine ("Message body size mismatch");
 
 				msg.Body = new MemoryStream (body);
 			}
@@ -208,7 +208,7 @@ namespace NDesk.DBus
 				Delegate dlg = Handlers[msg.Member];
 				dlg.DynamicInvoke (GetDynamicValues (msg));
 			} else {
-				System.Console.Error.WriteLine ("No signal handler for " + msg.Member);
+				Console.Error.WriteLine ("No signal handler for " + msg.Member);
 			}
 		}
 
@@ -276,7 +276,7 @@ namespace NDesk.DBus
 					Send (reply);
 				}
 			} else {
-				System.Console.Error.WriteLine ("No method handler for " + msg.Member);
+				Console.Error.WriteLine ("No method handler for " + msg.Member);
 			}
 		}
 
@@ -311,35 +311,12 @@ namespace NDesk.DBus
 				foreach (DType dtype in msg.Signature.Data) {
 					object arg;
 					Message.GetValue (msg.Body, dtype, out arg);
-					//System.Console.WriteLine (arg);
+					//Console.WriteLine (arg);
 					vals.Add (arg);
 				}
 			}
 
 			return vals.ToArray ();
-		}
-	}
-
-	//hacky dummy debug console
-	internal static class Console
-	{
-		public static void WriteLine ()
-		{
-			WriteLine (String.Empty);
-		}
-
-		public static void WriteLine (string line)
-		{
-			//Write (line + "\n");
-		}
-
-		public static void WriteLine (object line)
-		{
-			//Write (line.ToString () + "\n");
-		}
-
-		public static void Write (string text)
-		{
 		}
 	}
 }

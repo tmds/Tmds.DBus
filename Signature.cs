@@ -99,8 +99,8 @@ namespace NDesk.DBus
 
 		public static DType TypeToDType (Type type)
 		{
-			//System.Console.WriteLine (type);
-			//System.Console.WriteLine (Type.GetTypeCode (type));
+			//Console.WriteLine (type);
+			//Console.WriteLine (Type.GetTypeCode (type));
 			if (type.IsPrimitive)
 				return TypeCodeToDType (Type.GetTypeCode (type));
 

@@ -44,7 +44,7 @@ namespace NDesk.DBus
 
 			MethodReturnMessageWrapper newRet = new MethodReturnMessageWrapper ((IMethodReturnMessage) msg);
 
-			//System.Console.WriteLine (mcm.MethodName);
+			//Console.WriteLine (mcm.MethodName);
 
 			//if (!methods.ContainsKey (mcm.MethodName))
 			//	return null;
@@ -88,7 +88,7 @@ namespace NDesk.DBus
 					//for (int i = 0 ; i != mcm.InArgs.Length ; i++)
 					foreach (object arg in mcm.InArgs)
 					{
-						//System.Console.Error.WriteLine ("INarg: ." + arg + ".");
+						//Console.Error.WriteLine ("INarg: ." + arg + ".");
 						DType dtype = Signature.TypeToDType (arg.GetType ());
 						ms.WriteByte ((byte)dtype);
 						Message.Write (callMsg.Body, dtype, arg);
@@ -96,7 +96,7 @@ namespace NDesk.DBus
 				}
 
 				//Signature outSig = new Signature ("");
-				//System.Console.Error.WriteLine ("INSIG: ." + inSig.Value + ".");
+				//Console.Error.WriteLine ("INSIG: ." + inSig.Value + ".");
 
 				if (inSig.Data.Length == 0)
 					callMsg.WriteHeader (opath, iface, mcm.MethodName, dest);
@@ -142,8 +142,8 @@ namespace NDesk.DBus
 			{
 				Signature outSig = retMsg.Signature;
 
-				//System.Console.Error.WriteLine ("out: " + mcm.MethodName);
-				//System.Console.Error.WriteLine ("outSig: " + outSig.Value);
+				//Console.Error.WriteLine ("out: " + mcm.MethodName);
+				//Console.Error.WriteLine ("outSig: " + outSig.Value);
 
 				if (outSig.Data.Length == 0)
 					return (IMethodReturnMessage) newRet;
@@ -170,7 +170,7 @@ namespace NDesk.DBus
 			}
 			*/
 
-			//System.Console.Error.WriteLine ("INVOKE: " + mcm.MethodName);
+			//Console.Error.WriteLine ("INVOKE: " + mcm.MethodName);
 
 			return (IMethodReturnMessage) newRet;
 		}

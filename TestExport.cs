@@ -107,10 +107,27 @@ public class DemoObject : MarshalByRefObject
 
 		return rets;
 	}
+
+	public MyTuple GetTuple ()
+	{
+		MyTuple tup;
+
+		tup.A = "alpha";
+		tup.B = "beta";
+
+		return tup;
+	}
 }
 
 public enum DemoEnum
 {
 	Foo,
 	Bar,
+}
+
+
+public struct MyTuple
+{
+	public string A;
+	public string B;
 }

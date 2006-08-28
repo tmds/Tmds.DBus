@@ -15,6 +15,8 @@ NDesk.DBus.Ssl.dll: NDesk.DBus.dll SslTransport.cs
 
 test.exe: NDesk.DBus.dll Test.cs
 
+test-sample.exe: NDesk.DBus.dll TestSample.cs
+
 test-export.exe: NDesk.DBus.dll TestExport.cs
 
 monitor.exe: NDesk.DBus.dll Monitor.cs

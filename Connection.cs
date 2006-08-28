@@ -201,12 +201,22 @@ namespace NDesk.DBus
 		}
 
 
-		//temporary convenience method
+		//this might need reworking with MulticastDelegate
 		public void HandleSignal (Message msg)
 		{
 			if (Handlers.ContainsKey (msg.Member)) {
 				Delegate dlg = Handlers[msg.Member];
-				dlg.DynamicInvoke (GetDynamicValues (msg));
+				//dlg.DynamicInvoke (GetDynamicValues (msg));
+
+				System.Reflection.MethodInfo mi = dlg.Method;
+				System.Reflection.ParameterInfo[]  parms = mi.GetParameters ();
+				Type[] sig = new Type[parms.Length];
+				for (int i = 0 ; i != parms.Length ; i++)
+					sig[i] = parms[i].ParameterType;
+				//object retObj = mi.Invoke (null, GetDynamicValues (msg, sig));
+				//signals have no return value
+				dlg.DynamicInvoke (GetDynamicValues (msg, sig));
+
 			} else {
 				Console.Error.WriteLine ("No signal handler for " + msg.Member);
 			}
@@ -311,6 +321,10 @@ namespace NDesk.DBus
 						Array argArr;
 						Message.GetValue (msg.Body, type, out argArr);
 						arg = argArr;
+					} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+						ValueType argV;
+						Message.GetValue (msg.Body, type, out argV);
+						arg = argV;
 					} else {
 						Message.GetValue (msg.Body, dtype, out arg);
 					}

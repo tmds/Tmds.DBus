@@ -445,6 +445,24 @@ namespace NDesk.DBus
 		}
 		*/
 
+		//struct
+		//probably the wrong place for this
+		//there might be more elegant solutions
+		public static void GetValue (Stream stream, Type type, out ValueType val)
+		{
+			Console.WriteLine ("VT: " +type);
+			System.Reflection.FieldInfo[] fis = type.GetFields ();
+
+			val = (ValueType)Activator.CreateInstance (type);
+
+			foreach (System.Reflection.FieldInfo fi in fis) {
+				object elem;
+				GetValue (stream, Signature.TypeToDType (fi.FieldType), out elem);
+				fi.SetValue (val, elem);
+				//public virtual void SetValueDirect (TypedReference obj, object value);
+			}
+		}
+
 		public ObjectPath Path = new ObjectPath ("");
 		public string Interface = "";
 		public string Member = "";

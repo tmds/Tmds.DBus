@@ -360,6 +360,7 @@ namespace NDesk.DBus
 			}
 		}
 
+		/*
 		public static void GetValue (Stream stream, out HeaderField val)
 		{
 			BinaryReader br = new BinaryReader (stream);
@@ -369,6 +370,7 @@ namespace NDesk.DBus
 			//GetValue (stream, out val.Code);
 			GetValue (stream, out val.Value);
 		}
+		*/
 
 		public static void GetValue (Stream stream, out byte val)
 		{
@@ -412,6 +414,7 @@ namespace NDesk.DBus
 			br.ReadByte (); //null string terminator
 		}
 
+		/*
 		public static void GetValue (Stream stream, out HeaderField[] val)
 		{
 			uint ln;
@@ -430,6 +433,7 @@ namespace NDesk.DBus
 
 			val = lvals.ToArray ();
 		}
+		*/
 
 
 		//this could be made generic to avoid boxing

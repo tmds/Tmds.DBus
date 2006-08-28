@@ -42,6 +42,13 @@ public class ManagedDBusTestSample
 		MyTuple tup = sample.GetTuple ();
 		Console.WriteLine (tup.A);
 		Console.WriteLine (tup.B);
+
+		Console.WriteLine ();
+		//IDictionary<string,string> dict = sample.GetDict ();
+		//DictEntry<string,string>[] dict = sample.GetDict ();
+		KeyValuePair<string,string>[] dict = sample.GetDict ();
+		foreach (KeyValuePair<string,string> pair in dict)
+			Console.WriteLine (pair.Key + ": " + pair.Value);
 	}
 }
 
@@ -51,7 +58,9 @@ public interface SampleInterface : Introspectable
 	//object HelloWorld (object hello_message);
 	string[] HelloWorld (object hello_message);
 	MyTuple GetTuple ();
-	IDictionary<string,string> GetDict ();
+	//IDictionary<string,string> GetDict ();
+	//DictEntry<string,string>[] GetDict ();
+	KeyValuePair<string,string>[] GetDict ();
 }
 
 //(ss)

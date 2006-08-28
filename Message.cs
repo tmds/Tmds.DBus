@@ -473,13 +473,18 @@ namespace NDesk.DBus
 			//List<T> vals = new List<T> ();
 			System.Collections.ArrayList vals = new System.Collections.ArrayList ();
 
-			while (stream.Position != endPos)
+			//FIXME: why are we not reaching the precise endPos?
+			//while (stream.Position != endPos)
+			while (stream.Position < endPos)
 			{
 				object elem;
 				//GetValue (stream, Signature.TypeToDType (type), out elem);
 				GetValue (stream, type, out elem);
 				vals.Add (elem);
 			}
+
+			if (stream.Position != endPos)
+				Console.Error.WriteLine ("Warning: pos " + stream.Position + " != ep " + endPos);
 
 			val = vals.ToArray (type);
 			//val = Array.CreateInstance (type.UnderlyingSystemType, vals.Count);
@@ -512,11 +517,35 @@ namespace NDesk.DBus
 		//there might be more elegant solutions
 		public static void GetValue (Stream stream, Type type, out ValueType val)
 		{
-			System.Reflection.FieldInfo[] fis = type.GetFields ();
+			Pad (stream, 8); //offset for structs, right?
+
+			System.Reflection.ConstructorInfo[] cis = type.GetConstructors ();
+			if (cis.Length != 0) {
+				System.Reflection.ConstructorInfo ci = cis[0];
+				//Console.WriteLine ("ci: " + ci);
+				System.Reflection.ParameterInfo[]  parms = ci.GetParameters ();
+
+				/*
+				Type[] sig = new Type[parms.Length];
+				for (int i = 0 ; i != parms.Length ; i++)
+					sig[i] = parms[i].ParameterType;
+				object retObj = ci.Invoke (null, GetDynamicValues (msg, sig));
+				*/
+
+				List<object> vals = new List<object> ();
+				foreach (System.Reflection.ParameterInfo parm in parms) {
+					object arg;
+					Message.GetValue (stream, parm.ParameterType, out arg);
+					vals.Add (arg);
+				}
+
+				//object retObj = ci.Invoke (val, vals.ToArray ());
+				val = (ValueType)Activator.CreateInstance (type, vals.ToArray ());
+				return;
+			}
 
 			val = (ValueType)Activator.CreateInstance (type);
-
-			Pad (stream, 8); //offset for structs, right?
+			System.Reflection.FieldInfo[] fis = type.GetFields ();
 
 			foreach (System.Reflection.FieldInfo fi in fis) {
 				object elem;
@@ -529,9 +558,9 @@ namespace NDesk.DBus
 
 		public static void Write (Stream stream, Type type, ValueType val)
 		{
-			System.Reflection.FieldInfo[] fis = type.GetFields ();
-
 			Pad (stream, 8); //offset for structs, right?
+
+			System.Reflection.FieldInfo[] fis = type.GetFields ();
 
 			foreach (System.Reflection.FieldInfo fi in fis) {
 				object elem;

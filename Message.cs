@@ -388,6 +388,56 @@ namespace NDesk.DBus
 			val = lvals.ToArray ();
 		}
 
+
+		//this could be made generic to avoid boxing
+		//restricted to primitive elements because of the DType bottleneck
+		public static void Write (Stream stream, Type type, Array val)
+		{
+			//if (type.IsArray)
+			type = type.GetElementType ();
+
+			//inefficient, but good for now
+			MemoryStream ms = new MemoryStream ();
+
+			foreach (object elem in val)
+				Write (ms, Signature.TypeToDType (type), elem);
+
+			Write (stream, (uint)ms.Position);
+
+			//byte[] buf = ms.GetBuffer ();
+			//stream.Write (buf, 0, (int)ms.Position);
+
+			ms.WriteTo (stream);
+		}
+
+		//this could be made generic to avoid boxing
+		//restricted to primitive elements because of the DType bottleneck
+		public static void GetValue (Stream stream, Type type, out Array val)
+		{
+			//if (type.IsArray)
+			type = type.GetElementType ();
+
+			uint ln;
+			GetValue (stream, out ln);
+
+			int endPos = (int)stream.Position + (int)ln;
+
+			//List<T> vals = new List<T> ();
+			System.Collections.ArrayList vals = new System.Collections.ArrayList ();
+
+			while (stream.Position != endPos)
+			{
+				object elem;
+				GetValue (stream, Signature.TypeToDType (type), out elem);
+				vals.Add (elem);
+			}
+
+			val = vals.ToArray (type);
+			//val = Array.CreateInstance (type.UnderlyingSystemType, vals.Count);
+		}
+
+
+		/*
 		public static void GetValue (Stream stream, out string[] val)
 		{
 			uint ln;
@@ -406,6 +456,7 @@ namespace NDesk.DBus
 
 			val = lvals.ToArray ();
 		}
+		*/
 
 		public ObjectPath Path = new ObjectPath ("");
 		public string Interface = "";

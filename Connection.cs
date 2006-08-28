@@ -215,6 +215,7 @@ namespace NDesk.DBus
 		public Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
 
 		//should generalize this method
+		//it is duplicated in DProxy
 		protected Message ConstructReplyFor (Message req, object[] vals)
 		{
 			Message replyMsg = new Message ();
@@ -224,15 +225,28 @@ namespace NDesk.DBus
 			if (vals != null && vals.Length != 0) {
 				replyMsg.Body = new System.IO.MemoryStream ();
 
-				inSig.Data = new byte[vals.Length];
-				MemoryStream ms = new MemoryStream (inSig.Data);
+				MemoryStream ms = new MemoryStream ();
 
 				foreach (object arg in vals)
 				{
-					DType dtype = Signature.TypeToDType (arg.GetType ());
+					Type type = arg.GetType ();
+					DType dtype = Signature.TypeToDType (type);
+
 					ms.WriteByte ((byte)dtype);
-					Message.Write (replyMsg.Body, dtype, arg);
+
+					//hacky
+					if (type.IsArray) {
+						Type elem_type = type.GetElementType ();
+						DType elem_dtype = Signature.TypeToDType (elem_type);
+
+						ms.WriteByte ((byte)elem_dtype);
+						Message.Write (replyMsg.Body, type, (Array)arg);
+					} else {
+						Message.Write (replyMsg.Body, dtype, arg);
+					}
 				}
+
+				inSig.Data = ms.ToArray ();
 			}
 
 			if (inSig.Data.Length == 0)
@@ -291,7 +305,15 @@ namespace NDesk.DBus
 					object arg;
 
 					DType dtype = Signature.TypeToDType (type);
-					Message.GetValue (msg.Body, dtype, out arg);
+
+					//special case arrays for now
+					if (type.IsArray) {
+						Array argArr;
+						Message.GetValue (msg.Body, type, out argArr);
+						arg = argArr;
+					} else {
+						Message.GetValue (msg.Body, dtype, out arg);
+					}
 
 					if (type.IsEnum)
 						arg = Enum.ToObject (type, arg);

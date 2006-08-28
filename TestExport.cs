@@ -51,6 +51,17 @@ public class ManagedDBusTestExport
 		Console.WriteLine (demo.GetEnum ());
 		demo.CheckEnum (DemoEnum.Bar);
 		demo.CheckEnum (demo.GetEnum ());
+
+		Console.WriteLine ();
+		string[] texts = {"one", "two", "three"};
+		texts = demo.EchoCapsArr (texts);
+		foreach (string text in texts)
+			Console.WriteLine (text);
+
+		Console.WriteLine ();
+		int[] vals = demo.TextToInts ("1 2 3");
+		foreach (int val in vals)
+			Console.WriteLine (val);
 	}
 }
 
@@ -74,6 +85,27 @@ public class DemoObject : MarshalByRefObject
 	public DemoEnum GetEnum ()
 	{
 		return DemoEnum.Bar;
+	}
+
+	public string[] EchoCapsArr (string[] texts)
+	{
+		string[] retTexts = new string[texts.Length];
+
+		for (int i = 0 ; i != texts.Length ; i++)
+			retTexts[i] = texts[i].ToUpper ();
+
+		return retTexts;
+	}
+
+	public int[] TextToInts (string text)
+	{
+		string[] parts = text.Split (' ');
+		int[] rets = new int[parts.Length];
+
+		for (int i = 0 ; i != parts.Length ; i++)
+			rets[i] = Int32.Parse (parts[i]);
+
+		return rets;
 	}
 }
 

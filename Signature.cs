@@ -107,6 +107,10 @@ namespace NDesk.DBus
 			if (type.IsEnum)
 				return TypeToDType (type.GetElementType ());
 
+			//needs work
+			if (type.IsArray)
+				return DType.Array;
+
 			if (type == typeof (string))
 				return DType.String;
 

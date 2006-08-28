@@ -82,17 +82,30 @@ namespace NDesk.DBus
 				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
 					callMsg.Body = new System.IO.MemoryStream ();
 
-					inSig.Data = new byte[mcm.InArgs.Length];
-					MemoryStream ms = new MemoryStream (inSig.Data);
+					MemoryStream ms = new MemoryStream ();
 
 					//for (int i = 0 ; i != mcm.InArgs.Length ; i++)
 					foreach (object arg in mcm.InArgs)
 					{
 						//Console.Error.WriteLine ("INarg: ." + arg + ".");
-						DType dtype = Signature.TypeToDType (arg.GetType ());
+						Type type = arg.GetType ();
+						DType dtype = Signature.TypeToDType (type);
+
 						ms.WriteByte ((byte)dtype);
-						Message.Write (callMsg.Body, dtype, arg);
+
+						//hacky
+						if (type.IsArray) {
+							Type elem_type = type.GetElementType ();
+							DType elem_dtype = Signature.TypeToDType (elem_type);
+
+							ms.WriteByte ((byte)elem_dtype);
+							Message.Write (callMsg.Body, type, (Array)arg);
+						} else {
+							Message.Write (callMsg.Body, dtype, arg);
+						}
 					}
+
+					inSig.Data = ms.ToArray ();
 				}
 
 				//Signature outSig = new Signature ("");
@@ -119,25 +132,11 @@ namespace NDesk.DBus
 
 			//handle the reply message
 			{
-				object arg;
-
-				Signature outSig = retMsg.Signature;
-				DType dtype = Signature.TypeToDType (mi.ReturnType);
-
-				//hack to handle string array for now
-				if (mi.ReturnType == typeof (string[])) {
-					string[] argArr;
-					Message.GetValue (retMsg.Body, out argArr);
-					arg = argArr;
-				} else {
-					Message.GetValue (retMsg.Body, dtype, out arg);
-				}
-
-				if (mi.ReturnType.IsEnum)
-					arg = Enum.ToObject (mi.ReturnType, arg);
-
-				newRet.ReturnValue = arg;
+				Type[] retTypeArr = new Type[1];
+				retTypeArr[0] = mi.ReturnType;
+				newRet.ReturnValue = conn.GetDynamicValues (retMsg, retTypeArr)[0];
 			}
+
 			/*
 			{
 				Signature outSig = retMsg.Signature;

@@ -120,6 +120,9 @@ namespace NDesk.DBus
 			if (type == typeof (Signature))
 				return DType.Signature;
 
+			if (type == typeof (object))
+				return DType.Variant;
+
 			//if (type.UnderlyingSystemType != null)
 			//	return TypeToDType (type.UnderlyingSystemType);
 
@@ -193,6 +196,8 @@ namespace NDesk.DBus
 					return typeof (ObjectPath);
 				case DType.Signature:
 					return typeof (Signature);
+				case DType.Variant:
+					return typeof (object);
 		/*
 		Array
 		Struct

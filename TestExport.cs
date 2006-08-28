@@ -62,6 +62,13 @@ public class ManagedDBusTestExport
 		int[] vals = demo.TextToInts ("1 2 3");
 		foreach (int val in vals)
 			Console.WriteLine (val);
+
+		/*
+		Console.WriteLine ();
+		MyTuple fooTuple = demo.GetTuple ();
+		Console.WriteLine ("A: " + fooTuple.A);
+		Console.WriteLine ("B: " + fooTuple.B);
+		*/
 	}
 }
 

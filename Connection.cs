@@ -245,12 +245,17 @@ namespace NDesk.DBus
 					ms.WriteByte ((byte)dtype);
 
 					//hacky
+					//this is also implemented elsewhere
+					//but we have it here too because we need the signature
 					if (type.IsArray) {
 						Type elem_type = type.GetElementType ();
 						DType elem_dtype = Signature.TypeToDType (elem_type);
 
 						ms.WriteByte ((byte)elem_dtype);
 						Message.Write (replyMsg.Body, type, (Array)arg);
+					} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+						//FIXME: need to write proper signature for structs
+						Message.Write (replyMsg.Body, type, (ValueType)arg);
 					} else {
 						Message.Write (replyMsg.Body, dtype, arg);
 					}
@@ -314,6 +319,7 @@ namespace NDesk.DBus
 				foreach (Type type in types) {
 					object arg;
 
+					/*
 					DType dtype = Signature.TypeToDType (type);
 
 					//special case arrays for now
@@ -331,6 +337,9 @@ namespace NDesk.DBus
 
 					if (type.IsEnum)
 						arg = Enum.ToObject (type, arg);
+					*/
+
+					Message.GetValue (msg.Body, type, out arg);
 
 					vals.Add (arg);
 				}

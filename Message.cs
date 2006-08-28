@@ -129,6 +129,7 @@ namespace NDesk.DBus
 		}
 		*/
 
+		/*
 		public static void Write (Stream stream, HeaderField[] val)
 		{
 			//inefficient, but good for now
@@ -144,13 +145,16 @@ namespace NDesk.DBus
 
 			ms.WriteTo (stream);
 		}
+		*/
 
+		/*
 		public static void Write (Stream stream, HeaderField val)
 		{
-			Pad (stream, 8); //ofset for structs, right?
+			Pad (stream, 8); //offset for structs, right?
 			Write (stream, (byte)val.Code);
 			Write (stream, val.Value);
 		}
+		*/
 
 		public static void GetValue (Stream stream, out Signature val)
 		{
@@ -172,6 +176,23 @@ namespace NDesk.DBus
 
 			//TODO: confirm semantics of dbus boolean
 			val = intval == 0 ? false : true;
+		}
+
+		public static void Write (Stream stream, Type type, object val)
+		{
+			//hacky
+			if (type.IsArray) {
+				Type elem_type = type.GetElementType ();
+				DType elem_dtype = Signature.TypeToDType (elem_type);
+
+				//FIXME: signature writing
+				//ms.WriteByte ((byte)elem_dtype);
+				Write (stream, type, (Array)val);
+			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+				Write (stream, type, (ValueType)val);
+			} else {
+				Write (stream, Signature.TypeToDType (type), val);
+			}
 		}
 
 		//helper method, should not be used as it boxes needlessly
@@ -214,6 +235,11 @@ namespace NDesk.DBus
 					Write (stream, (Signature)val);
 				}
 				break;
+				case DType.Variant:
+				{
+					Write (stream, (object)val);
+				}
+				break;
 				default:
 				Console.Error.WriteLine ("Error: Unhandled DBus type: " + dtype);
 				break;
@@ -241,6 +267,29 @@ namespace NDesk.DBus
 			DType t = (DType)sig.Data[0];
 			//Console.WriteLine ("var type " + t);
 			GetValue (stream, t, out val);
+		}
+
+		public static void GetValue (Stream stream, Type type, out object val)
+		{
+			//FIXME
+			//hacky
+			DType dtype = Signature.TypeToDType (type);
+
+			//special case arrays for now
+			if (type.IsArray) {
+				Array valArr;
+				GetValue (stream, type, out valArr);
+				val = valArr;
+			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+				ValueType valV;
+				GetValue (stream, type, out valV);
+				val = valV;
+			} else {
+				GetValue (stream, dtype, out val);
+			}
+
+			if (type.IsEnum)
+				val = Enum.ToObject (type, val);
 		}
 
 		//helper method, should not be used generally
@@ -293,6 +342,13 @@ namespace NDesk.DBus
 				case DType.Signature:
 				{
 					Signature vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
+				case DType.Variant:
+				{
+					object vval;
 					GetValue (stream, out vval);
 					val = vval;
 				}
@@ -387,7 +443,8 @@ namespace NDesk.DBus
 			MemoryStream ms = new MemoryStream ();
 
 			foreach (object elem in val)
-				Write (ms, Signature.TypeToDType (type), elem);
+				//Write (ms, Signature.TypeToDType (type), elem);
+				Write (ms, type, elem);
 
 			Write (stream, (uint)ms.Position);
 
@@ -415,7 +472,8 @@ namespace NDesk.DBus
 			while (stream.Position != endPos)
 			{
 				object elem;
-				GetValue (stream, Signature.TypeToDType (type), out elem);
+				//GetValue (stream, Signature.TypeToDType (type), out elem);
+				GetValue (stream, type, out elem);
 				vals.Add (elem);
 			}
 
@@ -450,16 +508,33 @@ namespace NDesk.DBus
 		//there might be more elegant solutions
 		public static void GetValue (Stream stream, Type type, out ValueType val)
 		{
-			Console.WriteLine ("VT: " +type);
 			System.Reflection.FieldInfo[] fis = type.GetFields ();
 
 			val = (ValueType)Activator.CreateInstance (type);
 
+			Pad (stream, 8); //offset for structs, right?
+
 			foreach (System.Reflection.FieldInfo fi in fis) {
 				object elem;
-				GetValue (stream, Signature.TypeToDType (fi.FieldType), out elem);
-				fi.SetValue (val, elem);
+				//GetValue (stream, Signature.TypeToDType (fi.FieldType), out elem);
+				GetValue (stream, fi.FieldType, out elem);
 				//public virtual void SetValueDirect (TypedReference obj, object value);
+				fi.SetValue (val, elem);
+			}
+		}
+
+		public static void Write (Stream stream, Type type, ValueType val)
+		{
+			System.Reflection.FieldInfo[] fis = type.GetFields ();
+
+			Pad (stream, 8); //offset for structs, right?
+
+			foreach (System.Reflection.FieldInfo fi in fis) {
+				object elem;
+				//public virtual object GetValueDirect (TypedReference obj);
+				elem = fi.GetValue (val);
+				//Write (stream, Signature.TypeToDType (fi.FieldType), elem);
+				Write (stream, fi.FieldType, elem);
 			}
 		}
 
@@ -480,7 +555,11 @@ namespace NDesk.DBus
 			MemoryStream ms = new MemoryStream (HeaderData);
 
 			ms.Position = 12; //ugly
-			GetValue (ms, out HeaderFields);
+			//GetValue (ms, out HeaderFields);
+
+			Array tmpArr;
+			GetValue (ms, typeof (HeaderField[]), out tmpArr);
+			HeaderFields = (HeaderField[])tmpArr;
 
 			foreach (HeaderField field in HeaderFields)
 			{
@@ -551,7 +630,8 @@ namespace NDesk.DBus
 			//ms.Position = sizeof (DHeader) - sizeof (uint);
 			//ms.Position = 12;
 
-			Message.Write (ms, fields);
+			//Message.Write (ms, fields);
+			Message.Write (ms, typeof (HeaderField[]), (Array)fields);
 			Message.Close (ms);
 
 			msg.HeaderData = ms.GetBuffer ();

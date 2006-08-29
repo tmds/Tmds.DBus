@@ -235,14 +235,14 @@ namespace NDesk.DBus
 			if (vals != null && vals.Length != 0) {
 				replyMsg.Body = new System.IO.MemoryStream ();
 
-				MemoryStream ms = new MemoryStream ();
+				//MemoryStream ms = new MemoryStream ();
 
 				foreach (object arg in vals)
 				{
 					Type type = arg.GetType ();
 					DType dtype = Signature.TypeToDType (type);
 
-					ms.WriteByte ((byte)dtype);
+					//ms.WriteByte ((byte)dtype);
 
 					//hacky
 					//this is also implemented elsewhere
@@ -251,7 +251,7 @@ namespace NDesk.DBus
 						Type elem_type = type.GetElementType ();
 						DType elem_dtype = Signature.TypeToDType (elem_type);
 
-						ms.WriteByte ((byte)elem_dtype);
+						//ms.WriteByte ((byte)elem_dtype);
 						Message.Write (replyMsg.Body, type, (Array)arg);
 					} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 						//FIXME: need to write proper signature for structs
@@ -261,7 +261,8 @@ namespace NDesk.DBus
 					}
 				}
 
-				inSig.Data = ms.ToArray ();
+				//inSig.Data = ms.ToArray ();
+				inSig = DProxy.GetSig (vals);
 			}
 
 			if (inSig.Data.Length == 0)

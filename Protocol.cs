@@ -163,4 +163,48 @@ namespace NDesk.DBus
 			return Value;
 		}
 	}
+
+	public static class Padding
+	{
+		public static int GetAlignment (DType dtype)
+		{
+			switch (dtype) {
+				case DType.Byte:
+					return 1;
+				case DType.Boolean:
+					return 4;
+				case DType.Int16:
+				case DType.UInt16:
+					return 2;
+				case DType.Int32:
+				case DType.UInt32:
+					return 4;
+				case DType.Int64:
+				case DType.UInt64:
+					return 8;
+				case DType.Float: //Not yet supported!
+					return 4;
+				case DType.Double:
+					return 8;
+				case DType.String:
+					return 4;
+				case DType.ObjectPath:
+					return 4;
+				case DType.Signature:
+					return 1;
+				case DType.Array:
+					return 4;
+				case DType.Struct:
+					return 8;
+				case DType.Variant:
+					return 1;
+				case DType.DictEntry:
+					return 8;
+				case DType.Invalid:
+					return 0;
+				default:
+					return 0;
+			}
+		}
+	}
 }

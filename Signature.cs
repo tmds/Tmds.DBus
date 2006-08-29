@@ -123,6 +123,9 @@ namespace NDesk.DBus
 			if (type == typeof (object))
 				return DType.Variant;
 
+			if (!type.IsPrimitive && type.IsValueType && !type.IsEnum)
+				return DType.Struct;
+
 			//if (type.UnderlyingSystemType != null)
 			//	return TypeToDType (type.UnderlyingSystemType);
 

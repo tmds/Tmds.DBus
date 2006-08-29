@@ -438,6 +438,7 @@ namespace NDesk.DBus
 
 		//this could be made generic to avoid boxing
 		//restricted to primitive elements because of the DType bottleneck
+		//FIXME: this has become a mess and doesn't work fully, clean it up
 		public static void Write (Stream stream, Type type, Array val)
 		{
 			//if (type.IsArray)
@@ -446,16 +447,35 @@ namespace NDesk.DBus
 			//inefficient, but good for now
 			MemoryStream ms = new MemoryStream ();
 
+			//simulate the alignment offset of the current stream in the new one
+			//int offset = PadNeeded ((int)stream.Position + 4, 8);
+			//ms.Position = offset;
+
+			//int offset = PadNeeded (Padded ((int)stream.Position, 4)+4, 16);
+			//int offset = PadNeeded (Padded ((int)stream.Position, 4)+4, Padding.GetAlignment (Signature.TypeToDType (type)));
+			int offset = Padded (PadNeeded ((int)stream.Position, 4)+4, Padding.GetAlignment (Signature.TypeToDType (type)));
+			ms.Position = offset;
+			//TODO: advance to the alignment of the element
+			//Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
+
 			foreach (object elem in val)
 				//Write (ms, Signature.TypeToDType (type), elem);
 				Write (ms, type, elem);
 
-			Write (stream, (uint)ms.Position);
+			//Write (stream, (uint)ms.Position);
+			Write (stream, (uint)(ms.Position - offset));
+
+			//Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
 
 			//byte[] buf = ms.GetBuffer ();
 			//stream.Write (buf, 0, (int)ms.Position);
 
-			ms.WriteTo (stream);
+			//ms.WriteTo (stream);
+			{
+				byte[] bytes = ms.ToArray ();
+				stream.Write (bytes, offset, bytes.Length - offset);
+				//stream.Write (bytes, 0, bytes.Length);
+			}
 		}
 
 		//this could be made generic to avoid boxing
@@ -467,6 +487,9 @@ namespace NDesk.DBus
 
 			uint ln;
 			GetValue (stream, out ln);
+
+			//advance to the alignment of the element
+			Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
 
 			int endPos = (int)stream.Position + (int)ln;
 
@@ -545,6 +568,23 @@ namespace NDesk.DBus
 			}
 
 			val = (ValueType)Activator.CreateInstance (type);
+
+			/*
+			if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>)) {
+				object elem;
+
+				System.Reflection.PropertyInfo key_prop = type.GetProperty ("Key");
+				GetValue (stream, key_prop.PropertyType, out elem);
+				key_prop.SetValue (val, elem, null);
+
+				System.Reflection.PropertyInfo val_prop = type.GetProperty ("Value");
+				GetValue (stream, val_prop.PropertyType, out elem);
+				val_prop.SetValue (val, elem, null);
+
+				return;
+			}
+			*/
+
 			System.Reflection.FieldInfo[] fis = type.GetFields ();
 
 			foreach (System.Reflection.FieldInfo fi in fis) {
@@ -559,6 +599,25 @@ namespace NDesk.DBus
 		public static void Write (Stream stream, Type type, ValueType val)
 		{
 			Pad (stream, 8); //offset for structs, right?
+
+			/*
+			ConstructorInfo[] cis = type.GetConstructors ();
+			if (cis.Length != 0) {
+				System.Reflection.ParameterInfo[]  parms = ci.GetParameters ();
+
+				foreach (ParameterInfo parm in parms) {
+				}
+			}
+			*/
+			if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>)) {
+				System.Reflection.PropertyInfo key_prop = type.GetProperty ("Key");
+				Write (stream, key_prop.PropertyType, key_prop.GetValue (val, null));
+
+				System.Reflection.PropertyInfo val_prop = type.GetProperty ("Value");
+				Write (stream, val_prop.PropertyType, val_prop.GetValue (val, null));
+
+				return;
+			}
 
 			System.Reflection.FieldInfo[] fis = type.GetFields ();
 

@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Collections.Generic;
 using NDesk.DBus;
 using org.freedesktop.DBus;
 
@@ -63,12 +64,13 @@ public class ManagedDBusTestExport
 		foreach (int val in vals)
 			Console.WriteLine (val);
 
-		/*
 		Console.WriteLine ();
 		MyTuple fooTuple = demo.GetTuple ();
 		Console.WriteLine ("A: " + fooTuple.A);
 		Console.WriteLine ("B: " + fooTuple.B);
-		*/
+
+		Console.WriteLine ();
+		KeyValuePair<string,string>[] kvps = demo.GetDict ();
 	}
 }
 
@@ -123,6 +125,19 @@ public class DemoObject : MarshalByRefObject
 		tup.B = "beta";
 
 		return tup;
+	}
+
+	public KeyValuePair<string,string>[] GetDict ()
+	{
+		KeyValuePair<string,string>[] rets = new KeyValuePair<string,string>[2];
+
+		//rets[0] = new KeyValuePair<string,string> ("one", "1");
+		//rets[1] = new KeyValuePair<string,string> ("two", "2");
+
+		rets[0] = new KeyValuePair<string,string> ("second", " from example-service.py");
+		rets[1] = new KeyValuePair<string,string> ("first", "Hello Dict");
+
+		return rets;
 	}
 }
 

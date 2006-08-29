@@ -82,7 +82,7 @@ namespace NDesk.DBus
 				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
 					callMsg.Body = new System.IO.MemoryStream ();
 
-					MemoryStream ms = new MemoryStream ();
+					//MemoryStream ms = new MemoryStream ();
 
 					//for (int i = 0 ; i != mcm.InArgs.Length ; i++)
 					foreach (object arg in mcm.InArgs)
@@ -91,7 +91,7 @@ namespace NDesk.DBus
 						Type type = arg.GetType ();
 						DType dtype = Signature.TypeToDType (type);
 
-						ms.WriteByte ((byte)dtype);
+						//ms.WriteByte ((byte)dtype);
 
 						//hacky
 						//this is also implemented elsewhere
@@ -100,7 +100,7 @@ namespace NDesk.DBus
 							Type elem_type = type.GetElementType ();
 							DType elem_dtype = Signature.TypeToDType (elem_type);
 
-							ms.WriteByte ((byte)elem_dtype);
+							//ms.WriteByte ((byte)elem_dtype);
 							Message.Write (callMsg.Body, type, (Array)arg);
 						} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 							//FIXME: need to write proper signature for structs
@@ -110,7 +110,8 @@ namespace NDesk.DBus
 						}
 					}
 
-					inSig.Data = ms.ToArray ();
+					//inSig.Data = ms.ToArray ();
+					inSig = GetSig (mcm.InArgs);
 				}
 
 				//Signature outSig = new Signature ("");
@@ -190,5 +191,82 @@ namespace NDesk.DBus
 			throw new System.NotSupportedException ();
 		}
 		*/
+
+		public static Signature GetSig (object[] objs)
+		{
+			return GetSig (Type.GetTypeArray (objs));
+		}
+
+		public static Signature GetSig (Type[] types)
+		{
+			MemoryStream ms = new MemoryStream ();
+
+			foreach (Type type in types) {
+				{
+					byte[] data = GetSig (type).Data;
+					ms.Write (data, 0, data.Length);
+				}
+			}
+
+			Signature sig;
+			sig.Data = ms.ToArray ();
+			return sig;
+		}
+
+		public static Signature GetSig (Type type)
+		{
+			MemoryStream ms = new MemoryStream ();
+
+			if (type.IsArray) {
+				ms.WriteByte ((byte)DType.Array);
+
+				Type elem_type = type.GetElementType ();
+				//TODO: recurse
+				//DType elem_dtype = Signature.TypeToDType (elem_type);
+				//ms.WriteByte ((byte)elem_dtype);
+				{
+					byte[] data = GetSig (elem_type).Data;
+					ms.Write (data, 0, data.Length);
+				}
+			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+				//if (type.IsGenericParameter && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
+				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
+					ms.WriteByte ((byte)'{');
+				else
+					ms.WriteByte ((byte)'(');
+
+				ConstructorInfo[] cis = type.GetConstructors ();
+				if (cis.Length != 0) {
+					System.Reflection.ConstructorInfo ci = cis[0];
+					System.Reflection.ParameterInfo[]  parms = ci.GetParameters ();
+
+					foreach (ParameterInfo parm in parms) {
+						{
+							byte[] data = GetSig (parm.ParameterType).Data;
+							ms.Write (data, 0, data.Length);
+						}
+					}
+
+				} else {
+					foreach (FieldInfo fi in type.GetFields ()) {
+						{
+							byte[] data = GetSig (fi.FieldType).Data;
+							ms.Write (data, 0, data.Length);
+						}
+					}
+				}
+				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
+					ms.WriteByte ((byte)'}');
+				else
+					ms.WriteByte ((byte)')');
+			} else {
+				DType dtype = Signature.TypeToDType (type);
+				ms.WriteByte ((byte)dtype);
+			}
+
+			Signature sig;
+			sig.Data = ms.ToArray ();
+			return sig;
+		}
 	}
 }

@@ -439,6 +439,7 @@ namespace NDesk.DBus
 		//this could be made generic to avoid boxing
 		//restricted to primitive elements because of the DType bottleneck
 		//FIXME: this has become a mess and doesn't work fully, clean it up
+		/*
 		public static void Write (Stream stream, Type type, Array val)
 		{
 			//if (type.IsArray)
@@ -477,6 +478,34 @@ namespace NDesk.DBus
 				//stream.Write (bytes, 0, bytes.Length);
 			}
 		}
+		*/
+
+		//non copying version of above
+		//the old code may be needed when streams are non-seekable
+		public static void Write (Stream stream, Type type, Array val)
+		{
+			//if (type.IsArray)
+			type = type.GetElementType ();
+
+			Write (stream, (uint)0);
+			long lengthPos = stream.Position - 4;
+
+			//advance to the alignment of the element
+			Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
+
+			long startPos = stream.Position;
+
+			foreach (object elem in val)
+				Write (stream, type, elem);
+
+			long endPos = stream.Position;
+
+			stream.Position = lengthPos;
+			Write (stream, (uint)(endPos - startPos));
+
+			stream.Position = endPos;
+		}
+
 
 		//this could be made generic to avoid boxing
 		//restricted to primitive elements because of the DType bottleneck

@@ -71,6 +71,8 @@ public class ManagedDBusTestExport
 
 		Console.WriteLine ();
 		KeyValuePair<string,string>[] kvps = demo.GetDict ();
+		foreach (KeyValuePair<string,string> kvp in kvps)
+			Console.WriteLine (kvp.Key + ": " + kvp.Value);
 	}
 }
 

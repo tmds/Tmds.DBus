@@ -309,6 +309,8 @@ namespace NDesk.DBus
 			}
 		}
 
+		public Dictionary<Type,string> RegisteredTypes = new Dictionary<Type,string> ();
+
 		public Dictionary<string,object> RegisteredObjects = new Dictionary<string,object> ();
 
 		public object[] GetDynamicValues (Message msg, Type[] types)

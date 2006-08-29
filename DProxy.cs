@@ -116,6 +116,11 @@ namespace NDesk.DBus
 				//Signature outSig = new Signature ("");
 				//Console.Error.WriteLine ("INSIG: ." + inSig.Value + ".");
 
+				//if the type is registered, use that, otherwise use legacy iface string
+				MethodInfo imi = mcm.MethodBase as MethodInfo;
+				if (imi != null && conn.RegisteredTypes.ContainsKey (imi.DeclaringType))
+					iface = conn.RegisteredTypes[imi.DeclaringType];
+
 				if (inSig.Data.Length == 0)
 					callMsg.WriteHeader (new HeaderField (FieldCode.Path, opath), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, dest));
 				else

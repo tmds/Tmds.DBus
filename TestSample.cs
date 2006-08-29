@@ -12,6 +12,9 @@ public class ManagedDBusTestSample
 	public static void Main ()
 	{
 		Connection conn = new Connection ();
+		conn.RegisteredTypes[typeof (SampleInterface)] = "org.designfu.SampleInterface";
+		conn.RegisteredTypes[typeof (Bus)] = "org.freedesktop.DBus";
+		conn.RegisteredTypes[typeof (Introspectable)] = "org.freedesktop.DBus.Introspectable";
 
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";
@@ -30,8 +33,8 @@ public class ManagedDBusTestSample
 		SampleInterface sample = (SampleInterface)prox2.GetTransparentProxy ();
 
 		Console.WriteLine ();
-		//string xmlData = sample.Introspect ();
-		//Console.WriteLine ("xmlData: " + xmlData);
+		string xmlData = sample.Introspect ();
+		Console.WriteLine ("xmlData: " + xmlData);
 
 		//object obj = sample.HelloWorld ("Hello from example-client.py!");
 		string[] vals = sample.HelloWorld ("Hello from example-client.py!");

@@ -273,7 +273,6 @@ namespace NDesk.DBus
 		{
 			//FIXME
 			//hacky
-			DType dtype = Signature.TypeToDType (type);
 
 			//special case arrays for now
 			if (type.IsArray) {
@@ -285,6 +284,7 @@ namespace NDesk.DBus
 				GetValue (stream, type, out valV);
 				val = valV;
 			} else {
+				DType dtype = Signature.TypeToDType (type);
 				GetValue (stream, dtype, out val);
 			}
 

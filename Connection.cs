@@ -138,8 +138,7 @@ namespace NDesk.DBus
 			read = ns.Read (buf, 16, toRead);
 
 			if (read != toRead)
-				Console.Error.WriteLine ("Read length mismatch: " + read + " of expected " + toRead);
-				//throw new Exception ("Read length mismatch: " + read + " of expected " + toRead);
+				throw new Exception ("Read length mismatch: " + read + " of expected " + toRead);
 
 			msg.HeaderData = buf;
 
@@ -159,7 +158,7 @@ namespace NDesk.DBus
 
 				//if (len != msg.Body.Length)
 				if (len != body.Length)
-					Console.Error.WriteLine ("Message body size mismatch");
+					throw new Exception ("Message body size mismatch");
 
 				msg.Body = new MemoryStream (body);
 			}
@@ -249,7 +248,7 @@ namespace NDesk.DBus
 				dlg.DynamicInvoke (GetDynamicValues (msg, sig));
 
 			} else {
-				Console.Error.WriteLine ("No signal handler for " + msg.Member);
+				Console.Error.WriteLine ("Warning: No signal handler for " + msg.Member);
 			}
 		}
 
@@ -313,7 +312,7 @@ namespace NDesk.DBus
 					Send (reply);
 				}
 			} else {
-				Console.Error.WriteLine ("No method handler for " + msg.Member);
+				Console.Error.WriteLine ("Warning: No method handler for " + msg.Member);
 			}
 		}
 

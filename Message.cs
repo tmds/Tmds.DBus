@@ -354,9 +354,8 @@ namespace NDesk.DBus
 				}
 				break;
 				default:
-				Console.Error.WriteLine ("Error: Unhandled variant type: " + dtype);
 				val = null;
-				break;
+				throw new Exception ("Unhandled DBus type: " + dtype);
 			}
 		}
 
@@ -563,7 +562,7 @@ namespace NDesk.DBus
 			}
 
 			if (stream.Position != endPos)
-				Console.Error.WriteLine ("Warning: pos " + stream.Position + " != ep " + endPos);
+				throw new Exception ("Read pos " + stream.Position + " != ep " + endPos);
 		}
 
 		//this could be made generic to avoid boxing
@@ -594,7 +593,7 @@ namespace NDesk.DBus
 			}
 
 			if (stream.Position != endPos)
-				Console.Error.WriteLine ("Warning: pos " + stream.Position + " != ep " + endPos);
+				throw new Exception ("Read pos " + stream.Position + " != ep " + endPos);
 
 			val = vals.ToArray (type);
 			//val = Array.CreateInstance (type.UnderlyingSystemType, vals.Count);
@@ -851,15 +850,8 @@ namespace NDesk.DBus
 				//Console.WriteLine ("got pad: " + br.ReadByte ());
 				//byte b = br.ReadByte ();
 				int b = stream.ReadByte ();
-				if (b != 0) {
-					StackTrace st = new System.Diagnostics.StackTrace (true);
-					//System.Diagnostics.StackTrace ();
-					Console.Error.WriteLine ();
-					Console.Error.WriteLine ("Warning: Read non-zero padding byte:");
-					Console.Error.WriteLine ("At pos " + i + " (offset " + stream.Position + "), pad value was " + b + ":");
-					Console.Error.WriteLine (st);
-					Console.Error.WriteLine ();
-				}
+				if (b != 0)
+					throw new Exception ("Read non-zero padding byte at pos " + i + " (offset " + stream.Position + "), pad value was " + b);
 			}
 		}
 

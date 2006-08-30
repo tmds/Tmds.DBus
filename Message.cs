@@ -677,6 +677,7 @@ namespace NDesk.DBus
 
 			int endPos = (int)stream.Position + (int)ln;
 
+			//while (stream.Position != endPos)
 			while (stream.Position < endPos)
 			{
 				Pad (stream, 8);
@@ -712,7 +713,6 @@ namespace NDesk.DBus
 			//List<T> vals = new List<T> ();
 			System.Collections.ArrayList vals = new System.Collections.ArrayList ();
 
-			//FIXME: why are we not reaching the precise endPos?
 			//while (stream.Position != endPos)
 			while (stream.Position < endPos)
 			{

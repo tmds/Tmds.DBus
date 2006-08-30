@@ -234,7 +234,7 @@ namespace NDesk.DBus
 					Write (stream, (ulong)val);
 				}
 				break;
-				case DType.Float:
+				case DType.Single:
 				{
 					Write (stream, (float)val);
 				}
@@ -367,7 +367,7 @@ namespace NDesk.DBus
 					val = vval;
 				}
 				break;
-				case DType.Float:
+				case DType.Single:
 				{
 					float vval;
 					GetValue (stream, out vval);

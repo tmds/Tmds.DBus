@@ -182,7 +182,7 @@ namespace NDesk.DBus
 				case DType.Int64:
 				case DType.UInt64:
 					return 8;
-				case DType.Float: //Not yet supported!
+				case DType.Single: //Not yet supported!
 					return 4;
 				case DType.Double:
 					return 8;

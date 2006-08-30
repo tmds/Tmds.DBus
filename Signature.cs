@@ -82,7 +82,7 @@ namespace NDesk.DBus
 				case TypeCode.UInt64:
 					return DType.UInt64;
 				case TypeCode.Single:
-					return DType.Float;
+					return DType.Single;
 				case TypeCode.Double:
 					return DType.Double;
 				case TypeCode.Decimal:
@@ -153,7 +153,7 @@ namespace NDesk.DBus
 			else if (type == typeof (ulong))
 				return DType.UInt64;
 			else if (type == typeof (float)) //FIXME: this isn't supported by DBus yet
-				return DType.Float;
+				return DType.Single;
 			else if (type == typeof (double))
 				return DType.Double;
 			else if (type == typeof (string))
@@ -188,7 +188,7 @@ namespace NDesk.DBus
 					return typeof (long);
 				case DType.UInt64:
 					return typeof (ulong);
-				case DType.Float: //Not yet supported!
+				case DType.Single: //Not yet supported!
 					return typeof (float);
 				case DType.Double:
 					return typeof (double);
@@ -224,7 +224,7 @@ namespace NDesk.DBus
 		UInt32 = (byte)'u',
 		Int64 = (byte)'x',
 		UInt64 = (byte)'t',
-		Float = (byte)'f', //This is not yet supported!
+		Single = (byte)'f', //This is not yet supported!
 		Double = (byte)'d',
 		String = (byte)'s',
 		ObjectPath = (byte)'o',

@@ -201,9 +201,8 @@ namespace NDesk.DBus
 				case DType.DictEntry:
 					return 8;
 				case DType.Invalid:
-					return 0;
 				default:
-					return 0;
+					throw new Exception ("Cannot determine alignment of " + dtype);
 			}
 		}
 	}

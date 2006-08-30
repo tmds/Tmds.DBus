@@ -12,9 +12,6 @@ public class ManagedDBusTestSample
 	public static void Main ()
 	{
 		Connection conn = new Connection ();
-		conn.RegisteredTypes[typeof (SampleInterface)] = "org.designfu.SampleInterface";
-		conn.RegisteredTypes[typeof (Bus)] = "org.freedesktop.DBus";
-		conn.RegisteredTypes[typeof (Introspectable)] = "org.freedesktop.DBus.Introspectable";
 
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";
@@ -29,7 +26,7 @@ public class ManagedDBusTestSample
 		string myName = bus.Hello ();
 		Console.WriteLine ("myName: " + myName);
 
-		DProxy prox2 = new DProxy (conn, new ObjectPath ("/SomeObject"), "org.designfu.SampleInterface", "org.designfu.SampleService", typeof (SampleInterface));
+		DProxy prox2 = new DProxy (conn, new ObjectPath ("/SomeObject"), "org.designfu.SampleService", typeof (SampleInterface));
 		SampleInterface sample = (SampleInterface)prox2.GetTransparentProxy ();
 
 		Console.WriteLine ();
@@ -53,6 +50,7 @@ public class ManagedDBusTestSample
 	}
 }
 
+[Interface ("org.designfu.SampleInterface")]
 public interface SampleInterface : Introspectable
 {
 	//void HelloWorld (object hello_message);

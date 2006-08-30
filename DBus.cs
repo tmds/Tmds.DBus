@@ -47,12 +47,13 @@ namespace org.freedesktop.DBus
 	public delegate void NameAcquiredHandler (string name);
 	public delegate void NameLostHandler (string name);
 
-	//[Interface ("org.freedesktop.DBus.Introspectable")]
+	[Interface ("org.freedesktop.DBus.Introspectable")]
 	public interface Introspectable
 	{
 		string Introspect ();
 	}
 
+	[Interface ("org.freedesktop.DBus.Properties")]
 	public interface Properties
 	{
 		object this [string propname] {get; set;}
@@ -84,7 +85,7 @@ namespace org.freedesktop.DBus
 	}
 
 	//Having this as an attribute is a bit silly, no?
-	[AttributeUsage (AttributeTargets.Interface, AllowMultiple=false, Inherited=true)]
+	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]
 	public class InterfaceAttribute : Attribute
 	{
 		public string Name;

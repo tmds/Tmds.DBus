@@ -77,6 +77,7 @@ public class ManagedDBusTestExport
 	}
 }
 
+[Interface ("org.ndesk.test")]
 public class DemoObject : MarshalByRefObject
 {
 	public void Say (string text)

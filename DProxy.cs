@@ -15,21 +15,27 @@ namespace NDesk.DBus
 	{
 		Connection conn;
 		ObjectPath opath;
-		string iface;
 		string dest;
 
 		//Dictionary<string,string> methods = new Dictionary<string,string> ();
 
-		public DProxy (Connection conn, ObjectPath opath, string dest, Type type) : this(conn, opath, dest, dest, type)
-		{
-		}
-
-		public DProxy (Connection conn, ObjectPath opath, string iface, string dest, Type type) : base(type)
+		public DProxy (Connection conn, ObjectPath opath, string dest, Type type) : base(type)
 		{
 			this.conn = conn;
 			this.opath = opath;
-			this.iface = iface;
 			this.dest = dest;
+
+			//messy and only relevant to imported objects, but works
+			//note that the foreach is useless since there can be only key
+			//this slows things down by 0.030s or so, bringing test.exe to real 0.430s
+			//probably does not deal with class inheritance etc.
+
+			foreach (org.freedesktop.DBus.InterfaceAttribute ia in type.GetCustomAttributes (typeof (org.freedesktop.DBus.InterfaceAttribute), false))
+				conn.RegisteredTypes[type] = ia.Name;
+
+			foreach (Type t in type.GetInterfaces ())
+				foreach (org.freedesktop.DBus.InterfaceAttribute ia in t.GetCustomAttributes (typeof (org.freedesktop.DBus.InterfaceAttribute), false))
+					conn.RegisteredTypes[t] = ia.Name;
 
 			/*
 			methods["Hello"] = "";
@@ -87,6 +93,8 @@ namespace NDesk.DBus
 
 					inSig = GetSig (mcm.InArgs);
 				}
+
+				string iface = null;
 
 				//if the type is registered, use that, otherwise use legacy iface string
 				MethodInfo imi = mcm.MethodBase as MethodInfo;

@@ -21,7 +21,7 @@ namespace org.freedesktop
 	}
 	*/
 
-	//[Interface ("org.freedesktop.Notifications")]
+	[Interface ("org.freedesktop.Notifications")]
 	public interface Notifications : Introspectable, Properties
 	{
 		//ServerInformation ServerInformation { get; }

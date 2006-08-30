@@ -25,13 +25,9 @@ public class ManagedDBusTest
 		string myName = bus.Hello ();
 		Console.WriteLine ("myName: " + myName);
 
-		DProxy prox2 = new DProxy (conn, opath, "org.freedesktop.DBus.Introspectable", name, typeof (Introspectable));
-		Introspectable bus2 = (Introspectable)prox2.GetTransparentProxy ();
-
 		Console.WriteLine ();
-		string xmlData = bus2.Introspect ();
+		string xmlData = bus.Introspect ();
 		Console.WriteLine ("xmlData: " + xmlData);
-
 
 		Console.WriteLine ();
 		foreach (string n in bus.ListNames ())

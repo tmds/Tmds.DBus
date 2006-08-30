@@ -201,6 +201,36 @@ namespace NDesk.DBus
 		}
 
 
+		//temporary hack
+		public void Iterate ()
+		{
+			//Message msg = Inbound.Dequeue ();
+
+			Message msg;
+
+			msg = ReadMessage ();
+
+			switch (msg.MessageType) {
+				case MessageType.Invalid:
+					break;
+				case MessageType.MethodCall:
+					HandleMethodCall (msg);
+					break;
+				case MessageType.MethodReturn:
+				case MessageType.Error:
+					if (PendingCalls.ContainsKey (msg.ReplySerial)) {
+						//return msg;
+					}
+					break;
+				case MessageType.Signal:
+					HandleSignal (msg);
+					break;
+			}
+		}
+
+		public Dictionary<uint,Message> PendingCalls = new Dictionary<uint,Message> ();
+
+
 		//this might need reworking with MulticastDelegate
 		public void HandleSignal (Message msg)
 		{

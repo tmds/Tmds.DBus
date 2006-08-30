@@ -88,9 +88,6 @@ namespace NDesk.DBus
 					inSig = GetSig (mcm.InArgs);
 				}
 
-				//Signature outSig = new Signature ("");
-				//Console.Error.WriteLine ("INSIG: ." + inSig.Value + ".");
-
 				//if the type is registered, use that, otherwise use legacy iface string
 				MethodInfo imi = mcm.MethodBase as MethodInfo;
 				if (imi != null && conn.RegisteredTypes.ContainsKey (imi.DeclaringType))
@@ -121,40 +118,6 @@ namespace NDesk.DBus
 				retTypeArr[0] = mi.ReturnType;
 				newRet.ReturnValue = conn.GetDynamicValues (retMsg, retTypeArr)[0];
 			}
-
-			/*
-			{
-				Signature outSig = retMsg.Signature;
-
-				//Console.Error.WriteLine ("out: " + mcm.MethodName);
-				//Console.Error.WriteLine ("outSig: " + outSig.Value);
-
-				if (outSig.Data.Length == 0)
-					return (IMethodReturnMessage) newRet;
-
-				//special case array of string for now
-				//if (outSig.Value == "as")
-				if (outSig.Data[0] == (byte)'a' && outSig.Data[1] == (byte)'s')
-				{
-					string[] arg;
-
-					Message.GetValue (retMsg.Body, out arg);
-
-					newRet.ReturnValue = arg;
-				}
-				else
-				{
-					object arg;
-
-					DType dtype = (DType)outSig.Data[0];
-					Message.GetValue (retMsg.Body, dtype, out arg);
-
-					newRet.ReturnValue = arg;
-				}
-			}
-			*/
-
-			//Console.Error.WriteLine ("INVOKE: " + mcm.MethodName);
 
 			return (IMethodReturnMessage) newRet;
 		}

@@ -328,29 +328,7 @@ namespace NDesk.DBus
 			if (msg.Body != null) {
 				foreach (Type type in types) {
 					object arg;
-
-					/*
-					DType dtype = Signature.TypeToDType (type);
-
-					//special case arrays for now
-					if (type.IsArray) {
-						Array argArr;
-						Message.GetValue (msg.Body, type, out argArr);
-						arg = argArr;
-					} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
-						ValueType argV;
-						Message.GetValue (msg.Body, type, out argV);
-						arg = argV;
-					} else {
-						Message.GetValue (msg.Body, dtype, out arg);
-					}
-
-					if (type.IsEnum)
-						arg = Enum.ToObject (type, arg);
-					*/
-
 					Message.GetValue (msg.Body, type, out arg);
-
 					vals.Add (arg);
 				}
 			}

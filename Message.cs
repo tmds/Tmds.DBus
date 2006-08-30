@@ -118,47 +118,8 @@ namespace NDesk.DBus
 			bw.Write ((byte)0); //NULL string terminator
 		}
 
-		/*
-		public static void Write (Stream stream, HeaderField[] val)
-		{
-			//FIXME: write the proper length
-			Write (stream, (uint)0);
-
-			foreach (HeaderField item in val)
-				Write (stream, item);
-		}
-		*/
-
-		/*
-		public static void Write (Stream stream, HeaderField[] val)
-		{
-			//inefficient, but good for now
-			MemoryStream ms = new MemoryStream ();
-
-			foreach (HeaderField item in val)
-				Write (ms, item);
-
-			Write (stream, (uint)ms.Position);
-
-			//byte[] buf = ms.GetBuffer ();
-			//stream.Write (buf, 0, (int)ms.Position);
-
-			ms.WriteTo (stream);
-		}
-		*/
-
-		/*
-		public static void Write (Stream stream, HeaderField val)
-		{
-			Pad (stream, 8); //offset for structs, right?
-			Write (stream, (byte)val.Code);
-			Write (stream, val.Value);
-		}
-		*/
-
 		public static void Write (Stream stream, Type type, object val)
 		{
-			//hacky
 			if (type.IsArray) {
 				Write (stream, type, (Array)val);
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
@@ -266,10 +227,6 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, Type type, out object val)
 		{
-			//FIXME
-			//hacky
-
-			//special case arrays for now
 			if (type.IsArray) {
 				Array valArr;
 				GetValue (stream, type, out valArr);
@@ -403,18 +360,6 @@ namespace NDesk.DBus
 			}
 		}
 
-		/*
-		public static void GetValue (Stream stream, out HeaderField val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			Pad (stream, 8); //alignment for struct, right?
-			val.Code = (FieldCode)br.ReadByte ();
-			//GetValue (stream, out val.Code);
-			GetValue (stream, out val.Value);
-		}
-		*/
-
 		public static void GetValue (Stream stream, out byte val)
 		{
 			BinaryReader br = new BinaryReader (stream);
@@ -518,13 +463,12 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			//Pad (stream, 1); //TODO: alignment for signature is meant to be 1?
-			//Pad (stream, 4);
+			//Pad (stream, 1); //alignment for signature is 1
 			byte ln;
 			GetValue (stream, out ln);
 
 			val.Data = br.ReadBytes ((int)ln);
-			br.ReadByte (); //null string terminator
+			br.ReadByte (); //null signature terminator
 		}
 
 		//variant
@@ -538,76 +482,9 @@ namespace NDesk.DBus
 			GetValue (stream, t, out val);
 		}
 
-		/*
-		public static void GetValue (Stream stream, out HeaderField[] val)
-		{
-			uint ln;
-			GetValue (stream, out ln);
-
-			int endPos = (int)stream.Position + (int)ln;
-
-			List<HeaderField> lvals = new List<HeaderField> ();
-
-			while (stream.Position != endPos)
-			{
-				HeaderField sval;
-				GetValue (stream, out sval);
-				lvals.Add (sval);
-			}
-
-			val = lvals.ToArray ();
-		}
-		*/
-
 		//FIXME: we are missing writers for some primitive types, they just won't work!
 
-
-		//this could be made generic to avoid boxing
-		//restricted to primitive elements because of the DType bottleneck
-		//FIXME: this has become a mess and doesn't work fully, clean it up
-		/*
-		public static void Write (Stream stream, Type type, Array val)
-		{
-			//if (type.IsArray)
-			type = type.GetElementType ();
-
-			//inefficient, but good for now
-			MemoryStream ms = new MemoryStream ();
-
-			//simulate the alignment offset of the current stream in the new one
-			//int offset = PadNeeded ((int)stream.Position + 4, 8);
-			//ms.Position = offset;
-
-			//int offset = PadNeeded (Padded ((int)stream.Position, 4)+4, 16);
-			//int offset = PadNeeded (Padded ((int)stream.Position, 4)+4, Padding.GetAlignment (Signature.TypeToDType (type)));
-			int offset = Padded (PadNeeded ((int)stream.Position, 4)+4, Padding.GetAlignment (Signature.TypeToDType (type)));
-			ms.Position = offset;
-			//TODO: advance to the alignment of the element
-			//Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
-
-			foreach (object elem in val)
-				//Write (ms, Signature.TypeToDType (type), elem);
-				Write (ms, type, elem);
-
-			//Write (stream, (uint)ms.Position);
-			Write (stream, (uint)(ms.Position - offset));
-
-			//Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
-
-			//byte[] buf = ms.GetBuffer ();
-			//stream.Write (buf, 0, (int)ms.Position);
-
-			//ms.WriteTo (stream);
-			{
-				byte[] bytes = ms.ToArray ();
-				stream.Write (bytes, offset, bytes.Length - offset);
-				//stream.Write (bytes, 0, bytes.Length);
-			}
-		}
-		*/
-
-		//non copying version of above
-		//the old code may be needed when streams are non-seekable
+		//this requires a seekable stream for now
 		public static void Write (Stream stream, Type type, Array val)
 		{
 			//if (type.IsArray)
@@ -722,28 +599,6 @@ namespace NDesk.DBus
 			val = vals.ToArray (type);
 			//val = Array.CreateInstance (type.UnderlyingSystemType, vals.Count);
 		}
-
-
-		/*
-		public static void GetValue (Stream stream, out string[] val)
-		{
-			uint ln;
-			GetValue (stream, out ln);
-
-			int endPos = (int)stream.Position + (int)ln;
-
-			List<string> lvals = new List<string> ();
-
-			while (stream.Position != endPos)
-			{
-				string sval;
-				GetValue (stream, out sval);
-				lvals.Add (sval);
-			}
-
-			val = lvals.ToArray ();
-		}
-		*/
 
 		//struct
 		//probably the wrong place for this

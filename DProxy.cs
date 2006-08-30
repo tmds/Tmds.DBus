@@ -65,13 +65,25 @@ namespace NDesk.DBus
 
 				conn.Handlers[ename] = dlg;
 
+				//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
+				if (bus_name != "org.freedesktop.DBus") {
+					org.freedesktop.DBus.Bus bus = conn.GetInstance<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
+					bus.AddMatch ("type='signal',sender='" + bus_name + "',member='" + ename + "'");
+				}
+
 				return (IMethodReturnMessage) newRet;
 			}
 
 			if (mcm.MethodName.StartsWith ("remove_")) {
 				string[] parts = mcm.MethodName.Split ('_');
 				string ename = parts[1];
-				Delegate dlg = (Delegate)mcm.InArgs[0];
+				//Delegate dlg = (Delegate)mcm.InArgs[0];
+
+				//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
+				if (bus_name != "org.freedesktop.DBus") {
+					org.freedesktop.DBus.Bus bus = conn.GetInstance<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
+					bus.RemoveMatch ("type='signal',sender='" + bus_name + "',member='" + ename + "'");
+				}
 
 				conn.Handlers.Remove (ename);
 

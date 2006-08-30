@@ -29,11 +29,11 @@ namespace NDesk.DBus
 			//note that the foreach is useless since there can be only key
 			//probably does not deal with class inheritance etc.
 
-			foreach (org.freedesktop.DBus.InterfaceAttribute ia in type.GetCustomAttributes (typeof (org.freedesktop.DBus.InterfaceAttribute), false))
+			foreach (InterfaceAttribute ia in type.GetCustomAttributes (typeof (InterfaceAttribute), false))
 				conn.RegisteredTypes[type] = ia.Name;
 
 			foreach (Type t in type.GetInterfaces ())
-				foreach (org.freedesktop.DBus.InterfaceAttribute ia in t.GetCustomAttributes (typeof (org.freedesktop.DBus.InterfaceAttribute), false))
+				foreach (InterfaceAttribute ia in t.GetCustomAttributes (typeof (InterfaceAttribute), false))
 					conn.RegisteredTypes[t] = ia.Name;
 
 			/*
@@ -228,6 +228,17 @@ namespace NDesk.DBus
 			Signature sig;
 			sig.Data = ms.ToArray ();
 			return sig;
+		}
+	}
+
+	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]
+	public class InterfaceAttribute : Attribute
+	{
+		public string Name;
+
+		public InterfaceAttribute (string name)
+		{
+			this.Name = name;
 		}
 	}
 }

@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using NDesk.DBus;
 
 //namespace org.freedesktop.DBus
 namespace org.freedesktop.DBus
@@ -82,17 +83,5 @@ namespace org.freedesktop.DBus
 
 		//undocumented in spec
 		void ReloadConfig ();
-	}
-
-	//Having this as an attribute is a bit silly, no?
-	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]
-	public class InterfaceAttribute : Attribute
-	{
-		public string Name;
-
-		public InterfaceAttribute (string name)
-		{
-			this.Name = name;
-		}
 	}
 }

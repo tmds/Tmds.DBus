@@ -191,10 +191,13 @@ namespace NDesk.DBus
 							return msg;
 						break;
 					case MessageType.Error:
-						if (msg.ReplySerial == id)
-							//TODO: better exception handling
-							throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + msg.ErrorName);
-						break;
+						//TODO: better exception handling
+						//if (msg.ReplySerial != id)
+						//	break;
+						string errMsg = "";
+						if (msg.Signature.Value == "s")
+							Message.GetValue (msg.Body, out errMsg);
+						throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + msg.ErrorName + ": " + errMsg);
 					case MessageType.Signal:
 						HandleSignal (msg);
 						break;
@@ -227,7 +230,10 @@ namespace NDesk.DBus
 					break;
 				case MessageType.Error:
 					//TODO: better exception handling
-					throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + msg.ErrorName);
+					string errMsg = "";
+					if (msg.Signature.Value == "s")
+						Message.GetValue (msg.Body, out errMsg);
+					throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + msg.ErrorName + ": " + errMsg);
 				case MessageType.Signal:
 					HandleSignal (msg);
 					break;

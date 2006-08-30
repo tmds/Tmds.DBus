@@ -27,7 +27,6 @@ namespace NDesk.DBus
 
 			//messy and only relevant to imported objects, but works
 			//note that the foreach is useless since there can be only key
-			//this slows things down by 0.030s or so, bringing test.exe to real 0.430s
 			//probably does not deal with class inheritance etc.
 
 			foreach (org.freedesktop.DBus.InterfaceAttribute ia in type.GetCustomAttributes (typeof (org.freedesktop.DBus.InterfaceAttribute), false))

@@ -156,28 +156,6 @@ namespace NDesk.DBus
 		}
 		*/
 
-		public static void GetValue (Stream stream, out Signature val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			//Pad (stream, 1); //TODO: alignment for signature is meant to be 1?
-			//Pad (stream, 4);
-			byte ln;
-			GetValue (stream, out ln);
-
-			val.Data = br.ReadBytes ((int)ln);
-			br.ReadByte (); //null string terminator
-		}
-
-		public static void GetValue (Stream stream, out bool val)
-		{
-			uint intval;
-			GetValue (stream, out intval);
-
-			//TODO: confirm semantics of dbus boolean
-			val = intval == 0 ? false : true;
-		}
-
 		public static void Write (Stream stream, Type type, object val)
 		{
 			//hacky
@@ -204,14 +182,24 @@ namespace NDesk.DBus
 		{
 			switch (dtype)
 			{
-				case DType.String:
-				{
-					Write (stream, (string)val);
-				}
-				break;
 				case DType.Byte:
 				{
 					Write (stream, (byte)val);
+				}
+				break;
+				case DType.Boolean:
+				{
+					Write (stream, (bool)val);
+				}
+				break;
+				case DType.Int16:
+				{
+					Write (stream, (short)val);
+				}
+				break;
+				case DType.UInt16:
+				{
+					Write (stream, (ushort)val);
 				}
 				break;
 				case DType.Int32:
@@ -224,9 +212,29 @@ namespace NDesk.DBus
 					Write (stream, (uint)val);
 				}
 				break;
-				case DType.Boolean:
+				case DType.Int64:
 				{
-					Write (stream, (bool)val);
+					Write (stream, (long)val);
+				}
+				break;
+				case DType.UInt64:
+				{
+					Write (stream, (ulong)val);
+				}
+				break;
+				case DType.Float:
+				{
+					Write (stream, (float)val);
+				}
+				break;
+				case DType.Double:
+				{
+					Write (stream, (double)val);
+				}
+				break;
+				case DType.String:
+				{
+					Write (stream, (string)val);
 				}
 				break;
 				case DType.ObjectPath:
@@ -260,17 +268,6 @@ namespace NDesk.DBus
 			Write (stream, sig);
 
 			Write (stream, t, val);
-		}
-
-		//variant
-		public static void GetValue (Stream stream, out object val)
-		{
-			Signature sig;
-			GetValue (stream, out sig);
-			//TODO: more flexibilty needed here
-			DType t = (DType)sig.Data[0];
-			//Console.WriteLine ("var type " + t);
-			GetValue (stream, t, out val);
 		}
 
 		public static void GetValue (Stream stream, Type type, out object val)
@@ -307,16 +304,30 @@ namespace NDesk.DBus
 		{
 			switch (dtype)
 			{
-				case DType.String:
+				case DType.Byte:
 				{
-					string vval;
+					byte vval;
 					GetValue (stream, out vval);
 					val = vval;
 				}
 				break;
-				case DType.Byte:
+				case DType.Boolean:
 				{
-					byte vval;
+					bool vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
+				case DType.Int16:
+				{
+					short vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
+				case DType.UInt16:
+				{
+					ushort vval;
 					GetValue (stream, out vval);
 					val = vval;
 				}
@@ -335,9 +346,37 @@ namespace NDesk.DBus
 					val = vval;
 				}
 				break;
-				case DType.Boolean:
+				case DType.Int64:
 				{
-					bool vval;
+					long vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
+				case DType.UInt64:
+				{
+					ulong vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
+				case DType.Float:
+				{
+					float vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
+				case DType.Double:
+				{
+					double vval;
+					GetValue (stream, out vval);
+					val = vval;
+				}
+				break;
+				case DType.String:
+				{
+					string vval;
 					GetValue (stream, out vval);
 					val = vval;
 				}
@@ -390,6 +429,31 @@ namespace NDesk.DBus
 			val = br.ReadByte ();
 		}
 
+		public static void GetValue (Stream stream, out bool val)
+		{
+			uint intval;
+			GetValue (stream, out intval);
+
+			//TODO: confirm semantics of dbus boolean
+			val = intval == 0 ? false : true;
+		}
+
+		public static void GetValue (Stream stream, out short val)
+		{
+			BinaryReader br = new BinaryReader (stream);
+
+			Pad (stream, 2);
+			val = br.ReadInt16 ();
+		}
+
+		public static void GetValue (Stream stream, out ushort val)
+		{
+			BinaryReader br = new BinaryReader (stream);
+
+			Pad (stream, 2);
+			val = br.ReadUInt16 ();
+		}
+
 		public static void GetValue (Stream stream, out int val)
 		{
 			BinaryReader br = new BinaryReader (stream);
@@ -406,10 +470,36 @@ namespace NDesk.DBus
 			val = br.ReadUInt32 ();
 		}
 
-		public static void GetValue (Stream stream, out ObjectPath val)
+		public static void GetValue (Stream stream, out long val)
 		{
-			//exactly the same as string
-			GetValue (stream, out val.Value);
+			BinaryReader br = new BinaryReader (stream);
+
+			Pad (stream, 8);
+			val = br.ReadInt64 ();
+		}
+
+		public static void GetValue (Stream stream, out ulong val)
+		{
+			BinaryReader br = new BinaryReader (stream);
+
+			Pad (stream, 8);
+			val = br.ReadUInt64 ();
+		}
+
+		public static void GetValue (Stream stream, out float val)
+		{
+			BinaryReader br = new BinaryReader (stream);
+
+			Pad (stream, 4);
+			val = br.ReadSingle ();
+		}
+
+		public static void GetValue (Stream stream, out double val)
+		{
+			BinaryReader br = new BinaryReader (stream);
+
+			Pad (stream, 8);
+			val = br.ReadDouble ();
 		}
 
 		public static void GetValue (Stream stream, out string val)
@@ -422,6 +512,36 @@ namespace NDesk.DBus
 			byte[] rbytes = br.ReadBytes ((int)ln);
 			val = System.Text.Encoding.UTF8.GetString (rbytes);
 			br.ReadByte (); //null string terminator
+		}
+
+		public static void GetValue (Stream stream, out ObjectPath val)
+		{
+			//exactly the same as string
+			GetValue (stream, out val.Value);
+		}
+
+		public static void GetValue (Stream stream, out Signature val)
+		{
+			BinaryReader br = new BinaryReader (stream);
+
+			//Pad (stream, 1); //TODO: alignment for signature is meant to be 1?
+			//Pad (stream, 4);
+			byte ln;
+			GetValue (stream, out ln);
+
+			val.Data = br.ReadBytes ((int)ln);
+			br.ReadByte (); //null string terminator
+		}
+
+		//variant
+		public static void GetValue (Stream stream, out object val)
+		{
+			Signature sig;
+			GetValue (stream, out sig);
+			//TODO: more flexibilty needed here
+			DType t = (DType)sig.Data[0];
+			//Console.WriteLine ("var type " + t);
+			GetValue (stream, t, out val);
 		}
 
 		/*
@@ -444,6 +564,8 @@ namespace NDesk.DBus
 			val = lvals.ToArray ();
 		}
 		*/
+
+		//FIXME: we are missing writers for some primitive types, they just won't work!
 
 
 		//this could be made generic to avoid boxing

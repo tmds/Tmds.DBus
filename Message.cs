@@ -188,6 +188,10 @@ namespace NDesk.DBus
 				//FIXME: signature writing
 				//ms.WriteByte ((byte)elem_dtype);
 				Write (stream, type, (Array)val);
+			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
+				Type[] genArgs = type.GetGenericArguments ();
+				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
+				WriteFromDict (stream, genArgs[0], genArgs[1], idict);
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				Write (stream, type, (ValueType)val);
 			} else {
@@ -503,6 +507,33 @@ namespace NDesk.DBus
 
 			foreach (object elem in val)
 				Write (stream, type, elem);
+
+			long endPos = stream.Position;
+
+			stream.Position = lengthPos;
+			Write (stream, (uint)(endPos - startPos));
+
+			stream.Position = endPos;
+		}
+
+		public static void WriteFromDict (Stream stream, Type keyType, Type valType, System.Collections.IDictionary val)
+		{
+			Write (stream, (uint)0);
+			long lengthPos = stream.Position - 4;
+
+			//advance to the alignment of the element
+			//Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
+			Pad (stream, 8);
+
+			long startPos = stream.Position;
+
+			foreach (System.Collections.DictionaryEntry entry in val)
+			{
+				Pad (stream, 8);
+
+				Write (stream, keyType, entry.Key);
+				Write (stream, valType, entry.Value);
+			}
 
 			long endPos = stream.Position;
 

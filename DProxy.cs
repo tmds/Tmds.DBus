@@ -228,6 +228,23 @@ namespace NDesk.DBus
 					byte[] data = GetSig (elem_type).Data;
 					ms.Write (data, 0, data.Length);
 				}
+			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
+				Type[] genArgs = type.GetGenericArguments ();
+
+				ms.WriteByte ((byte)'a');
+				ms.WriteByte ((byte)'{');
+
+				{
+					byte[] data = GetSig (genArgs[0]).Data;
+					ms.Write (data, 0, data.Length);
+				}
+
+				{
+					byte[] data = GetSig (genArgs[1]).Data;
+					ms.Write (data, 0, data.Length);
+				}
+
+				ms.WriteByte ((byte)'}');
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				//if (type.IsGenericParameter && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
 				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))

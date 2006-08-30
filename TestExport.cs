@@ -70,8 +70,9 @@ public class ManagedDBusTestExport
 		Console.WriteLine ("B: " + fooTuple.B);
 
 		Console.WriteLine ();
-		KeyValuePair<string,string>[] kvps = demo.GetDict ();
-		foreach (KeyValuePair<string,string> kvp in kvps)
+		//KeyValuePair<string,string>[] kvps = demo.GetDict ();
+		IDictionary<string,string> dict = demo.GetDict ();
+		foreach (KeyValuePair<string,string> kvp in dict)
 			Console.WriteLine (kvp.Key + ": " + kvp.Value);
 	}
 }
@@ -129,6 +130,17 @@ public class DemoObject : MarshalByRefObject
 		return tup;
 	}
 
+	public IDictionary<string,string> GetDict ()
+	{
+		Dictionary<string,string> dict = new Dictionary<string,string> ();
+
+		dict["one"] = "1";
+		dict["two"] = "2";
+
+		return dict;
+	}
+
+	/*
 	public KeyValuePair<string,string>[] GetDict ()
 	{
 		KeyValuePair<string,string>[] rets = new KeyValuePair<string,string>[2];
@@ -141,6 +153,7 @@ public class DemoObject : MarshalByRefObject
 
 		return rets;
 	}
+	*/
 }
 
 public enum DemoEnum

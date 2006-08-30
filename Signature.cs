@@ -41,7 +41,6 @@ namespace NDesk.DBus
 
 		public override string ToString ()
 		{
-			string ret = "";
 			StringBuilder sb = new StringBuilder ();
 
 			foreach (DType t in Data) {

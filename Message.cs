@@ -160,11 +160,6 @@ namespace NDesk.DBus
 		{
 			//hacky
 			if (type.IsArray) {
-				Type elem_type = type.GetElementType ();
-				DType elem_dtype = Signature.TypeToDType (elem_type);
-
-				//FIXME: signature writing
-				//ms.WriteByte ((byte)elem_dtype);
 				Write (stream, type, (Array)val);
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
@@ -254,7 +249,6 @@ namespace NDesk.DBus
 				break;
 				default:
 				throw new Exception ("Unhandled DBus type: " + dtype);
-				break;
 			}
 		}
 

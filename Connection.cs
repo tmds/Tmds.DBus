@@ -139,6 +139,7 @@ namespace NDesk.DBus
 
 			if (read != toRead)
 				Console.Error.WriteLine ("Read length mismatch: " + read + " of expected " + toRead);
+				//throw new Exception ("Read length mismatch: " + read + " of expected " + toRead);
 
 			msg.HeaderData = buf;
 

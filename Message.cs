@@ -245,7 +245,7 @@ namespace NDesk.DBus
 				}
 				break;
 				default:
-				Console.Error.WriteLine ("Error: Unhandled DBus type: " + dtype);
+				throw new Exception ("Unhandled DBus type: " + dtype);
 				break;
 			}
 		}

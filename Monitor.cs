@@ -15,8 +15,7 @@ public class ManagedDBusTest
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";
 
-		DProxy prox = new DProxy (conn, opath, name, typeof (Bus));
-		Bus bus = (Bus)prox.GetTransparentProxy ();
+		Bus bus = conn.GetInstance<Bus> (opath, name);
 
 		bus.NameAcquired += delegate (string acquired_name) {
 			Console.WriteLine ("NameAcquired: " + acquired_name);

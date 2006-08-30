@@ -350,5 +350,19 @@ namespace NDesk.DBus
 
 			return vals.ToArray ();
 		}
+
+		//FIXME: this shouldn't be part of the core API
+		//that also applies to much of the other object mapping code
+		//it should cache proxies and objects, really
+		public object GetInstance (Type type, ObjectPath opath, string dest)
+		{
+			DProxy prox = new DProxy (this, opath, dest, type);
+			return prox.GetTransparentProxy ();
+		}
+
+		public T GetInstance<T> (ObjectPath opath, string dest)
+		{
+			return (T)GetInstance (typeof (T), opath, dest);
+		}
 	}
 }

@@ -17,8 +17,7 @@ public class ManagedDBusTestNotifications
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";
 
-		DProxy prox = new DProxy (conn, opath, name, typeof (Bus));
-		Bus bus = (Bus)prox.GetTransparentProxy ();
+		Bus bus = conn.GetInstance<Bus> (opath, name);
 
 		bus.NameAcquired += delegate (string acquired_name) {
 			Console.WriteLine ("NameAcquired: " + acquired_name);
@@ -30,8 +29,7 @@ public class ManagedDBusTestNotifications
 		//hack to process the NameAcquired signal synchronously
 		conn.HandleSignal (conn.ReadMessage ());
 
-		DProxy notificationsProxy = new DProxy (conn, new ObjectPath ("/org/freedesktop/Notifications"), "org.freedesktop.Notifications", typeof (Notifications));
-		Notifications notifications = (Notifications)notificationsProxy.GetTransparentProxy ();
+		Notifications notifications = conn.GetInstance<Notifications> (new ObjectPath ("/org/freedesktop/Notifications"), "org.freedesktop.Notifications");
 
 		Console.WriteLine ();
 

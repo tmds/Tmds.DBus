@@ -16,8 +16,7 @@ public class ManagedDBusTestSample
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";
 
-		DProxy prox = new DProxy (conn, opath, name, typeof (Bus));
-		Bus bus = (Bus)prox.GetTransparentProxy ();
+		Bus bus = conn.GetInstance<Bus> (opath, name);
 
 		bus.NameAcquired += delegate (string acquired_name) {
 			Console.WriteLine ("NameAcquired: " + acquired_name);
@@ -26,8 +25,7 @@ public class ManagedDBusTestSample
 		string myName = bus.Hello ();
 		Console.WriteLine ("myName: " + myName);
 
-		DProxy prox2 = new DProxy (conn, new ObjectPath ("/SomeObject"), "org.designfu.SampleService", typeof (SampleInterface));
-		SampleInterface sample = (SampleInterface)prox2.GetTransparentProxy ();
+		SampleInterface sample = conn.GetInstance<SampleInterface> (new ObjectPath ("/SomeObject"), "org.designfu.SampleService");
 
 		Console.WriteLine ();
 		string xmlData = sample.Introspect ();

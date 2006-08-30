@@ -187,9 +187,13 @@ namespace NDesk.DBus
 						HandleMethodCall (msg);
 						break;
 					case MessageType.MethodReturn:
-					case MessageType.Error:
 						if (msg.ReplySerial == id)
 							return msg;
+						break;
+					case MessageType.Error:
+						if (msg.ReplySerial == id)
+							//TODO: better exception handling
+							throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + msg.ErrorName);
 						break;
 					case MessageType.Signal:
 						HandleSignal (msg);
@@ -217,11 +221,13 @@ namespace NDesk.DBus
 					HandleMethodCall (msg);
 					break;
 				case MessageType.MethodReturn:
-				case MessageType.Error:
 					if (PendingCalls.ContainsKey (msg.ReplySerial)) {
 						//return msg;
 					}
 					break;
+				case MessageType.Error:
+					//TODO: better exception handling
+					throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + msg.ErrorName);
 				case MessageType.Signal:
 					HandleSignal (msg);
 					break;

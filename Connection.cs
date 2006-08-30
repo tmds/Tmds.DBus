@@ -354,15 +354,15 @@ namespace NDesk.DBus
 		//FIXME: this shouldn't be part of the core API
 		//that also applies to much of the other object mapping code
 		//it should cache proxies and objects, really
-		public object GetInstance (Type type, ObjectPath opath, string dest)
+		public object GetInstance (Type type, string bus_name, ObjectPath object_path)
 		{
-			DProxy prox = new DProxy (this, opath, dest, type);
+			DProxy prox = new DProxy (this, bus_name, object_path, type);
 			return prox.GetTransparentProxy ();
 		}
 
-		public T GetInstance<T> (ObjectPath opath, string dest)
+		public T GetInstance<T> (string bus_name, ObjectPath object_path)
 		{
-			return (T)GetInstance (typeof (T), opath, dest);
+			return (T)GetInstance (typeof (T), bus_name, object_path);
 		}
 	}
 }

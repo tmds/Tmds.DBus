@@ -16,7 +16,7 @@ public class ManagedDBusTestSample
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";
 
-		Bus bus = conn.GetInstance<Bus> (opath, name);
+		Bus bus = conn.GetInstance<Bus> (name, opath);
 
 		bus.NameAcquired += delegate (string acquired_name) {
 			Console.WriteLine ("NameAcquired: " + acquired_name);
@@ -25,7 +25,7 @@ public class ManagedDBusTestSample
 		string myName = bus.Hello ();
 		Console.WriteLine ("myName: " + myName);
 
-		SampleInterface sample = conn.GetInstance<SampleInterface> (new ObjectPath ("/SomeObject"), "org.designfu.SampleService");
+		SampleInterface sample = conn.GetInstance<SampleInterface> ("org.designfu.SampleService", new ObjectPath ("/SomeObject"));
 
 		Console.WriteLine ();
 		string xmlData = sample.Introspect ();

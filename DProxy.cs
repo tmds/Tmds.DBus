@@ -14,16 +14,17 @@ namespace NDesk.DBus
 	public class DProxy : RealProxy
 	{
 		Connection conn;
-		ObjectPath opath;
-		string dest;
+
+		string bus_name;
+		ObjectPath object_path;
 
 		//Dictionary<string,string> methods = new Dictionary<string,string> ();
 
-		public DProxy (Connection conn, ObjectPath opath, string dest, Type type) : base(type)
+		public DProxy (Connection conn, string bus_name, ObjectPath object_path, Type type) : base(type)
 		{
 			this.conn = conn;
-			this.opath = opath;
-			this.dest = dest;
+			this.bus_name = bus_name;
+			this.object_path = object_path;
 
 			//messy and only relevant to imported objects, but works
 			//note that the foreach is useless since there can be only key
@@ -101,9 +102,9 @@ namespace NDesk.DBus
 					iface = conn.RegisteredTypes[imi.DeclaringType];
 
 				if (inSig.Data.Length == 0)
-					callMsg.WriteHeader (new HeaderField (FieldCode.Path, opath), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, dest));
+					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, bus_name));
 				else
-					callMsg.WriteHeader (new HeaderField (FieldCode.Path, opath), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, dest), new HeaderField (FieldCode.Signature, inSig));
+					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, bus_name), new HeaderField (FieldCode.Signature, inSig));
 			}
 
 			bool needsReply = true;

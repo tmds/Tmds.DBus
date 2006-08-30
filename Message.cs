@@ -293,6 +293,13 @@ namespace NDesk.DBus
 				val = Activator.CreateInstance(dictType, new object[0]);
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
 				GetValueToDict (stream, genArgs[0], genArgs[1], idict);
+			} else if (type == typeof (ObjectPath)) {
+				//FIXME: find a better way of specifying structs that must be marshaled by value and not as a struct like ObjectPath
+				//this is just a quick proof of concept fix
+				//TODO: are there others we should special case in this hack?
+				//TODO: this code has analogues elsewhere that need both this quick fix, and the real fix when it becomes available
+				DType dtype = Signature.TypeToDType (type);
+				GetValue (stream, dtype, out val);
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				ValueType valV;
 				GetValue (stream, type, out valV);

@@ -279,6 +279,12 @@ namespace NDesk.DBus
 				Array valArr;
 				GetValue (stream, type, out valArr);
 				val = valArr;
+			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
+				Type[] genArgs = type.GetGenericArguments ();
+				Type dictType = typeof (Dictionary<,>).MakeGenericType (genArgs);
+				val = Activator.CreateInstance(dictType, new object[0]);
+				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
+				GetValueToDict (stream, genArgs[0], genArgs[1], idict);
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				ValueType valV;
 				GetValue (stream, type, out valV);
@@ -506,12 +512,40 @@ namespace NDesk.DBus
 			stream.Position = endPos;
 		}
 
+		//not pretty or efficient but works
+		public static void GetValueToDict (Stream stream, Type keyType, Type valType, System.Collections.IDictionary val)
+		{
+			uint ln;
+			GetValue (stream, out ln);
+
+			//advance to the alignment of the element
+			//Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
+			Pad (stream, 8);
+
+			int endPos = (int)stream.Position + (int)ln;
+
+			while (stream.Position < endPos)
+			{
+				Pad (stream, 8);
+
+				object keyVal;
+				GetValue (stream, keyType, out keyVal);
+
+				object valVal;
+				GetValue (stream, valType, out valVal);
+
+				val.Add (keyVal, valVal);
+			}
+
+			if (stream.Position != endPos)
+				Console.Error.WriteLine ("Warning: pos " + stream.Position + " != ep " + endPos);
+		}
 
 		//this could be made generic to avoid boxing
 		//restricted to primitive elements because of the DType bottleneck
 		public static void GetValue (Stream stream, Type type, out Array val)
 		{
-			//if (type.IsArray)
+			if (type.IsArray)
 			type = type.GetElementType ();
 
 			uint ln;

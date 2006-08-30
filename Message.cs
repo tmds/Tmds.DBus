@@ -69,26 +69,35 @@ namespace NDesk.DBus
 			//this needs more thought
 		}
 
-		public static void Write (Stream stream, Signature val)
-		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
-			Pad (stream, 1);
-			Write (stream, (byte)val.Value.Length);
-			bw.Write (val.Data);
-			bw.Write ((byte)0); //NULL signature terminator
-		}
-
-		public static void Write (Stream stream, ObjectPath val)
-		{
-			Write (stream, val.Value);
-		}
-
 		public static void Write (Stream stream, byte val)
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
 			Pad (stream, 1);
+			bw.Write (val);
+		}
+
+		public static void Write (Stream stream, bool val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 4);
+			bw.Write ((uint) (val ? 1 : 0));
+		}
+
+		public static void Write (Stream stream, short val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 2);
+			bw.Write (val);
+		}
+
+		public static void Write (Stream stream, ushort val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 2);
 			bw.Write (val);
 		}
 
@@ -108,6 +117,38 @@ namespace NDesk.DBus
 			bw.Write (val);
 		}
 
+		public static void Write (Stream stream, long val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 8);
+			bw.Write (val);
+		}
+
+		public static void Write (Stream stream, ulong val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 8);
+			bw.Write (val);
+		}
+
+		public static void Write (Stream stream, float val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 4);
+			bw.Write (val);
+		}
+
+		public static void Write (Stream stream, double val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 8);
+			bw.Write (val);
+		}
+
 		public static void Write (Stream stream, string val)
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
@@ -116,6 +157,21 @@ namespace NDesk.DBus
 
 			bw.Write (System.Text.Encoding.UTF8.GetBytes (val));
 			bw.Write ((byte)0); //NULL string terminator
+		}
+
+		public static void Write (Stream stream, ObjectPath val)
+		{
+			Write (stream, val.Value);
+		}
+
+		public static void Write (Stream stream, Signature val)
+		{
+			BinaryWriter bw = new BinaryWriter (stream);
+
+			Pad (stream, 1);
+			Write (stream, (byte)val.Value.Length);
+			bw.Write (val.Data);
+			bw.Write ((byte)0); //NULL signature terminator
 		}
 
 		public static void Write (Stream stream, Type type, object val)
@@ -480,8 +536,6 @@ namespace NDesk.DBus
 			//Console.WriteLine ("var type " + t);
 			GetValue (stream, t, out val);
 		}
-
-		//FIXME: we are missing writers for some primitive types, they just won't work!
 
 		//this requires a seekable stream for now
 		public static void Write (Stream stream, Type type, Array val)

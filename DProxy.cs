@@ -90,6 +90,12 @@ namespace NDesk.DBus
 				return (IMethodReturnMessage) newRet;
 			}
 
+			string methodName = mcm.MethodName;
+
+			//map property accessors
+			methodName = methodName.Replace ("get_", "Get");
+			methodName = methodName.Replace ("set_", "Set");
+
 			Message callMsg = new Message ();
 
 			//build the outbound method call message
@@ -114,9 +120,9 @@ namespace NDesk.DBus
 					iface = conn.RegisteredTypes[imi.DeclaringType];
 
 				if (inSig.Data.Length == 0)
-					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, bus_name));
+					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, methodName), new HeaderField (FieldCode.Destination, bus_name));
 				else
-					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, mcm.MethodName), new HeaderField (FieldCode.Destination, bus_name), new HeaderField (FieldCode.Signature, inSig));
+					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, methodName), new HeaderField (FieldCode.Destination, bus_name), new HeaderField (FieldCode.Signature, inSig));
 			}
 
 			bool needsReply = true;

@@ -302,8 +302,14 @@ namespace NDesk.DBus
 				Type type = obj.GetType ();
 				//object retObj = type.InvokeMember (msg.Member, System.Reflection.BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
 
+				string methodName = msg.Member;
+
+				//map property accessors
+				methodName = methodName.Replace ("get_", "Get");
+				methodName = methodName.Replace ("set_", "Set");
+
 				//FIXME: breaks for overloaded methods
-				System.Reflection.MethodInfo mi = type.GetMethod (msg.Member, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+				System.Reflection.MethodInfo mi = type.GetMethod (methodName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
 				System.Reflection.ParameterInfo[]  parms = mi.GetParameters ();
 				Type[] sig = new Type[parms.Length];
 				for (int i = 0 ; i != parms.Length ; i++)

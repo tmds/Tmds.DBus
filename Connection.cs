@@ -305,8 +305,12 @@ namespace NDesk.DBus
 				string methodName = msg.Member;
 
 				//map property accessors
-				methodName = methodName.Replace ("get_", "Get");
-				methodName = methodName.Replace ("set_", "Set");
+				//TODO: this needs to be done properly, not with simple String.Replace
+				//special case for Notifications left as a reminder that this is broken
+				if (msg.Interface == "org.freedesktop.Notifications") {
+					methodName = methodName.Replace ("Get", "get_");
+					methodName = methodName.Replace ("Set", "set_");
+				}
 
 				//FIXME: breaks for overloaded methods
 				System.Reflection.MethodInfo mi = type.GetMethod (methodName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);

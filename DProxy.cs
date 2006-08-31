@@ -90,12 +90,6 @@ namespace NDesk.DBus
 				return (IMethodReturnMessage) newRet;
 			}
 
-			string methodName = mcm.MethodName;
-
-			//map property accessors
-			methodName = methodName.Replace ("get_", "Get");
-			methodName = methodName.Replace ("set_", "Set");
-
 			Message callMsg = new Message ();
 
 			//build the outbound method call message
@@ -118,6 +112,16 @@ namespace NDesk.DBus
 				MethodInfo imi = mcm.MethodBase as MethodInfo;
 				if (imi != null && conn.RegisteredTypes.ContainsKey (imi.DeclaringType))
 					iface = conn.RegisteredTypes[imi.DeclaringType];
+
+				string methodName = mcm.MethodName;
+
+				//map property accessors
+				//TODO: this needs to be done properly, not with simple String.Replace
+				//special case for Notifications left as a reminder that this is broken
+				if (iface == "org.freedesktop.Notifications") {
+					methodName = methodName.Replace ("get_", "Get");
+					methodName = methodName.Replace ("set_", "Set");
+				}
 
 				if (inSig.Data.Length == 0)
 					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, methodName), new HeaderField (FieldCode.Destination, bus_name));

@@ -48,20 +48,20 @@ namespace NDesk.DBus
 				Address.Parse (sysAddr, out path, out abstr);
 			}
 
-			Connect (path, abstr);
+			Open (path, abstr);
 			Authenticate ();
 		}
 
-		public void Connect (string address)
+		public void Open (string address)
 		{
 			string path;
 			bool abstr;
 
 			Address.Parse (address, out path, out abstr);
-			Connect (path, abstr);
+			Open (path, abstr);
 		}
 
-		public void Connect (string path, bool abstr)
+		public void Open (string path, bool abstr)
 		{
 			transport = new UnixTransport (path, abstr);
 

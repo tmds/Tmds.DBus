@@ -117,8 +117,8 @@ namespace NDesk.DBus
 
 				//map property accessors
 				//TODO: this needs to be done properly, not with simple String.Replace
-				//special case for Notifications left as a reminder that this is broken
-				if (iface == "org.freedesktop.Notifications") {
+				//note that IsSpecialName is also for event accessors, but we already handled those and returned
+				if (imi != null && imi.IsSpecialName) {
 					methodName = methodName.Replace ("get_", "Get");
 					methodName = methodName.Replace ("set_", "Set");
 				}

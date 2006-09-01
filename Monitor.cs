@@ -26,10 +26,10 @@ public class ManagedDBusTest
 		//hack to process the NameAcquired signal synchronously
 		conn.HandleSignal (conn.ReadMessage ());
 
-		bus.AddMatch ("type='signal'");
-		bus.AddMatch ("type='method_call'");
-		bus.AddMatch ("type='method_return'");
-		bus.AddMatch ("type='error'");
+		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal));
+		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.MethodCall));
+		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.MethodReturn));
+		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Error));
 
 		while (true) {
 			Message msg = conn.ReadMessage ();

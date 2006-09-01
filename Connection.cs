@@ -98,7 +98,9 @@ namespace NDesk.DBus
 
 		public uint Send (Message msg)
 		{
-			msg.Serial = GenerateSerial ();
+			msg.Header.Serial = GenerateSerial ();
+
+			msg.WriteHeader ();
 
 			WriteMessage (msg);
 
@@ -106,13 +108,17 @@ namespace NDesk.DBus
 			//temporary
 			//Flush ();
 
-			return msg.Serial;
+			return msg.Header.Serial;
 		}
 
 		//could be cleaner
 		protected void WriteMessage (Message msg)
 		{
-			ns.Write (msg.HeaderData, 0, msg.HeaderSize);
+			//ns.Write (msg.HeaderData, 0, msg.HeaderSize);
+			//Console.WriteLine ("headerSize: " + msg.HeaderSize);
+			//Console.WriteLine ("headerLength: " + msg.HeaderData.Length);
+			//Console.WriteLine ();
+			ns.Write (msg.HeaderData, 0, msg.HeaderData.Length);
 			if (msg.Body != null) {
 				//ns.Write (msg.Body, 0, msg.BodySize);
 				msg.Body.WriteTo (ns);
@@ -143,39 +149,30 @@ namespace NDesk.DBus
 			//Console.WriteLine ("");
 			//Console.WriteLine ("Header:");
 
-			Message msg = new Message ();
+			DHeader* hdr;
 
 			fixed (byte* pbuf = buf) {
-				msg.Header = (DHeader*)pbuf;
+				//msg.Header = (DHeader*)pbuf;
+				hdr = (DHeader*)pbuf;
 				//Console.WriteLine (msg.MessageType);
 				//Console.WriteLine ("Length: " + msg.Header->Length);
 				//Console.WriteLine ("Header Length: " + msg.Header->HeaderLength);
 			}
 
-			int toRead = 0;
-			toRead += Message.Padded ((int)msg.Header->HeaderLength, 8);
-
-			//Console.WriteLine ("toRead: " + toRead);
-
-			int read;
-
-			read = ns.Read (buf, 16, toRead);
+			int toRead = Message.Padded ((int)hdr->HeaderLength, 8);
+			int read = ns.Read (buf, 16, toRead);
 
 			if (read != toRead)
 				throw new Exception ("Read length mismatch: " + read + " of expected " + toRead);
 
+			Message msg = new Message ();
 			msg.HeaderData = buf;
 
-			/*
-			Console.WriteLine ("Len: " + msg.Header->Length);
-			Console.WriteLine ("HLen: " + msg.Header->HeaderLength);
-			Console.WriteLine ("toRead: " + toRead);
-			*/
 			//read the body
-			if (msg.Header->Length != 0) {
+			if (hdr->Length != 0) {
 				//FIXME
 				//msg.Body = new byte[(int)msg.Header->Length];
-				byte[] body = new byte[(int)msg.Header->Length];
+				byte[] body = new byte[(int)hdr->Length];
 
 				//int len = ns.Read (msg.Body, 0, msg.Body.Length);
 				int len = ns.Read (body, 0, body.Length);
@@ -204,7 +201,7 @@ namespace NDesk.DBus
 			Message msg;
 
 			while ((msg = ReadMessage ()) != null) {
-				switch (msg.MessageType) {
+				switch (msg.Header.MessageType) {
 					case MessageType.Invalid:
 						break;
 					case MessageType.MethodCall:
@@ -241,7 +238,7 @@ namespace NDesk.DBus
 
 			msg = ReadMessage ();
 
-			switch (msg.MessageType) {
+			switch (msg.Header.MessageType) {
 				case MessageType.Invalid:
 					break;
 				case MessageType.MethodCall:
@@ -296,6 +293,9 @@ namespace NDesk.DBus
 		{
 			Message replyMsg = new Message ();
 
+			replyMsg.Header.MessageType = MessageType.MethodReturn;
+			replyMsg.ReplyExpected = false;
+
 			Signature inSig = new Signature ("");
 
 			if (vals != null && vals.Length != 0) {
@@ -307,13 +307,12 @@ namespace NDesk.DBus
 				inSig = DProxy.GetSig (vals);
 			}
 
-			if (inSig.Data.Length == 0)
-				replyMsg.WriteHeader (new HeaderField (FieldCode.ReplySerial, req.Serial), new HeaderField (FieldCode.Destination, req.Sender));
-			else
-				replyMsg.WriteHeader (new HeaderField (FieldCode.ReplySerial, req.Serial), new HeaderField (FieldCode.Destination, req.Sender), new HeaderField (FieldCode.Signature, inSig));
+			replyMsg.Header.Fields[FieldCode.ReplySerial] = req.Header.Serial;
+			replyMsg.Header.Fields[FieldCode.Destination] = req.Sender;
+			if (inSig.Data.Length != 0)
+				replyMsg.Header.Fields[FieldCode.Signature] = inSig;
 
-			replyMsg.MessageType = MessageType.MethodReturn;
-			replyMsg.ReplyExpected = false;
+			//replyMsg.WriteHeader ();
 
 			return replyMsg;
 		}

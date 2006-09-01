@@ -126,10 +126,23 @@ namespace NDesk.DBus
 					methodName = methodName.Replace ("set_", "Set");
 				}
 
+					callMsg.Header.Fields[FieldCode.Path] = object_path;
+					callMsg.Header.Fields[FieldCode.Interface] = iface;
+					callMsg.Header.Fields[FieldCode.Member] = methodName;
+					callMsg.Header.Fields[FieldCode.Destination] = bus_name;
+				if (inSig.Data.Length != 0)
+					callMsg.Header.Fields[FieldCode.Signature] = inSig;
+
+				//callMsg.WriteHeader ();
+
+				/*
 				if (inSig.Data.Length == 0)
-					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, methodName), new HeaderField (FieldCode.Destination, bus_name));
-				else
-					callMsg.WriteHeader (new HeaderField (FieldCode.Path, object_path), new HeaderField (FieldCode.Interface, iface), new HeaderField (FieldCode.Member, methodName), new HeaderField (FieldCode.Destination, bus_name), new HeaderField (FieldCode.Signature, inSig));
+				{
+					callMsg.WriteHeader (HeaderField.Create (FieldCode.Path, object_path), HeaderField.Create (FieldCode.Interface, iface), HeaderField.Create (FieldCode.Member, methodName), HeaderField.Create (FieldCode.Destination, bus_name));
+				} else {
+					callMsg.WriteHeader (HeaderField.Create (FieldCode.Path, object_path), HeaderField.Create (FieldCode.Interface, iface), HeaderField.Create (FieldCode.Member, methodName), HeaderField.Create (FieldCode.Destination, bus_name), HeaderField.Create (FieldCode.Signature, inSig));
+				}
+				*/
 			}
 
 			bool needsReply = true;

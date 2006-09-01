@@ -16,44 +16,60 @@ using System.Runtime.InteropServices;
 
 namespace NDesk.DBus
 {
-	public unsafe class Message
+	public class Message
 	{
-		public DHeader* Header;
+		public Message ()
+		{
+			Header.Endianness = EndianFlag.Little;
+			Header.MessageType = MessageType.MethodCall;
+			//hdr->Flags = HeaderFlag.None;
+			Header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
+			Header.MajorVersion = 1;
+			Header.Length = 0;
+			//Header.Serial = conn.GenerateSerial ();
+			Header.Fields = new Dictionary<FieldCode,object> ();
+		}
 
-		public int HeaderSize;
+		//public DHeader* Header;
+
+		public Header Header = new Header ();
+
+		//public int HeaderSize;
 		public byte[] HeaderData;
 
+		/*
 		public MessageType MessageType
 		{
 			get {
-				return Header->MessageType;
+				return Header.MessageType;
 			} set {
-				Header->MessageType = value;
+				Header.MessageType = value;
 			}
 		}
 
 		public uint Serial
 		{
 			get {
-				return Header->Serial;
+				return Header.Serial;
 			} set {
-				Header->Serial = value;
+				Header.Serial = value;
 			}
 		}
+		*/
 
 		public bool ReplyExpected
 		{
 			get {
-				return (Header->Flags & HeaderFlag.NoReplyExpected) != HeaderFlag.NoReplyExpected;
+				return (Header.Flags & HeaderFlag.NoReplyExpected) != HeaderFlag.NoReplyExpected;
 			} set {
 				if (value)
-					Header->Flags &= ~HeaderFlag.NoReplyExpected; //flag off
+					Header.Flags &= ~HeaderFlag.NoReplyExpected; //flag off
 				else
-					Header->Flags |= ~HeaderFlag.NoReplyExpected; //flag on
+					Header.Flags |= ~HeaderFlag.NoReplyExpected; //flag on
 			}
 		}
 
-		public HeaderField[] HeaderFields;
+		//public HeaderField[] HeaderFields;
 		//public Dictionary<FieldCode,object>;
 
 
@@ -67,6 +83,13 @@ namespace NDesk.DBus
 		{
 			Pad (stream, 8);
 			//this needs more thought
+		}
+
+		public static void CloseWrite (Stream stream)
+		{
+			int needed = PadNeeded ((int)stream.Position, 8);
+			for (int i = 0 ; i != needed ; i++)
+				stream.WriteByte (0);
 		}
 
 		public static void Write (Stream stream, byte val)
@@ -293,6 +316,7 @@ namespace NDesk.DBus
 				val = Activator.CreateInstance(dictType, new object[0]);
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
 				GetValueToDict (stream, genArgs[0], genArgs[1], idict);
+				/*
 			} else if (type == typeof (ObjectPath)) {
 				//FIXME: find a better way of specifying structs that must be marshaled by value and not as a struct like ObjectPath
 				//this is just a quick proof of concept fix
@@ -300,6 +324,7 @@ namespace NDesk.DBus
 				//TODO: this code has analogues elsewhere that need both this quick fix, and the real fix when it becomes available
 				DType dtype = Signature.TypeToDType (type);
 				GetValue (stream, dtype, out val);
+				*/
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				ValueType valV;
 				GetValue (stream, type, out valV);
@@ -665,8 +690,6 @@ namespace NDesk.DBus
 		//there might be more elegant solutions
 		public static void GetValue (Stream stream, Type type, out ValueType val)
 		{
-			Pad (stream, 8); //offset for structs, right?
-
 			System.Reflection.ConstructorInfo[] cis = type.GetConstructors ();
 			if (cis.Length != 0) {
 				System.Reflection.ConstructorInfo ci = cis[0];
@@ -691,6 +714,9 @@ namespace NDesk.DBus
 				val = (ValueType)Activator.CreateInstance (type, vals.ToArray ());
 				return;
 			}
+
+			//no suitable ctor, marshal as a struct
+			Pad (stream, 8);
 
 			val = (ValueType)Activator.CreateInstance (type);
 
@@ -769,20 +795,21 @@ namespace NDesk.DBus
 
 		public void ParseHeader ()
 		{
-			MemoryStream ms = new MemoryStream (HeaderData);
+			//GetValue (stream, typeof (Header), out Header);
 
-			ms.Position = 12; //ugly
-			//GetValue (ms, out HeaderFields);
+			MemoryStream stream = new MemoryStream (HeaderData);
 
-			Array tmpArr;
-			GetValue (ms, typeof (HeaderField[]), out tmpArr);
-			HeaderFields = (HeaderField[])tmpArr;
+			ValueType valT;
+			GetValue (stream, typeof (Header), out valT);
+			Header = (Header)valT;
 
-			foreach (HeaderField field in HeaderFields)
+			//foreach (HeaderField field in HeaderFields)
+			foreach (KeyValuePair<FieldCode,object> field in Header.Fields)
 			{
-				//TODO: more fields, maybe make this more efficient, less ugly
+				//TODO: maybe make this more efficient, less ugly
 
-				switch (field.Code)
+				//Console.WriteLine (field.Key + " = " + field.Value);
+				switch (field.Key)
 				{
 					case FieldCode.Invalid:
 						break;
@@ -814,67 +841,22 @@ namespace NDesk.DBus
 			}
 		}
 
-		//TODO: clean this up
-		public unsafe void WriteHeader (params HeaderField[] fields)
+		public void WriteHeader ()
 		{
-			Message msg = this;
+			if (Body != null)
+				Header.Length = (uint)Body.Position;
 
-			//dbus-send --print-reply=literal --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames
+			//pad the end of the message body
+			//this could be done elsewhere
+			//Message.CloseWrite (Body);
 
-			//TODO: make this a Message, cleanup
-			MemoryStream ms = new MemoryStream ();
-			byte[] buf = new byte[12];
+			MemoryStream stream = new MemoryStream ();
+			Message.Write (stream, typeof (Header), Header);
+			//WriteFromDict (stream, typeof (FieldCode), typeof (object), Header.Fields);
+			Message.CloseWrite (stream);
 
-			fixed (byte* pbuf = buf) {
-				DHeader* hdr = (DHeader*)pbuf;
-				msg.Header = hdr;
-			}
-
-			fixed (byte* pbuf = buf) {
-				DHeader* hdr = (DHeader*)pbuf;
-				hdr->Endianness = EndianFlag.Little;
-				hdr->MessageType = MessageType.MethodCall;
-				//hdr->Flags = HeaderFlag.None;
-				hdr->Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
-				hdr->MajorVersion = 1;
-				hdr->Length = 0;
-				//hdr->Serial = GenerateSerial ();
-			}
-
-			//FIXME
-			//ms.Write (buf, 0, sizeof(DHeader));
-			ms.Write (buf, 0, 12);
-			//ms.Position = sizeof (DHeader) - sizeof (uint);
-			//ms.Position = 12;
-
-			//Message.Write (ms, fields);
-			Message.Write (ms, typeof (HeaderField[]), (Array)fields);
-			Message.Close (ms);
-
-			msg.HeaderData = ms.GetBuffer ();
-
-			//hacky header length setting
-			fixed (byte* pbuf = msg.HeaderData) {
-				DHeader* hdr = (DHeader*)pbuf;
-				msg.Header = hdr;
-			}
-
-			//hack to provide length of header data including padding
-			msg.HeaderSize = (int)ms.Position;
-
-
-			//hacky body length setting
-			if (msg.Body != null) {
-				//TODO: should be data length, unpadded?
-				//GOOD msg.Header->Length = (uint)msg.BodySize;
-				msg.Header->Length = (uint)msg.Body.Position;
-				//msg.Header->Length = (uint)(msg.HeaderSize + msg.BodySize);
-				//Console.WriteLine ("DataSize: " + msg.BodySize);
-
-				//pad the end of the message body
-				//this could be done elsewhere
-				Message.Close (msg.Body);
-			}
+			//HeaderData = stream.GetBuffer ();
+			HeaderData = stream.ToArray ();
 		}
 
 		public static int PadNeeded (int len, int alignment)
@@ -908,14 +890,13 @@ namespace NDesk.DBus
 
 			int len = PadNeeded ((int)stream.Position, alignment);
 			for (int i = 0 ; i != len ; i++) {
-				//Console.WriteLine ("got pad: " + br.ReadByte ());
-				//byte b = br.ReadByte ();
 				int b = stream.ReadByte ();
 				if (b != 0)
 					throw new Exception ("Read non-zero padding byte at pos " + i + " (offset " + stream.Position + "), pad value was " + b);
 			}
 		}
 
+		//TODO: get rid of this hack
 		public static bool IsReading = false;
 	}
 }

@@ -8,10 +8,9 @@ using System.Runtime.InteropServices;
 
 namespace NDesk.DBus
 {
-	//is this useful?
-	//yyyyuua(yv)
+	//yyyyuua{yv}
 	[StructLayout (LayoutKind.Sequential, Pack=1)]
-	public class Header
+	public struct Header
 	{
 		public EndianFlag Endianness;
 		public MessageType MessageType;
@@ -19,8 +18,8 @@ namespace NDesk.DBus
 		public byte MajorVersion;
 		public uint Length;
 		public uint Serial;
-		//a(yv)
-		public HeaderField[] Fields;
+		//public HeaderField[] Fields;
+		public IDictionary<FieldCode,object> Fields;
 
 		public static DType TypeForField (FieldCode f)
 		{
@@ -49,22 +48,6 @@ namespace NDesk.DBus
 		}
 	}
 
-	/*
-	//is this useful?
-	[StructLayout (LayoutKind.Sequential, Pack=1)]
-	public class HeaderNew
-	{
-		public EndianFlag Endianness;
-		public MessageType MessageType;
-		public HeaderFlag Flags;
-		public byte MajorVersion;
-		public uint Length;
-		public uint Serial;
-		//a{yv}
-		public Dictionary<FieldCode,object> Fields;
-	}
-	*/
-
 	[StructLayout (LayoutKind.Sequential, Pack=1)]
 	public struct DHeader
 	{
@@ -78,17 +61,29 @@ namespace NDesk.DBus
 		public uint HeaderLength;
 	}
 
+	/*
 	public struct HeaderField
 	{
-		public HeaderField (FieldCode code, object value)
+		//public HeaderField (FieldCode code, object value)
+		//{
+		//	this.Code = code;
+		//	this.Value = value;
+		//}
+
+		public static HeaderField Create (FieldCode code, object value)
 		{
-			this.Code = code;
-			this.Value = value;
+			HeaderField hf;
+
+			hf.Code = code;
+			hf.Value = value;
+
+			return hf;
 		}
 
 		public FieldCode Code;
 		public object Value;
 	}
+	*/
 
 	/*
 	[StructLayout (LayoutKind.Sequential, Pack=1)]

@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Collections.Generic;
 using NDesk.DBus;
 using org.freedesktop.DBus;
 
@@ -35,8 +36,10 @@ public class ManagedDBusTest
 			Message msg = conn.ReadMessage ();
 			Console.WriteLine ("Message:");
 			Console.WriteLine ("\t" + "Type: " + msg.MessageType);
-			foreach (HeaderField hf in msg.HeaderFields)
-				Console.WriteLine ("\t" + hf.Code + ": " + hf.Value);
+			//foreach (HeaderField hf in msg.HeaderFields)
+			//	Console.WriteLine ("\t" + hf.Code + ": " + hf.Value);
+			foreach (KeyValuePair<FieldCode,object> field in msg.Header.Fields)
+				Console.WriteLine ("\t" + field.Key + ": " + field.Value);
 
 			if (msg.Body != null) {
 				Console.WriteLine ("\tBody:");

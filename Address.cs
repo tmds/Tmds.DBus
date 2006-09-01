@@ -10,14 +10,15 @@ namespace NDesk.DBus
 	{
 		//this method is not pretty
 		//not worth improving until there is a spec for this format
-		public static void Parse (string addr, out bool abstr, out string path)
+		//TODO: confirm that return value represents parse errors
+		public static bool Parse (string addr, out string path, out bool abstr)
 		{
 			//(unix:(path|abstract)=.*,guid=.*|tcp:host=.*(,port=.*)?);? ...
 			path = null;
 			abstr = false;
 
 			if (addr == null || addr == "")
-				return;
+				return false;
 
 			string[] parts;
 
@@ -30,12 +31,14 @@ namespace NDesk.DBus
 				else if (parts[0] == "abstract")
 					abstr = true;
 				else
-					return;
+					return false;
 
 				path = parts[1];
 			} else {
-				return;
+				return false;
 			}
+
+			return true;
 		}
 	}
 }

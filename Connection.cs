@@ -17,26 +17,52 @@ namespace NDesk.DBus
 {
 	public partial class Connection
 	{
-		//unix:path=/var/run/dbus/system_bus_socket
-		const string SYSTEM_BUS = "/var/run/dbus/system_bus_socket";
+		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";
 
 		public Socket sock = null;
 		Stream ns = null;
 		Transport transport;
 
-		public Connection ()
+		public Connection () : this (true)
 		{
-			string sessAddr = System.Environment.GetEnvironmentVariable ("DBUS_SESSION_BUS_ADDRESS");
-			//string sysAddr = System.Environment.GetEnvironmentVariable ("DBUS_SYSTEM_BUS_ADDRESS");
-			bool abstr;
-			string path;
+		}
 
-			Address.Parse (sessAddr, out abstr, out path);
+		public Connection (bool autoConnect)
+		{
+			if (!autoConnect)
+				return;
+
+			string path;
+			bool abstr;
+
+			string sessAddr = System.Environment.GetEnvironmentVariable ("DBUS_SESSION_BUS_ADDRESS");
+			Address.Parse (sessAddr, out path, out abstr);
 
 			//not really correct
-			if (path == null)
-				path = SYSTEM_BUS;
+			if (String.IsNullOrEmpty (path)) {
+				string sysAddr = System.Environment.GetEnvironmentVariable ("DBUS_SYSTEM_BUS_ADDRESS");
 
+				if (String.IsNullOrEmpty (sysAddr))
+					sysAddr = SYSTEM_BUS_ADDRESS;
+
+				Address.Parse (sysAddr, out path, out abstr);
+			}
+
+			Connect (path, abstr);
+			Authenticate ();
+		}
+
+		public void Connect (string address)
+		{
+			string path;
+			bool abstr;
+
+			Address.Parse (address, out path, out abstr);
+			Connect (path, abstr);
+		}
+
+		public void Connect (string path, bool abstr)
+		{
 			transport = new UnixTransport (path, abstr);
 
 			sock = transport.socket;
@@ -44,8 +70,6 @@ namespace NDesk.DBus
 			sock.Blocking = true;
 			//ns = new UnixStream ((int)sock.Handle);
 			ns = new NetworkStream (sock);
-
-			Authenticate ();
 		}
 
 		uint serial = 0;

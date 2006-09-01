@@ -58,36 +58,42 @@ namespace NDesk.DBus
 			//foreach (object myObj in mcm.InArgs)
 			//	Console.WriteLine("arg value: " + myObj.ToString());
 
-			if (mcm.MethodName.StartsWith ("add_")) {
-				string[] parts = mcm.MethodName.Split ('_');
-				string ename = parts[1];
-				Delegate dlg = (Delegate)mcm.InArgs[0];
+			MethodInfo imi = mcm.MethodBase as MethodInfo;
+			string methodName = mcm.MethodName;
 
-				conn.Handlers[ename] = dlg;
+			if (imi != null && imi.IsSpecialName) {
+				if (methodName.StartsWith ("add_")) {
+					string[] parts = mcm.MethodName.Split ('_');
+					string ename = parts[1];
+					Delegate dlg = (Delegate)mcm.InArgs[0];
 
-				//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
-				if (bus_name != "org.freedesktop.DBus") {
-					org.freedesktop.DBus.Bus bus = conn.GetInstance<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-					bus.AddMatch ("type='signal',sender='" + bus_name + "',member='" + ename + "'");
+					conn.Handlers[ename] = dlg;
+
+					//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
+					if (bus_name != "org.freedesktop.DBus") {
+						org.freedesktop.DBus.Bus bus = conn.GetInstance<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
+						bus.AddMatch ("type='signal',sender='" + bus_name + "',member='" + ename + "'");
+					}
+
+					return (IMethodReturnMessage) newRet;
 				}
 
-				return (IMethodReturnMessage) newRet;
-			}
+				if (mcm.MethodName.StartsWith ("remove_")) {
+					string[] parts = mcm.MethodName.Split ('_');
 
-			if (mcm.MethodName.StartsWith ("remove_")) {
-				string[] parts = mcm.MethodName.Split ('_');
-				string ename = parts[1];
-				//Delegate dlg = (Delegate)mcm.InArgs[0];
+					string ename = parts[1];
+					//Delegate dlg = (Delegate)mcm.InArgs[0];
 
-				//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
-				if (bus_name != "org.freedesktop.DBus") {
-					org.freedesktop.DBus.Bus bus = conn.GetInstance<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-					bus.RemoveMatch ("type='signal',sender='" + bus_name + "',member='" + ename + "'");
+					//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
+					if (bus_name != "org.freedesktop.DBus") {
+						org.freedesktop.DBus.Bus bus = conn.GetInstance<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
+						bus.RemoveMatch ("type='signal',sender='" + bus_name + "',member='" + ename + "'");
+					}
+
+					conn.Handlers.Remove (ename);
+
+					return (IMethodReturnMessage) newRet;
 				}
-
-				conn.Handlers.Remove (ename);
-
-				return (IMethodReturnMessage) newRet;
 			}
 
 			Message callMsg = new Message ();
@@ -109,11 +115,8 @@ namespace NDesk.DBus
 				string iface = null;
 
 				//if the type is registered, use that, otherwise use legacy iface string
-				MethodInfo imi = mcm.MethodBase as MethodInfo;
 				if (imi != null && conn.RegisteredTypes.ContainsKey (imi.DeclaringType))
 					iface = conn.RegisteredTypes[imi.DeclaringType];
-
-				string methodName = mcm.MethodName;
 
 				//map property accessors
 				//TODO: this needs to be done properly, not with simple String.Replace

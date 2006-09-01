@@ -17,7 +17,7 @@ public class ManagedDBusTestExport
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";
 
-		Bus bus = conn.GetInstance<Bus> (name, opath);
+		Bus bus = conn.GetObject<Bus> (name, opath);
 
 		bus.NameAcquired += delegate (string acquired_name) {
 			Console.WriteLine ("NameAcquired: " + acquired_name);
@@ -32,7 +32,7 @@ public class ManagedDBusTestExport
 		DemoObject demo;
 
 		if (bus.NameHasOwner (myNameReq)) {
-			demo = conn.GetInstance<DemoObject> (myNameReq, opath);
+			demo = conn.GetObject<DemoObject> (myNameReq, opath);
 		} else {
 			NameReply nameReply = bus.RequestName (myNameReq, NameFlag.None);
 

@@ -15,7 +15,7 @@ public class ManagedDBusTest
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";
 
-		Bus bus = conn.GetInstance<Bus> (name, opath);
+		Bus bus = conn.GetObject<Bus> (name, opath);
 
 		bus.NameAcquired += delegate (string acquired_name) {
 			Console.WriteLine ("NameAcquired: " + acquired_name);

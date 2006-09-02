@@ -50,14 +50,6 @@ namespace NDesk.DBus
 
 			MethodReturnMessageWrapper newRet = new MethodReturnMessageWrapper ((IMethodReturnMessage) msg);
 
-			//Console.WriteLine (mcm.MethodName);
-
-			//if (!methods.ContainsKey (mcm.MethodName))
-			//	return null;
-
-			//foreach (object myObj in mcm.InArgs)
-			//	Console.WriteLine("arg value: " + myObj.ToString());
-
 			MethodInfo imi = mcm.MethodBase as MethodInfo;
 			string methodName = mcm.MethodName;
 
@@ -96,24 +88,14 @@ namespace NDesk.DBus
 				}
 			}
 
-			Message callMsg = new Message ();
+			Signature inSig = GetSig (mcm.InArgs);
+
+			MethodCall method_call;
+			Message callMsg;
 
 			//build the outbound method call message
 			{
-
-				Signature inSig = new Signature ("");
-
-				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
-					callMsg.Body = new System.IO.MemoryStream ();
-
-					foreach (object arg in mcm.InArgs)
-						Message.Write (callMsg.Body, arg.GetType (), arg);
-
-					inSig = GetSig (mcm.InArgs);
-				}
-
 				string iface = null;
-
 				//if the type is registered, use that, otherwise use legacy iface string
 				if (imi != null && conn.RegisteredTypes.ContainsKey (imi.DeclaringType))
 					iface = conn.RegisteredTypes[imi.DeclaringType];
@@ -126,12 +108,14 @@ namespace NDesk.DBus
 					methodName = methodName.Replace ("set_", "Set");
 				}
 
-					callMsg.Header.Fields[FieldCode.Path] = object_path;
-					callMsg.Header.Fields[FieldCode.Interface] = iface;
-					callMsg.Header.Fields[FieldCode.Member] = methodName;
-					callMsg.Header.Fields[FieldCode.Destination] = bus_name;
+				/*
+				callMsg.Header.Fields[FieldCode.Path] = object_path;
+				callMsg.Header.Fields[FieldCode.Interface] = iface;
+				callMsg.Header.Fields[FieldCode.Member] = methodName;
+				callMsg.Header.Fields[FieldCode.Destination] = bus_name;
 				if (inSig.Data.Length != 0)
 					callMsg.Header.Fields[FieldCode.Signature] = inSig;
+				*/
 
 				//callMsg.WriteHeader ();
 
@@ -143,6 +127,20 @@ namespace NDesk.DBus
 					callMsg.WriteHeader (HeaderField.Create (FieldCode.Path, object_path), HeaderField.Create (FieldCode.Interface, iface), HeaderField.Create (FieldCode.Member, methodName), HeaderField.Create (FieldCode.Destination, bus_name), HeaderField.Create (FieldCode.Signature, inSig));
 				}
 				*/
+
+				if (inSig.Data.Length != 0)
+					method_call = new MethodCall (object_path, iface, methodName, bus_name, inSig);
+				else
+					method_call = new MethodCall (object_path, iface, methodName, bus_name);
+
+				callMsg = method_call.message;
+
+				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
+						callMsg.Body = new System.IO.MemoryStream ();
+
+						foreach (object arg in mcm.InArgs)
+							Message.Write (callMsg.Body, arg.GetType (), arg);
+					}
 			}
 
 			bool needsReply = true;
@@ -150,6 +148,14 @@ namespace NDesk.DBus
 			MethodInfo mi = newRet.MethodBase as MethodInfo;
 			if (mi.ReturnType == typeof (void))
 				needsReply = false;
+
+			//signature helper is broken, so write it by hand
+			callMsg.Header.Fields[FieldCode.Path] = object_path;
+			//callMsg.Header.Fields[FieldCode.Interface] = iface;
+			callMsg.Header.Fields[FieldCode.Member] = methodName;
+			callMsg.Header.Fields[FieldCode.Destination] = bus_name;
+			if (inSig.Data.Length != 0)
+				callMsg.Header.Fields[FieldCode.Signature] = inSig;
 
 			if (!needsReply) {
 				conn.Send (callMsg);

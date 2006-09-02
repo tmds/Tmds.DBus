@@ -41,7 +41,8 @@ public class ManagedDBusTestExport
 			demo = new DemoObject ();
 			conn.RegisteredObjects["org.ndesk.test"] = demo;
 
-			conn.WaitForReplyTo (0);
+			while (true)
+				conn.Iterate ();
 		}
 		//end ugly bits
 

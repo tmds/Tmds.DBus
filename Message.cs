@@ -30,32 +30,38 @@ namespace NDesk.DBus
 			Header.Fields = new Dictionary<FieldCode,object> ();
 		}
 
-		//public DHeader* Header;
-
-		public Header Header = new Header ();
-
-		//public int HeaderSize;
-		public byte[] HeaderData;
-
+		//maybe better to do this in Wrapper.cs
 		/*
-		public MessageType MessageType
+		public static Message MethodCall (ObjectPath path, string @interface, string member, string destination)
 		{
-			get {
-				return Header.MessageType;
-			} set {
-				Header.MessageType = value;
-			}
-		}
+			Message message = new Message ();
 
-		public uint Serial
-		{
-			get {
-				return Header.Serial;
-			} set {
-				Header.Serial = value;
-			}
+			message.Header.MessageType = MessageType.MethodCall;
+			message.ReplyExpected = false;
+			message.Header.Fields[FieldCode.Path] = path;
+			message.Header.Fields[FieldCode.Interface] = @interface;
+			message.Header.Fields[FieldCode.Member] = member;
+			message.Header.Fields[FieldCode.Destination] = destination;
+
+			return message;
 		}
 		*/
+
+		public Header Header;
+		public byte[] HeaderData;
+
+		public Signature Signature
+		{
+			get {
+				if (Header.Fields.ContainsKey (FieldCode.Signature))
+					return (Signature)Header.Fields[FieldCode.Signature];
+				else
+					return new Signature ("");
+			} set {
+				//TODO: remove from dict if value empty or null
+				Header.Fields[FieldCode.Signature] = value;
+			}
+		}
 
 		public bool ReplyExpected
 		{
@@ -71,7 +77,6 @@ namespace NDesk.DBus
 
 		//public HeaderField[] HeaderFields;
 		//public Dictionary<FieldCode,object>;
-
 
 		public MemoryStream Body;
 		//public byte[] Data;
@@ -781,6 +786,7 @@ namespace NDesk.DBus
 			}
 		}
 
+		/*
 		public ObjectPath Path = new ObjectPath ("");
 		public string Interface = "";
 		public string Member = "";
@@ -789,6 +795,7 @@ namespace NDesk.DBus
 		public string Destination = "";
 		public string Sender = "";
 		public Signature Signature = new Signature ("");
+		*/
 
 		//only in values for MethodCall, only out valuess for MethodReturn?
 		//public DType[] Signature;
@@ -803,6 +810,7 @@ namespace NDesk.DBus
 			GetValue (stream, typeof (Header), out valT);
 			Header = (Header)valT;
 
+			/*
 			//foreach (HeaderField field in HeaderFields)
 			foreach (KeyValuePair<FieldCode,object> field in Header.Fields)
 			{
@@ -839,6 +847,7 @@ namespace NDesk.DBus
 						break;
 				}
 			}
+			*/
 		}
 
 		public void WriteHeader ()

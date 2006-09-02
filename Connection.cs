@@ -203,23 +203,26 @@ namespace NDesk.DBus
 			while ((msg = ReadMessage ()) != null) {
 				switch (msg.Header.MessageType) {
 					case MessageType.Invalid:
-						break;
+						throw new Exception ("Invalid message received");
 					case MessageType.MethodCall:
-						HandleMethodCall (msg);
+						MethodCall method_call = new MethodCall (msg);
+						HandleMethodCall (method_call);
 						break;
 					case MessageType.MethodReturn:
-						if (msg.ReplySerial == id)
+						MethodReturn method_return = new MethodReturn (msg);
+						if (method_return.ReplySerial == id)
 							return msg;
 						break;
 					case MessageType.Error:
-						//TODO: better exception handling
-						//if (msg.ReplySerial != id)
-						//	break;
+						Error error = new Error (msg);
 						string errMsg = "";
+						//if (error.Signature.Value == "s")
 						if (msg.Signature.Value == "s")
 							Message.GetValue (msg.Body, out errMsg);
-						throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + msg.ErrorName + ": " + errMsg);
+						//throw new Exception ("Error: " + error.ErrorName + ": " + "signature='" + error.Signature.Value + "': " + errMsg);
+						throw new Exception ("Error: " + error.ErrorName + ": " + "signature='" + msg.Signature.Value + "': " + errMsg);
 					case MessageType.Signal:
+						//Signal signal = new Signal (msg);
 						HandleSignal (msg);
 						break;
 				}
@@ -240,21 +243,25 @@ namespace NDesk.DBus
 
 			switch (msg.Header.MessageType) {
 				case MessageType.Invalid:
-					break;
+					throw new Exception ("Invalid message received");
 				case MessageType.MethodCall:
-					HandleMethodCall (msg);
+					MethodCall method_call = new MethodCall (msg);
+					HandleMethodCall (method_call);
 					break;
 				case MessageType.MethodReturn:
-					if (PendingCalls.ContainsKey (msg.ReplySerial)) {
+					MethodReturn method_return = new MethodReturn (msg);
+					if (PendingCalls.ContainsKey (method_return.ReplySerial)) {
+						Console.Error.WriteLine ("Couldn't handle async method_return message");
 						//return msg;
 					}
 					break;
 				case MessageType.Error:
 					//TODO: better exception handling
+					Error error = new Error (msg);
 					string errMsg = "";
 					if (msg.Signature.Value == "s")
 						Message.GetValue (msg.Body, out errMsg);
-					throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + msg.ErrorName + ": " + errMsg);
+					throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
 				case MessageType.Signal:
 					HandleSignal (msg);
 					break;
@@ -267,8 +274,10 @@ namespace NDesk.DBus
 		//this might need reworking with MulticastDelegate
 		public void HandleSignal (Message msg)
 		{
-			if (Handlers.ContainsKey (msg.Member)) {
-				Delegate dlg = Handlers[msg.Member];
+			Signal signal = new Signal (msg);
+
+			if (Handlers.ContainsKey (signal.Member)) {
+				Delegate dlg = Handlers[signal.Member];
 				//dlg.DynamicInvoke (GetDynamicValues (msg));
 
 				System.Reflection.MethodInfo mi = dlg.Method;
@@ -281,7 +290,7 @@ namespace NDesk.DBus
 				dlg.DynamicInvoke (GetDynamicValues (msg, sig));
 
 			} else {
-				Console.Error.WriteLine ("Warning: No signal handler for " + msg.Member);
+				Console.Error.WriteLine ("Warning: No signal handler for " + signal.Member);
 			}
 		}
 
@@ -289,26 +298,27 @@ namespace NDesk.DBus
 
 		//should generalize this method
 		//it is duplicated in DProxy
-		protected Message ConstructReplyFor (Message req, object[] vals)
+		protected Message ConstructReplyFor (MethodCall method_call, object[] vals)
 		{
-			Message replyMsg = new Message ();
+			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
+			//Message replyMsg = new Message ();
+			Message replyMsg = method_return.message;
 
-			replyMsg.Header.MessageType = MessageType.MethodReturn;
-			replyMsg.ReplyExpected = false;
+			//replyMsg.Header.MessageType = MessageType.MethodReturn;
+			//replyMsg.ReplyExpected = false;
 
-			Signature inSig = new Signature ("");
+			Signature inSig = DProxy.GetSig (vals);
 
 			if (vals != null && vals.Length != 0) {
 				replyMsg.Body = new System.IO.MemoryStream ();
 
 				foreach (object arg in vals)
 					Message.Write (replyMsg.Body, arg.GetType (), arg);
-
-				inSig = DProxy.GetSig (vals);
 			}
 
-			replyMsg.Header.Fields[FieldCode.ReplySerial] = req.Header.Serial;
-			replyMsg.Header.Fields[FieldCode.Destination] = req.Sender;
+			//FIXME: this breaks the abstraction
+			replyMsg.Header.Fields[FieldCode.ReplySerial] = method_call.message.Header.Serial;
+			replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
 			if (inSig.Data.Length != 0)
 				replyMsg.Header.Fields[FieldCode.Signature] = inSig;
 
@@ -318,19 +328,19 @@ namespace NDesk.DBus
 		}
 
 		//not particularly efficient and needs to be generalized
-		public void HandleMethodCall (Message msg)
+		public void HandleMethodCall (MethodCall method_call)
 		{
-			if (RegisteredObjects.ContainsKey (msg.Interface)) {
-				object obj = RegisteredObjects[msg.Interface];
+			if (RegisteredObjects.ContainsKey (method_call.Interface)) {
+				object obj = RegisteredObjects[method_call.Interface];
 				Type type = obj.GetType ();
 				//object retObj = type.InvokeMember (msg.Member, System.Reflection.BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
 
-				string methodName = msg.Member;
+				string methodName = method_call.Member;
 
 				//map property accessors
 				//TODO: this needs to be done properly, not with simple String.Replace
 				//special case for Notifications left as a reminder that this is broken
-				if (msg.Interface == "org.freedesktop.Notifications") {
+				if (method_call.Interface == "org.freedesktop.Notifications") {
 					methodName = methodName.Replace ("Get", "get_");
 					methodName = methodName.Replace ("Set", "set_");
 				}
@@ -341,9 +351,9 @@ namespace NDesk.DBus
 				Type[] sig = new Type[parms.Length];
 				for (int i = 0 ; i != parms.Length ; i++)
 					sig[i] = parms[i].ParameterType;
-				object retObj = mi.Invoke (obj, GetDynamicValues (msg, sig));
+				object retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, sig));
 
-				if (msg.ReplyExpected) {
+				if (method_call.message.ReplyExpected) {
 					object[] retObjs;
 
 					if (retObj == null) {
@@ -353,11 +363,11 @@ namespace NDesk.DBus
 						retObjs[0] = retObj;
 					}
 
-					Message reply = ConstructReplyFor (msg, retObjs);
+					Message reply = ConstructReplyFor (method_call, retObjs);
 					Send (reply);
 				}
 			} else {
-				Console.Error.WriteLine ("Warning: No method handler for " + msg.Member);
+				Console.Error.WriteLine ("Warning: No method handler for " + method_call.Member);
 			}
 		}
 
@@ -388,7 +398,6 @@ namespace NDesk.DBus
 				foreach (DType dtype in msg.Signature.Data) {
 					object arg;
 					Message.GetValue (msg.Body, dtype, out arg);
-					//Console.WriteLine (arg);
 					vals.Add (arg);
 				}
 			}

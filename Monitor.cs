@@ -35,7 +35,7 @@ public class ManagedDBusTest
 		while (true) {
 			Message msg = conn.ReadMessage ();
 			Console.WriteLine ("Message:");
-			Console.WriteLine ("\t" + "Type: " + msg.MessageType);
+			Console.WriteLine ("\t" + "Type: " + msg.Header.MessageType);
 			//foreach (HeaderField hf in msg.HeaderFields)
 			//	Console.WriteLine ("\t" + hf.Code + ": " + hf.Value);
 			foreach (KeyValuePair<FieldCode,object> field in msg.Header.Fields)

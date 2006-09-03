@@ -47,6 +47,7 @@ namespace NDesk.DBus
 			Destination = (string)message.Header.Fields[FieldCode.Destination];
 			Sender = (string)message.Header.Fields[FieldCode.Sender];
 #if PROTO_REPLY_SIGNATURE
+			//TODO: note that an empty ReplySignature should really be treated differently to the field not existing!
 			if (message.Header.Fields.ContainsKey (FieldCode.ReplySignature))
 				ReplySignature = (Signature)message.Header.Fields[FieldCode.ReplySignature];
 			else

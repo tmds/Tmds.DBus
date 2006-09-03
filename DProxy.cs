@@ -90,10 +90,6 @@ namespace NDesk.DBus
 
 			Signature inSig = GetSig (mcm.InArgs);
 
-#if PROTO_REPLY_SIGNATURE
-			Signature outSig = GetSig (mcm.InArgs);
-#endif
-
 			MethodCall method_call;
 			Message callMsg;
 
@@ -168,18 +164,19 @@ namespace NDesk.DBus
 				return (IMethodReturnMessage) newRet;
 			}
 
+			//TODO: support out parameters
+			Type[] retTypeArr = new Type[1];
+			retTypeArr[0] = mi.ReturnType;
+
 #if PROTO_REPLY_SIGNATURE
+			Signature outSig = GetSig (retTypeArr);
 			callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
 #endif
 
 			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
 
 			//handle the reply message
-			{
-				Type[] retTypeArr = new Type[1];
-				retTypeArr[0] = mi.ReturnType;
-				newRet.ReturnValue = conn.GetDynamicValues (retMsg, retTypeArr)[0];
-			}
+			newRet.ReturnValue = conn.GetDynamicValues (retMsg, retTypeArr)[0];
 
 			return (IMethodReturnMessage) newRet;
 		}

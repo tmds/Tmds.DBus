@@ -379,7 +379,7 @@ namespace NDesk.DBus
 
 		public Dictionary<Type,string> RegisteredTypes = new Dictionary<Type,string> ();
 
-		public Dictionary<string,object> RegisteredObjects = new Dictionary<string,object> ();
+		protected Dictionary<string,object> RegisteredObjects = new Dictionary<string,object> ();
 
 		public object[] GetDynamicValues (Message msg, Type[] types)
 		{
@@ -414,6 +414,8 @@ namespace NDesk.DBus
 		//FIXME: this shouldn't be part of the core API
 		//that also applies to much of the other object mapping code
 		//it should cache proxies and objects, really
+
+		//inspired by System.Activator
 		public object GetObject (Type type, string bus_name, ObjectPath object_path)
 		{
 			DProxy prox = new DProxy (this, bus_name, object_path, type);
@@ -423,6 +425,24 @@ namespace NDesk.DBus
 		public T GetObject<T> (string bus_name, ObjectPath object_path)
 		{
 			return (T)GetObject (typeof (T), bus_name, object_path);
+		}
+
+		//see also:
+		//from System.Runtime.Remoting.RemotingServices:
+		//public static object Connect (Type classToProxy, string url);
+
+		//this may be silly API, but better than raw access to the dictionary:
+		//inspired by System.Runtime.Remoting.RemotingServices
+		//public ObjRef Marshal (MarshalByRefObject obj, string uri)
+		public void Marshal (MarshalByRefObject obj, string bus_name)
+		{
+			RegisteredObjects[bus_name] = obj;
+		}
+
+		//just in case the MarshalByRefObject requirement is crack
+		public void Marshal (object obj, string bus_name)
+		{
+			RegisteredObjects[bus_name] = obj;
 		}
 	}
 }

@@ -39,7 +39,7 @@ public class ManagedDBusTestExport
 			Console.WriteLine ("nameReply: " + nameReply);
 
 			demo = new DemoObject ();
-			conn.RegisteredObjects["org.ndesk.test"] = demo;
+			conn.Marshal (demo, "org.ndesk.test");
 
 			while (true)
 				conn.Iterate ();

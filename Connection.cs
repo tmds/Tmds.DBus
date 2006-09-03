@@ -214,6 +214,7 @@ namespace NDesk.DBus
 						MethodReturn method_return = new MethodReturn (msg);
 						if (method_return.ReplySerial == id)
 							return msg;
+						Console.Error.WriteLine ("Warning: While waiting for reply to " + id + ": Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial + " with signature '" + msg.Signature + "'");
 						break;
 					case MessageType.Error:
 						Error error = new Error (msg);
@@ -254,7 +255,8 @@ namespace NDesk.DBus
 						//TODO: pending calls
 						//return msg;
 					}
-					throw new Exception ("Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial);
+					//throw new Exception ("Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial);
+					Console.Error.WriteLine ("Warning: Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial + " with signature '" + msg.Signature + "'");
 					break;
 				case MessageType.Error:
 					//TODO: better exception handling

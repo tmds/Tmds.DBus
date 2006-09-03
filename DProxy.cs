@@ -149,6 +149,8 @@ namespace NDesk.DBus
 			if (mi.ReturnType == typeof (void))
 				needsReply = false;
 
+			callMsg.ReplyExpected = needsReply;
+
 			//signature helper is broken, so write it by hand
 			callMsg.Header.Fields[FieldCode.Path] = object_path;
 			//callMsg.Header.Fields[FieldCode.Interface] = iface;

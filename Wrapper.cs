@@ -26,6 +26,9 @@ namespace NDesk.DBus
 			message.Header.Fields[FieldCode.Interface] = @interface;
 			message.Header.Fields[FieldCode.Member] = member;
 			message.Header.Fields[FieldCode.Destination] = destination;
+#if PROTO_REPLY_SIGNATURE
+			//TODO
+#endif
 		}
 
 		public MethodCall (ObjectPath path, string @interface, string member, string destination, Signature signature) : this (path, @interface, member, destination)
@@ -43,6 +46,12 @@ namespace NDesk.DBus
 			Member = (string)message.Header.Fields[FieldCode.Member];
 			Destination = (string)message.Header.Fields[FieldCode.Destination];
 			Sender = (string)message.Header.Fields[FieldCode.Sender];
+#if PROTO_REPLY_SIGNATURE
+			if (message.Header.Fields.ContainsKey (FieldCode.ReplySignature))
+				ReplySignature = (Signature)message.Header.Fields[FieldCode.ReplySignature];
+			else
+				ReplySignature = new Signature ("");
+#endif
 			//Signature = (Signature)message.Header.Fields[FieldCode.Signature];
 			//use the wrapper in Message because it checks for emptiness
 			Signature = message.Signature;
@@ -53,6 +62,9 @@ namespace NDesk.DBus
 		public string Member;
 		public string Destination;
 		public string Sender;
+#if PROTO_REPLY_SIGNATURE
+		public Signature ReplySignature;
+#endif
 		public Signature Signature;
 	}
 

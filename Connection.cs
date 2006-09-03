@@ -285,13 +285,8 @@ namespace NDesk.DBus
 				//dlg.DynamicInvoke (GetDynamicValues (msg));
 
 				System.Reflection.MethodInfo mi = dlg.Method;
-				System.Reflection.ParameterInfo[]  parms = mi.GetParameters ();
-				Type[] sig = new Type[parms.Length];
-				for (int i = 0 ; i != parms.Length ; i++)
-					sig[i] = parms[i].ParameterType;
-				//object retObj = mi.Invoke (null, GetDynamicValues (msg, sig));
 				//signals have no return value
-				dlg.DynamicInvoke (GetDynamicValues (msg, sig));
+				dlg.DynamicInvoke (GetDynamicValues (msg, mi.GetParameters ()));
 
 			} else {
 				Console.Error.WriteLine ("Warning: No signal handler for " + signal.Member);
@@ -351,11 +346,7 @@ namespace NDesk.DBus
 
 				//FIXME: breaks for overloaded methods
 				System.Reflection.MethodInfo mi = type.GetMethod (methodName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
-				System.Reflection.ParameterInfo[]  parms = mi.GetParameters ();
-				Type[] sig = new Type[parms.Length];
-				for (int i = 0 ; i != parms.Length ; i++)
-					sig[i] = parms[i].ParameterType;
-				object retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, sig));
+				object retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, mi.GetParameters ()));
 
 				if (method_call.message.ReplyExpected) {
 					object[] retObjs;
@@ -378,6 +369,19 @@ namespace NDesk.DBus
 		public Dictionary<Type,string> RegisteredTypes = new Dictionary<Type,string> ();
 
 		protected Dictionary<string,object> RegisteredObjects = new Dictionary<string,object> ();
+
+		//GetDynamicValues() should probably use yield eventually
+
+		public object[] GetDynamicValues (Message msg, System.Reflection.ParameterInfo[] parms)
+		{
+			//TODO: consider out parameters
+
+			Type[] types = new Type[parms.Length];
+			for (int i = 0 ; i != parms.Length ; i++)
+				types[i] = parms[i].ParameterType;
+
+			return GetDynamicValues (msg, types);
+		}
 
 		public object[] GetDynamicValues (Message msg, Type[] types)
 		{

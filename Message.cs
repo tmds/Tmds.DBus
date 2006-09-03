@@ -708,7 +708,13 @@ namespace NDesk.DBus
 				object retObj = ci.Invoke (null, GetDynamicValues (msg, sig));
 				*/
 
-				List<object> vals = new List<object> ();
+				//TODO: use GetDynamicValues() when it's refactored to be applicable
+				/*
+				object[] vals;
+				vals = GetDynamicValues (msg, parms);
+				*/
+
+				List<object> vals = new List<object> (parms.Length);
 				foreach (System.Reflection.ParameterInfo parm in parms) {
 					object arg;
 					Message.GetValue (stream, parm.ParameterType, out arg);

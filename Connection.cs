@@ -244,8 +244,6 @@ namespace NDesk.DBus
 			msg = ReadMessage ();
 
 			switch (msg.Header.MessageType) {
-				case MessageType.Invalid:
-					throw new Exception ("Invalid message received");
 				case MessageType.MethodCall:
 					MethodCall method_call = new MethodCall (msg);
 					HandleMethodCall (method_call);
@@ -253,9 +251,10 @@ namespace NDesk.DBus
 				case MessageType.MethodReturn:
 					MethodReturn method_return = new MethodReturn (msg);
 					if (PendingCalls.ContainsKey (method_return.ReplySerial)) {
-						Console.Error.WriteLine ("Couldn't handle async method_return message");
+						//TODO: pending calls
 						//return msg;
 					}
+					throw new Exception ("Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial);
 					break;
 				case MessageType.Error:
 					//TODO: better exception handling
@@ -263,10 +262,13 @@ namespace NDesk.DBus
 					string errMsg = "";
 					if (msg.Signature.Value == "s")
 						Message.GetValue (msg.Body, out errMsg);
-					throw new Exception ("Remote Error: type='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
+					throw new Exception ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
 				case MessageType.Signal:
 					HandleSignal (msg);
 					break;
+				case MessageType.Invalid:
+				default:
+					throw new Exception ("Invalid message received: MessageType='" + msg.Header.MessageType + "'");
 			}
 		}
 

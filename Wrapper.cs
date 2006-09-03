@@ -30,7 +30,9 @@ namespace NDesk.DBus
 
 		public MethodCall (ObjectPath path, string @interface, string member, string destination, Signature signature) : this (path, @interface, member, destination)
 		{
-			message.Header.Fields[FieldCode.Signature] = signature;
+			//message.Header.Fields[FieldCode.Signature] = signature;
+			//use the wrapper in Message because it checks for emptiness
+			message.Signature = signature;
 		}
 
 		public MethodCall (Message message)
@@ -42,6 +44,8 @@ namespace NDesk.DBus
 			Destination = (string)message.Header.Fields[FieldCode.Destination];
 			Sender = (string)message.Header.Fields[FieldCode.Sender];
 			//Signature = (Signature)message.Header.Fields[FieldCode.Signature];
+			//use the wrapper in Message because it checks for emptiness
+			Signature = message.Signature;
 		}
 
 		public ObjectPath Path;
@@ -49,7 +53,7 @@ namespace NDesk.DBus
 		public string Member;
 		public string Destination;
 		public string Sender;
-		//public Signature Signature;
+		public Signature Signature;
 	}
 
 	public class MethodReturn

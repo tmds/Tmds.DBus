@@ -48,19 +48,6 @@ namespace NDesk.DBus
 		}
 	}
 
-	[StructLayout (LayoutKind.Sequential, Pack=1)]
-	public struct DHeader
-	{
-		public EndianFlag Endianness;
-		public MessageType MessageType;
-		public HeaderFlag Flags;
-		public byte MajorVersion;
-		public uint Length;
-		public uint Serial;
-		//FIXME: this is in fact the length part of the following array
-		public uint HeaderLength;
-	}
-
 	/*
 	public struct HeaderField
 	{
@@ -82,22 +69,6 @@ namespace NDesk.DBus
 
 		public FieldCode Code;
 		public object Value;
-	}
-	*/
-
-	/*
-	[StructLayout (LayoutKind.Sequential, Pack=1)]
-	public struct DHeaderField
-	{
-		public FieldCode HeaderField;
-		public byte Pad1;
-		public DType HeaderType;
-		public byte Pad2;
-	}
-
-	[StructLayout (LayoutKind.Sequential, Pack=1)]
-	public struct DMessage
-	{
 	}
 	*/
 

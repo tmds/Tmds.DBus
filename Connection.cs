@@ -137,48 +137,54 @@ namespace NDesk.DBus
 			}
 		}
 
-		public unsafe Message ReadMessage ()
+		public Message ReadMessage ()
 		{
 			//FIXME: fix reading algorithm to work in one step
+			//this code is a bit silly and inefficient
+			//hopefully it's at least correct and avoids polls for now
 
-			byte[] buf = new byte[1024];
-
-			//ns.Read (buf, 0, buf.Length);
+			byte[] buf = new byte[16];
 			ns.Read (buf, 0, 16);
 
-			//Console.WriteLine ("");
-			//Console.WriteLine ("Header:");
+			MemoryStream ms = new MemoryStream ();
 
-			DHeader* hdr;
+			ms.Write (buf, 0, 16);
 
-			fixed (byte* pbuf = buf) {
-				//msg.Header = (DHeader*)pbuf;
-				hdr = (DHeader*)pbuf;
-				//Console.WriteLine (msg.MessageType);
-				//Console.WriteLine ("Length: " + msg.Header->Length);
-				//Console.WriteLine ("Header Length: " + msg.Header->HeaderLength);
+			int toRead;
+			int bodyLen;
+
+			//TODO: remove this last remaining bit of unsafe
+			unsafe {
+				fixed (byte* pbuf = buf) {
+					DHeader* hdr = (DHeader*)pbuf;
+					bodyLen = (int)hdr->Length;
+					toRead = Message.Padded ((int)hdr->HeaderLength, 8);
+				}
 			}
 
-			int toRead = Message.Padded ((int)hdr->HeaderLength, 8);
-			int read = ns.Read (buf, 16, toRead);
+			buf = new byte[toRead];
+
+			int read = ns.Read (buf, 0, toRead);
 
 			if (read != toRead)
 				throw new Exception ("Read length mismatch: " + read + " of expected " + toRead);
 
+			ms.Write (buf, 0, buf.Length);
+
 			Message msg = new Message ();
-			msg.HeaderData = buf;
+			msg.HeaderData = ms.ToArray ();
 
 			//read the body
-			if (hdr->Length != 0) {
+			if (bodyLen != 0) {
 				//FIXME
 				//msg.Body = new byte[(int)msg.Header->Length];
-				byte[] body = new byte[(int)hdr->Length];
+				byte[] body = new byte[bodyLen];
 
 				//int len = ns.Read (msg.Body, 0, msg.Body.Length);
-				int len = ns.Read (body, 0, body.Length);
+				int len = ns.Read (body, 0, bodyLen);
 
 				//if (len != msg.Body.Length)
-				if (len != body.Length)
+				if (len != bodyLen)
 					throw new Exception ("Message body size mismatch");
 
 				msg.Body = new MemoryStream (body);

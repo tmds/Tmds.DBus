@@ -9,8 +9,23 @@ using org.freedesktop.DBus;
 
 public class ManagedDBusTest
 {
-	public static void Main ()
+	public static void Main (string[] args)
 	{
+		//TODO: allow selection of bus
+		if (args.Length == 1) {
+			string arg = args[1];
+
+			switch (arg)
+			{
+				case "--system":
+					break;
+				case "--session":
+					break;
+				default:
+					break;
+			}
+		}
+
 		Connection conn = new Connection ();
 
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
@@ -46,6 +61,7 @@ public class ManagedDBusTest
 				//System.IO.MemoryStream ms = new System.IO.MemoryStream (msg.Body);
 				//System.IO.MemoryStream ms = msg.Body;
 
+				//TODO: this needs to be done more intelligently
 				foreach (DType dtype in msg.Signature.Data) {
 					if (dtype == DType.Invalid)
 						continue;

@@ -165,6 +165,7 @@ namespace NDesk.DBus
 			bw.Write (val);
 		}
 
+#if PROTO_TYPE_SINGLE
 		public static void Write (Stream stream, float val)
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
@@ -172,6 +173,7 @@ namespace NDesk.DBus
 			Pad (stream, 4);
 			bw.Write (val);
 		}
+#endif
 
 		public static void Write (Stream stream, double val)
 		{
@@ -266,10 +268,12 @@ namespace NDesk.DBus
 					Write (stream, (ulong)val);
 				}
 				break;
+#if PROTO_TYPE_SINGLE
 				case DType.Single:
 				{
 					Write (stream, (float)val);
 				}
+#endif
 				break;
 				case DType.Double:
 				{
@@ -408,12 +412,14 @@ namespace NDesk.DBus
 					val = vval;
 				}
 				break;
+#if PROTO_TYPE_SINGLE
 				case DType.Single:
 				{
 					float vval;
 					GetValue (stream, out vval);
 					val = vval;
 				}
+#endif
 				break;
 				case DType.Double:
 				{
@@ -521,6 +527,7 @@ namespace NDesk.DBus
 			val = br.ReadUInt64 ();
 		}
 
+#if PROTO_TYPE_SINGLE
 		public static void GetValue (Stream stream, out float val)
 		{
 			BinaryReader br = new BinaryReader (stream);
@@ -528,6 +535,7 @@ namespace NDesk.DBus
 			Pad (stream, 4);
 			val = br.ReadSingle ();
 		}
+#endif
 
 		public static void GetValue (Stream stream, out double val)
 		{

@@ -90,6 +90,10 @@ namespace NDesk.DBus
 
 			Signature inSig = GetSig (mcm.InArgs);
 
+#if PROTO_REPLY_SIGNATURE
+			Signature outSig = GetSig (mcm.InArgs);
+#endif
+
 			MethodCall method_call;
 			Message callMsg;
 
@@ -164,6 +168,10 @@ namespace NDesk.DBus
 				return (IMethodReturnMessage) newRet;
 			}
 
+#if PROTO_REPLY_SIGNATURE
+			callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
+#endif
+
 			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
 
 			//handle the reply message
@@ -182,6 +190,15 @@ namespace NDesk.DBus
 			throw new System.NotSupportedException ();
 		}
 		*/
+
+		public static Signature GetSig (object[] objs, ParameterInfo[] parms)
+		{
+			Type[] types = new Type[parms.Length];
+			for (int i = 0 ; i != parms.Length ; i++)
+				types[i] = parms[i].ParameterType;
+
+			return GetSig (types);
+		}
 
 		public static Signature GetSig (object[] objs)
 		{

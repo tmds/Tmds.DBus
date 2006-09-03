@@ -42,8 +42,10 @@ namespace NDesk.DBus
 					return DType.String;
 				case FieldCode.Signature:
 					return DType.Signature;
-				//case FieldCode.ReplySignature: //note: not supported in dbus
-				//	return DType.Signature;
+#if PROTO_REPLY_SIGNATURE
+				case FieldCode.ReplySignature: //note: not supported in dbus
+					return DType.Signature;
+#endif
 				default:
 					return DType.Invalid;
 			}
@@ -99,7 +101,9 @@ namespace NDesk.DBus
 			Destination,
 			Sender,
 			Signature,
-			//ReplySignature, //note: not supported in dbus
+#if PROTO_REPLY_SIGNATURE
+			ReplySignature, //note: not supported in dbus
+#endif
 	}
 
 	public enum EndianFlag : byte
@@ -151,8 +155,10 @@ namespace NDesk.DBus
 				case DType.Int64:
 				case DType.UInt64:
 					return 8;
+#if PROTO_TYPE_SINGLE
 				case DType.Single: //Not yet supported!
 					return 4;
+#endif
 				case DType.Double:
 					return 8;
 				case DType.String:

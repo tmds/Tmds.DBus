@@ -153,14 +153,10 @@ namespace NDesk.DBus
 			int toRead;
 			int bodyLen;
 
-			//TODO: remove this last remaining bit of unsafe
-			unsafe {
-				fixed (byte* pbuf = buf) {
-					DHeader* hdr = (DHeader*)pbuf;
-					bodyLen = (int)hdr->Length;
-					toRead = Message.Padded ((int)hdr->HeaderLength, 8);
-				}
-			}
+			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
+			toRead = (int)BitConverter.ToUInt32 (buf, 12);
+
+			toRead = Message.Padded ((int)toRead, 8);
 
 			buf = new byte[toRead];
 

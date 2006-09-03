@@ -1,6 +1,6 @@
 all: NDesk.DBus.dll monitor.exe
 
-CSFLAGS=/unsafe
+#CSFLAGS=/unsafe
 REFS=Mono.Posix
 
 BUS_SOURCES=Address.cs Connection.cs Authentication.cs Protocol.cs Message.cs MessageFilter.cs Transport.cs Wrapper.cs

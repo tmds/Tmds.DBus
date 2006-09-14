@@ -10,6 +10,7 @@ using System.Net;
 using System.Net.Sockets;
 
 using System.Runtime.InteropServices;
+using System.Reflection;
 
 //using Console = System.Diagnostics.Trace;
 
@@ -286,7 +287,7 @@ namespace NDesk.DBus
 				Delegate dlg = Handlers[signal.Member];
 				//dlg.DynamicInvoke (GetDynamicValues (msg));
 
-				System.Reflection.MethodInfo mi = dlg.Method;
+				MethodInfo mi = dlg.Method;
 				//signals have no return value
 				dlg.DynamicInvoke (GetDynamicValues (msg, mi.GetParameters ()));
 
@@ -334,7 +335,7 @@ namespace NDesk.DBus
 			if (RegisteredObjects.ContainsKey (method_call.Interface)) {
 				object obj = RegisteredObjects[method_call.Interface];
 				Type type = obj.GetType ();
-				//object retObj = type.InvokeMember (msg.Member, System.Reflection.BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
+				//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
 
 				string methodName = method_call.Member;
 
@@ -347,7 +348,7 @@ namespace NDesk.DBus
 				}
 
 				//FIXME: breaks for overloaded methods
-				System.Reflection.MethodInfo mi = type.GetMethod (methodName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+				MethodInfo mi = type.GetMethod (methodName, BindingFlags.Public | BindingFlags.Instance);
 				object retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, mi.GetParameters ()));
 
 				if (method_call.message.ReplyExpected) {
@@ -374,7 +375,7 @@ namespace NDesk.DBus
 
 		//GetDynamicValues() should probably use yield eventually
 
-		public object[] GetDynamicValues (Message msg, System.Reflection.ParameterInfo[] parms)
+		public object[] GetDynamicValues (Message msg, ParameterInfo[] parms)
 		{
 			//TODO: consider out parameters
 

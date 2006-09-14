@@ -65,6 +65,7 @@ namespace NDesk.DBus
 					if (bus_name != "org.freedesktop.DBus") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
 						bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, bus_name, ename));
+						conn.Iterate ();
 					}
 
 					return (IMethodReturnMessage) newRet;
@@ -80,6 +81,7 @@ namespace NDesk.DBus
 					if (bus_name != "org.freedesktop.DBus") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
 						bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, bus_name, ename));
+						conn.Iterate ();
 					}
 
 					conn.Handlers.Remove (ename);

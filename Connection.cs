@@ -441,7 +441,7 @@ namespace NDesk.DBus
 		//public ObjRef Marshal (MarshalByRefObject obj, string uri)
 		public void Marshal (MarshalByRefObject obj, string bus_name)
 		{
-			RegisteredObjects[bus_name] = obj;
+			Marshal ((object) obj, bus_name);
 		}
 
 		//just in case the MarshalByRefObject requirement is crack

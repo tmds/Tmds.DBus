@@ -17,7 +17,7 @@ namespace NDesk.DBus
 			path = null;
 			abstr = false;
 
-			if (addr == null || addr == "")
+			if (String.IsNullOrEmpty (addr))
 				return false;
 
 			string[] parts;

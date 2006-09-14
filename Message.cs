@@ -256,8 +256,8 @@ namespace NDesk.DBus
 				{
 					Write (stream, (float)val);
 				}
-#endif
 				break;
+#endif
 				case DType.Double:
 				{
 					Write (stream, (double)val);
@@ -402,8 +402,8 @@ namespace NDesk.DBus
 					GetValue (stream, out vval);
 					val = vval;
 				}
-#endif
 				break;
+#endif
 				case DType.Double:
 				{
 					double vval;

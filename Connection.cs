@@ -11,6 +11,7 @@ using System.Net.Sockets;
 
 using System.Runtime.InteropServices;
 using System.Reflection;
+using System.Reflection.Emit;
 
 //using Console = System.Diagnostics.Trace;
 
@@ -18,6 +19,9 @@ namespace NDesk.DBus
 {
 	public partial class Connection
 	{
+		//FIXME: this hack needs to go
+		public static Connection tmpConn = null;
+
 		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";
 
 		public Socket sock = null;
@@ -445,9 +449,78 @@ namespace NDesk.DBus
 		}
 
 		//just in case the MarshalByRefObject requirement is crack
+		//FIXME: this api is slightly confused right now
 		public void Marshal (object obj, string bus_name)
 		{
+			//this is just the start of il generation work
+
+			foreach (EventInfo ei in obj.GetType ().GetEvents ()) {
+				//Console.Error.WriteLine (ei.Name);
+
+				ParameterInfo[] delegateParms = ei.EventHandlerType.GetMethod ("Invoke").GetParameters ();
+				Type[] hookupParms = new Type[delegateParms.Length];
+				for (int i = 0; i < delegateParms.Length ; i++)
+					hookupParms[i] = delegateParms[i].ParameterType;
+
+				DynamicMethod hookupMethod = new DynamicMethod ("EventHookup", typeof (void), hookupParms, typeof (object));
+				ILGenerator ilg = hookupMethod.GetILGenerator ();
+
+				//interface
+				//FIXME: don't hardcode
+				ilg.Emit (OpCodes.Ldstr, "org.ndesk.test");
+
+				//member
+				ilg.Emit (OpCodes.Ldstr, ei.Name);
+
+				LocalBuilder local = ilg.DeclareLocal (typeof (object[]));
+				ilg.Emit (OpCodes.Ldc_I4, hookupParms.Length);
+				ilg.Emit (OpCodes.Newarr, typeof (object));
+				ilg.Emit (OpCodes.Stloc, local);
+
+				for (int i = 0 ; i < hookupParms.Length ; i++)
+				{
+					Type t = hookupParms[i];
+
+					ilg.Emit (OpCodes.Ldloc, local);
+					ilg.Emit (OpCodes.Ldc_I4, i);
+					ilg.Emit (OpCodes.Ldarg, i);
+					if (t.IsValueType)
+						ilg.Emit (OpCodes.Box, t);
+					ilg.Emit (OpCodes.Stelem_Ref);
+				}
+
+				ilg.Emit (OpCodes.Ldloc, local);
+				ilg.Emit (OpCodes.Call, typeof (Connection).GetMethod ("InvokeSignal"));
+
+				//void return
+				ilg.Emit (OpCodes.Ret);
+
+				//Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
+
+				Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType);
+				ei.AddEventHandler (obj, d);
+			}
+
 			RegisteredObjects[bus_name] = obj;
+		}
+
+		public static void InvokeSignal (string @interface, string member, object[] args)
+		{
+			//Console.Error.WriteLine ("SomeHandler " + @interface + ", " + member);
+			Signature sig = DProxy.GetSig (args);
+
+			//FIXME: don't hardcode this, make this an instance method
+			Signal signal = new Signal (new ObjectPath ("/test"), @interface, member);
+			signal.message.Signature = sig;
+
+			if (args != null && args.Length != 0) {
+				signal.message.Body = new System.IO.MemoryStream ();
+
+				foreach (object arg in args)
+					Message.Write (signal.message.Body, arg.GetType (), arg);
+			}
+
+			tmpConn.Send (signal.message);
 		}
 	}
 }

@@ -40,6 +40,7 @@ public class ManagedDBusTestExport
 			Console.WriteLine ("nameReply: " + nameReply);
 
 			demo = new DemoObject ();
+			Connection.tmpConn = conn;
 			conn.Marshal (demo, "org.ndesk.test");
 
 			while (true)
@@ -80,8 +81,9 @@ public class ManagedDBusTestExport
 			Console.WriteLine (kvp.Key + ": " + kvp.Value);
 
 		Console.WriteLine ();
-		demo.SomeEvent += delegate () {Console.WriteLine ("SomeEvent handler");};
+		demo.SomeEvent += delegate (string arg1, int arg2, double arg3, MyTuple mt) {Console.WriteLine ("SomeEvent handler: " + arg1 + ", " + arg2 + ", " + arg3 + ", " + mt.A + ", " + mt.B);};
 		demo.FireOffSomeEvent ();
+		//handle the raised signal
 		conn.Iterate ();
 	}
 }
@@ -181,9 +183,13 @@ public class DemoObject : MarshalByRefObject
 	{
 		Console.WriteLine ("Asked to fire off SomeEvent");
 
+		MyTuple mt;
+		mt.A = "a";
+		mt.B = "b";
+
 		if (SomeEvent != null) {
-			SomeEvent ();
-			Console.WriteLine ("fired off SomeEvent");
+			SomeEvent ("some string", 21, 19.84, mt);
+			Console.WriteLine ("Fired off SomeEvent");
 		}
 	}
 }
@@ -201,4 +207,4 @@ public struct MyTuple
 	public string B;
 }
 
-public delegate void SomeEventHandler ();
+public delegate void SomeEventHandler (string arg1, int arg2, double arg3, MyTuple mt);

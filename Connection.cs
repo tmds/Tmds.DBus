@@ -336,6 +336,15 @@ namespace NDesk.DBus
 		//not particularly efficient and needs to be generalized
 		public void HandleMethodCall (MethodCall method_call)
 		{
+			/*
+			if (method_call.Member == "Introspect") {
+				Introspector intro = new Introspector ();
+				intro.target_type = typeof (org.freedesktop.DBus.Bus);
+				intro.HandleIntrospect ();
+				Console.WriteLine (intro.xml);
+			}
+			*/
+
 			if (RegisteredObjects.ContainsKey (method_call.Interface)) {
 				object obj = RegisteredObjects[method_call.Interface];
 				Type type = obj.GetType ();

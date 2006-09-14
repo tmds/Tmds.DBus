@@ -27,12 +27,13 @@ public class ManagedDBusTestExport
 		Console.WriteLine ("myName: " + myName);
 
 
+		ObjectPath myOpath = new ObjectPath ("/test");
 		string myNameReq = "org.ndesk.test";
 
 		DemoObject demo;
 
 		if (bus.NameHasOwner (myNameReq)) {
-			demo = conn.GetObject<DemoObject> (myNameReq, opath);
+			demo = conn.GetObject<DemoObject> (myNameReq, myOpath);
 		} else {
 			NameReply nameReply = bus.RequestName (myNameReq, NameFlag.None);
 
@@ -59,6 +60,10 @@ public class ManagedDBusTestExport
 			Console.WriteLine (text);
 
 		Console.WriteLine ();
+		string[][] arrarr = demo.ArrArr ();
+		Console.WriteLine (arrarr[1][0]);
+
+		Console.WriteLine ();
 		int[] vals = demo.TextToInts ("1 2 3");
 		foreach (int val in vals)
 			Console.WriteLine (val);
@@ -73,6 +78,11 @@ public class ManagedDBusTestExport
 		IDictionary<string,string> dict = demo.GetDict ();
 		foreach (KeyValuePair<string,string> kvp in dict)
 			Console.WriteLine (kvp.Key + ": " + kvp.Value);
+
+		Console.WriteLine ();
+		demo.SomeEvent += delegate () {Console.WriteLine ("SomeEvent handler");};
+		demo.FireOffSomeEvent ();
+		conn.Iterate ();
 	}
 }
 
@@ -107,6 +117,16 @@ public class DemoObject : MarshalByRefObject
 			retTexts[i] = texts[i].ToUpper ();
 
 		return retTexts;
+	}
+
+	public string[][] ArrArr ()
+	{
+		string[][] ret = new string[2][];
+
+		ret[0] = new string[] {"one", "two"};
+		ret[1] = new string[] {"three", "four"};
+
+		return ret;
 	}
 
 	public int[] TextToInts (string text)
@@ -154,6 +174,18 @@ public class DemoObject : MarshalByRefObject
 		return rets;
 	}
 	*/
+
+	public event SomeEventHandler SomeEvent;
+
+	public void FireOffSomeEvent ()
+	{
+		Console.WriteLine ("Asked to fire off SomeEvent");
+
+		if (SomeEvent != null) {
+			SomeEvent ();
+			Console.WriteLine ("fired off SomeEvent");
+		}
+	}
 }
 
 public enum DemoEnum
@@ -168,3 +200,5 @@ public struct MyTuple
 	public string A;
 	public string B;
 }
+
+public delegate void SomeEventHandler ();

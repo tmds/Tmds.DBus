@@ -30,23 +30,6 @@ namespace NDesk.DBus
 			Header.Fields = new Dictionary<FieldCode,object> ();
 		}
 
-		//maybe better to do this in Wrapper.cs
-		/*
-		public static Message MethodCall (ObjectPath path, string @interface, string member, string destination)
-		{
-			Message message = new Message ();
-
-			message.Header.MessageType = MessageType.MethodCall;
-			message.ReplyExpected = false;
-			message.Header.Fields[FieldCode.Path] = path;
-			message.Header.Fields[FieldCode.Interface] = @interface;
-			message.Header.Fields[FieldCode.Member] = member;
-			message.Header.Fields[FieldCode.Destination] = destination;
-
-			return message;
-		}
-		*/
-
 		public Header Header;
 		public byte[] HeaderData;
 
@@ -804,20 +787,6 @@ namespace NDesk.DBus
 			}
 		}
 
-		/*
-		public ObjectPath Path = new ObjectPath ("");
-		public string Interface = "";
-		public string Member = "";
-		public string ErrorName = "";
-		public uint ReplySerial = 0;
-		public string Destination = "";
-		public string Sender = "";
-		public Signature Signature = new Signature ("");
-		*/
-
-		//only in values for MethodCall, only out valuess for MethodReturn?
-		//public DType[] Signature;
-
 		public void ParseHeader ()
 		{
 			//GetValue (stream, typeof (Header), out Header);
@@ -832,8 +801,6 @@ namespace NDesk.DBus
 			//foreach (HeaderField field in HeaderFields)
 			foreach (KeyValuePair<FieldCode,object> field in Header.Fields)
 			{
-				//TODO: maybe make this more efficient, less ugly
-
 				//Console.WriteLine (field.Key + " = " + field.Value);
 				switch (field.Key)
 				{

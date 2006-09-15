@@ -329,7 +329,8 @@ namespace NDesk.DBus
 
 			//FIXME: this breaks the abstraction
 			replyMsg.Header.Fields[FieldCode.ReplySerial] = method_call.message.Header.Serial;
-			replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+			//the message bus sets the destination for us, so this is commented out
+			//replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
 			if (inSig.Data.Length != 0)
 				replyMsg.Header.Fields[FieldCode.Signature] = inSig;
 

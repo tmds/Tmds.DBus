@@ -291,6 +291,9 @@ namespace NDesk.DBus
 		//variant
 		public static void Write (Stream stream, object val)
 		{
+			if (val == null)
+				throw new Exception ("Cannot send null variant");
+
 			Type type = val.GetType ();
 			DType t = Signature.TypeToDType (type);
 

@@ -26,6 +26,8 @@ namespace NDesk.DBus
 			message.Header.Fields[FieldCode.Interface] = @interface;
 			message.Header.Fields[FieldCode.Member] = member;
 			message.Header.Fields[FieldCode.Destination] = destination;
+			//TODO: consider setting Sender here for p2p situations
+			//this will allow us to remove the p2p hacks in MethodCall and Message
 #if PROTO_REPLY_SIGNATURE
 			//TODO
 #endif

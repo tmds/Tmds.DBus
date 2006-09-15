@@ -43,7 +43,8 @@ public class TestServer
 			conn = new Connection (false);
 			conn.Open (addr);
 			demo = conn.GetObject<DemoObject> (myNameReq, myOpath);
-			demo.Hello ("hi from test client", 21);
+			float ret = demo.Hello ("hi from test client", 21);
+			Console.WriteLine ("Returned float: " + ret);
 		} else {
 			string path;
 			bool abstr;
@@ -82,8 +83,10 @@ public class TestServer
 [Interface ("org.ndesk.test")]
 public class DemoObject : MarshalByRefObject
 {
-	public void Hello (string arg0, int arg1)
+	public float Hello (string arg0, int arg1)
 	{
 		Console.WriteLine ("Got a Hello(" + arg0 + ", " + arg1 +")");
+
+		return (float)arg1/2;
 	}
 }

@@ -148,6 +148,12 @@ namespace NDesk.DBus
 			bool needsReply = true;
 
 			MethodInfo mi = newRet.MethodBase as MethodInfo;
+
+			//TODO: complete out parameter support
+			Signature oSig = GetSig (ArgDirection.Out, mi.GetParameters ());
+			if (oSig.Data.Length != 0)
+				throw new Exception ("Out parameters not yet supported: out_signature='" + oSig.Value + "'");
+
 			if (mi.ReturnType == typeof (void))
 				needsReply = false;
 
@@ -166,7 +172,6 @@ namespace NDesk.DBus
 				return (IMethodReturnMessage) newRet;
 			}
 
-			//TODO: support out parameters
 			Type[] retTypeArr = new Type[1];
 			retTypeArr[0] = mi.ReturnType;
 
@@ -190,13 +195,29 @@ namespace NDesk.DBus
 		}
 		*/
 
-		public static Signature GetSig (object[] objs, ParameterInfo[] parms)
+		public static Signature GetSig (ArgDirection dir, ParameterInfo[] parms)
 		{
-			Type[] types = new Type[parms.Length];
-			for (int i = 0 ; i != parms.Length ; i++)
-				types[i] = parms[i].ParameterType;
+			List<Type> types = new List<Type> ();
 
-			return GetSig (types);
+			//TODO: consider InOut/Ref
+
+			for (int i = 0 ; i != parms.Length ; i++) {
+				switch (dir) {
+					case ArgDirection.In:
+						if (parms[i].IsIn)
+							types.Add (parms[i].ParameterType);
+						break;
+					case ArgDirection.Out:
+						if (parms[i].IsOut) {
+							//TODO: note that IsOut is optional to the compiler, we may want to use IsByRef instead
+						//eg: if (parms[i].ParameterType.IsByRef)
+							types.Add (parms[i].ParameterType.GetElementType ());
+						}
+						break;
+				}
+			}
+
+			return GetSig (types.ToArray ());
 		}
 
 		public static Signature GetSig (object[] objs)
@@ -292,6 +313,12 @@ namespace NDesk.DBus
 			sig.Data = ms.ToArray ();
 			return sig;
 		}
+	}
+
+	public enum ArgDirection
+	{
+		In,
+		Out,
 	}
 
 	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]

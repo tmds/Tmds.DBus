@@ -54,6 +54,13 @@ public class ManagedDBusTestExport
 		demo.CheckEnum (DemoEnum.Bar);
 		demo.CheckEnum (demo.GetEnum ());
 
+		/*
+		Console.WriteLine ();
+		string outVal;
+		demo.ReturnOut (out outVal);
+		Console.WriteLine ("outVal: " + outVal);
+		*/
+
 		Console.WriteLine ();
 		string[] texts = {"one", "two", "three"};
 		texts = demo.EchoCapsArr (texts);
@@ -110,6 +117,13 @@ public class DemoObject : MarshalByRefObject
 	{
 		return DemoEnum.Bar;
 	}
+
+	/*
+	public void ReturnOut (out string val)
+	{
+		val = "out value";
+	}
+	*/
 
 	public string[] EchoCapsArr (string[] texts)
 	{

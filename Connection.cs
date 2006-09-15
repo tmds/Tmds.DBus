@@ -25,7 +25,7 @@ namespace NDesk.DBus
 		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";
 
 		public Socket sock = null;
-		Stream ns = null;
+		public Stream ns = null;
 		Transport transport;
 
 		public Connection () : this (true)

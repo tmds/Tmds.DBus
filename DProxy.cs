@@ -11,7 +11,8 @@ using System.Runtime.Remoting.Messaging;
 
 namespace NDesk.DBus
 {
-	public class DProxy : RealProxy
+	//marked internal because this is really an implementation detail and needs to be replaced
+	internal class DProxy : RealProxy
 	{
 		Connection conn;
 

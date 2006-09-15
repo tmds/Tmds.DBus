@@ -1,6 +1,6 @@
 all: NDesk.DBus.dll monitor.exe
 
-BUS_SOURCES=Address.cs Connection.cs Authentication.cs Protocol.cs Message.cs MessageFilter.cs Transport.cs Wrapper.cs
+BUS_SOURCES=Address.cs Connection.cs Authentication.cs Protocol.cs Message.cs MessageFilter.cs Server.cs Transport.cs Wrapper.cs
 UNIX_SOURCES=UnixTransport.cs
 CLR_SOURCES=DBus.cs Introspection.cs IntrospectionSchema.cs DProxy.cs Signature.cs
 

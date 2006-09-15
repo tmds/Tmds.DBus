@@ -45,7 +45,10 @@ namespace NDesk.DBus
 			Interface = (string)message.Header.Fields[FieldCode.Interface];
 			Member = (string)message.Header.Fields[FieldCode.Member];
 			Destination = (string)message.Header.Fields[FieldCode.Destination];
-			Sender = (string)message.Header.Fields[FieldCode.Sender];
+			//TODO: filled by the bus so reliable, but not the case for p2p
+			//so we make it optional here, but this needs some more thought
+			if (message.Header.Fields.ContainsKey (FieldCode.Sender))
+				Sender = (string)message.Header.Fields[FieldCode.Sender];
 #if PROTO_REPLY_SIGNATURE
 			//TODO: note that an empty ReplySignature should really be treated differently to the field not existing!
 			if (message.Header.Fields.ContainsKey (FieldCode.ReplySignature))

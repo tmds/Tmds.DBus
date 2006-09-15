@@ -329,8 +329,9 @@ namespace NDesk.DBus
 
 			//FIXME: this breaks the abstraction
 			replyMsg.Header.Fields[FieldCode.ReplySerial] = method_call.message.Header.Serial;
-			//the message bus sets the destination for us, so this is commented out
-			//replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+			//TODO: this is a temporary hack to make p2p work, we should always send Destination
+			if (method_call.Sender != null)
+				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
 			if (inSig.Data.Length != 0)
 				replyMsg.Header.Fields[FieldCode.Signature] = inSig;
 

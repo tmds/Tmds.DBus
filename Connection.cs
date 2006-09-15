@@ -318,7 +318,7 @@ namespace NDesk.DBus
 			//replyMsg.Header.MessageType = MessageType.MethodReturn;
 			//replyMsg.ReplyExpected = false;
 
-			Signature inSig = DProxy.GetSig (vals);
+			Signature inSig = Signature.GetSig (vals);
 
 			if (vals != null && vals.Length != 0) {
 				replyMsg.Body = new System.IO.MemoryStream ();
@@ -523,7 +523,7 @@ namespace NDesk.DBus
 		public static void InvokeSignal (string @interface, string member, object[] args)
 		{
 			//Console.Error.WriteLine ("SomeHandler " + @interface + ", " + member);
-			Signature sig = DProxy.GetSig (args);
+			Signature sig = Signature.GetSig (args);
 
 			//FIXME: don't hardcode this, make this an instance method
 			Signal signal = new Signal (new ObjectPath ("/test"), @interface, member);

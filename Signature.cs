@@ -7,6 +7,10 @@ using System.Text;
 using System.IO;
 using System.Runtime.InteropServices;
 
+using System.Collections.Generic;
+//TODO: Reflection should be done at a higher level than this class
+using System.Reflection;
+
 namespace NDesk.DBus
 {
 	public struct Signature
@@ -210,6 +214,131 @@ namespace NDesk.DBus
 					return null;
 			}
 		}
+
+		public static Signature GetSig (ArgDirection dir, ParameterInfo[] parms)
+		{
+			List<Type> types = new List<Type> ();
+
+			//TODO: consider InOut/Ref
+
+			for (int i = 0 ; i != parms.Length ; i++) {
+				switch (dir) {
+					case ArgDirection.In:
+						if (parms[i].IsIn)
+							types.Add (parms[i].ParameterType);
+						break;
+					case ArgDirection.Out:
+						if (parms[i].IsOut) {
+							//TODO: note that IsOut is optional to the compiler, we may want to use IsByRef instead
+						//eg: if (parms[i].ParameterType.IsByRef)
+							types.Add (parms[i].ParameterType.GetElementType ());
+						}
+						break;
+				}
+			}
+
+			return GetSig (types.ToArray ());
+		}
+
+		public static Signature GetSig (object[] objs)
+		{
+			return GetSig (Type.GetTypeArray (objs));
+		}
+
+		public static Signature GetSig (Type[] types)
+		{
+			MemoryStream ms = new MemoryStream ();
+
+			foreach (Type type in types) {
+				{
+					byte[] data = GetSig (type).Data;
+					ms.Write (data, 0, data.Length);
+				}
+			}
+
+			Signature sig;
+			sig.Data = ms.ToArray ();
+			return sig;
+		}
+
+		public static Signature GetSig (Type type)
+		{
+			MemoryStream ms = new MemoryStream ();
+
+			if (type.IsArray) {
+				ms.WriteByte ((byte)DType.Array);
+
+				Type elem_type = type.GetElementType ();
+				//TODO: recurse
+				//DType elem_dtype = Signature.TypeToDType (elem_type);
+				//ms.WriteByte ((byte)elem_dtype);
+				{
+					byte[] data = GetSig (elem_type).Data;
+					ms.Write (data, 0, data.Length);
+				}
+			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
+				Type[] genArgs = type.GetGenericArguments ();
+
+				ms.WriteByte ((byte)'a');
+				ms.WriteByte ((byte)'{');
+
+				{
+					byte[] data = GetSig (genArgs[0]).Data;
+					ms.Write (data, 0, data.Length);
+				}
+
+				{
+					byte[] data = GetSig (genArgs[1]).Data;
+					ms.Write (data, 0, data.Length);
+				}
+
+				ms.WriteByte ((byte)'}');
+			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+				//if (type.IsGenericParameter && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
+				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
+					ms.WriteByte ((byte)'{');
+				else
+					ms.WriteByte ((byte)'(');
+
+				ConstructorInfo[] cis = type.GetConstructors ();
+				if (cis.Length != 0) {
+					System.Reflection.ConstructorInfo ci = cis[0];
+					System.Reflection.ParameterInfo[]  parms = ci.GetParameters ();
+
+					foreach (ParameterInfo parm in parms) {
+						{
+							byte[] data = GetSig (parm.ParameterType).Data;
+							ms.Write (data, 0, data.Length);
+						}
+					}
+
+				} else {
+					foreach (FieldInfo fi in type.GetFields ()) {
+						{
+							byte[] data = GetSig (fi.FieldType).Data;
+							ms.Write (data, 0, data.Length);
+						}
+					}
+				}
+				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
+					ms.WriteByte ((byte)'}');
+				else
+					ms.WriteByte ((byte)')');
+			} else {
+				DType dtype = Signature.TypeToDType (type);
+				ms.WriteByte ((byte)dtype);
+			}
+
+			Signature sig;
+			sig.Data = ms.ToArray ();
+			return sig;
+		}
+	}
+
+	public enum ArgDirection
+	{
+		In,
+		Out,
 	}
 
 	public enum DType : byte

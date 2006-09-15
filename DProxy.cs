@@ -90,7 +90,7 @@ namespace NDesk.DBus
 				}
 			}
 
-			Signature inSig = GetSig (mcm.InArgs);
+			Signature inSig = Signature.GetSig (mcm.InArgs);
 
 			MethodCall method_call;
 			Message callMsg;
@@ -150,7 +150,7 @@ namespace NDesk.DBus
 			MethodInfo mi = newRet.MethodBase as MethodInfo;
 
 			//TODO: complete out parameter support
-			Signature oSig = GetSig (ArgDirection.Out, mi.GetParameters ());
+			Signature oSig = Signature.GetSig (ArgDirection.Out, mi.GetParameters ());
 			if (oSig.Data.Length != 0)
 				throw new Exception ("Out parameters not yet supported: out_signature='" + oSig.Value + "'");
 
@@ -176,7 +176,7 @@ namespace NDesk.DBus
 			retTypeArr[0] = mi.ReturnType;
 
 #if PROTO_REPLY_SIGNATURE
-			Signature outSig = GetSig (retTypeArr);
+			Signature outSig = Signature.GetSig (retTypeArr);
 			callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
 #endif
 
@@ -194,131 +194,6 @@ namespace NDesk.DBus
 			throw new System.NotSupportedException ();
 		}
 		*/
-
-		public static Signature GetSig (ArgDirection dir, ParameterInfo[] parms)
-		{
-			List<Type> types = new List<Type> ();
-
-			//TODO: consider InOut/Ref
-
-			for (int i = 0 ; i != parms.Length ; i++) {
-				switch (dir) {
-					case ArgDirection.In:
-						if (parms[i].IsIn)
-							types.Add (parms[i].ParameterType);
-						break;
-					case ArgDirection.Out:
-						if (parms[i].IsOut) {
-							//TODO: note that IsOut is optional to the compiler, we may want to use IsByRef instead
-						//eg: if (parms[i].ParameterType.IsByRef)
-							types.Add (parms[i].ParameterType.GetElementType ());
-						}
-						break;
-				}
-			}
-
-			return GetSig (types.ToArray ());
-		}
-
-		public static Signature GetSig (object[] objs)
-		{
-			return GetSig (Type.GetTypeArray (objs));
-		}
-
-		public static Signature GetSig (Type[] types)
-		{
-			MemoryStream ms = new MemoryStream ();
-
-			foreach (Type type in types) {
-				{
-					byte[] data = GetSig (type).Data;
-					ms.Write (data, 0, data.Length);
-				}
-			}
-
-			Signature sig;
-			sig.Data = ms.ToArray ();
-			return sig;
-		}
-
-		public static Signature GetSig (Type type)
-		{
-			MemoryStream ms = new MemoryStream ();
-
-			if (type.IsArray) {
-				ms.WriteByte ((byte)DType.Array);
-
-				Type elem_type = type.GetElementType ();
-				//TODO: recurse
-				//DType elem_dtype = Signature.TypeToDType (elem_type);
-				//ms.WriteByte ((byte)elem_dtype);
-				{
-					byte[] data = GetSig (elem_type).Data;
-					ms.Write (data, 0, data.Length);
-				}
-			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
-				Type[] genArgs = type.GetGenericArguments ();
-
-				ms.WriteByte ((byte)'a');
-				ms.WriteByte ((byte)'{');
-
-				{
-					byte[] data = GetSig (genArgs[0]).Data;
-					ms.Write (data, 0, data.Length);
-				}
-
-				{
-					byte[] data = GetSig (genArgs[1]).Data;
-					ms.Write (data, 0, data.Length);
-				}
-
-				ms.WriteByte ((byte)'}');
-			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
-				//if (type.IsGenericParameter && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
-				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
-					ms.WriteByte ((byte)'{');
-				else
-					ms.WriteByte ((byte)'(');
-
-				ConstructorInfo[] cis = type.GetConstructors ();
-				if (cis.Length != 0) {
-					System.Reflection.ConstructorInfo ci = cis[0];
-					System.Reflection.ParameterInfo[]  parms = ci.GetParameters ();
-
-					foreach (ParameterInfo parm in parms) {
-						{
-							byte[] data = GetSig (parm.ParameterType).Data;
-							ms.Write (data, 0, data.Length);
-						}
-					}
-
-				} else {
-					foreach (FieldInfo fi in type.GetFields ()) {
-						{
-							byte[] data = GetSig (fi.FieldType).Data;
-							ms.Write (data, 0, data.Length);
-						}
-					}
-				}
-				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
-					ms.WriteByte ((byte)'}');
-				else
-					ms.WriteByte ((byte)')');
-			} else {
-				DType dtype = Signature.TypeToDType (type);
-				ms.WriteByte ((byte)dtype);
-			}
-
-			Signature sig;
-			sig.Data = ms.ToArray ();
-			return sig;
-		}
-	}
-
-	public enum ArgDirection
-	{
-		In,
-		Out,
 	}
 
 	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]

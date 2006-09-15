@@ -148,8 +148,13 @@ namespace NDesk.DBus
 			//this code is a bit silly and inefficient
 			//hopefully it's at least correct and avoids polls for now
 
+			int read;
+
 			byte[] buf = new byte[16];
-			ns.Read (buf, 0, 16);
+			read = ns.Read (buf, 0, 16);
+
+			if (read != 16)
+				throw new Exception ("Header read length mismatch: " + read + " of expected " + "16");
 
 			MemoryStream ms = new MemoryStream ();
 
@@ -165,7 +170,7 @@ namespace NDesk.DBus
 
 			buf = new byte[toRead];
 
-			int read = ns.Read (buf, 0, toRead);
+			read = ns.Read (buf, 0, toRead);
 
 			if (read != toRead)
 				throw new Exception ("Read length mismatch: " + read + " of expected " + toRead);

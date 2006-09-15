@@ -22,6 +22,10 @@ test-export.exe: NDesk.DBus.dll TestExport.cs
 
 test-exceptions.exe: NDesk.DBus.dll TestExceptions.cs
 
+test-server.exe: REFS=Mono.Posix
+
+test-server.exe: NDesk.DBus.dll TestServer.cs
+
 monitor.exe: NDesk.DBus.dll Monitor.cs
 
 introspect.exe: NDesk.DBus.dll Introspect.cs

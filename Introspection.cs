@@ -14,6 +14,10 @@ namespace NDesk.DBus
 	//TODO: complete this class
 	public class Introspector
 	{
+		const string NAMESPACE = "http://www.freedesktop.org/standards/dbus";
+		const string PUBLIC_IDENTIFIER = "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN";
+		const string SYSTEM_IDENTIFIER = "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd";
+
 		public string xml;
 		public Type target_type;
 
@@ -21,14 +25,14 @@ namespace NDesk.DBus
 		{
 			XmlWriterSettings settings = new XmlWriterSettings ();
 			settings.Indent = true;
-			settings.IndentChars = ("\t");
+			settings.IndentChars = ("  ");
 			settings.OmitXmlDeclaration = true;
 
 			StringBuilder sb = new StringBuilder ();
 
 	    XmlWriter writer;
-			//TODO: doctype
 			writer = XmlWriter.Create (sb, settings);
+			writer.WriteDocType ("node", PUBLIC_IDENTIFIER, SYSTEM_IDENTIFIER, null);
 			writer.WriteStartElement ("node");
 			writer.WriteStartElement ("interface");
 			writer.WriteAttributeString ("name", "org.freedesktop.DBus.Introspectable");

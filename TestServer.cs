@@ -71,6 +71,10 @@ public class TestServer
 				//conn.Open (path, @abstract);
 				conn.sock = client;
 				conn.sock.Blocking = true;
+
+				PeerCred pc = new PeerCred (conn.sock);
+				Console.WriteLine ("PeerCred: pid={0}, uid={1}, gid={2}", pc.ProcessID, pc.UserID, pc.GroupID);
+
 				conn.ns = new NetworkStream (conn.sock);
 
 				//ConnectionHandler.Handle (conn);

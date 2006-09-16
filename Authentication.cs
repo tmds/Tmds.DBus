@@ -43,6 +43,8 @@ namespace NDesk.DBus
 			sw.NewLine = "\r\n";
 			//sw.AutoFlush = true;
 
+			//send peer credentials null byte. note that this might not be portable
+			//there are also selinux, BSD etc. considerations
 			sw.Write ('\0');
 
 			string str = transport.AuthString ();
@@ -59,10 +61,32 @@ namespace NDesk.DBus
 			parts = ok_rep.Split (' ');
 
 			string guid = parts[1];
-			//Console.WriteLine ("guid: " + guid);
+			/*
+			byte[] guidData = FromHex (guid);
+			uint unixTime = BitConverter.ToUInt32 (guidData, 0);
+			Console.Error.WriteLine ("guid: " + guid + ", " + "unixTime: " + unixTime + " (" + UnixToDateTime (unixTime) + ")");
+			*/
 
 			sw.WriteLine ("BEGIN");
 			sw.Flush ();
+		}
+
+		//From Mono.Unix.Native.NativeConvert
+		//should these methods use long or (u)int?
+		public static DateTime UnixToDateTime (long time)
+		{
+			DateTime LocalUnixEpoch = new DateTime (1970, 1, 1);
+			TimeSpan LocalUtcOffset = TimeZone.CurrentTimeZone.GetUtcOffset (DateTime.UtcNow);
+			return LocalUnixEpoch.AddSeconds ((double) time + LocalUtcOffset.TotalSeconds);
+		}
+
+		public static long DateTimeToUnix (DateTime time)
+		{
+			DateTime LocalUnixEpoch = new DateTime (1970, 1, 1);
+			TimeSpan LocalUtcOffset = TimeZone.CurrentTimeZone.GetUtcOffset (DateTime.UtcNow);
+			TimeSpan unixTime = time.Subtract (LocalUnixEpoch) - LocalUtcOffset;
+
+			return (long) unixTime.TotalSeconds;
 		}
 
 		//From Mono.Security.Cryptography

@@ -341,14 +341,22 @@ namespace NDesk.DBus
 		//not particularly efficient and needs to be generalized
 		public void HandleMethodCall (MethodCall method_call)
 		{
-			/*
-			if (method_call.Member == "Introspect") {
+			//TODO: introspection needs to be abstracted and moved somewhere more appropriate when there is message filter infrastructure
+			if (method_call.Interface == "org.freedesktop.DBus.Introspectable" && method_call.Member == "Introspect") {
 				Introspector intro = new Introspector ();
+				//FIXME: don't hardcode the type!
 				intro.target_type = typeof (org.freedesktop.DBus.Bus);
 				intro.HandleIntrospect ();
-				Console.WriteLine (intro.xml);
+				Console.Error.WriteLine (intro.xml);
+
+				object[] introRet = new object[1];
+				introRet[0] = intro.xml;
+				Message reply = ConstructReplyFor (method_call, introRet);
+				Send (reply);
+				return;
 			}
-			*/
+
+			//FIXME: we should be using an ObjectPath / Destination here for everything other than maybe well-known interfaces
 
 			if (RegisteredObjects.ContainsKey (method_call.Interface)) {
 				object obj = RegisteredObjects[method_call.Interface];

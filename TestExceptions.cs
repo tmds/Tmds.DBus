@@ -48,6 +48,14 @@ public class ManagedDBusTestExceptions
 		}
 		//end ugly bits
 
+		Console.WriteLine ();
+		//org.freedesktop.DBus.Error.InvalidArgs: Requested bus name "" is not valid
+		try {
+			bus.RequestName ("", NameFlag.None);
+		} catch (Exception e) {
+			Console.WriteLine (e);
+		}
+
 		//TODO: make this work as expected (what is expected?)
 		Console.WriteLine ();
 		demo.ThrowSomeException ();

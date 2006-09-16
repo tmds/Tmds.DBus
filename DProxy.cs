@@ -184,7 +184,20 @@ namespace NDesk.DBus
 			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
 
 			//handle the reply message
-			newRet.ReturnValue = conn.GetDynamicValues (retMsg, retTypeArr)[0];
+			if (retMsg.Header.MessageType == MessageType.Error) {
+				//TODO: typed exceptions
+				Error error = new Error (retMsg);
+				string errMsg = "";
+				if (retMsg.Signature.Value.StartsWith ("s"))
+					Message.GetValue (retMsg.Body, out errMsg);
+				Exception e = new Exception (error.ErrorName + ": " + errMsg);
+				newRet.Exception = e;
+			} else if (retMsg.Header.MessageType == MessageType.MethodReturn) {
+				newRet.ReturnValue = conn.GetDynamicValues (retMsg, retTypeArr)[0];
+			} else {
+				//should not be possible to reach this at present
+				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn");
+			}
 
 			return (IMethodReturnMessage) newRet;
 		}

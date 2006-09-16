@@ -8,7 +8,15 @@ using NDesk.DBus;
 //namespace org.freedesktop.DBus
 namespace org.freedesktop.DBus
 {
+	//TODO: what's this for?
 	public class DBusException : ApplicationException
+	{
+	}
+
+	//TODO: maybe this should be mapped to its CLR counterpart directly?
+	//not yet used
+	[Interface ("org.freedesktop.DBus.Error.InvalidArgs")]
+	public class InvalidArgsException : ApplicationException
 	{
 	}
 

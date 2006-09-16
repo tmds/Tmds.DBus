@@ -228,12 +228,10 @@ namespace NDesk.DBus
 						break;
 					case MessageType.Error:
 						Error error = new Error (msg);
-						string errMsg = "";
-						//if (error.Signature.Value == "s")
-						if (msg.Signature.Value == "s")
-							Message.GetValue (msg.Body, out errMsg);
-						//throw new Exception ("Error: " + error.ErrorName + ": " + "signature='" + error.Signature.Value + "': " + errMsg);
-						throw new Exception ("Error: " + error.ErrorName + ": " + "signature='" + msg.Signature.Value + "': " + errMsg);
+						if (error.ReplySerial == id)
+							return msg;
+						Console.Error.WriteLine ("Warning: While waiting for reply to " + id + ": Couldn't handle async Error message for request id " + error.ReplySerial + " with signature '" + msg.Signature + "'");
+						break;
 					case MessageType.Signal:
 						//Signal signal = new Signal (msg);
 						HandleSignal (msg);

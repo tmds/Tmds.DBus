@@ -369,7 +369,30 @@ namespace NDesk.DBus
 
 				//FIXME: breaks for overloaded methods
 				MethodInfo mi = type.GetMethod (methodName, BindingFlags.Public | BindingFlags.Instance);
-				object retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, mi.GetParameters ()));
+				object retObj = null;
+			 	try {
+					retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, mi.GetParameters ()));
+				} catch (TargetInvocationException e) {
+					Console.Error.WriteLine (e);
+
+					//TODO: complete exception sending support
+					//need to find out what outgoing Error messages look like
+					/*
+					Exception ie = e.InnerException;
+					//Console.Error.WriteLine ("e \n\n" + e + "\n\n contains \n\n" + ie);
+
+					Error error = new Error ("org.ndesk.SomeException", method_call.message.Header.Serial);
+					//TODO: this is a temporary hack to make p2p work, we should always send Destination
+					if (method_call.Sender != null)
+						error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+					error.message.Header.Fields[FieldCode.Interface] = method_call.Interface;
+					error.message.Header.Fields[FieldCode.Member] = method_call.Member;
+
+					Send (error.message);
+					*/
+					return;
+				}
 
 				if (method_call.message.ReplyExpected) {
 					object[] retObjs;

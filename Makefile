@@ -2,7 +2,7 @@ all: NDesk.DBus.dll monitor.exe
 
 BUS_SOURCES=Address.cs Connection.cs Authentication.cs Protocol.cs Message.cs MessageFilter.cs Server.cs Transport.cs Wrapper.cs
 UNIX_SOURCES=UnixTransport.cs
-CLR_SOURCES=DBus.cs Introspection.cs IntrospectionSchema.cs DProxy.cs Signature.cs
+CLR_SOURCES=DBus.cs Introspection.cs DProxy.cs Signature.cs
 
 NDesk.DBus.dll: REFS=Mono.Posix
 
@@ -28,7 +28,7 @@ test-server.exe: NDesk.DBus.dll TestServer.cs
 
 monitor.exe: NDesk.DBus.dll Monitor.cs
 
-introspect.exe: NDesk.DBus.dll Introspect.cs
+introspect.exe: NDesk.DBus.dll Introspect.cs IntrospectionSchema.cs
 
 test-notifications.exe: NDesk.DBus.dll Notifications.cs TestNotifications.cs
 

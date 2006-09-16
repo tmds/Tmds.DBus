@@ -82,7 +82,7 @@ namespace NDesk.DBus
 		{
 			message.Header.MessageType = MessageType.MethodReturn;
 			message.ReplyExpected = false;
-			message.Header.Fields[FieldCode.ReplySerial] = (uint)reply_serial;
+			message.Header.Fields[FieldCode.ReplySerial] = reply_serial;
 			//signature optional?
 			//message.Header.Fields[FieldCode.Signature] = signature;
 		}

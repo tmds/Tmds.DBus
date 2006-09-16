@@ -102,7 +102,7 @@ namespace NDesk.DBus
 
 		public Error (string error_name, uint reply_serial)
 		{
-			message.Header.MessageType = MessageType.MethodReturn;
+			message.Header.MessageType = MessageType.Error;
 			message.ReplyExpected = false;
 			message.Header.Fields[FieldCode.ErrorName] = error_name;
 			message.Header.Fields[FieldCode.ReplySerial] = reply_serial;

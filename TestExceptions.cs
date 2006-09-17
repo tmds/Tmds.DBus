@@ -27,7 +27,7 @@ public class ManagedDBusTestExceptions
 		Console.WriteLine ("myName: " + myName);
 
 
-		ObjectPath myOpath = new ObjectPath ("/testexceptions");
+		ObjectPath myOpath = new ObjectPath ("/org/ndesk/testexceptions");
 		string myNameReq = "org.ndesk.testexceptions";
 
 		DemoObject demo;

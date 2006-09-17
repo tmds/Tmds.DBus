@@ -555,7 +555,7 @@ namespace NDesk.DBus
 			Signature sig = Signature.GetSig (args);
 
 			//FIXME: don't hardcode this, make this an instance method
-			Signal signal = new Signal (new ObjectPath ("/test"), @interface, member);
+			Signal signal = new Signal (new ObjectPath ("/org/ndesk/test"), @interface, member);
 			signal.message.Signature = sig;
 
 			if (args != null && args.Length != 0) {

@@ -27,7 +27,7 @@ public class ManagedDBusTestExport
 		Console.WriteLine ("myName: " + myName);
 
 
-		ObjectPath myOpath = new ObjectPath ("/test");
+		ObjectPath myOpath = new ObjectPath ("/org/ndesk/test");
 		string myNameReq = "org.ndesk.test";
 
 		DemoObject demo;

@@ -567,6 +567,21 @@ namespace NDesk.DBus
 			RegisteredObjects[path] = obj;
 		}
 
+		public object Unmarshal (string bus_name, ObjectPath path)
+		{
+			//TODO: make use of bus_name
+
+			if (!RegisteredObjects.ContainsKey (path))
+				throw new Exception ("Cannot unmarshal " + path + " as it isn't marshaled");
+			object obj = RegisteredObjects[path];
+
+			RegisteredObjects.Remove (path);
+
+			//FIXME: complete unmarshaling including the handlers we added etc.
+
+			return obj;
+		}
+
 		public static void InvokeSignal (string bus_name, string object_path, string @interface, string member, object[] args)
 		{
 			//TODO: make use of bus_name

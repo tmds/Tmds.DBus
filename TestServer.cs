@@ -107,8 +107,11 @@ public class ConnectionHandler
 	{
 		//Connection.tmpConn = conn;
 
+		string myNameReq = "org.ndesk.test";
+		ObjectPath myOpath = new ObjectPath ("/org/ndesk/test");
+
 		DemoObject demo = new DemoObject ();
-		conn.Marshal (demo, "org.ndesk.test", new ObjectPath ("/org/ndesk/test"));
+		conn.Marshal (demo, myNameReq, myOpath);
 
 		//TODO: handle lost connections etc. properly instead of stupido try/catch
 		try {
@@ -117,6 +120,8 @@ public class ConnectionHandler
 		} catch (Exception e) {
 			//Console.Error.WriteLine (e);
 		}
+
+		conn.Unmarshal (myNameReq, myOpath);
 	}
 }
 

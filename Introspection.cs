@@ -45,9 +45,18 @@ namespace NDesk.DBus
 
 			writer.WriteComment (" Never rely on XML introspection data for dynamic binding. It is provided only for convenience and is subject to change at any time. ");
 
-			//TODO: non-well-known introspection has paths as well, which we don't do yet. read the spec again
+			WriteNode ();
 
+			writer.Flush ();
+			xml = sb.ToString ();
+		}
+
+		public void WriteNode ()
+		{
 			writer.WriteStartElement ("node");
+
+			//TODO: non-well-known introspection has paths as well, which we don't do yet. read the spec again
+			//writer.WriteAttributeString ("name", "/org/ndesk/test");
 
 			//reflect our own interface manually
 			//note that the name of the return value this way is 'ret' instead of 'data'
@@ -59,9 +68,6 @@ namespace NDesk.DBus
 			//TODO: recurse interfaces, inheritance hierarchy?
 
 			writer.WriteEndElement ();
-
-			writer.Flush ();
-			xml = sb.ToString ();
 		}
 
 		public void WriteArg (ParameterInfo pi)

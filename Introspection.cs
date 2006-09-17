@@ -21,7 +21,7 @@ namespace NDesk.DBus
 
 		public StringBuilder sb;
 		public string xml;
-		public Type target_type;
+		public Type target_type = null;
 
 		protected XmlWriter writer;
 
@@ -63,7 +63,8 @@ namespace NDesk.DBus
 			WriteInterface (typeof (org.freedesktop.DBus.Introspectable));
 
 			//reflect the target interface
-			WriteInterface (target_type);
+			if (target_type != null)
+				WriteInterface (target_type);
 
 			//TODO: recurse interfaces, inheritance hierarchy?
 
@@ -82,9 +83,10 @@ namespace NDesk.DBus
 			if (pi.IsRetval && String.IsNullOrEmpty (pi.Name))
 				piName = "ret";
 			else
-				piName = String.IsNullOrEmpty (pi.Name) ? "arg" + pi.Position : pi.Name;
+				piName = pi.Name;
 
-			writer.WriteAttributeString ("name", piName);
+			if (!String.IsNullOrEmpty (piName))
+				writer.WriteAttributeString ("name", piName);
 
 			//consider using some kind of inverse logic for event handler parameters
 			//falling back to the default (no direction attr) will do for now though
@@ -137,9 +139,10 @@ namespace NDesk.DBus
 			writer.WriteEndElement ();
 		}
 
+		const BindingFlags relevantBindingFlags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+
 		public void WriteInterface (Type type)
 		{
-			//TODO: consider declaredonly, public
 			//TODO: consider member order, maybe using GetMembers ()
 
 			writer.WriteStartElement ("interface");
@@ -153,14 +156,14 @@ namespace NDesk.DBus
 
 			writer.WriteAttributeString ("name", interfaceName);
 
-			foreach (MethodInfo mi in type.GetMethods ())
+			foreach (MethodInfo mi in type.GetMethods (relevantBindingFlags))
 				if (!mi.IsSpecialName)
 					WriteMethod (mi);
 
-			foreach (EventInfo ei in type.GetEvents ())
+			foreach (EventInfo ei in type.GetEvents (relevantBindingFlags))
 				WriteSignal (ei);
 
-			foreach (PropertyInfo pri in type.GetProperties ())
+			foreach (PropertyInfo pri in type.GetProperties (relevantBindingFlags))
 				WriteProperty (pri);
 
 			//TODO: indexers

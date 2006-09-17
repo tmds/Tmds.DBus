@@ -341,13 +341,17 @@ namespace NDesk.DBus
 		//not particularly efficient and needs to be generalized
 		public void HandleMethodCall (MethodCall method_call)
 		{
+			//Console.Error.WriteLine ("method_call destination: " + method_call.Destination);
+			//Console.Error.WriteLine ("method_call path: " + method_call.Path);
+
 			//TODO: introspection needs to be abstracted and moved somewhere more appropriate when there is message filter infrastructure
 			if (method_call.Interface == "org.freedesktop.DBus.Introspectable" && method_call.Member == "Introspect") {
 				Introspector intro = new Introspector ();
-				//FIXME: don't hardcode the type!
-				intro.target_type = typeof (org.freedesktop.DBus.Bus);
+				//FIXME: don't hardcode the type, do this properly
+				if (RegisteredObjects.ContainsKey (new ObjectPath ("/org/ndesk/test")))
+					intro.target_type = RegisteredObjects[new ObjectPath ("/org/ndesk/test")].GetType ();
 				intro.HandleIntrospect ();
-				Console.Error.WriteLine (intro.xml);
+				//Console.Error.WriteLine (intro.xml);
 
 				object[] introRet = new object[1];
 				introRet[0] = intro.xml;
@@ -356,10 +360,8 @@ namespace NDesk.DBus
 				return;
 			}
 
-			//FIXME: we should be using an ObjectPath / Destination here for everything other than maybe well-known interfaces
-
-			if (RegisteredObjects.ContainsKey (method_call.Interface)) {
-				object obj = RegisteredObjects[method_call.Interface];
+			if (RegisteredObjects.ContainsKey (method_call.Path)) {
+				object obj = RegisteredObjects[method_call.Path];
 				Type type = obj.GetType ();
 				//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
 
@@ -420,7 +422,7 @@ namespace NDesk.DBus
 
 		public Dictionary<Type,string> RegisteredTypes = new Dictionary<Type,string> ();
 
-		protected Dictionary<string,object> RegisteredObjects = new Dictionary<string,object> ();
+		protected Dictionary<ObjectPath,object> RegisteredObjects = new Dictionary<ObjectPath,object> ();
 
 		//GetDynamicValues() should probably use yield eventually
 
@@ -488,14 +490,14 @@ namespace NDesk.DBus
 		//this may be silly API, but better than raw access to the dictionary:
 		//inspired by System.Runtime.Remoting.RemotingServices
 		//public ObjRef Marshal (MarshalByRefObject obj, string uri)
-		public void Marshal (MarshalByRefObject obj, string bus_name)
+		public void Marshal (MarshalByRefObject obj, string bus_name, ObjectPath path)
 		{
-			Marshal ((object) obj, bus_name);
+			Marshal ((object) obj, bus_name, path);
 		}
 
 		//just in case the MarshalByRefObject requirement is crack
 		//FIXME: this api is slightly confused right now
-		public void Marshal (object obj, string bus_name)
+		public void Marshal (object obj, string bus_name, ObjectPath path)
 		{
 			//this is just the start of il generation work
 
@@ -509,6 +511,13 @@ namespace NDesk.DBus
 
 				DynamicMethod hookupMethod = new DynamicMethod ("EventHookup", typeof (void), hookupParms, typeof (object));
 				ILGenerator ilg = hookupMethod.GetILGenerator ();
+
+				//bus_name
+				ilg.Emit (OpCodes.Ldstr, bus_name);
+
+				//object_path
+				//TODO: make this an ObjectPath struct rather than a string?
+				ilg.Emit (OpCodes.Ldstr, path.Value);
 
 				//interface
 				//FIXME: don't hardcode
@@ -546,16 +555,18 @@ namespace NDesk.DBus
 				ei.AddEventHandler (obj, d);
 			}
 
-			RegisteredObjects[bus_name] = obj;
+			//FIXME: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
+			RegisteredObjects[path] = obj;
 		}
 
-		public static void InvokeSignal (string @interface, string member, object[] args)
+		public static void InvokeSignal (string bus_name, string object_path, string @interface, string member, object[] args)
 		{
+			//TODO: make use of bus_name
+
 			//Console.Error.WriteLine ("SomeHandler " + @interface + ", " + member);
 			Signature sig = Signature.GetSig (args);
 
-			//FIXME: don't hardcode this, make this an instance method
-			Signal signal = new Signal (new ObjectPath ("/org/ndesk/test"), @interface, member);
+			Signal signal = new Signal (new ObjectPath (object_path), @interface, member);
 			signal.message.Signature = sig;
 
 			if (args != null && args.Length != 0) {

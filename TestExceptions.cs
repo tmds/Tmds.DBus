@@ -41,7 +41,7 @@ public class ManagedDBusTestExceptions
 
 			demo = new DemoObject ();
 			Connection.tmpConn = conn;
-			conn.Marshal (demo, "org.ndesk.testexceptions");
+			conn.Marshal (demo, myNameReq, myOpath);
 
 			while (true)
 				conn.Iterate ();

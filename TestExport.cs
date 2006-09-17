@@ -41,7 +41,7 @@ public class ManagedDBusTestExport
 
 			demo = new DemoObject ();
 			Connection.tmpConn = conn;
-			conn.Marshal (demo, "org.ndesk.test");
+			conn.Marshal (demo, myNameReq, myOpath);
 
 			while (true)
 				conn.Iterate ();

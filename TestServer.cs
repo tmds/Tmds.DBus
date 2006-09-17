@@ -108,7 +108,7 @@ public class ConnectionHandler
 		//Connection.tmpConn = conn;
 
 		DemoObject demo = new DemoObject ();
-		conn.Marshal (demo, "org.ndesk.test");
+		conn.Marshal (demo, "org.ndesk.test", new ObjectPath ("/org/ndesk/test"));
 
 		//TODO: handle lost connections etc. properly instead of stupido try/catch
 		try {

@@ -355,9 +355,11 @@ namespace NDesk.DBus
 
 			if (method_call.Interface == "org.freedesktop.DBus.Introspectable" && method_call.Member == "Introspect") {
 				Introspector intro = new Introspector ();
-				//FIXME: don't hardcode the type, do this properly
-				if (RegisteredObjects.ContainsKey (new ObjectPath ("/org/ndesk/test")))
-					intro.target_type = RegisteredObjects[new ObjectPath ("/org/ndesk/test")].GetType ();
+				//FIXME: do this properly
+				foreach (ObjectPath pth in RegisteredObjects.Keys) {
+					if (pth.Value.StartsWith (method_call.Path.Value))
+						intro.target_type = RegisteredObjects[pth].GetType ();
+				}
 				intro.HandleIntrospect ();
 				//Console.Error.WriteLine (intro.xml);
 

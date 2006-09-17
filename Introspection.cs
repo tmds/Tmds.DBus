@@ -147,14 +147,7 @@ namespace NDesk.DBus
 
 			writer.WriteStartElement ("interface");
 
-			//TODO: better fallback interface name when there's no attribute
-			string interfaceName = type.Name;
-
-			//TODO: no need for foreach
-			foreach (InterfaceAttribute ia in type.GetCustomAttributes (typeof (InterfaceAttribute), false))
-				interfaceName = ia.Name;
-
-			writer.WriteAttributeString ("name", interfaceName);
+			writer.WriteAttributeString ("name", Connection.GetInterfaceName (type));
 
 			foreach (MethodInfo mi in type.GetMethods (relevantBindingFlags))
 				if (!mi.IsSpecialName)

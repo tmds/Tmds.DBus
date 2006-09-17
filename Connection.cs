@@ -428,8 +428,6 @@ namespace NDesk.DBus
 			}
 		}
 
-		public Dictionary<Type,string> RegisteredTypes = new Dictionary<Type,string> ();
-
 		protected Dictionary<ObjectPath,object> RegisteredObjects = new Dictionary<ObjectPath,object> ();
 
 		//GetDynamicValues() should probably use yield eventually
@@ -528,8 +526,7 @@ namespace NDesk.DBus
 				ilg.Emit (OpCodes.Ldstr, path.Value);
 
 				//interface
-				//FIXME: don't hardcode
-				ilg.Emit (OpCodes.Ldstr, "org.ndesk.test");
+				ilg.Emit (OpCodes.Ldstr, GetInterfaceName (ei));
 
 				//member
 				ilg.Emit (OpCodes.Ldstr, ei.Name);
@@ -600,6 +597,24 @@ namespace NDesk.DBus
 			}
 
 			tmpConn.Send (signal.message);
+		}
+
+		public static string GetInterfaceName (MemberInfo mi)
+		{
+			return GetInterfaceName (mi.DeclaringType);
+		}
+
+		public static string GetInterfaceName (Type type)
+		{
+			string interfaceName = type.FullName;
+
+			//TODO: better fallbacks and namespace mangling when no InterfaceAttribute is available
+
+			//TODO: no need for foreach
+			foreach (InterfaceAttribute ia in type.GetCustomAttributes (typeof (InterfaceAttribute), false))
+				interfaceName = ia.Name;
+
+			return interfaceName;
 		}
 	}
 }

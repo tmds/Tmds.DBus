@@ -26,23 +26,6 @@ namespace NDesk.DBus
 			this.conn = conn;
 			this.bus_name = bus_name;
 			this.object_path = object_path;
-
-			//messy and only relevant to imported objects, but works
-			//note that the foreach is useless since there can be only key
-			//probably does not deal with class inheritance etc.
-
-			foreach (InterfaceAttribute ia in type.GetCustomAttributes (typeof (InterfaceAttribute), false))
-				conn.RegisteredTypes[type] = ia.Name;
-
-			foreach (Type t in type.GetInterfaces ())
-				foreach (InterfaceAttribute ia in t.GetCustomAttributes (typeof (InterfaceAttribute), false))
-					conn.RegisteredTypes[t] = ia.Name;
-
-			/*
-			methods["Hello"] = "";
-			methods["ListNames"] = "";
-			methods["NameHasOwner"] = "s";
-			*/
 		}
 
 		public override IMessage Invoke (IMessage msg)
@@ -98,10 +81,10 @@ namespace NDesk.DBus
 
 			//build the outbound method call message
 			{
+				//this bit is error-prone (no null checking) and will need rewriting when DProxy is replaced
 				string iface = null;
-				//if the type is registered, use that, otherwise use legacy iface string
-				if (imi != null && conn.RegisteredTypes.ContainsKey (imi.DeclaringType))
-					iface = conn.RegisteredTypes[imi.DeclaringType];
+				if (imi != null)
+					iface = Connection.GetInterfaceName (imi);
 
 				//map property accessors
 				//TODO: this needs to be done properly, not with simple String.Replace

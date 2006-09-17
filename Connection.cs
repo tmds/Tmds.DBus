@@ -344,7 +344,15 @@ namespace NDesk.DBus
 			//Console.Error.WriteLine ("method_call destination: " + method_call.Destination);
 			//Console.Error.WriteLine ("method_call path: " + method_call.Path);
 
-			//TODO: introspection needs to be abstracted and moved somewhere more appropriate when there is message filter infrastructure
+			//TODO: Ping and Introspect need to be abstracted and moved somewhere more appropriate once message filter infrastructure is complete
+
+			if (method_call.Interface == "org.freedesktop.DBus.Peer" && method_call.Member == "Ping") {
+				object[] pingRet = new object[0];
+				Message reply = ConstructReplyFor (method_call, pingRet);
+				Send (reply);
+				return;
+			}
+
 			if (method_call.Interface == "org.freedesktop.DBus.Introspectable" && method_call.Member == "Introspect") {
 				Introspector intro = new Introspector ();
 				//FIXME: don't hardcode the type, do this properly

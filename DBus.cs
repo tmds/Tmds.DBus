@@ -56,6 +56,12 @@ namespace org.freedesktop.DBus
 	public delegate void NameAcquiredHandler (string name);
 	public delegate void NameLostHandler (string name);
 
+	[Interface ("org.freedesktop.DBus.Peer")]
+	public interface Peer
+	{
+		void Ping ();
+	}
+
 	[Interface ("org.freedesktop.DBus.Introspectable")]
 	public interface Introspectable
 	{

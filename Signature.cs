@@ -276,6 +276,9 @@ namespace NDesk.DBus
 					byte[] data = GetSig (elem_type).Data;
 					ms.Write (data, 0, data.Length);
 				}
+			} else if (type.IsMarshalByRef) {
+				//TODO: consider further what to do for remote object reference marshaling
+				ms.WriteByte ((byte)DType.ObjectPath);
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
 

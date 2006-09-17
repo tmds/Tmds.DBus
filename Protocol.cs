@@ -135,6 +135,16 @@ namespace NDesk.DBus
 		{
 			return Value;
 		}
+
+		//this may or may not prove useful
+		public string[] Decomposed
+		{
+			get {
+				return Value.Split ('/');
+			} set {
+				Value = String.Join ("/", value);
+			}
+		}
 	}
 
 	public static class Padding

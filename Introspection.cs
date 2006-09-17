@@ -63,10 +63,14 @@ namespace NDesk.DBus
 			WriteInterface (typeof (org.freedesktop.DBus.Introspectable));
 
 			//reflect the target interface
-			if (target_type != null)
+			if (target_type != null) {
 				WriteInterface (target_type);
 
-			//TODO: recurse interfaces, inheritance hierarchy?
+				foreach (Type ifType in target_type.GetInterfaces ())
+					WriteInterface (ifType);
+			}
+
+			//TODO: review recursion of interfaces and inheritance hierarchy
 
 			writer.WriteEndElement ();
 		}
@@ -96,7 +100,14 @@ namespace NDesk.DBus
 			//else
 			//	writer.WriteAttributeString ("direction", "in");
 
-			writer.WriteAttributeString ("type", Signature.GetSig (piType).Value);
+			Signature sig = Signature.GetSig (piType);
+
+			//FIXME: this hides the fact that there are invalid types coming up
+			sig.Value = sig.Value.Replace ((char)DType.Invalid, (char)DType.Variant);
+			//sig.Value = sig.Value.Replace ((char)DType.Single, (char)DType.UInt32);
+
+			//writer.WriteAttributeString ("type", Signature.GetSig (piType).Value);
+			writer.WriteAttributeString ("type", sig.Value);
 
 			writer.WriteEndElement ();
 		}
@@ -162,6 +173,11 @@ namespace NDesk.DBus
 			//TODO: indexers
 
 			writer.WriteEndElement ();
+
+			//this recursion seems somewhat inelegant
+			//if (type.BaseType != null && type.BaseType.IsMarshalByRef)
+			if (type.BaseType != null && type.BaseType.IsSubclassOf (typeof (MarshalByRefObject)))
+				WriteInterface (type.BaseType);
 		}
 	}
 }

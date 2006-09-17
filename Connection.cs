@@ -378,7 +378,7 @@ namespace NDesk.DBus
 				string methodName = method_call.Member;
 
 				//map property accessors
-				//TODO: this needs to be done properly, not with simple String.Replace
+				//FIXME: this needs to be done properly, not with simple String.Replace
 				//special case for Notifications left as a reminder that this is broken
 				if (method_call.Interface == "org.freedesktop.Notifications") {
 					methodName = methodName.Replace ("Get", "get_");
@@ -509,61 +509,74 @@ namespace NDesk.DBus
 		{
 			//this is just the start of il generation work
 
-			foreach (EventInfo ei in obj.GetType ().GetEvents ()) {
-				//Console.Error.WriteLine (ei.Name);
+			Type type = obj.GetType ();
 
-				ParameterInfo[] delegateParms = ei.EventHandlerType.GetMethod ("Invoke").GetParameters ();
-				Type[] hookupParms = new Type[delegateParms.Length];
-				for (int i = 0; i < delegateParms.Length ; i++)
-					hookupParms[i] = delegateParms[i].ParameterType;
-
-				DynamicMethod hookupMethod = new DynamicMethod ("EventHookup", typeof (void), hookupParms, typeof (object));
-				ILGenerator ilg = hookupMethod.GetILGenerator ();
-
-				//bus_name
-				ilg.Emit (OpCodes.Ldstr, bus_name);
-
-				//object_path
-				//TODO: make this an ObjectPath struct rather than a string?
-				ilg.Emit (OpCodes.Ldstr, path.Value);
-
-				//interface
-				ilg.Emit (OpCodes.Ldstr, GetInterfaceName (ei));
-
-				//member
-				ilg.Emit (OpCodes.Ldstr, ei.Name);
-
-				LocalBuilder local = ilg.DeclareLocal (typeof (object[]));
-				ilg.Emit (OpCodes.Ldc_I4, hookupParms.Length);
-				ilg.Emit (OpCodes.Newarr, typeof (object));
-				ilg.Emit (OpCodes.Stloc, local);
-
-				for (int i = 0 ; i < hookupParms.Length ; i++)
-				{
-					Type t = hookupParms[i];
-
-					ilg.Emit (OpCodes.Ldloc, local);
-					ilg.Emit (OpCodes.Ldc_I4, i);
-					ilg.Emit (OpCodes.Ldarg, i);
-					if (t.IsValueType)
-						ilg.Emit (OpCodes.Box, t);
-					ilg.Emit (OpCodes.Stelem_Ref);
-				}
-
-				ilg.Emit (OpCodes.Ldloc, local);
-				ilg.Emit (OpCodes.Call, typeof (Connection).GetMethod ("InvokeSignal"));
-
-				//void return
-				ilg.Emit (OpCodes.Ret);
-
-				//Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
-
-				Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType);
-				ei.AddEventHandler (obj, d);
+			//note that this hooks up to all events, not declared only right now
+			foreach (EventInfo ei in type.GetEvents ()) {
+				Delegate dlg = GetHookupDelegate (ei, bus_name, path);
+				ei.AddEventHandler (obj, dlg);
 			}
 
 			//FIXME: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
 			RegisteredObjects[path] = obj;
+		}
+
+		public static Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
+		{
+			//Console.Error.WriteLine (ei.Name);
+
+			if (ei.EventHandlerType.IsAssignableFrom (typeof (System.EventHandler)))
+				Console.Error.WriteLine ("Warning: Cannot yet fully marshal EventHandler and its subclasses: " + ei.EventHandlerType);
+
+			ParameterInfo[] delegateParms = ei.EventHandlerType.GetMethod ("Invoke").GetParameters ();
+			Type[] hookupParms = new Type[delegateParms.Length];
+			for (int i = 0; i < delegateParms.Length ; i++)
+				hookupParms[i] = delegateParms[i].ParameterType;
+
+			//TODO: set a more descriptive name and owner class
+			DynamicMethod hookupMethod = new DynamicMethod ("EventHookup", typeof (void), hookupParms, typeof (object));
+			ILGenerator ilg = hookupMethod.GetILGenerator ();
+
+			//bus_name
+			ilg.Emit (OpCodes.Ldstr, bus_name);
+
+			//object_path
+			//TODO: make this an ObjectPath struct rather than a string?
+			ilg.Emit (OpCodes.Ldstr, path.Value);
+
+			//interface
+			ilg.Emit (OpCodes.Ldstr, GetInterfaceName (ei));
+
+			//member
+			ilg.Emit (OpCodes.Ldstr, ei.Name);
+
+			LocalBuilder local = ilg.DeclareLocal (typeof (object[]));
+			ilg.Emit (OpCodes.Ldc_I4, hookupParms.Length);
+			ilg.Emit (OpCodes.Newarr, typeof (object));
+			ilg.Emit (OpCodes.Stloc, local);
+
+			for (int i = 0 ; i < hookupParms.Length ; i++)
+			{
+				Type t = hookupParms[i];
+
+				ilg.Emit (OpCodes.Ldloc, local);
+				ilg.Emit (OpCodes.Ldc_I4, i);
+				ilg.Emit (OpCodes.Ldarg, i);
+				if (t.IsValueType)
+					ilg.Emit (OpCodes.Box, t);
+				ilg.Emit (OpCodes.Stelem_Ref);
+			}
+
+			ilg.Emit (OpCodes.Ldloc, local);
+			ilg.Emit (OpCodes.Call, typeof (Connection).GetMethod ("InvokeSignal"));
+
+			//void return
+			ilg.Emit (OpCodes.Ret);
+
+			//Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
+
+			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType);
+			return d;
 		}
 
 		public object Unmarshal (string bus_name, ObjectPath path)
@@ -619,4 +632,6 @@ namespace NDesk.DBus
 			return interfaceName;
 		}
 	}
+
+	//public delegate void HookupDelegate (string bus_name, ObjectPath path);
 }

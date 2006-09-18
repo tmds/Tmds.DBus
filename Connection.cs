@@ -299,6 +299,7 @@ namespace NDesk.DBus
 				dlg.DynamicInvoke (GetDynamicValues (msg, mi.GetParameters ()));
 
 			} else {
+				//FIXME: send the appropriate Error message
 				Console.Error.WriteLine ("Warning: No signal handler for " + signal.Member);
 			}
 		}
@@ -426,6 +427,7 @@ namespace NDesk.DBus
 					Send (reply);
 				}
 			} else {
+				//FIXME: send the appropriate Error message
 				Console.Error.WriteLine ("Warning: No method handler for " + method_call.Member);
 			}
 		}

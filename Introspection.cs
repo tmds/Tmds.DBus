@@ -22,6 +22,7 @@ namespace NDesk.DBus
 		public StringBuilder sb;
 		public string xml;
 		public Type target_type = null;
+		public ObjectPath target_path = ObjectPath.Root;
 
 		protected XmlWriter writer;
 
@@ -57,6 +58,7 @@ namespace NDesk.DBus
 
 			//TODO: non-well-known introspection has paths as well, which we don't do yet. read the spec again
 			//writer.WriteAttributeString ("name", "/org/ndesk/test");
+			writer.WriteAttributeString ("name", target_path.Value);
 
 			//reflect our own interface manually
 			//note that the name of the return value this way is 'ret' instead of 'data'
@@ -77,6 +79,16 @@ namespace NDesk.DBus
 
 		public void WriteArg (ParameterInfo pi)
 		{
+			WriteArg (pi, false);
+		}
+
+		public void WriteArgReverse (ParameterInfo pi)
+		{
+			WriteArg (pi, true);
+		}
+
+		public void WriteArg (ParameterInfo pi, bool reverse)
+		{
 			Type piType = pi.IsOut ? pi.ParameterType.GetElementType () : pi.ParameterType;
 			if (piType == typeof (void))
 				return;
@@ -92,13 +104,12 @@ namespace NDesk.DBus
 			if (!String.IsNullOrEmpty (piName))
 				writer.WriteAttributeString ("name", piName);
 
-			//consider using some kind of inverse logic for event handler parameters
-			//falling back to the default (no direction attr) will do for now though
+			//we can't rely on the default direction (qt-dbus requires a direction at time of writing), so we use a boolean to reverse the parameter direction and make it explicit
 
 			if (pi.IsOut || pi.IsRetval)
-				writer.WriteAttributeString ("direction", "out");
-			//else
-			//	writer.WriteAttributeString ("direction", "in");
+				writer.WriteAttributeString ("direction", !reverse ? "out" : "in");
+			else
+				writer.WriteAttributeString ("direction", !reverse ? "in" : "out");
 
 			Signature sig = Signature.GetSig (piType);
 
@@ -144,7 +155,7 @@ namespace NDesk.DBus
 			writer.WriteAttributeString ("name", ei.Name);
 
 			foreach (ParameterInfo pi in ei.EventHandlerType.GetMethod ("Invoke").GetParameters ())
-				WriteArg (pi);
+				WriteArgReverse (pi);
 
 			//no need to consider the delegate return value as dbus doesn't support it
 			writer.WriteEndElement ();

@@ -358,8 +358,10 @@ namespace NDesk.DBus
 				Introspector intro = new Introspector ();
 				//FIXME: do this properly
 				foreach (ObjectPath pth in RegisteredObjects.Keys) {
-					if (pth.Value.StartsWith (method_call.Path.Value))
+					if (pth.Value.StartsWith (method_call.Path.Value)) {
+						intro.target_path = pth;
 						intro.target_type = RegisteredObjects[pth].GetType ();
+					}
 				}
 				intro.HandleIntrospect ();
 				//Console.Error.WriteLine (intro.xml);

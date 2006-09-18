@@ -299,7 +299,7 @@ namespace NDesk.DBus
 				dlg.DynamicInvoke (GetDynamicValues (msg, mi.GetParameters ()));
 
 			} else {
-				//FIXME: send the appropriate Error message
+				//TODO: how should we handle this condition? sending an Error may not be appropriate in this case
 				Console.Error.WriteLine ("Warning: No signal handler for " + signal.Member);
 			}
 		}

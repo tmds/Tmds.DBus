@@ -8,10 +8,12 @@ using NDesk.DBus;
 //namespace org.freedesktop.DBus
 namespace org.freedesktop.DBus
 {
-	//TODO: what's this for?
+	/*
+	//what's this for?
 	public class DBusException : ApplicationException
 	{
 	}
+	*/
 
 #if UNDOCUMENTED_IN_SPEC
 	//TODO: maybe this should be mapped to its CLR counterpart directly?
@@ -73,7 +75,8 @@ namespace org.freedesktop.DBus
 	[Interface ("org.freedesktop.DBus.Properties")]
 	public interface Properties
 	{
-		object this [string propname] {get; set;}
+		//TODO: some kind of indexer mapping?
+		//object this [string propname] {get; set;}
 
 		object Get (string @interface, string propname);
 		//void Get (string @interface, string propname, out object value);

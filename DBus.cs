@@ -13,12 +13,14 @@ namespace org.freedesktop.DBus
 	{
 	}
 
+#if UNDOCUMENTED_IN_SPEC
 	//TODO: maybe this should be mapped to its CLR counterpart directly?
 	//not yet used
 	[Interface ("org.freedesktop.DBus.Error.InvalidArgs")]
 	public class InvalidArgsException : ApplicationException
 	{
 	}
+#endif
 
 	[Flags]
 	public enum NameFlag : uint
@@ -95,7 +97,10 @@ namespace org.freedesktop.DBus
 		void AddMatch (string rule);
 		void RemoveMatch (string rule);
 
+#if UNDOCUMENTED_IN_SPEC
 		//undocumented in spec
+		//there are more of these
 		void ReloadConfig ();
+#endif
 	}
 }

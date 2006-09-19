@@ -172,8 +172,16 @@ namespace NDesk.DBus
 
 		public void WriteProperty (PropertyInfo pri)
 		{
-			//TODO: do properties in a tidier way?
+			//expose properties as dbus properties
+			writer.WriteStartElement ("property");
+			writer.WriteAttributeString ("name", pri.Name);
+			writer.WriteAttributeString ("type", Signature.GetSig (pri.PropertyType).Value);
+			string access = (pri.CanRead ? "read" : String.Empty) + (pri.CanWrite ? "write" : String.Empty);
+			writer.WriteAttributeString ("access", access);
+			writer.WriteEndElement ();
 
+			//expose properties as methods also
+			//it may not be worth doing this in the long run
 			if (pri.CanRead) {
 				writer.WriteStartElement ("method");
 				writer.WriteAttributeString ("name", "Get" + pri.Name);

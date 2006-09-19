@@ -117,6 +117,16 @@ public class DemoObject : MarshalByRefObject
 		return DemoEnum.Bar;
 	}
 
+	//this doesn't work yet, except for introspection
+	public DemoEnum EnumState
+	{
+		get {
+			return DemoEnum.Bar;
+		} set {
+			Console.WriteLine ("EnumState prop set to " + value);
+		}
+	}
+
 	/*
 	public void ReturnOut (out string val)
 	{

@@ -22,6 +22,7 @@ namespace NDesk.DBus
 		public StringBuilder sb;
 		public string xml;
 		public Type target_type = null;
+		public ObjectPath root_path = ObjectPath.Root;
 		public ObjectPath target_path = ObjectPath.Root;
 
 		protected XmlWriter writer;
@@ -46,19 +47,51 @@ namespace NDesk.DBus
 
 			writer.WriteComment (" Never rely on XML introspection data for dynamic binding. It is provided only for convenience and is subject to change at any time. ");
 
-			WriteNode ();
+			writer.WriteComment (" Warning: Intospection support is incomplete in this implementation ");
+
+			writer.WriteComment (" This is the introspection result for ObjectPath: " + root_path + " ");
+
+			//the root node element
+			writer.WriteStartElement ("node");
+
+			//FIXME: don't hardcode this stuff, do it properly!
+			if (root_path.Value == "/") {
+				writer.WriteStartElement ("node");
+				writer.WriteAttributeString ("name", "org");
+				writer.WriteEndElement ();
+			}
+
+			if (root_path.Value == "/org") {
+				writer.WriteStartElement ("node");
+				writer.WriteAttributeString ("name", "ndesk");
+				writer.WriteEndElement ();
+			}
+
+			if (root_path.Value == "/org/ndesk") {
+				writer.WriteStartElement ("node");
+				writer.WriteAttributeString ("name", "test");
+				writer.WriteEndElement ();
+			}
+
+			if (root_path.Value == target_path.Value) {
+				WriteNodeBody ();
+			}
+
+			writer.WriteEndElement ();
 
 			writer.Flush ();
 			xml = sb.ToString ();
 		}
 
-		public void WriteNode ()
+		//public void WriteNode ()
+		public void WriteNodeBody ()
 		{
-			writer.WriteStartElement ("node");
+			//writer.WriteStartElement ("node");
 
 			//TODO: non-well-known introspection has paths as well, which we don't do yet. read the spec again
-			//writer.WriteAttributeString ("name", "/org/ndesk/test");
-			writer.WriteAttributeString ("name", target_path.Value);
+			//hackishly just remove the root '/' to make the path relative for now
+			//writer.WriteAttributeString ("name", target_path.Value.Substring (1));
+			//writer.WriteAttributeString ("name", "test");
 
 			//reflect our own interface manually
 			//note that the name of the return value this way is 'ret' instead of 'data'
@@ -74,7 +107,7 @@ namespace NDesk.DBus
 
 			//TODO: review recursion of interfaces and inheritance hierarchy
 
-			writer.WriteEndElement ();
+			//writer.WriteEndElement ();
 		}
 
 		public void WriteArg (ParameterInfo pi)

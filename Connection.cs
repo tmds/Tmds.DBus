@@ -356,6 +356,7 @@ namespace NDesk.DBus
 
 			if (method_call.Interface == "org.freedesktop.DBus.Introspectable" && method_call.Member == "Introspect") {
 				Introspector intro = new Introspector ();
+				intro.root_path = method_call.Path;
 				//FIXME: do this properly
 				foreach (ObjectPath pth in RegisteredObjects.Keys) {
 					if (pth.Value.StartsWith (method_call.Path.Value)) {

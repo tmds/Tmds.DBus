@@ -74,10 +74,12 @@ namespace NDesk.DBus
 			ns = new NetworkStream (sock);
 		}
 
-		uint serial = 0;
+		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint
+		protected int serial = 0;
 		public uint GenerateSerial ()
 		{
-			return ++serial;
+			//return ++serial;
+			return (uint)System.Threading.Interlocked.Increment (ref serial);
 		}
 
 

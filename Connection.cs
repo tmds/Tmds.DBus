@@ -537,9 +537,7 @@ namespace NDesk.DBus
 			for (int i = 0; i < delegateParms.Length ; i++)
 				hookupParms[i+1] = delegateParms[i].ParameterType;
 
-			//TODO: set a more descriptive name and owner class
-			//DynamicMethod hookupMethod = new DynamicMethod ("EventHookup", typeof (void), hookupParms, typeof (object));
-			DynamicMethod hookupMethod = new DynamicMethod ("EventHookup", typeof (void), hookupParms, typeof (object));
+			DynamicMethod hookupMethod = new DynamicMethod ("Handle" + ei.Name, typeof (void), hookupParms, typeof (object));
 			ILGenerator ilg = hookupMethod.GetILGenerator ();
 
 			//the Connection instance

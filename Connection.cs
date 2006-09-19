@@ -621,6 +621,21 @@ namespace NDesk.DBus
 			Send (signal.message);
 		}
 
+		//TODO: move these Get*Name helpers somewhere more appropriate
+		public static string GetArgumentName (ParameterInfo pi)
+		{
+			string argumentName = pi.Name;
+
+			//TODO: no need for foreach
+			foreach (ArgumentAttribute aa in pi.GetCustomAttributes (typeof (ArgumentAttribute), false))
+				argumentName = aa.Name;
+
+			if (pi.IsRetval && String.IsNullOrEmpty (argumentName))
+				argumentName = "ret";
+
+			return argumentName;
+		}
+
 		public static string GetInterfaceName (MemberInfo mi)
 		{
 			return GetInterfaceName (mi.DeclaringType);

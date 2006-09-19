@@ -69,6 +69,7 @@ namespace org.freedesktop.DBus
 	[Interface ("org.freedesktop.DBus.Introspectable")]
 	public interface Introspectable
 	{
+		[return: Argument ("data")]
 		string Introspect ();
 	}
 
@@ -78,6 +79,7 @@ namespace org.freedesktop.DBus
 		//TODO: some kind of indexer mapping?
 		//object this [string propname] {get; set;}
 
+		[return: Argument ("value")]
 		object Get (string @interface, string propname);
 		//void Get (string @interface, string propname, out object value);
 		void Set (string @interface, string propname, object value);

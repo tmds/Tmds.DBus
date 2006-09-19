@@ -203,4 +203,15 @@ namespace NDesk.DBus
 			this.Name = name;
 		}
 	}
+
+	[AttributeUsage (AttributeTargets.Parameter | AttributeTargets.ReturnValue, AllowMultiple=false, Inherited=true)]
+	public class ArgumentAttribute : Attribute
+	{
+		public string Name;
+
+		public ArgumentAttribute (string name)
+		{
+			this.Name = name;
+		}
+	}
 }

@@ -94,7 +94,6 @@ namespace NDesk.DBus
 			//writer.WriteAttributeString ("name", "test");
 
 			//reflect our own interface manually
-			//note that the name of the return value this way is 'ret' instead of 'data'
 			WriteInterface (typeof (org.freedesktop.DBus.Introspectable));
 
 			//reflect the target interface
@@ -134,11 +133,7 @@ namespace NDesk.DBus
 
 			writer.WriteStartElement ("arg");
 
-			string piName;
-			if (pi.IsRetval && String.IsNullOrEmpty (pi.Name))
-				piName = "ret";
-			else
-				piName = pi.Name;
+			string piName = Connection.GetArgumentName (pi);
 
 			if (!String.IsNullOrEmpty (piName))
 				writer.WriteAttributeString ("name", piName);

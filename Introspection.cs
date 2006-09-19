@@ -232,12 +232,24 @@ namespace NDesk.DBus
 
 			//TODO: indexers
 
+			//TODO: attributes as annotations?
+
 			writer.WriteEndElement ();
 
 			//this recursion seems somewhat inelegant
 			//if (type.BaseType != null && type.BaseType.IsMarshalByRef)
 			if (type.BaseType != null && type.BaseType.IsSubclassOf (typeof (MarshalByRefObject)))
 				WriteInterface (type.BaseType);
+		}
+
+		public void WriteAnnotation (string name, string value)
+		{
+			writer.WriteStartElement ("annotation");
+
+			writer.WriteAttributeString ("name", name);
+			writer.WriteAttributeString ("value", value);
+
+			writer.WriteEndElement ();
 		}
 	}
 }

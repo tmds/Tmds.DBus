@@ -220,6 +220,26 @@ namespace NDesk.DBus
 
 			writer.WriteAttributeString ("name", Connection.GetInterfaceName (type));
 
+			/*
+			foreach (MemberInfo mbi in type.GetMembers (relevantBindingFlags)) {
+				switch (mbi.MemberType) {
+					case MemberTypes.Method:
+						if (!((MethodInfo)mbi).IsSpecialName)
+							WriteMethod ((MethodInfo)mbi);
+						break;
+					case MemberTypes.Event:
+						WriteSignal ((EventInfo)mbi);
+						break;
+					case MemberTypes.Property:
+						WriteProperty ((PropertyInfo)mbi);
+						break;
+					default:
+						Console.Error.WriteLine ("Warning: Unhandled MemberType '{0}' encountered while introspecting {1}", mbi.MemberType, type.FullName);
+						break;
+				}
+			}
+			*/
+
 			foreach (MethodInfo mi in type.GetMethods (relevantBindingFlags))
 				if (!mi.IsSpecialName)
 					WriteMethod (mi);

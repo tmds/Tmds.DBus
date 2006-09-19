@@ -19,9 +19,6 @@ namespace NDesk.DBus
 {
 	public partial class Connection
 	{
-		//FIXME: this hack needs to go
-		public static Connection tmpConn = null;
-
 		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";
 
 		public Socket sock = null;
@@ -526,7 +523,8 @@ namespace NDesk.DBus
 			RegisteredObjects[path] = obj;
 		}
 
-		public static Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
+		//public static Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
+		public Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
 		{
 			//Console.Error.WriteLine (ei.Name);
 
@@ -534,13 +532,18 @@ namespace NDesk.DBus
 				Console.Error.WriteLine ("Warning: Cannot yet fully marshal EventHandler and its subclasses: " + ei.EventHandlerType);
 
 			ParameterInfo[] delegateParms = ei.EventHandlerType.GetMethod ("Invoke").GetParameters ();
-			Type[] hookupParms = new Type[delegateParms.Length];
+			Type[] hookupParms = new Type[delegateParms.Length+1];
+			hookupParms[0] = typeof (Connection);
 			for (int i = 0; i < delegateParms.Length ; i++)
-				hookupParms[i] = delegateParms[i].ParameterType;
+				hookupParms[i+1] = delegateParms[i].ParameterType;
 
 			//TODO: set a more descriptive name and owner class
+			//DynamicMethod hookupMethod = new DynamicMethod ("EventHookup", typeof (void), hookupParms, typeof (object));
 			DynamicMethod hookupMethod = new DynamicMethod ("EventHookup", typeof (void), hookupParms, typeof (object));
 			ILGenerator ilg = hookupMethod.GetILGenerator ();
+
+			//the Connection instance
+			ilg.Emit (OpCodes.Ldarg_0);
 
 			//bus_name
 			ilg.Emit (OpCodes.Ldstr, bus_name);
@@ -556,16 +559,18 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Ldstr, ei.Name);
 
 			LocalBuilder local = ilg.DeclareLocal (typeof (object[]));
-			ilg.Emit (OpCodes.Ldc_I4, hookupParms.Length);
+			ilg.Emit (OpCodes.Ldc_I4, hookupParms.Length - 1);
 			ilg.Emit (OpCodes.Newarr, typeof (object));
 			ilg.Emit (OpCodes.Stloc, local);
 
-			for (int i = 0 ; i < hookupParms.Length ; i++)
+			//offset by one because arg0 is the instance of the delegate
+			for (int i = 1 ; i < hookupParms.Length ; i++)
 			{
 				Type t = hookupParms[i];
 
 				ilg.Emit (OpCodes.Ldloc, local);
-				ilg.Emit (OpCodes.Ldc_I4, i);
+				//the delegate instance offset requires a -1 here
+				ilg.Emit (OpCodes.Ldc_I4, i-1);
 				ilg.Emit (OpCodes.Ldarg, i);
 				if (t.IsValueType)
 					ilg.Emit (OpCodes.Box, t);
@@ -578,9 +583,7 @@ namespace NDesk.DBus
 			//void return
 			ilg.Emit (OpCodes.Ret);
 
-			//Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
-
-			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType);
+			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
 			return d;
 		}
 
@@ -599,7 +602,8 @@ namespace NDesk.DBus
 			return obj;
 		}
 
-		public static void InvokeSignal (string bus_name, string object_path, string @interface, string member, object[] args)
+		//TODO: consider whether the dynamic approach will fall apart with variants, or if some kind of boxing tests can be used, whether to pass a Type[] signature, or is this a non-problem?
+		public void InvokeSignal (string bus_name, string object_path, string @interface, string member, object[] args)
 		{
 			//TODO: make use of bus_name
 
@@ -616,7 +620,7 @@ namespace NDesk.DBus
 					Message.Write (signal.message.Body, arg.GetType (), arg);
 			}
 
-			tmpConn.Send (signal.message);
+			Send (signal.message);
 		}
 
 		public static string GetInterfaceName (MemberInfo mi)

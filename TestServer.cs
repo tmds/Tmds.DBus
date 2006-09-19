@@ -105,8 +105,6 @@ public class ConnectionHandler
 
 	public static void Handle (Connection conn)
 	{
-		//Connection.tmpConn = conn;
-
 		string myNameReq = "org.ndesk.test";
 		ObjectPath myOpath = new ObjectPath ("/org/ndesk/test");
 

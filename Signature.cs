@@ -269,9 +269,6 @@ namespace NDesk.DBus
 				ms.WriteByte ((byte)DType.Array);
 
 				Type elem_type = type.GetElementType ();
-				//TODO: recurse
-				//DType elem_dtype = Signature.TypeToDType (elem_type);
-				//ms.WriteByte ((byte)elem_dtype);
 				{
 					byte[] data = GetSig (elem_type).Data;
 					ms.Write (data, 0, data.Length);
@@ -297,13 +294,22 @@ namespace NDesk.DBus
 
 				ms.WriteByte ((byte)'}');
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
-				//if (type.IsGenericParameter && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
 				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
 					ms.WriteByte ((byte)'{');
 				else
 					ms.WriteByte ((byte)'(');
-
-				ConstructorInfo[] cis = type.GetConstructors ();
+				foreach (FieldInfo fi in type.GetFields ()) {
+					{
+						//there didn't seem to be a way to do this with BindingFlags at time of writing
+						if (fi.IsStatic)
+							continue;
+						byte[] data = GetSig (fi.FieldType).Data;
+						ms.Write (data, 0, data.Length);
+					}
+				}
+				//FIXME: the constructor hack is disabled here but still used in object mapping. the behaviour should be unified
+				/*
+				ConstructorInfo[] cis = type.GetConstructors (BindingFlags.Public);
 				if (cis.Length != 0) {
 					System.Reflection.ConstructorInfo ci = cis[0];
 					System.Reflection.ParameterInfo[]  parms = ci.GetParameters ();
@@ -314,15 +320,18 @@ namespace NDesk.DBus
 							ms.Write (data, 0, data.Length);
 						}
 					}
-
 				} else {
 					foreach (FieldInfo fi in type.GetFields ()) {
 						{
+							//there didn't seem to be a way to do this with BindingFlags at time of writing
+							if (fi.IsStatic)
+								continue;
 							byte[] data = GetSig (fi.FieldType).Data;
 							ms.Write (data, 0, data.Length);
 						}
 					}
 				}
+				*/
 				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
 					ms.WriteByte ((byte)'}');
 				else

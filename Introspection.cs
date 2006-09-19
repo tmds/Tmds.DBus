@@ -126,6 +126,12 @@ namespace NDesk.DBus
 			if (piType == typeof (void))
 				return;
 
+			//FIXME: remove these special cases, they are just for testing
+			if (piType.FullName == "GLib.Value")
+				piType = typeof (object);
+			if (piType.FullName == "GLib.GType")
+				piType = typeof (Signature);
+
 			writer.WriteStartElement ("arg");
 
 			string piName;
@@ -139,7 +145,7 @@ namespace NDesk.DBus
 
 			//we can't rely on the default direction (qt-dbus requires a direction at time of writing), so we use a boolean to reverse the parameter direction and make it explicit
 
-			if (pi.IsOut || pi.IsRetval)
+			if (pi.IsOut)
 				writer.WriteAttributeString ("direction", !reverse ? "out" : "in");
 			else
 				writer.WriteAttributeString ("direction", !reverse ? "in" : "out");
@@ -147,7 +153,7 @@ namespace NDesk.DBus
 			Signature sig = Signature.GetSig (piType);
 
 			//FIXME: this hides the fact that there are invalid types coming up
-			sig.Value = sig.Value.Replace ((char)DType.Invalid, (char)DType.Variant);
+			//sig.Value = sig.Value.Replace ((char)DType.Invalid, (char)DType.Variant);
 			//sig.Value = sig.Value.Replace ((char)DType.Single, (char)DType.UInt32);
 
 			//writer.WriteAttributeString ("type", Signature.GetSig (piType).Value);
@@ -164,22 +170,29 @@ namespace NDesk.DBus
 			foreach (ParameterInfo pi in mi.GetParameters ())
 				WriteArg (pi);
 
-			WriteArg (mi.ReturnParameter);
+			WriteArgReverse (mi.ReturnParameter);
 
 			writer.WriteEndElement ();
 		}
 
 		public void WriteProperty (PropertyInfo pri)
 		{
-			//TODO: complete properties, possibly using its MethodInfos
+			//TODO: do properties in a tidier way?
 
-			writer.WriteStartElement ("method");
-			writer.WriteAttributeString ("name", "Get" + pri.Name);
-			writer.WriteEndElement ();
+			if (pri.CanRead) {
+				writer.WriteStartElement ("method");
+				writer.WriteAttributeString ("name", "Get" + pri.Name);
+				WriteArgReverse (pri.GetGetMethod ().ReturnParameter);
+				writer.WriteEndElement ();
+			}
 
-			writer.WriteStartElement ("method");
-			writer.WriteAttributeString ("name", "Set" + pri.Name);
-			writer.WriteEndElement ();
+			if (pri.CanWrite) {
+				writer.WriteStartElement ("method");
+				writer.WriteAttributeString ("name", "Set" + pri.Name);
+				foreach (ParameterInfo pi in pri.GetSetMethod ().GetParameters ())
+					WriteArg (pi);
+				writer.WriteEndElement ();
+			}
 		}
 
 		public void WriteSignal (EventInfo ei)

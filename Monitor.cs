@@ -62,12 +62,16 @@ public class ManagedDBusTest
 				//System.IO.MemoryStream ms = msg.Body;
 
 				//TODO: this needs to be done more intelligently
-				foreach (DType dtype in msg.Signature.Data) {
-					if (dtype == DType.Invalid)
-						continue;
-					object arg;
-					Message.GetValue (msg.Body, dtype, out arg);
-					Console.WriteLine ("\t\t" + dtype + ": " + arg);
+				try {
+					foreach (DType dtype in msg.Signature.Data) {
+						if (dtype == DType.Invalid)
+							continue;
+						object arg;
+						Message.GetValue (msg.Body, dtype, out arg);
+						Console.WriteLine ("\t\t" + dtype + ": " + arg);
+					}
+				} catch {
+						Console.WriteLine ("\t\tmonitor is too dumb to decode message body");
 				}
 			}
 

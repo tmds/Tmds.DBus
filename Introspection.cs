@@ -214,7 +214,12 @@ namespace NDesk.DBus
 
 		public void WriteInterface (Type type)
 		{
-			//TODO: consider member order, maybe using GetMembers ()
+			if (type == null)
+				return;
+
+			//TODO: this is unreliable, fix it
+			if (!type.IsInterface && !type.IsSubclassOf (typeof (MarshalByRefObject)))
+				return;
 
 			writer.WriteStartElement ("interface");
 
@@ -257,9 +262,7 @@ namespace NDesk.DBus
 			writer.WriteEndElement ();
 
 			//this recursion seems somewhat inelegant
-			//if (type.BaseType != null && type.BaseType.IsMarshalByRef)
-			if (type.BaseType != null && type.BaseType.IsSubclassOf (typeof (MarshalByRefObject)))
-				WriteInterface (type.BaseType);
+			WriteInterface (type.BaseType);
 		}
 
 		public void WriteAnnotation (string name, string value)

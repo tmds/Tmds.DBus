@@ -60,8 +60,11 @@ namespace NDesk.DBus
 			string[] parts;
 			parts = ok_rep.Split (' ');
 
-			string guid = parts[1];
+			if (parts.Length < 1 || parts[0] != "OK")
+				throw new Exception ("Authentication error: AUTH EXTERNAL was not OK");
+
 			/*
+			string guid = parts[1];
 			byte[] guidData = FromHex (guid);
 			uint unixTime = BitConverter.ToUInt32 (guidData, 0);
 			Console.Error.WriteLine ("guid: " + guid + ", " + "unixTime: " + unixTime + " (" + UnixToDateTime (unixTime) + ")");

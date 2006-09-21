@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 
 //for filling padding with random
 //using System.Security.Cryptography;
@@ -447,6 +448,7 @@ namespace NDesk.DBus
 			}
 		}
 
+		/*
 		public static void GetValue (Stream stream, out byte val)
 		{
 			BinaryReader br = new BinaryReader (stream);
@@ -558,6 +560,119 @@ namespace NDesk.DBus
 
 			val.Data = br.ReadBytes ((int)ln);
 			br.ReadByte (); //null signature terminator
+		}
+		*/
+
+		//alternative GetValue() implementations
+		//needed for reading messages in machine-native format, until we do this properly
+		//TODO: don't ignore the endian flag in the header
+
+		public static void GetValue (Stream stream, out byte val)
+		{
+			val = (byte)stream.ReadByte ();
+		}
+
+		public static void GetValue (Stream stream, out bool val)
+		{
+			uint intval;
+			GetValue (stream, out intval);
+
+			//TODO: confirm semantics of dbus boolean
+			val = intval == 0 ? false : true;
+		}
+
+		public static void GetValue (Stream stream, out short val)
+		{
+			Pad (stream, 2);
+			byte[] buf = new byte[2];
+			stream.Read (buf, 0, 2);
+			val = BitConverter.ToInt16 (buf, 0);
+		}
+
+		public static void GetValue (Stream stream, out ushort val)
+		{
+			Pad (stream, 2);
+			byte[] buf = new byte[2];
+			stream.Read (buf, 0, 2);
+			val = BitConverter.ToUInt16 (buf, 0);
+		}
+
+		public static void GetValue (Stream stream, out int val)
+		{
+			Pad (stream, 4);
+			byte[] buf = new byte[4];
+			stream.Read (buf, 0, 4);
+			val = BitConverter.ToInt32 (buf, 0);
+		}
+
+		public static void GetValue (Stream stream, out uint val)
+		{
+			Pad (stream, 4);
+			byte[] buf = new byte[4];
+			stream.Read (buf, 0, 4);
+			val = BitConverter.ToUInt32 (buf, 0);
+		}
+
+		public static void GetValue (Stream stream, out long val)
+		{
+			Pad (stream, 8);
+			byte[] buf = new byte[8];
+			stream.Read (buf, 0, 8);
+			val = BitConverter.ToInt64 (buf, 0);
+		}
+
+		public static void GetValue (Stream stream, out ulong val)
+		{
+			Pad (stream, 8);
+			byte[] buf = new byte[8];
+			stream.Read (buf, 0, 8);
+			val = BitConverter.ToUInt64 (buf, 0);
+		}
+
+#if PROTO_TYPE_SINGLE
+		public static void GetValue (Stream stream, out float val)
+		{
+			Pad (stream, 4);
+			byte[] buf = new byte[4];
+			stream.Read (buf, 0, 4);
+			val = BitConverter.ToSingle (buf, 0);
+		}
+#endif
+
+		public static void GetValue (Stream stream, out double val)
+		{
+			Pad (stream, 8);
+			byte[] buf = new byte[8];
+			stream.Read (buf, 0, 8);
+			val = BitConverter.ToDouble (buf, 0);
+		}
+
+		public static void GetValue (Stream stream, out string val)
+		{
+			uint ln;
+			GetValue (stream, out ln);
+
+			byte[] buf = new byte[(int)ln];
+			stream.Read (buf, 0, (int)ln);
+			val = System.Text.Encoding.UTF8.GetString (buf);
+			stream.ReadByte (); //null string terminator
+		}
+
+		public static void GetValue (Stream stream, out ObjectPath val)
+		{
+			//exactly the same as string
+			GetValue (stream, out val.Value);
+		}
+
+		public static void GetValue (Stream stream, out Signature val)
+		{
+			byte ln;
+			GetValue (stream, out ln);
+
+			byte[] buf = new byte[ln];
+			stream.Read (buf, 0, ln);
+			val.Data = buf;
+			stream.ReadByte (); //null signature terminator
 		}
 
 		//variant
@@ -881,8 +996,6 @@ namespace NDesk.DBus
 				stream.Position = Padded ((int)stream.Position, alignment);
 				return;
 			}
-
-			//BinaryReader br = new BinaryReader (stream);
 
 			int len = PadNeeded ((int)stream.Position, alignment);
 			for (int i = 0 ; i != len ; i++) {

@@ -9,7 +9,6 @@ using System.Runtime.InteropServices;
 namespace NDesk.DBus
 {
 	//yyyyuua{yv}
-	[StructLayout (LayoutKind.Sequential, Pack=1)]
 	public struct Header
 	{
 		public EndianFlag Endianness;

@@ -1,7 +1,7 @@
 all: NDesk.DBus.dll monitor.exe
 
 BUS_SOURCES=Address.cs AssemblyInfo.cs Connection.cs Authentication.cs Protocol.cs Message.cs MessageFilter.cs Server.cs Transport.cs Wrapper.cs
-UNIX_SOURCES=UnixTransport.cs
+UNIX_SOURCES=UnixMonoTransport.cs
 CLR_SOURCES=DBus.cs Introspection.cs DProxy.cs Signature.cs
 
 NDesk.DBus.dll: REFS=Mono.Posix

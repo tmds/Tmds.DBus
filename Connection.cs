@@ -71,7 +71,7 @@ namespace NDesk.DBus
 
 		public void Open (string path, bool abstr)
 		{
-			transport = new UnixTransport (path, abstr);
+			transport = new UnixMonoTransport (path, abstr);
 			ns = transport.Stream;
 			SocketHandle = transport.SocketHandle;
 		}

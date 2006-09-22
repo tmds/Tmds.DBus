@@ -12,17 +12,17 @@ using Mono.Unix.Native;
 
 namespace NDesk.DBus
 {
-	public class UnixTransport : Transport, IAuthenticator
+	public class UnixMonoTransport : Transport, IAuthenticator
 	{
 		/*
-		public UnixTransport (int fd)
+		public UnixMonoTransport (int fd)
 		{
 		}
 		*/
 
 		protected Socket socket;
 
-		public UnixTransport (string path, bool @abstract)
+		public UnixMonoTransport (string path, bool @abstract)
 		{
 			if (@abstract)
 				socket = OpenAbstractUnix (path);

@@ -628,16 +628,23 @@ namespace NDesk.DBus
 		//TODO: move these Get*Name helpers somewhere more appropriate
 		public static string GetArgumentName (ParameterInfo pi)
 		{
-			string argumentName = pi.Name;
+			string argName = pi.Name;
+
+			if (pi.IsRetval && String.IsNullOrEmpty (argName))
+				argName = "ret";
+
+			return GetArgumentName ((ICustomAttributeProvider)pi, argName);
+		}
+
+		public static string GetArgumentName (ICustomAttributeProvider attrProvider, string defaultName)
+		{
+			string argName = defaultName;
 
 			//TODO: no need for foreach
-			foreach (ArgumentAttribute aa in pi.GetCustomAttributes (typeof (ArgumentAttribute), false))
-				argumentName = aa.Name;
+			foreach (ArgumentAttribute aa in attrProvider.GetCustomAttributes (typeof (ArgumentAttribute), false))
+				argName = aa.Name;
 
-			if (pi.IsRetval && String.IsNullOrEmpty (argumentName))
-				argumentName = "ret";
-
-			return argumentName;
+			return argName;
 		}
 
 		public static string GetInterfaceName (MemberInfo mi)

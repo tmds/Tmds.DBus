@@ -111,47 +111,46 @@ namespace NDesk.DBus
 
 		public void WriteArg (ParameterInfo pi)
 		{
-			WriteArg (pi, false);
+			WriteArg (pi.ParameterType, Connection.GetArgumentName (pi), pi.IsOut, false);
 		}
 
 		public void WriteArgReverse (ParameterInfo pi)
 		{
-			WriteArg (pi, true);
+			WriteArg (pi.ParameterType, Connection.GetArgumentName (pi), pi.IsOut, true);
 		}
 
-		public void WriteArg (ParameterInfo pi, bool reverse)
+		//TODO: clean up and get rid of reverse (or argIsOut) parm
+		public void WriteArg (Type argType, string argName, bool argIsOut, bool reverse)
 		{
-			Type piType = pi.IsOut ? pi.ParameterType.GetElementType () : pi.ParameterType;
-			if (piType == typeof (void))
+			argType = argIsOut ? argType.GetElementType () : argType;
+			if (argType == typeof (void))
 				return;
 
 			//FIXME: remove these special cases, they are just for testing
-			if (piType.FullName == "GLib.Value")
-				piType = typeof (object);
-			if (piType.FullName == "GLib.GType")
-				piType = typeof (Signature);
+			if (argType.FullName == "GLib.Value")
+				argType = typeof (object);
+			if (argType.FullName == "GLib.GType")
+				argType = typeof (Signature);
 
 			writer.WriteStartElement ("arg");
 
-			string piName = Connection.GetArgumentName (pi);
-
-			if (!String.IsNullOrEmpty (piName))
-				writer.WriteAttributeString ("name", piName);
+			if (!String.IsNullOrEmpty (argName))
+				writer.WriteAttributeString ("name", argName);
 
 			//we can't rely on the default direction (qt-dbus requires a direction at time of writing), so we use a boolean to reverse the parameter direction and make it explicit
 
-			if (pi.IsOut)
+			if (argIsOut)
 				writer.WriteAttributeString ("direction", !reverse ? "out" : "in");
 			else
 				writer.WriteAttributeString ("direction", !reverse ? "in" : "out");
 
-			Signature sig = Signature.GetSig (piType);
+			Signature sig = Signature.GetSig (argType);
 
 			//FIXME: this hides the fact that there are invalid types coming up
 			//sig.Value = sig.Value.Replace ((char)DType.Invalid, (char)DType.Variant);
 			//sig.Value = sig.Value.Replace ((char)DType.Single, (char)DType.UInt32);
 
-			//writer.WriteAttributeString ("type", Signature.GetSig (piType).Value);
+			//writer.WriteAttributeString ("type", Signature.GetSig (argType).Value);
 			writer.WriteAttributeString ("type", sig.Value);
 
 			writer.WriteEndElement ();
@@ -165,7 +164,9 @@ namespace NDesk.DBus
 			foreach (ParameterInfo pi in mi.GetParameters ())
 				WriteArg (pi);
 
-			WriteArgReverse (mi.ReturnParameter);
+			//Mono <= 1.1.13 doesn't support MethodInfo.ReturnParameter, so avoid it
+			//WriteArgReverse (mi.ReturnParameter);
+			WriteArg (mi.ReturnType, Connection.GetArgumentName (mi.ReturnTypeCustomAttributes, "ret"), false, true);
 
 			writer.WriteEndElement ();
 		}
@@ -182,6 +183,7 @@ namespace NDesk.DBus
 
 			//expose properties as methods also
 			//it may not be worth doing this in the long run
+			/*
 			if (pri.CanRead) {
 				writer.WriteStartElement ("method");
 				writer.WriteAttributeString ("name", "Get" + pri.Name);
@@ -196,6 +198,7 @@ namespace NDesk.DBus
 					WriteArg (pi);
 				writer.WriteEndElement ();
 			}
+			*/
 		}
 
 		public void WriteSignal (EventInfo ei)

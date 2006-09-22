@@ -3,7 +3,7 @@
 // See COPYING for details
 
 using System;
-using System.Net.Sockets;
+using System.IO;
 
 namespace NDesk.DBus
 {
@@ -17,7 +17,8 @@ namespace NDesk.DBus
 		//TODO: design this properly
 
 		//this is just a temporary solution
-		public Socket socket;
+		public Stream Stream;
+		public long SocketHandle;
 		public abstract string AuthString ();
 	}
 }

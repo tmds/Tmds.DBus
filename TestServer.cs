@@ -65,17 +65,14 @@ public class TestServer
 				Console.WriteLine ("Waiting for client on " + addr);
 				Socket client = server.Accept ();
 				Console.WriteLine ("Client accepted");
+				client.Blocking = true;
 
-				//this might well be wrong, untested and doesn't yet work here onwards
-				conn = new Connection (false);
-				//conn.Open (path, @abstract);
-				conn.sock = client;
-				conn.sock.Blocking = true;
-
-				PeerCred pc = new PeerCred (conn.sock);
+				PeerCred pc = new PeerCred (client);
 				Console.WriteLine ("PeerCred: pid={0}, uid={1}, gid={2}", pc.ProcessID, pc.UserID, pc.GroupID);
 
-				conn.ns = new NetworkStream (conn.sock);
+				conn = new Connection (false);
+				conn.ns = new NetworkStream (client);
+				conn.SocketHandle = (long)client.Handle;
 
 				//ConnectionHandler.Handle (conn);
 

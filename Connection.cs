@@ -6,8 +6,6 @@ using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
 
 using System.Reflection;
 using System.Reflection.Emit;
@@ -20,9 +18,18 @@ namespace NDesk.DBus
 	{
 		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";
 
-		public Socket sock = null;
+		//TODO: reduce/correct visibility of these when appropriate
 		public Stream ns = null;
-		Transport transport;
+		public long SocketHandle;
+
+		protected Transport transport;
+		public Transport Transport {
+			get {
+				return transport;
+			} set {
+				transport = value;
+			}
+		}
 
 		public Connection () : this (true)
 		{
@@ -65,12 +72,8 @@ namespace NDesk.DBus
 		public void Open (string path, bool abstr)
 		{
 			transport = new UnixTransport (path, abstr);
-
-			sock = transport.socket;
-
-			sock.Blocking = true;
-			//ns = new UnixStream ((int)sock.Handle);
-			ns = new NetworkStream (sock);
+			ns = transport.Stream;
+			SocketHandle = transport.SocketHandle;
 		}
 
 		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint

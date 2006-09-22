@@ -20,12 +20,19 @@ namespace NDesk.DBus
 		}
 		*/
 
+		protected Socket socket;
+
 		public UnixTransport (string path, bool @abstract)
 		{
 			if (@abstract)
 				socket = OpenAbstractUnix (path);
 			else
 				socket = OpenUnix (path);
+
+			socket.Blocking = true;
+			SocketHandle = (long)socket.Handle;
+			//Stream = new UnixStream ((int)socket.Handle);
+			Stream = new NetworkStream (socket);
 		}
 
 		public override string AuthString ()

@@ -46,7 +46,7 @@ namespace NDesk.DBus
 					conn.Handlers[ename] = dlg;
 
 					//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
-					if (bus_name != "org.freedesktop.DBus") {
+					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
 						bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, bus_name, ename));
 						conn.Iterate ();

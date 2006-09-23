@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Text;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
@@ -12,11 +13,13 @@ namespace NDesk.DBus
 {
 	public class MessageReader
 	{
-		protected Stream stream;
+		protected byte[] data;
+		//TODO: this should be uint or long to handle long messages
+		int pos = 0;
 
 		public MessageReader (byte[] body)
 		{
-			stream = new MemoryStream (body, false);
+			data = body;
 		}
 
 		public MessageReader (Message msg) : this (msg.Body)
@@ -295,7 +298,7 @@ namespace NDesk.DBus
 
 		public void GetValue (out byte val)
 		{
-			val = (byte)stream.ReadByte ();
+			val = data[pos++];
 		}
 
 		public void GetValue (out bool val)
@@ -310,67 +313,59 @@ namespace NDesk.DBus
 		public void GetValue (out short val)
 		{
 			ReadPad (2);
-			byte[] buf = new byte[2];
-			stream.Read (buf, 0, 2);
-			val = BitConverter.ToInt16 (buf, 0);
+			val = BitConverter.ToInt16 (data, pos);
+			pos += 2;
 		}
 
 		public void GetValue (out ushort val)
 		{
 			ReadPad (2);
-			byte[] buf = new byte[2];
-			stream.Read (buf, 0, 2);
-			val = BitConverter.ToUInt16 (buf, 0);
+			val = BitConverter.ToUInt16 (data, pos);
+			pos += 2;
 		}
 
 		public void GetValue (out int val)
 		{
 			ReadPad (4);
-			byte[] buf = new byte[4];
-			stream.Read (buf, 0, 4);
-			val = BitConverter.ToInt32 (buf, 0);
+			val = BitConverter.ToInt32 (data, pos);
+			pos += 4;
 		}
 
 		public void GetValue (out uint val)
 		{
 			ReadPad (4);
-			byte[] buf = new byte[4];
-			stream.Read (buf, 0, 4);
-			val = BitConverter.ToUInt32 (buf, 0);
+			val = BitConverter.ToUInt32 (data, pos);
+			pos += 4;
 		}
 
 		public void GetValue (out long val)
 		{
 			ReadPad (8);
-			byte[] buf = new byte[8];
-			stream.Read (buf, 0, 8);
-			val = BitConverter.ToInt64 (buf, 0);
+			val = BitConverter.ToInt64 (data, pos);
+			pos += 8;
 		}
 
 		public void GetValue (out ulong val)
 		{
 			ReadPad (8);
-			byte[] buf = new byte[8];
-			stream.Read (buf, 0, 8);
-			val = BitConverter.ToUInt64 (buf, 0);
+			val = BitConverter.ToUInt64 (data, pos);
+			pos += 8;
 		}
 
 #if PROTO_TYPE_SINGLE
 		public void GetValue (out float val)
 		{
 			ReadPad (4);
-			byte[] buf = new byte[4];
-			stream.Read (buf, 0, 4);
-			val = BitConverter.ToSingle (buf, 0);
+			val = BitConverter.ToSingle (data, pos);
+			pos += 4;
 		}
 #endif
 
 		public void GetValue (out double val)
 		{
 			ReadPad (8);
-			byte[] buf = new byte[8];
-			stream.Read (buf, 0, 8);
-			val = BitConverter.ToDouble (buf, 0);
+			val = BitConverter.ToDouble (data, pos);
+			pos += 8;
 		}
 
 		public void GetValue (out string val)
@@ -378,10 +373,8 @@ namespace NDesk.DBus
 			uint ln;
 			GetValue (out ln);
 
-			byte[] buf = new byte[(int)ln];
-			stream.Read (buf, 0, (int)ln);
-			val = System.Text.Encoding.UTF8.GetString (buf);
-			stream.ReadByte (); //null string terminator
+			val = Encoding.UTF8.GetString (data, pos, (int)ln);
+			pos += (int)ln + 1; //+1 is null string terminator
 		}
 
 		public void GetValue (out ObjectPath val)
@@ -395,10 +388,9 @@ namespace NDesk.DBus
 			byte ln;
 			GetValue (out ln);
 
-			byte[] buf = new byte[ln];
-			stream.Read (buf, 0, ln);
-			val.Data = buf;
-			stream.ReadByte (); //null signature terminator
+			val.Data = new byte[ln];
+			Array.Copy (data, pos, val.Data, 0, (int)ln);
+			pos += (int)ln + 1; //+1 is null signature terminator
 		}
 
 		//variant
@@ -422,10 +414,10 @@ namespace NDesk.DBus
 			//ReadPad (Padding.GetAlignment (Signature.TypeToDType (type)));
 			ReadPad (8);
 
-			int endPos = (int)stream.Position + (int)ln;
+			int endPos = pos + (int)ln;
 
 			//while (stream.Position != endPos)
-			while (stream.Position < endPos)
+			while (pos < endPos)
 			{
 				ReadPad (8);
 
@@ -438,8 +430,8 @@ namespace NDesk.DBus
 				val.Add (keyVal, valVal);
 			}
 
-			if (stream.Position != endPos)
-				throw new Exception ("Read pos " + stream.Position + " != ep " + endPos);
+			if (pos != endPos)
+				throw new Exception ("Read pos " + pos + " != ep " + endPos);
 		}
 
 		//this could be made generic to avoid boxing
@@ -455,13 +447,13 @@ namespace NDesk.DBus
 			//advance to the alignment of the element
 			ReadPad (Padding.GetAlignment (Signature.TypeToDType (type)));
 
-			int endPos = (int)stream.Position + (int)ln;
+			int endPos = pos + (int)ln;
 
 			//List<T> vals = new List<T> ();
 			System.Collections.ArrayList vals = new System.Collections.ArrayList ();
 
 			//while (stream.Position != endPos)
-			while (stream.Position < endPos)
+			while (pos < endPos)
 			{
 				object elem;
 				//GetValue (Signature.TypeToDType (type), out elem);
@@ -469,8 +461,8 @@ namespace NDesk.DBus
 				vals.Add (elem);
 			}
 
-			if (stream.Position != endPos)
-				throw new Exception ("Read pos " + stream.Position + " != ep " + endPos);
+			if (pos != endPos)
+				throw new Exception ("Read pos " + pos + " != ep " + endPos);
 
 			val = vals.ToArray (type);
 			//val = Array.CreateInstance (type.UnderlyingSystemType, vals.Count);
@@ -544,20 +536,25 @@ namespace NDesk.DBus
 			}
 		}
 
+		public void ReadNull ()
+		{
+			if (data[pos++] != 0)
+				throw new Exception ("Non-zero null terminator");
+		}
+
+		/*
 		public void ReadPad (int alignment)
 		{
-			//byte[] pad = new byte[8];
-			//rng.GetNonZeroBytes (pad);
-			//stream.Position = Padding.Padded ((int)stream.Position, alignment);
+			pos = Padding.Padded (pos, alignment);
+		}
+		*/
 
-			//int end = Padding.Padded ((int)stream.Position, alignment);
-
-			int len = Padding.PadNeeded ((int)stream.Position, alignment);
-			for (int i = 0 ; i != len ; i++) {
-				int b = stream.ReadByte ();
-				if (b != 0)
-					throw new Exception ("Read non-zero padding byte at pos " + i + " (offset " + stream.Position + "), pad value was " + b);
-			}
+		public void ReadPad (int alignment)
+		{
+			//make sure the pos-1 is right for the exception message when we have a test suite
+			while (pos != Padding.Padded (pos, alignment))
+				if (data[pos++] != 0)
+					throw new Exception ("Read non-zero padding byte at pos " + pos + ", pad value was " + data[pos-1]);
 		}
 	}
 }

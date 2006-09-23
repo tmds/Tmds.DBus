@@ -16,6 +16,8 @@ namespace NDesk.DBus
 {
 	public class UnixSocket
 	{
+		//TODO: big-endian testing
+
 		//TODO: verify these
 		[DllImport ("libc", SetLastError=true)]
 			protected static extern int socket (int domain, int type, int protocol);
@@ -27,20 +29,21 @@ namespace NDesk.DBus
 
 		public UnixSocket ()
 		{
+			//TODO: don't hard-code PF_UNIX and SocketType.Stream
 			//AddressFamily family, SocketType type, ProtocolType proto
-			//Handle = socket ((int)AddressFamily.Unix, (int)SocketType.Stream, 0);
-			Handle = socket (1, (int)SocketType.Stream, 0);
-			//TODO: error handling
-			//TODO: big-endian testing
+
+			int r = socket (1, (int)SocketType.Stream, 0);
+			//we should get the Exception from UnixMarshal and throw it here for a better stack trace, but the relevant API seems to be private
+			UnixMarshal.ThrowExceptionForLastErrorIf (r);
+			Handle = r;
 		}
 
 		//TODO: consider memory management
 		public void Connect (byte[] remote_end)
 		{
 			int r = connect (Handle, remote_end, (uint)remote_end.Length);
-
-			if (r == -1)
-				UnixMarshal.ThrowExceptionForLastError ();
+			//we should get the Exception from UnixMarshal and throw it here for a better stack trace, but the relevant API seems to be private
+			UnixMarshal.ThrowExceptionForLastErrorIf (r);
 		}
 	}
 
@@ -83,7 +86,6 @@ namespace NDesk.DBus
 
 			UnixSocket client = new UnixSocket ();
 			client.Connect (sa);
-			//Console.Error.WriteLine ("client Handle: " + client.Handle);
 
 			return client;
 		}
@@ -104,7 +106,6 @@ namespace NDesk.DBus
 
 			UnixSocket client = new UnixSocket ();
 			client.Connect (sa);
-			//Console.Error.WriteLine ("client Handle: " + client.Handle);
 
 			return client;
 		}

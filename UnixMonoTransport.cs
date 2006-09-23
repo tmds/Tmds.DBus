@@ -14,12 +14,6 @@ namespace NDesk.DBus
 {
 	public class UnixMonoTransport : Transport, IAuthenticator
 	{
-		/*
-		public UnixMonoTransport (int fd)
-		{
-		}
-		*/
-
 		protected Socket socket;
 
 		public UnixMonoTransport (string path, bool @abstract)
@@ -44,19 +38,6 @@ namespace NDesk.DBus
 
 		protected Socket OpenAbstractUnix (string path)
 		{
-			/*
-			byte[] p = System.Text.Encoding.Default.GetBytes (path);
-
-			SocketAddress sa = new SocketAddress (AddressFamily.Unix, 2 + 1 + p.Length);
-			sa[2] = 0; //null prefix for abstract sockets, see unix(7)
-			for (int i = 0 ; i != p.Length ; i++)
-				sa[i+3] = p[i];
-
-			//TODO: this uglyness is a limitation of Mono.Unix
-			UnixEndPoint remoteEndPoint = new UnixEndPoint ("foo");
-			EndPoint ep = remoteEndPoint.Create (sa);
-			*/
-
 			AbstractUnixEndPoint ep = new AbstractUnixEndPoint (path);
 
 			Socket client = new Socket (AddressFamily.Unix, SocketType.Stream, 0);

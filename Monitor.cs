@@ -26,6 +26,7 @@ public class ManagedDBusTest
 					break;
 				default:
 					Console.Error.WriteLine ("Usage: monitor.exe [--system | --session] [watch expressions]");
+					Console.Error.WriteLine ("       If no watch expressions are provided, defaults will be used.");
 					return;
 			}
 		}
@@ -48,15 +49,17 @@ public class ManagedDBusTest
 		//hack to process the NameAcquired signal synchronously
 		conn.HandleSignal (conn.ReadMessage ());
 
-		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal));
-		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.MethodCall));
-		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.MethodReturn));
-		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Error));
-
-		//custom match rules
-		if (args.Length > 1)
+		if (args.Length > 1) {
+			//install custom match rules only
 			for (int i = 1 ; i != args.Length ; i++)
 				bus.AddMatch (args[i]);
+		} else {
+			//no custom match rules, install the defaults
+			bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal));
+			bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.MethodCall));
+			bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.MethodReturn));
+			bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Error));
+		}
 
 		while (true) {
 			Message msg = conn.ReadMessage ();

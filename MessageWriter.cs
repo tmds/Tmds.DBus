@@ -13,10 +13,12 @@ namespace NDesk.DBus
 	public class MessageWriter
 	{
 		protected MemoryStream stream;
+		protected BinaryWriter bw;
 
 		public MessageWriter ()
 		{
 			stream = new MemoryStream ();
+			bw = new BinaryWriter (stream);
 		}
 
 		public byte[] ToArray ()
@@ -34,47 +36,36 @@ namespace NDesk.DBus
 
 		public void Write (byte val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (1);
 			bw.Write (val);
 		}
 
 		public void Write (bool val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (4);
 			bw.Write ((uint) (val ? 1 : 0));
 		}
 
 		public void Write (short val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (2);
 			bw.Write (val);
 		}
 
 		public void Write (ushort val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (2);
 			bw.Write (val);
 		}
 
 		public void Write (int val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (4);
 			bw.Write (val);
 		}
 
 		public void Write (uint val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
 
 			WritePad (4);
 			bw.Write (val);
@@ -82,16 +73,12 @@ namespace NDesk.DBus
 
 		public void Write (long val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (8);
 			bw.Write (val);
 		}
 
 		public void Write (ulong val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (8);
 			bw.Write (val);
 		}
@@ -99,8 +86,6 @@ namespace NDesk.DBus
 #if PROTO_TYPE_SINGLE
 		public void Write (float val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (4);
 			bw.Write (val);
 		}
@@ -108,16 +93,12 @@ namespace NDesk.DBus
 
 		public void Write (double val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (8);
 			bw.Write (val);
 		}
 
 		public void Write (string val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			Write ((uint)val.Length);
 
 			bw.Write (System.Text.Encoding.UTF8.GetBytes (val));
@@ -131,8 +112,6 @@ namespace NDesk.DBus
 
 		public void Write (Signature val)
 		{
-			BinaryWriter bw = new BinaryWriter (stream);
-
 			WritePad (1);
 			Write ((byte)val.Value.Length);
 			bw.Write (val.Data);

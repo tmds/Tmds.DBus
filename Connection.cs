@@ -16,8 +16,6 @@ namespace NDesk.DBus
 {
 	public partial class Connection
 	{
-		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";
-
 		//TODO: reduce/correct visibility of these when appropriate
 		public Stream ns = null;
 		public long SocketHandle;
@@ -43,18 +41,11 @@ namespace NDesk.DBus
 			string path;
 			bool abstr;
 
-			string sessAddr = System.Environment.GetEnvironmentVariable ("DBUS_SESSION_BUS_ADDRESS");
-			Address.Parse (sessAddr, out path, out abstr);
+			Address.Parse (Address.SessionBus, out path, out abstr);
 
 			//not really correct
-			if (String.IsNullOrEmpty (path)) {
-				string sysAddr = System.Environment.GetEnvironmentVariable ("DBUS_SYSTEM_BUS_ADDRESS");
-
-				if (String.IsNullOrEmpty (sysAddr))
-					sysAddr = SYSTEM_BUS_ADDRESS;
-
-				Address.Parse (sysAddr, out path, out abstr);
-			}
+			if (String.IsNullOrEmpty (path))
+				Address.Parse (Address.SystemBus, out path, out abstr);
 
 			Open (path, abstr);
 			Authenticate ();

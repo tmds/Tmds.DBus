@@ -40,5 +40,25 @@ namespace NDesk.DBus
 
 			return true;
 		}
+
+		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";
+		public static string SystemBus
+		{
+			get {
+				string addr = Environment.GetEnvironmentVariable ("DBUS_SYSTEM_BUS_ADDRESS");
+
+				if (String.IsNullOrEmpty (addr))
+					addr = SYSTEM_BUS_ADDRESS;
+
+				return addr;
+			}
+		}
+
+		public static string SessionBus
+		{
+			get {
+				return Environment.GetEnvironmentVariable ("DBUS_SESSION_BUS_ADDRESS");
+			}
+		}
 	}
 }

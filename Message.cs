@@ -71,9 +71,9 @@ namespace NDesk.DBus
 
 		public bool Locked;
 
-		public static void Close (Stream stream)
+		public static void CloseRead (Stream stream)
 		{
-			Pad (stream, 8);
+			ReadPad (stream, 8);
 			//this needs more thought
 		}
 
@@ -88,7 +88,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 1);
+			WritePad (stream, 1);
 			bw.Write (val);
 		}
 
@@ -96,7 +96,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 4);
+			WritePad (stream, 4);
 			bw.Write ((uint) (val ? 1 : 0));
 		}
 
@@ -104,7 +104,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 2);
+			WritePad (stream, 2);
 			bw.Write (val);
 		}
 
@@ -112,7 +112,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 2);
+			WritePad (stream, 2);
 			bw.Write (val);
 		}
 
@@ -120,7 +120,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 4);
+			WritePad (stream, 4);
 			bw.Write (val);
 		}
 
@@ -128,7 +128,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 4);
+			WritePad (stream, 4);
 			bw.Write (val);
 		}
 
@@ -136,7 +136,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 8);
+			WritePad (stream, 8);
 			bw.Write (val);
 		}
 
@@ -144,7 +144,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 8);
+			WritePad (stream, 8);
 			bw.Write (val);
 		}
 
@@ -153,7 +153,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 4);
+			WritePad (stream, 4);
 			bw.Write (val);
 		}
 #endif
@@ -162,7 +162,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 8);
+			WritePad (stream, 8);
 			bw.Write (val);
 		}
 
@@ -185,7 +185,7 @@ namespace NDesk.DBus
 		{
 			BinaryWriter bw = new BinaryWriter (stream);
 
-			Pad (stream, 1);
+			WritePad (stream, 1);
 			Write (stream, (byte)val.Value.Length);
 			bw.Write (val.Data);
 			bw.Write ((byte)0); //NULL signature terminator
@@ -453,7 +453,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 1);
+			ReadPad (stream, 1);
 			val = br.ReadByte ();
 		}
 
@@ -470,7 +470,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 2);
+			ReadPad (stream, 2);
 			val = br.ReadInt16 ();
 		}
 
@@ -478,7 +478,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 2);
+			ReadPad (stream, 2);
 			val = br.ReadUInt16 ();
 		}
 
@@ -486,7 +486,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 4);
+			ReadPad (stream, 4);
 			val = br.ReadInt32 ();
 		}
 
@@ -494,7 +494,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 4);
+			ReadPad (stream, 4);
 			val = br.ReadUInt32 ();
 		}
 
@@ -502,7 +502,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 8);
+			ReadPad (stream, 8);
 			val = br.ReadInt64 ();
 		}
 
@@ -510,7 +510,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 8);
+			ReadPad (stream, 8);
 			val = br.ReadUInt64 ();
 		}
 
@@ -519,7 +519,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 4);
+			ReadPad (stream, 4);
 			val = br.ReadSingle ();
 		}
 #endif
@@ -528,7 +528,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			Pad (stream, 8);
+			ReadPad (stream, 8);
 			val = br.ReadDouble ();
 		}
 
@@ -554,7 +554,7 @@ namespace NDesk.DBus
 		{
 			BinaryReader br = new BinaryReader (stream);
 
-			//Pad (stream, 1); //alignment for signature is 1
+			//ReadPad (stream, 1); //alignment for signature is 1
 			byte ln;
 			GetValue (stream, out ln);
 
@@ -583,7 +583,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out short val)
 		{
-			Pad (stream, 2);
+			ReadPad (stream, 2);
 			byte[] buf = new byte[2];
 			stream.Read (buf, 0, 2);
 			val = BitConverter.ToInt16 (buf, 0);
@@ -591,7 +591,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out ushort val)
 		{
-			Pad (stream, 2);
+			ReadPad (stream, 2);
 			byte[] buf = new byte[2];
 			stream.Read (buf, 0, 2);
 			val = BitConverter.ToUInt16 (buf, 0);
@@ -599,7 +599,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out int val)
 		{
-			Pad (stream, 4);
+			ReadPad (stream, 4);
 			byte[] buf = new byte[4];
 			stream.Read (buf, 0, 4);
 			val = BitConverter.ToInt32 (buf, 0);
@@ -607,7 +607,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out uint val)
 		{
-			Pad (stream, 4);
+			ReadPad (stream, 4);
 			byte[] buf = new byte[4];
 			stream.Read (buf, 0, 4);
 			val = BitConverter.ToUInt32 (buf, 0);
@@ -615,7 +615,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out long val)
 		{
-			Pad (stream, 8);
+			ReadPad (stream, 8);
 			byte[] buf = new byte[8];
 			stream.Read (buf, 0, 8);
 			val = BitConverter.ToInt64 (buf, 0);
@@ -623,7 +623,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out ulong val)
 		{
-			Pad (stream, 8);
+			ReadPad (stream, 8);
 			byte[] buf = new byte[8];
 			stream.Read (buf, 0, 8);
 			val = BitConverter.ToUInt64 (buf, 0);
@@ -632,7 +632,7 @@ namespace NDesk.DBus
 #if PROTO_TYPE_SINGLE
 		public static void GetValue (Stream stream, out float val)
 		{
-			Pad (stream, 4);
+			ReadPad (stream, 4);
 			byte[] buf = new byte[4];
 			stream.Read (buf, 0, 4);
 			val = BitConverter.ToSingle (buf, 0);
@@ -641,7 +641,7 @@ namespace NDesk.DBus
 
 		public static void GetValue (Stream stream, out double val)
 		{
-			Pad (stream, 8);
+			ReadPad (stream, 8);
 			byte[] buf = new byte[8];
 			stream.Read (buf, 0, 8);
 			val = BitConverter.ToDouble (buf, 0);
@@ -696,7 +696,7 @@ namespace NDesk.DBus
 			long lengthPos = stream.Position - 4;
 
 			//advance to the alignment of the element
-			Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
+			WritePad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
 
 			long startPos = stream.Position;
 
@@ -717,14 +717,14 @@ namespace NDesk.DBus
 			long lengthPos = stream.Position - 4;
 
 			//advance to the alignment of the element
-			//Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
-			Pad (stream, 8);
+			//WritePad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
+			WritePad (stream, 8);
 
 			long startPos = stream.Position;
 
 			foreach (System.Collections.DictionaryEntry entry in val)
 			{
-				Pad (stream, 8);
+				WritePad (stream, 8);
 
 				Write (stream, keyType, entry.Key);
 				Write (stream, valType, entry.Value);
@@ -745,15 +745,15 @@ namespace NDesk.DBus
 			GetValue (stream, out ln);
 
 			//advance to the alignment of the element
-			//Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
-			Pad (stream, 8);
+			//ReadPad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
+			ReadPad (stream, 8);
 
 			int endPos = (int)stream.Position + (int)ln;
 
 			//while (stream.Position != endPos)
 			while (stream.Position < endPos)
 			{
-				Pad (stream, 8);
+				ReadPad (stream, 8);
 
 				object keyVal;
 				GetValue (stream, keyType, out keyVal);
@@ -779,7 +779,7 @@ namespace NDesk.DBus
 			GetValue (stream, out ln);
 
 			//advance to the alignment of the element
-			Pad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
+			ReadPad (stream, Padding.GetAlignment (Signature.TypeToDType (type)));
 
 			int endPos = (int)stream.Position + (int)ln;
 
@@ -839,7 +839,7 @@ namespace NDesk.DBus
 			}
 
 			//no suitable ctor, marshal as a struct
-			Pad (stream, 8);
+			ReadPad (stream, 8);
 
 			val = (ValueType)Activator.CreateInstance (type);
 
@@ -872,7 +872,7 @@ namespace NDesk.DBus
 
 		public static void Write (Stream stream, Type type, ValueType val)
 		{
-			Pad (stream, 8); //offset for structs, right?
+			WritePad (stream, 8); //offset for structs, right?
 
 			/*
 			ConstructorInfo[] cis = type.GetConstructors ();
@@ -984,18 +984,18 @@ namespace NDesk.DBus
 		}
 
 		//static RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider ();
-		public static void Pad (Stream stream, int alignment)
+		public static void WritePad (Stream stream, int alignment)
+		{
+			stream.Position = Padded ((int)stream.Position, alignment);
+		}
+
+		public static void ReadPad (Stream stream, int alignment)
 		{
 			//byte[] pad = new byte[8];
 			//rng.GetNonZeroBytes (pad);
 			//stream.Position = Padded ((int)stream.Position, alignment);
 
 			//int end = Padded ((int)stream.Position, alignment);
-			if (!IsReading)
-			{
-				stream.Position = Padded ((int)stream.Position, alignment);
-				return;
-			}
 
 			int len = PadNeeded ((int)stream.Position, alignment);
 			for (int i = 0 ; i != len ; i++) {
@@ -1004,8 +1004,5 @@ namespace NDesk.DBus
 					throw new Exception ("Read non-zero padding byte at pos " + i + " (offset " + stream.Position + "), pad value was " + b);
 			}
 		}
-
-		//TODO: get rid of this hack
-		public static bool IsReading = false;
 	}
 }

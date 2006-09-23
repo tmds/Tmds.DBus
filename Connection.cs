@@ -190,9 +190,7 @@ namespace NDesk.DBus
 			}
 
 			//this needn't be done here
-			Message.IsReading = true;
 			msg.ParseHeader ();
-			Message.IsReading = false;
 
 			return msg;
 		}

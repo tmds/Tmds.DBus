@@ -11,22 +11,28 @@ public class ManagedDBusTest
 {
 	public static void Main (string[] args)
 	{
-		//TODO: allow selection of bus
+		string addr = Address.SessionBus;
+
 		if (args.Length == 1) {
-			string arg = args[1];
+			string arg = args[0];
 
 			switch (arg)
 			{
 				case "--system":
+					addr = Address.SystemBus;
 					break;
 				case "--session":
+					addr = Address.SessionBus;
 					break;
 				default:
-					break;
+					Console.Error.WriteLine ("Usage: monitor.exe [--system | --session]");
+					return;
 			}
 		}
 
-		Connection conn = new Connection ();
+		Connection conn = new Connection (false);
+		conn.Open (addr);
+		conn.Authenticate ();
 
 		ObjectPath opath = new ObjectPath ("/org/freedesktop/DBus");
 		string name = "org.freedesktop.DBus";

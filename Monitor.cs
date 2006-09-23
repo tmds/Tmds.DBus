@@ -25,7 +25,7 @@ public class ManagedDBusTest
 					addr = Address.SessionBus;
 					break;
 				default:
-					Console.Error.WriteLine ("Usage: monitor.exe [--system | --session]");
+					Console.Error.WriteLine ("Usage: monitor.exe [--system | --session] [watch expressions]");
 					return;
 			}
 		}
@@ -52,6 +52,11 @@ public class ManagedDBusTest
 		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.MethodCall));
 		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.MethodReturn));
 		bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Error));
+
+		//custom match rules
+		if (args.Length > 1)
+			for (int i = 1 ; i != args.Length ; i++)
+				bus.AddMatch (args[i]);
 
 		while (true) {
 			Message msg = conn.ReadMessage ();

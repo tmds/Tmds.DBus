@@ -9,11 +9,6 @@ using System.IO;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
-//for filling padding with random
-//using System.Security.Cryptography;
-
-//using Console = System.Diagnostics.Trace;
-
 namespace NDesk.DBus
 {
 	public class Message
@@ -65,9 +60,7 @@ namespace NDesk.DBus
 		//public HeaderField[] HeaderFields;
 		//public Dictionary<FieldCode,object>;
 
-		//public MemoryStream Body;
 		public byte[] Body;
-		//public int DataSize;
 
 		//TODO: make use of Locked
 		protected bool locked = false;
@@ -129,20 +122,12 @@ namespace NDesk.DBus
 		public void WriteHeader ()
 		{
 			if (Body != null)
-				//FIXME
-				//Header.Length = (uint)Body.Position;
 				Header.Length = (uint)Body.Length;
 
-			//pad the end of the message body
-			//this could be done elsewhere
-			//MessageStream.CloseWrite (Body);
-
 			MessageWriter writer = new MessageWriter ();
-
 			writer.Write (typeof (Header), Header);
 			//writer.WriteFromDict (typeof (FieldCode), typeof (object), Header.Fields);
 			writer.CloseWrite ();
-
 			HeaderData = writer.ToArray ();
 		}
 	}

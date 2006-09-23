@@ -78,6 +78,75 @@ namespace NDesk.DBus
 			}
 		}
 
+		public void ParseHeader ()
+		{
+			//GetValue (stream, typeof (Header), out Header);
+
+			MemoryStream stream = new MemoryStream (HeaderData);
+
+			ValueType valT;
+			MessageStream.GetValue (stream, typeof (Header), out valT);
+			Header = (Header)valT;
+
+			/*
+			//foreach (HeaderField field in HeaderFields)
+			foreach (KeyValuePair<FieldCode,object> field in Header.Fields)
+			{
+				//Console.WriteLine (field.Key + " = " + field.Value);
+				switch (field.Key)
+				{
+					case FieldCode.Invalid:
+						break;
+					case FieldCode.Path:
+						Path = (ObjectPath)field.Value;
+						break;
+					case FieldCode.Interface:
+						Interface = (string)field.Value;
+						break;
+					case FieldCode.Member:
+						Member = (string)field.Value;
+						break;
+					case FieldCode.ErrorName:
+						ErrorName = (string)field.Value;
+						break;
+					case FieldCode.ReplySerial:
+						ReplySerial = (uint)field.Value;
+						break;
+					case FieldCode.Destination:
+						Destination = (string)field.Value;
+						break;
+					case FieldCode.Sender:
+						Sender = (string)field.Value;
+						break;
+					case FieldCode.Signature:
+						Signature = (Signature)field.Value;
+						break;
+				}
+			}
+			*/
+		}
+
+		public void WriteHeader ()
+		{
+			if (Body != null)
+				Header.Length = (uint)Body.Position;
+
+			//pad the end of the message body
+			//this could be done elsewhere
+			//MessageStream.CloseWrite (Body);
+
+			MemoryStream stream = new MemoryStream ();
+			MessageStream.Write (stream, typeof (Header), Header);
+			//WriteFromDict (stream, typeof (FieldCode), typeof (object), Header.Fields);
+			MessageStream.CloseWrite (stream);
+
+			//HeaderData = stream.GetBuffer ();
+			HeaderData = stream.ToArray ();
+		}
+	}
+
+	public static class MessageStream
+	{
 		public static void CloseRead (Stream stream)
 		{
 			ReadPad (stream, 8);
@@ -836,7 +905,7 @@ namespace NDesk.DBus
 				List<object> vals = new List<object> (parms.Length);
 				foreach (System.Reflection.ParameterInfo parm in parms) {
 					object arg;
-					Message.GetValue (stream, parm.ParameterType, out arg);
+					MessageStream.GetValue (stream, parm.ParameterType, out arg);
 					vals.Add (arg);
 				}
 
@@ -909,72 +978,6 @@ namespace NDesk.DBus
 				//Write (stream, Signature.TypeToDType (fi.FieldType), elem);
 				Write (stream, fi.FieldType, elem);
 			}
-		}
-
-		public void ParseHeader ()
-		{
-			//GetValue (stream, typeof (Header), out Header);
-
-			MemoryStream stream = new MemoryStream (HeaderData);
-
-			ValueType valT;
-			GetValue (stream, typeof (Header), out valT);
-			Header = (Header)valT;
-
-			/*
-			//foreach (HeaderField field in HeaderFields)
-			foreach (KeyValuePair<FieldCode,object> field in Header.Fields)
-			{
-				//Console.WriteLine (field.Key + " = " + field.Value);
-				switch (field.Key)
-				{
-					case FieldCode.Invalid:
-						break;
-					case FieldCode.Path:
-						Path = (ObjectPath)field.Value;
-						break;
-					case FieldCode.Interface:
-						Interface = (string)field.Value;
-						break;
-					case FieldCode.Member:
-						Member = (string)field.Value;
-						break;
-					case FieldCode.ErrorName:
-						ErrorName = (string)field.Value;
-						break;
-					case FieldCode.ReplySerial:
-						ReplySerial = (uint)field.Value;
-						break;
-					case FieldCode.Destination:
-						Destination = (string)field.Value;
-						break;
-					case FieldCode.Sender:
-						Sender = (string)field.Value;
-						break;
-					case FieldCode.Signature:
-						Signature = (Signature)field.Value;
-						break;
-				}
-			}
-			*/
-		}
-
-		public void WriteHeader ()
-		{
-			if (Body != null)
-				Header.Length = (uint)Body.Position;
-
-			//pad the end of the message body
-			//this could be done elsewhere
-			//Message.CloseWrite (Body);
-
-			MemoryStream stream = new MemoryStream ();
-			Message.Write (stream, typeof (Header), Header);
-			//WriteFromDict (stream, typeof (FieldCode), typeof (object), Header.Fields);
-			Message.CloseWrite (stream);
-
-			//HeaderData = stream.GetBuffer ();
-			HeaderData = stream.ToArray ();
 		}
 
 		public static int PadNeeded (int len, int alignment)

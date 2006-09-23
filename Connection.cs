@@ -159,7 +159,7 @@ namespace NDesk.DBus
 			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
 			toRead = (int)BitConverter.ToUInt32 (buf, 12);
 
-			toRead = Message.Padded ((int)toRead, 8);
+			toRead = MessageStream.Padded ((int)toRead, 8);
 
 			buf = new byte[toRead];
 
@@ -262,7 +262,7 @@ namespace NDesk.DBus
 					Error error = new Error (msg);
 					string errMsg = "";
 					if (msg.Signature.Value == "s")
-						Message.GetValue (msg.Body, out errMsg);
+						MessageStream.GetValue (msg.Body, out errMsg);
 					throw new Exception ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
 				case MessageType.Signal:
 					HandleSignal (msg);
@@ -314,7 +314,7 @@ namespace NDesk.DBus
 				replyMsg.Body = new System.IO.MemoryStream ();
 
 				foreach (object arg in vals)
-					Message.Write (replyMsg.Body, arg.GetType (), arg);
+					MessageStream.Write (replyMsg.Body, arg.GetType (), arg);
 			}
 
 			//FIXME: this breaks the abstraction
@@ -448,7 +448,7 @@ namespace NDesk.DBus
 			if (msg.Body != null) {
 				foreach (Type type in types) {
 					object arg;
-					Message.GetValue (msg.Body, type, out arg);
+					MessageStream.GetValue (msg.Body, type, out arg);
 					vals.Add (arg);
 				}
 			}
@@ -463,7 +463,7 @@ namespace NDesk.DBus
 			if (msg.Body != null) {
 				foreach (DType dtype in msg.Signature.Data) {
 					object arg;
-					Message.GetValue (msg.Body, dtype, out arg);
+					MessageStream.GetValue (msg.Body, dtype, out arg);
 					vals.Add (arg);
 				}
 			}
@@ -609,7 +609,7 @@ namespace NDesk.DBus
 				signal.message.Body = new System.IO.MemoryStream ();
 
 				foreach (object arg in args)
-					Message.Write (signal.message.Body, arg.GetType (), arg);
+					MessageStream.Write (signal.message.Body, arg.GetType (), arg);
 			}
 
 			Send (signal.message);

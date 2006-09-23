@@ -73,7 +73,7 @@ public class ManagedDBusTest
 						if (dtype == DType.Invalid)
 							continue;
 						object arg;
-						Message.GetValue (msg.Body, dtype, out arg);
+						MessageStream.GetValue (msg.Body, dtype, out arg);
 						Console.WriteLine ("\t\t" + dtype + ": " + arg);
 					}
 				} catch {

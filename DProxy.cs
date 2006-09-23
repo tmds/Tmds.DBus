@@ -125,7 +125,7 @@ namespace NDesk.DBus
 						callMsg.Body = new System.IO.MemoryStream ();
 
 						foreach (object arg in mcm.InArgs)
-							Message.Write (callMsg.Body, arg.GetType (), arg);
+							MessageStream.Write (callMsg.Body, arg.GetType (), arg);
 					}
 			}
 
@@ -172,7 +172,7 @@ namespace NDesk.DBus
 				Error error = new Error (retMsg);
 				string errMsg = "";
 				if (retMsg.Signature.Value.StartsWith ("s"))
-					Message.GetValue (retMsg.Body, out errMsg);
+					MessageStream.GetValue (retMsg.Body, out errMsg);
 				Exception e = new Exception (error.ErrorName + ": " + errMsg);
 				newRet.Exception = e;
 			} else if (retMsg.Header.MessageType == MessageType.MethodReturn) {

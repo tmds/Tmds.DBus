@@ -69,7 +69,14 @@ namespace NDesk.DBus
 		//public byte[] Data;
 		//public int DataSize;
 
-		public bool Locked;
+		//TODO: make use of Locked
+		protected bool locked = false;
+		public bool Locked
+		{
+			get {
+				return locked;
+			}
+		}
 
 		public static void CloseRead (Stream stream)
 		{

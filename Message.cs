@@ -291,7 +291,7 @@ namespace NDesk.DBus
 				}
 				break;
 				default:
-				throw new Exception ("Unhandled DBus type: " + dtype);
+				throw new Exception ("Unhandled D-Bus type: " + dtype);
 			}
 		}
 
@@ -451,7 +451,7 @@ namespace NDesk.DBus
 				break;
 				default:
 				val = null;
-				throw new Exception ("Unhandled DBus type: " + dtype);
+				throw new Exception ("Unhandled D-Bus type: " + dtype);
 			}
 		}
 

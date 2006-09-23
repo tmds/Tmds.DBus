@@ -43,7 +43,7 @@ public class ManagedDBusTestNotifications
 
 		string message = String.Format ("Brought to you using {0} {1} (implementing spec version {2}) from {3}.", si.Name, si.Version, si.SpecVersion, si.Vendor);
 
-		uint handle = nf.Notify ("DBus# Notifications Demo", 0, "warning", "Managed DBus# says 'Hello'!", message, new string[0], hints, 0);
+		uint handle = nf.Notify ("D-Bus# Notifications Demo", 0, "warning", "Managed D-Bus# says 'Hello'!", message, new string[0], hints, 0);
 
 		Console.WriteLine ();
 		Console.WriteLine ("Got handle " + handle);

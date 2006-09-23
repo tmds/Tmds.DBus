@@ -80,9 +80,9 @@ namespace NDesk.DBus
 			sa[0] = 1;
 			sa[1] = 0;
 
-			sa[2] = 0; //null prefix for abstract sockets, see unix(7)
+			sa[2] = 0; //null prefix for abstract domain socket addresses, see unix(7)
 			for (int i = 0 ; i != p.Length ; i++)
-				sa[i+3] = p[i];
+				sa[3 + i] = p[i];
 
 			UnixSocket client = new UnixSocket ();
 			client.Connect (sa);
@@ -101,8 +101,8 @@ namespace NDesk.DBus
 			sa[1] = 0;
 
 			for (int i = 0 ; i != p.Length ; i++)
-				sa[i+2] = p[i];
-			sa[2 + p.Length] = 0; //null suffix for sockets, see unix(7)
+				sa[2 + i] = p[i];
+			sa[2 + p.Length] = 0; //null suffix for domain socket addresses, see unix(7)
 
 			UnixSocket client = new UnixSocket ();
 			client.Connect (sa);

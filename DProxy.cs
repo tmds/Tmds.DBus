@@ -45,7 +45,7 @@ namespace NDesk.DBus
 
 					conn.Handlers[ename] = dlg;
 
-					//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
+					//inelegant
 					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
 						bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, bus_name, ename));
@@ -61,8 +61,8 @@ namespace NDesk.DBus
 					string ename = parts[1];
 					//Delegate dlg = (Delegate)mcm.InArgs[0];
 
-					//TODO: make the match rule more specific, and cache the DBus object somewhere sensible
-					if (bus_name != "org.freedesktop.DBus") {
+					//inelegant
+					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
 						bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, bus_name, ename));
 						conn.Iterate ();

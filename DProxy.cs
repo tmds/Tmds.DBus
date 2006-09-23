@@ -122,11 +122,13 @@ namespace NDesk.DBus
 				callMsg = method_call.message;
 
 				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
-						callMsg.Body = new System.IO.MemoryStream ();
+					MessageWriter writer = new MessageWriter ();
 
-						foreach (object arg in mcm.InArgs)
-							MessageStream.Write (callMsg.Body, arg.GetType (), arg);
-					}
+					foreach (object arg in mcm.InArgs)
+						writer.Write (arg.GetType (), arg);
+
+					callMsg.Body = writer.ToArray ();
+				}
 			}
 
 			bool needsReply = true;
@@ -171,8 +173,10 @@ namespace NDesk.DBus
 				//TODO: typed exceptions
 				Error error = new Error (retMsg);
 				string errMsg = "";
-				if (retMsg.Signature.Value.StartsWith ("s"))
-					MessageStream.GetValue (retMsg.Body, out errMsg);
+				if (retMsg.Signature.Value.StartsWith ("s")) {
+					MessageReader reader = new MessageReader (retMsg);
+					reader.GetValue (out errMsg);
+				}
 				Exception e = new Exception (error.ErrorName + ": " + errMsg);
 				newRet.Exception = e;
 			} else if (retMsg.Header.MessageType == MessageType.MethodReturn) {

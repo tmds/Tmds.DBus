@@ -118,8 +118,8 @@ namespace NDesk.DBus
 			//Console.WriteLine ();
 			ns.Write (msg.HeaderData, 0, msg.HeaderData.Length);
 			if (msg.Body != null) {
-				//ns.Write (msg.Body, 0, msg.BodySize);
-				msg.Body.WriteTo (ns);
+				ns.Write (msg.Body, 0, msg.Body.Length);
+				//msg.Body.WriteTo (ns);
 			}
 		}
 
@@ -159,7 +159,7 @@ namespace NDesk.DBus
 			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
 			toRead = (int)BitConverter.ToUInt32 (buf, 12);
 
-			toRead = MessageStream.Padded ((int)toRead, 8);
+			toRead = Padding.Padded ((int)toRead, 8);
 
 			buf = new byte[toRead];
 
@@ -186,7 +186,8 @@ namespace NDesk.DBus
 				if (len != bodyLen)
 					throw new Exception ("Message body size mismatch");
 
-				msg.Body = new MemoryStream (body);
+				//msg.Body = new MemoryStream (body);
+				msg.Body = body;
 			}
 
 			//this needn't be done here
@@ -261,8 +262,10 @@ namespace NDesk.DBus
 					//TODO: better exception handling
 					Error error = new Error (msg);
 					string errMsg = "";
-					if (msg.Signature.Value == "s")
-						MessageStream.GetValue (msg.Body, out errMsg);
+					if (msg.Signature.Value == "s") {
+						MessageReader reader = new MessageReader (msg);
+						reader.GetValue (out errMsg);
+					}
 					throw new Exception ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
 				case MessageType.Signal:
 					HandleSignal (msg);
@@ -311,10 +314,12 @@ namespace NDesk.DBus
 			Signature inSig = Signature.GetSig (vals);
 
 			if (vals != null && vals.Length != 0) {
-				replyMsg.Body = new System.IO.MemoryStream ();
+				MessageWriter writer = new MessageWriter ();
 
 				foreach (object arg in vals)
-					MessageStream.Write (replyMsg.Body, arg.GetType (), arg);
+					writer.Write (arg.GetType (), arg);
+
+				replyMsg.Body = writer.ToArray ();
 			}
 
 			//FIXME: this breaks the abstraction
@@ -446,9 +451,11 @@ namespace NDesk.DBus
 			List<object> vals = new List<object> ();
 
 			if (msg.Body != null) {
+				MessageReader reader = new MessageReader (msg);
+
 				foreach (Type type in types) {
 					object arg;
-					MessageStream.GetValue (msg.Body, type, out arg);
+					reader.GetValue (type, out arg);
 					vals.Add (arg);
 				}
 			}
@@ -461,9 +468,11 @@ namespace NDesk.DBus
 			List<object> vals = new List<object> ();
 
 			if (msg.Body != null) {
+				MessageReader reader = new MessageReader (msg);
+
 				foreach (DType dtype in msg.Signature.Data) {
 					object arg;
-					MessageStream.GetValue (msg.Body, dtype, out arg);
+					reader.GetValue (dtype, out arg);
 					vals.Add (arg);
 				}
 			}
@@ -606,10 +615,12 @@ namespace NDesk.DBus
 			signal.message.Signature = sig;
 
 			if (args != null && args.Length != 0) {
-				signal.message.Body = new System.IO.MemoryStream ();
+				MessageWriter writer = new MessageWriter ();
 
 				foreach (object arg in args)
-					MessageStream.Write (signal.message.Body, arg.GetType (), arg);
+					writer.Write (arg.GetType (), arg);
+
+				signal.message.Body = writer.ToArray ();
 			}
 
 			Send (signal.message);

@@ -64,8 +64,7 @@ public class ManagedDBusTest
 
 			if (msg.Body != null) {
 				Console.WriteLine ("\tBody:");
-				//System.IO.MemoryStream ms = new System.IO.MemoryStream (msg.Body);
-				//System.IO.MemoryStream ms = msg.Body;
+				MessageReader reader = new MessageReader (msg);
 
 				//TODO: this needs to be done more intelligently
 				try {
@@ -73,7 +72,7 @@ public class ManagedDBusTest
 						if (dtype == DType.Invalid)
 							continue;
 						object arg;
-						MessageStream.GetValue (msg.Body, dtype, out arg);
+						reader.GetValue (dtype, out arg);
 						Console.WriteLine ("\t\t" + dtype + ": " + arg);
 					}
 				} catch {

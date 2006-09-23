@@ -17,10 +17,10 @@ namespace NDesk.DBus
 	public class UnixSocket
 	{
 		//TODO: verify these
-		[DllImport ("libc")]
+		[DllImport ("libc", SetLastError=true)]
 			protected static extern int socket (int domain, int type, int protocol);
 
-		[DllImport ("libc")]
+		[DllImport ("libc", SetLastError=true)]
 			protected static extern int connect (int sockfd, byte[] serv_addr, uint addrlen);
 
 		public int Handle;
@@ -30,15 +30,17 @@ namespace NDesk.DBus
 			//AddressFamily family, SocketType type, ProtocolType proto
 			//Handle = socket ((int)AddressFamily.Unix, (int)SocketType.Stream, 0);
 			Handle = socket (1, (int)SocketType.Stream, 0);
-
+			//TODO: error handling
+			//TODO: big-endian testing
 		}
 
 		//TODO: consider memory management
 		public void Connect (byte[] remote_end)
 		{
-			int ret = connect (Handle, remote_end, (uint)remote_end.Length);
-			//Console.Error.WriteLine ("connect ret: " + ret);
-			//FIXME: we need to get the errno or it will screw things up later?
+			int r = connect (Handle, remote_end, (uint)remote_end.Length);
+
+			if (r == -1)
+				UnixMarshal.ThrowExceptionForLastError ();
 		}
 	}
 

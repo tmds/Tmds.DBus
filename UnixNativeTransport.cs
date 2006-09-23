@@ -88,8 +88,23 @@ namespace NDesk.DBus
 
 		public UnixSocket OpenUnix (string path)
 		{
-			//TODO
-			throw new Exception ("Not implemented yet");
+			byte[] p = System.Text.Encoding.Default.GetBytes (path);
+
+			byte[] sa = new byte[2 + p.Length + 1];
+
+			//sa[0] = (byte)AddressFamily.Unix;
+			sa[0] = 1;
+			sa[1] = 0;
+
+			for (int i = 0 ; i != p.Length ; i++)
+				sa[i+2] = p[i];
+			sa[2 + p.Length] = 0; //null suffix for sockets, see unix(7)
+
+			UnixSocket client = new UnixSocket ();
+			client.Connect (sa);
+			//Console.Error.WriteLine ("client Handle: " + client.Handle);
+
+			return client;
 		}
 	}
 }

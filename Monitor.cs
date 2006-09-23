@@ -63,32 +63,36 @@ public class ManagedDBusTest
 
 		while (true) {
 			Message msg = conn.ReadMessage ();
-			Console.WriteLine ("Message:");
-			Console.WriteLine ("\t" + "Type: " + msg.Header.MessageType);
-			//foreach (HeaderField hf in msg.HeaderFields)
-			//	Console.WriteLine ("\t" + hf.Code + ": " + hf.Value);
-			foreach (KeyValuePair<FieldCode,object> field in msg.Header.Fields)
-				Console.WriteLine ("\t" + field.Key + ": " + field.Value);
-
-			if (msg.Body != null) {
-				Console.WriteLine ("\tBody:");
-				MessageReader reader = new MessageReader (msg);
-
-				//TODO: this needs to be done more intelligently
-				try {
-					foreach (DType dtype in msg.Signature.Data) {
-						if (dtype == DType.Invalid)
-							continue;
-						object arg;
-						reader.GetValue (dtype, out arg);
-						Console.WriteLine ("\t\t" + dtype + ": " + arg);
-					}
-				} catch {
-						Console.WriteLine ("\t\tmonitor is too dumb to decode message body");
-				}
-			}
-
+			PrintMessage (msg);
 			Console.WriteLine ();
+		}
+	}
+
+	public static void PrintMessage (Message msg)
+	{
+		Console.WriteLine ("Message:");
+		Console.WriteLine ("\t" + "Type: " + msg.Header.MessageType);
+		//foreach (HeaderField hf in msg.HeaderFields)
+		//	Console.WriteLine ("\t" + hf.Code + ": " + hf.Value);
+		foreach (KeyValuePair<FieldCode,object> field in msg.Header.Fields)
+			Console.WriteLine ("\t" + field.Key + ": " + field.Value);
+
+		if (msg.Body != null) {
+			Console.WriteLine ("\tBody:");
+			MessageReader reader = new MessageReader (msg);
+
+			//TODO: this needs to be done more intelligently
+			try {
+				foreach (DType dtype in msg.Signature.Data) {
+					if (dtype == DType.Invalid)
+						continue;
+					object arg;
+					reader.GetValue (dtype, out arg);
+					Console.WriteLine ("\t\t" + dtype + ": " + arg);
+				}
+			} catch {
+				Console.WriteLine ("\t\tmonitor is too dumb to decode message body");
+			}
 		}
 	}
 }

@@ -18,7 +18,7 @@ namespace NDesk.DBus
 
 		public Signature (string value)
 		{
-			this.Data = System.Text.Encoding.ASCII.GetBytes (value);
+			this.Data = Encoding.ASCII.GetBytes (value);
 		}
 
 		public Signature (params DType[] value)
@@ -36,9 +36,9 @@ namespace NDesk.DBus
 		public string Value
 		{
 			get {
-				return System.Text.Encoding.ASCII.GetString (Data);
+				return Encoding.ASCII.GetString (Data);
 			} set {
-				Data = System.Text.Encoding.ASCII.GetBytes (value);
+				Data = Encoding.ASCII.GetBytes (value);
 			}
 		}
 

@@ -3,10 +3,10 @@
 // See COPYING for details
 
 using System;
+using System.Text;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 
 namespace NDesk.DBus
 {
@@ -101,7 +101,7 @@ namespace NDesk.DBus
 		{
 			Write ((uint)val.Length);
 
-			bw.Write (System.Text.Encoding.UTF8.GetBytes (val));
+			bw.Write (Encoding.UTF8.GetBytes (val));
 			bw.Write ((byte)0); //NULL string terminator
 		}
 

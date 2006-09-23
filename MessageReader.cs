@@ -7,7 +7,6 @@ using System.Text;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 
 namespace NDesk.DBus
 {
@@ -269,7 +268,7 @@ namespace NDesk.DBus
 			GetValue (out ln);
 
 			byte[] rbytes = br.ReadBytes ((int)ln);
-			val = System.Text.Encoding.UTF8.GetString (rbytes);
+			val = Encoding.UTF8.GetString (rbytes);
 			br.ReadByte (); //null string terminator
 		}
 

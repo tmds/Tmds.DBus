@@ -666,6 +666,4 @@ namespace NDesk.DBus
 			return interfaceName;
 		}
 	}
-
-	//public delegate void HookupDelegate (string bus_name, ObjectPath path);
 }

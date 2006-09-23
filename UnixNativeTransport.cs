@@ -4,6 +4,7 @@
 
 using System;
 using System.IO;
+using System.Text;
 using System.Net;
 using System.Net.Sockets;
 
@@ -72,7 +73,7 @@ namespace NDesk.DBus
 
 		protected UnixSocket OpenAbstractUnix (string path)
 		{
-			byte[] p = System.Text.Encoding.Default.GetBytes (path);
+			byte[] p = Encoding.Default.GetBytes (path);
 
 			byte[] sa = new byte[2 + 1 + p.Length];
 
@@ -92,7 +93,7 @@ namespace NDesk.DBus
 
 		public UnixSocket OpenUnix (string path)
 		{
-			byte[] p = System.Text.Encoding.Default.GetBytes (path);
+			byte[] p = Encoding.Default.GetBytes (path);
 
 			byte[] sa = new byte[2 + p.Length + 1];
 

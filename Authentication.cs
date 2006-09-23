@@ -6,12 +6,9 @@ using System;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
-using System.Net.Sockets;
 
 using System.Text;
 using System.Globalization;
-
-//using Console = System.Diagnostics.Trace;
 
 namespace NDesk.DBus
 {
@@ -35,8 +32,8 @@ namespace NDesk.DBus
 		{
 			//NetworkStream ns = new NetworkStream (sock);
 			//UnixStream ns = new UnixStream ((int)sock.Handle);
-			StreamReader sr = new StreamReader (ns, System.Text.Encoding.ASCII);
-			StreamWriter sw = new StreamWriter (ns, System.Text.Encoding.ASCII);
+			StreamReader sr = new StreamReader (ns, Encoding.ASCII);
+			StreamWriter sw = new StreamWriter (ns, Encoding.ASCII);
 
 			sw.NewLine = "\r\n";
 			//sw.AutoFlush = true;

@@ -17,7 +17,7 @@ namespace NDesk.DBus
 {
 	public class UnixSocket
 	{
-		//TODO: big-endian testing
+		public const short AF_UNIX = 1;
 
 		//TODO: verify these
 		[DllImport ("libc", SetLastError=true)]
@@ -33,7 +33,7 @@ namespace NDesk.DBus
 			//TODO: don't hard-code PF_UNIX and SocketType.Stream
 			//AddressFamily family, SocketType type, ProtocolType proto
 
-			int r = socket (1, (int)SocketType.Stream, 0);
+			int r = socket (AF_UNIX, (int)SocketType.Stream, 0);
 			//we should get the Exception from UnixMarshal and throw it here for a better stack trace, but the relevant API seems to be private
 			UnixMarshal.ThrowExceptionForLastErrorIf (r);
 			Handle = r;
@@ -77,9 +77,10 @@ namespace NDesk.DBus
 
 			byte[] sa = new byte[2 + 1 + p.Length];
 
-			//sa[0] = (byte)AddressFamily.Unix;
-			sa[0] = 1;
-			sa[1] = 0;
+			//we use BitConverter to stay endian-safe
+			byte[] afData = BitConverter.GetBytes (UnixSocket.AF_UNIX);
+			sa[0] = afData[0];
+			sa[1] = afData[1];
 
 			sa[2] = 0; //null prefix for abstract domain socket addresses, see unix(7)
 			for (int i = 0 ; i != p.Length ; i++)
@@ -97,9 +98,10 @@ namespace NDesk.DBus
 
 			byte[] sa = new byte[2 + p.Length + 1];
 
-			//sa[0] = (byte)AddressFamily.Unix;
-			sa[0] = 1;
-			sa[1] = 0;
+			//we use BitConverter to stay endian-safe
+			byte[] afData = BitConverter.GetBytes (UnixSocket.AF_UNIX);
+			sa[0] = afData[0];
+			sa[1] = afData[1];
 
 			for (int i = 0 ; i != p.Length ; i++)
 				sa[2 + i] = p[i];

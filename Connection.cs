@@ -156,6 +156,11 @@ namespace NDesk.DBus
 			int toRead;
 			int bodyLen;
 
+			//FIXME: use endianness instead of failing on non-native endianness
+			EndianFlag endianness = (EndianFlag)buf[0];
+			if (endianness != Connection.NativeEndianness)
+				throw new Exception ("Only native-endian message reading is currently supported");
+
 			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
 			toRead = (int)BitConverter.ToUInt32 (buf, 12);
 
@@ -314,7 +319,7 @@ namespace NDesk.DBus
 			Signature inSig = Signature.GetSig (vals);
 
 			if (vals != null && vals.Length != 0) {
-				MessageWriter writer = new MessageWriter ();
+				MessageWriter writer = new MessageWriter (EndianFlag.Little);
 
 				foreach (object arg in vals)
 					writer.Write (arg.GetType (), arg);
@@ -615,7 +620,7 @@ namespace NDesk.DBus
 			signal.message.Signature = sig;
 
 			if (args != null && args.Length != 0) {
-				MessageWriter writer = new MessageWriter ();
+				MessageWriter writer = new MessageWriter (EndianFlag.Little);
 
 				foreach (object arg in args)
 					writer.Write (arg.GetType (), arg);
@@ -664,6 +669,16 @@ namespace NDesk.DBus
 				interfaceName = ia.Name;
 
 			return interfaceName;
+		}
+
+		public static EndianFlag NativeEndianness
+		{
+			get {
+				if (BitConverter.IsLittleEndian)
+					return EndianFlag.Little;
+				else
+					return EndianFlag.Big;
+			}
 		}
 	}
 }

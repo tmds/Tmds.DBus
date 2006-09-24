@@ -73,7 +73,8 @@ namespace NDesk.DBus
 		{
 			//GetValue (stream, typeof (Header), out Header);
 
-			MessageReader reader = new MessageReader (HeaderData);
+			EndianFlag endianness = (EndianFlag)HeaderData[0];
+			MessageReader reader = new MessageReader (endianness, HeaderData);
 
 			ValueType valT;
 			reader.GetValue (typeof (Header), out valT);
@@ -122,7 +123,7 @@ namespace NDesk.DBus
 			if (Body != null)
 				Header.Length = (uint)Body.Length;
 
-			MessageWriter writer = new MessageWriter ();
+			MessageWriter writer = new MessageWriter (EndianFlag.Little);
 			writer.Write (typeof (Header), Header);
 			//writer.WriteFromDict (typeof (FieldCode), typeof (object), Header.Fields);
 			writer.CloseWrite ();

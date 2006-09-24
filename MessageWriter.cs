@@ -12,11 +12,17 @@ namespace NDesk.DBus
 {
 	public class MessageWriter
 	{
+		//TODO: use endianness instead of writing the message is in native format
+		protected EndianFlag endianness;
 		protected MemoryStream stream;
 		protected BinaryWriter bw;
 
-		public MessageWriter ()
+		public MessageWriter (EndianFlag endianness)
 		{
+			if (endianness != EndianFlag.Little)
+				throw new Exception ("Only little-endian message writing is currently supported");
+
+			this.endianness = endianness;
 			stream = new MemoryStream ();
 			bw = new BinaryWriter (stream);
 		}

@@ -12,16 +12,22 @@ namespace NDesk.DBus
 {
 	public class MessageReader
 	{
+		//FIXME: use endianness instead of failing on non-native endianness
+		protected EndianFlag endianness;
 		protected byte[] data;
 		//TODO: this should be uint or long to handle long messages
 		protected int pos = 0;
 
-		public MessageReader (byte[] body)
+		public MessageReader (EndianFlag endianness, byte[] data)
 		{
-			data = body;
+			if (endianness != Connection.NativeEndianness)
+				throw new Exception ("Only native-endian message reading is currently supported");
+
+			this.endianness = endianness;
+			this.data = data;
 		}
 
-		public MessageReader (Message msg) : this (msg.Body)
+		public MessageReader (Message msg) : this (msg.Header.Endianness, msg.Body)
 		{
 		}
 

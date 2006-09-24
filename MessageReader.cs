@@ -14,7 +14,7 @@ namespace NDesk.DBus
 	{
 		protected byte[] data;
 		//TODO: this should be uint or long to handle long messages
-		int pos = 0;
+		protected int pos = 0;
 
 		public MessageReader (byte[] body)
 		{

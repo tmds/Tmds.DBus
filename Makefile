@@ -11,9 +11,5 @@ NDesk.DBus.dll: CSFLAGS=-d:PROTO_REPLY_SIGNATURE -d:PROTO_TYPE_SINGLE
 
 NDesk.DBus.dll: $(BUS_SOURCES) $(UNIX_SOURCES) $(CLR_SOURCES)
 
-NDesk.DBus.Ssl.dll: REFS = Mono.Security
-
-NDesk.DBus.Ssl.dll: NDesk.DBus.dll SslTransport.cs
-
 
 include ../include.mk

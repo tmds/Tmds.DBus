@@ -22,6 +22,12 @@ namespace NDesk.DBus
 
 		public static bool operator == (Signature a, Signature b)
 		{
+			if (a.Data == null && b.Data == null)
+				return true;
+
+			if (a.Data == null || b.Data == null)
+				return false;
+
 			if (a.Data.Length != b.Data.Length)
 				return false;
 
@@ -283,6 +289,9 @@ namespace NDesk.DBus
 
 		public static Signature GetSig (Type[] types)
 		{
+			if (types.Length == 0)
+				return Signature.Empty;
+
 			MemoryStream ms = new MemoryStream ();
 
 			foreach (Type type in types) {
@@ -299,6 +308,9 @@ namespace NDesk.DBus
 
 		public static Signature GetSig (Type type)
 		{
+			if (type == null)
+				return Signature.Empty;
+
 			MemoryStream ms = new MemoryStream ();
 
 			if (type.IsArray) {

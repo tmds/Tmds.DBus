@@ -222,7 +222,7 @@ namespace NDesk.DBus
 						if (method_return.ReplySerial == id)
 							return msg;
 						//if the signature is empty, it's just a token return message
-						if (msg.Signature.Value != Signature.Empty.Value)
+						if (msg.Signature != Signature.Empty)
 							Console.Error.WriteLine ("Warning: While waiting for reply to " + id + ": Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial + " with signature '" + msg.Signature + "'");
 						break;
 					case MessageType.Error:
@@ -263,7 +263,7 @@ namespace NDesk.DBus
 						//return msg;
 					}
 					//if the signature is empty, it's just a token return message
-					if (msg.Signature.Value != Signature.Empty.Value)
+					if (msg.Signature != Signature.Empty)
 						Console.Error.WriteLine ("Warning: Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial + " with signature '" + msg.Signature + "'");
 					break;
 				case MessageType.Error:

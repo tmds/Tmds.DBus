@@ -108,9 +108,9 @@ namespace NDesk.DBus
 
 		public void Write (string val)
 		{
-			Write ((uint)val.Length);
-
-			bw.Write (Encoding.UTF8.GetBytes (val));
+			byte[] utf8_data = Encoding.UTF8.GetBytes (val);
+			Write ((uint)utf8_data.Length);
+			bw.Write (utf8_data);
 			bw.Write ((byte)0); //NULL string terminator
 		}
 

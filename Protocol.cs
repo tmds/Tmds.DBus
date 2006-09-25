@@ -22,6 +22,7 @@ namespace NDesk.DBus
 		//public HeaderField[] Fields;
 		public IDictionary<FieldCode,object> Fields;
 
+		/*
 		public static DType TypeForField (FieldCode f)
 		{
 			switch (f) {
@@ -51,6 +52,7 @@ namespace NDesk.DBus
 					return DType.Invalid;
 			}
 		}
+		*/
 	}
 
 	/*

@@ -2,6 +2,9 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
+//defined by default, since this is not a controversial extension
+#define PROTO_TYPE_SINGLE
+
 using System;
 using System.Text;
 using System.Diagnostics;

@@ -15,23 +15,9 @@ NDesk.DBus.Ssl.dll: REFS = Mono.Security
 
 NDesk.DBus.Ssl.dll: NDesk.DBus.dll SslTransport.cs
 
-test.exe: NDesk.DBus.dll Test.cs
-
-test-sample.exe: NDesk.DBus.dll TestSample.cs
-
-test-export.exe: NDesk.DBus.dll TestExport.cs
-
-test-exceptions.exe: NDesk.DBus.dll TestExceptions.cs
-
-test-server.exe: REFS=Mono.Posix
-
-test-server.exe: NDesk.DBus.dll TestServer.cs
-
 monitor.exe: NDesk.DBus.dll Monitor.cs
 
 introspect.exe: NDesk.DBus.dll Introspect.cs IntrospectionSchema.cs
-
-test-notifications.exe: NDesk.DBus.dll Notifications.cs TestNotifications.cs
 
 
 include ../include.mk

@@ -15,6 +15,9 @@ namespace NDesk.DBus
 	public struct Signature
 	{
 		//TODO: this class needs some work
+		//Data should probably include the null terminator
+
+		public static Signature Empty = new Signature (String.Empty);
 
 		public Signature (string value)
 		{

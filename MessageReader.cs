@@ -571,7 +571,7 @@ namespace NDesk.DBus
 			//make sure the pos-1 is right for the exception message when we have a test suite
 			while (pos != Padding.Padded (pos, alignment))
 				if (data[pos++] != 0)
-					throw new Exception ("Read non-zero padding byte at pos " + pos + ", pad value was " + data[pos-1]);
+					throw new Exception ("Read non-zero padding byte at pos " + (pos-1) + ", pad value was " + data[pos-1]);
 		}
 	}
 }

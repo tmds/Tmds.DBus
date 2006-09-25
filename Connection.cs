@@ -671,14 +671,14 @@ namespace NDesk.DBus
 			return interfaceName;
 		}
 
-		public static EndianFlag NativeEndianness
+		static Connection ()
 		{
-			get {
-				if (BitConverter.IsLittleEndian)
-					return EndianFlag.Little;
-				else
-					return EndianFlag.Big;
-			}
+			if (BitConverter.IsLittleEndian)
+				NativeEndianness = EndianFlag.Little;
+			else
+				NativeEndianness = EndianFlag.Big;
 		}
+
+		public static readonly EndianFlag NativeEndianness;
 	}
 }

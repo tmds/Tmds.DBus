@@ -48,7 +48,7 @@ namespace NDesk.DBus
 					//inelegant
 					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-						bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, bus_name, ename));
+						bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Connection.GetInterfaceName (imi), ename));
 						conn.Iterate ();
 					}
 
@@ -61,10 +61,11 @@ namespace NDesk.DBus
 					string ename = parts[1];
 					//Delegate dlg = (Delegate)mcm.InArgs[0];
 
+					//FIXME: this removes the match rule even when we still have delegates connected to the event!
 					//inelegant
 					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-						bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, bus_name, ename));
+						bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Connection.GetInterfaceName (imi), ename));
 						conn.Iterate ();
 					}
 

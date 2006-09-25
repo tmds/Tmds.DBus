@@ -35,9 +35,9 @@ namespace NDesk.DBus
 			return "type='" + MessageTypeToString (mtype) + "'";
 		}
 
-		public static string CreateMatchRule (MessageType mtype, string sender, string member)
+		public static string CreateMatchRule (MessageType type, ObjectPath path, string @interface, string member)
 		{
-			return "type='" + MessageTypeToString (mtype) + "',sender='" + sender + "',member='" + member + "'";
+			return "type='" + MessageTypeToString (type) + "',path='" + path.Value + "',interface='" + @interface + "',member='" + member + "'";
 		}
 
 		//TODO

@@ -125,7 +125,7 @@ namespace NDesk.DBus
 
 	public struct ObjectPath
 	{
-		public static ObjectPath Root = new ObjectPath ("/");
+		public static readonly ObjectPath Root = new ObjectPath ("/");
 
 		public string Value;
 

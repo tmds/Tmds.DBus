@@ -12,12 +12,46 @@ using System.Reflection;
 
 namespace NDesk.DBus
 {
+	//maybe this should be nullable?
 	public struct Signature
 	{
 		//TODO: this class needs some work
 		//Data should probably include the null terminator
 
 		public static Signature Empty = new Signature (String.Empty);
+
+		public static bool operator == (Signature a, Signature b)
+		{
+			if (a.Data.Length != b.Data.Length)
+				return false;
+
+			for (int i = 0 ; i != a.Data.Length ; i++)
+				if (a.Data[i] != b.Data[i])
+					return false;
+
+			return true;
+		}
+
+		public static bool operator != (Signature a, Signature b)
+		{
+			return !(a == b);
+		}
+
+		public override bool Equals (object o)
+		{
+			if (o == null)
+				return false;
+
+			if (!(o is Signature))
+				return false;
+
+			return this == (Signature)o;
+		}
+
+		public override int GetHashCode ()
+		{
+			return Data.GetHashCode ();
+		}
 
 		public Signature (string value)
 		{

@@ -1,4 +1,4 @@
-all: NDesk.DBus.dll monitor.exe
+all: NDesk.DBus.dll
 
 BUS_SOURCES=Address.cs AssemblyInfo.cs Connection.cs Authentication.cs Protocol.cs Message.cs MessageFilter.cs MessageReader.cs MessageWriter.cs Server.cs Transport.cs Wrapper.cs
 #UNIX_SOURCES=UnixMonoTransport.cs
@@ -14,10 +14,6 @@ NDesk.DBus.dll: $(BUS_SOURCES) $(UNIX_SOURCES) $(CLR_SOURCES)
 NDesk.DBus.Ssl.dll: REFS = Mono.Security
 
 NDesk.DBus.Ssl.dll: NDesk.DBus.dll SslTransport.cs
-
-monitor.exe: NDesk.DBus.dll Monitor.cs
-
-introspect.exe: NDesk.DBus.dll Introspect.cs IntrospectionSchema.cs
 
 
 include ../include.mk

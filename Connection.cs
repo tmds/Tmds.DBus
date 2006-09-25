@@ -14,7 +14,9 @@ using System.Reflection.Emit;
 
 namespace NDesk.DBus
 {
-	public partial class Connection
+	using Authentication;
+
+	public class Connection
 	{
 		//TODO: reduce/correct visibility of these when appropriate
 		public Stream ns = null;
@@ -66,6 +68,12 @@ namespace NDesk.DBus
 			transport = new UnixNativeTransport (path, abstr);
 			ns = transport.Stream;
 			SocketHandle = transport.SocketHandle;
+		}
+
+		public void Authenticate ()
+		{
+			SaslClient auth = new SaslClient (this);
+			auth.Run ();
 		}
 
 		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint

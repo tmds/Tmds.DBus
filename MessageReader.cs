@@ -24,7 +24,10 @@ namespace NDesk.DBus
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
 			if (endianness != Connection.NativeEndianness)
-				throw new Exception ("Only native-endian message reading is currently supported");
+				throw new NotImplementedException ("Only native-endian message reading is currently supported");
+
+			if (data == null)
+				throw new ArgumentNullException ();
 
 			this.endianness = endianness;
 			this.data = data;
@@ -32,6 +35,8 @@ namespace NDesk.DBus
 
 		public MessageReader (Message msg) : this (msg.Header.Endianness, msg.Body)
 		{
+			if (msg == null)
+				throw new ArgumentNullException ();
 		}
 
 		public void CloseRead ()
@@ -414,7 +419,7 @@ namespace NDesk.DBus
 
 			//TODO: more flexibilty needed here
 			if (sig.Data.Length > 1) {
-				throw new Exception ("Reading variants with more than one primitive value is not supported");
+				throw new NotSupportedException ("Reading variants with more than one primitive value is not supported");
 			}
 
 			DType t = (DType)sig.Data[0];
@@ -556,7 +561,7 @@ namespace NDesk.DBus
 		public void ReadNull ()
 		{
 			if (data[pos++] != 0)
-				throw new Exception ("Non-zero null terminator");
+				throw new Exception ("Read non-zero null terminator");
 		}
 
 		/*

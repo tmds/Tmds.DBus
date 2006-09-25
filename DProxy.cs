@@ -192,7 +192,7 @@ namespace NDesk.DBus
 		/*
 		public override ObjRef CreateObjRef (Type ServerType)
 		{
-			throw new System.NotSupportedException ();
+			throw new System.NotImplementedException ();
 		}
 		*/
 	}

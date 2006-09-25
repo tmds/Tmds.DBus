@@ -159,7 +159,7 @@ namespace NDesk.DBus
 			//FIXME: use endianness instead of failing on non-native endianness
 			EndianFlag endianness = (EndianFlag)buf[0];
 			if (endianness != Connection.NativeEndianness)
-				throw new Exception ("Only native-endian message reading is currently supported");
+				throw new NotImplementedException ("Only native-endian message reading is currently supported");
 
 			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
 			toRead = (int)BitConverter.ToUInt32 (buf, 12);

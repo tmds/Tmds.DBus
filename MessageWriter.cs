@@ -23,7 +23,7 @@ namespace NDesk.DBus
 		public MessageWriter (EndianFlag endianness)
 		{
 			if (endianness != EndianFlag.Little)
-				throw new Exception ("Only little-endian message writing is currently supported");
+				throw new NotImplementedException ("Only little-endian message writing is currently supported");
 
 			this.endianness = endianness;
 			stream = new MemoryStream ();
@@ -234,7 +234,7 @@ namespace NDesk.DBus
 		public void Write (object val)
 		{
 			if (val == null)
-				throw new Exception ("Cannot send null variant");
+				throw new NotSupportedException ("Cannot send null variant");
 
 			Type type = val.GetType ();
 			DType t = Signature.TypeToDType (type);

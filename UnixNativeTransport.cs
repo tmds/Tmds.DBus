@@ -19,14 +19,27 @@ namespace NDesk.DBus
 	{
 		public const short AF_UNIX = 1;
 
-		//TODO: verify these
 		[DllImport ("libc", SetLastError=true)]
 			protected static extern int socket (int domain, int type, int protocol);
 
 		[DllImport ("libc", SetLastError=true)]
 			protected static extern int connect (int sockfd, byte[] serv_addr, uint addrlen);
 
+		[DllImport ("libc", SetLastError=true)]
+			protected static extern int bind (int sockfd, byte[] my_addr, uint addrlen);
+
+		[DllImport ("libc", SetLastError=true)]
+			protected static extern int listen (int sockfd, int backlog);
+
+		//[DllImport ("libc", SetLastError=true)]
+		//	protected static extern int accept (int sockfd, out byte[] addr, out uint addrlen);
+
 		public int Handle;
+
+		public UnixSocket (int handle)
+		{
+			this.Handle = handle;
+		}
 
 		public UnixSocket ()
 		{
@@ -39,13 +52,41 @@ namespace NDesk.DBus
 			Handle = r;
 		}
 
+		protected bool connected = false;
+
 		//TODO: consider memory management
 		public void Connect (byte[] remote_end)
 		{
 			int r = connect (Handle, remote_end, (uint)remote_end.Length);
 			//we should get the Exception from UnixMarshal and throw it here for a better stack trace, but the relevant API seems to be private
 			UnixMarshal.ThrowExceptionForLastErrorIf (r);
+			connected = true;
 		}
+
+		//assigns a name to the socket
+		public void Bind (byte[] local_end)
+		{
+			int r = bind (Handle, local_end, (uint)local_end.Length);
+			UnixMarshal.ThrowExceptionForLastErrorIf (r);
+		}
+
+		public void Listen (int backlog)
+		{
+			int r = listen (Handle, backlog);
+			UnixMarshal.ThrowExceptionForLastErrorIf (r);
+		}
+
+		/*
+		public UnixSocket Accept ()
+		{
+			byte[] addr;
+			uint addrlen;
+
+			int r = accept (Handle, out addr, out addrlen);
+			UnixMarshal.ThrowExceptionForLastErrorIf (r);
+			return new UnixSocket ();
+		}
+		*/
 	}
 
 	public class UnixNativeTransport : Transport, IAuthenticator

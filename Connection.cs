@@ -335,7 +335,7 @@ namespace NDesk.DBus
 			//TODO: this is a temporary hack to make p2p work, we should always send Destination
 			if (method_call.Sender != null)
 				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
-			if (inSig.Data.Length != 0)
+			if (inSig != Signature.Empty)
 				replyMsg.Header.Fields[FieldCode.Signature] = inSig;
 
 			//replyMsg.WriteHeader ();

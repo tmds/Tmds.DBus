@@ -407,7 +407,7 @@ namespace NDesk.DBus
 			Signature sig;
 			GetValue (out sig);
 
-			if (sig.Value == Signature.Empty.Value) {
+			if (sig == Signature.Empty) {
 				val = null;
 				return;
 			}

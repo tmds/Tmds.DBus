@@ -99,14 +99,14 @@ namespace NDesk.DBus
 				callMsg.Header.Fields[FieldCode.Interface] = iface;
 				callMsg.Header.Fields[FieldCode.Member] = methodName;
 				callMsg.Header.Fields[FieldCode.Destination] = bus_name;
-				if (inSig.Data.Length != 0)
+				if (inSig != Signature.Empty)
 					callMsg.Header.Fields[FieldCode.Signature] = inSig;
 				*/
 
 				//callMsg.WriteHeader ();
 
 				/*
-				if (inSig.Data.Length == 0)
+				if (inSig == Signature.Empty)
 				{
 					callMsg.WriteHeader (HeaderField.Create (FieldCode.Path, object_path), HeaderField.Create (FieldCode.Interface, iface), HeaderField.Create (FieldCode.Member, methodName), HeaderField.Create (FieldCode.Destination, bus_name));
 				} else {
@@ -114,7 +114,7 @@ namespace NDesk.DBus
 				}
 				*/
 
-				if (inSig.Data.Length != 0)
+				if (inSig != Signature.Empty)
 					method_call = new MethodCall (object_path, iface, methodName, bus_name, inSig);
 				else
 					method_call = new MethodCall (object_path, iface, methodName, bus_name);
@@ -137,7 +137,7 @@ namespace NDesk.DBus
 
 			//TODO: complete out parameter support
 			Signature oSig = Signature.GetSig (ArgDirection.Out, mi.GetParameters ());
-			if (oSig.Data.Length != 0)
+			if (oSig != Signature.Empty)
 				throw new Exception ("Out parameters not yet supported: out_signature='" + oSig.Value + "'");
 
 			if (mi.ReturnType == typeof (void))
@@ -150,7 +150,7 @@ namespace NDesk.DBus
 			//callMsg.Header.Fields[FieldCode.Interface] = iface;
 			callMsg.Header.Fields[FieldCode.Member] = methodName;
 			callMsg.Header.Fields[FieldCode.Destination] = bus_name;
-			if (inSig.Data.Length != 0)
+			if (inSig != Signature.Empty)
 				callMsg.Header.Fields[FieldCode.Signature] = inSig;
 
 			if (!needsReply) {

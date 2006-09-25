@@ -55,7 +55,7 @@ namespace NDesk.DBus
 			if (message.Header.Fields.ContainsKey (FieldCode.ReplySignature))
 				ReplySignature = (Signature)message.Header.Fields[FieldCode.ReplySignature];
 			else
-				ReplySignature = new Signature ("");
+				ReplySignature = new Signature ();
 #endif
 			//Signature = (Signature)message.Header.Fields[FieldCode.Signature];
 			//use the wrapper in Message because it checks for emptiness

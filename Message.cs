@@ -32,7 +32,7 @@ namespace NDesk.DBus
 				if (Header.Fields.ContainsKey (FieldCode.Signature))
 					return (Signature)Header.Fields[FieldCode.Signature];
 				else
-					return new Signature ("");
+					return new Signature ();
 			} set {
 				//TODO: remove from dict if value empty or null
 				Header.Fields[FieldCode.Signature] = value;

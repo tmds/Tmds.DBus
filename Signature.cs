@@ -89,8 +89,13 @@ namespace NDesk.DBus
 		{
 			StringBuilder sb = new StringBuilder ();
 
-			foreach (DType t in Data) {
-				sb.Append (t);
+			foreach (byte t in Data) {
+				//we shouldn't rely on object mapping here, but it's an easy way to get string representations for now
+				Type type = DTypeToType ((DType)t);
+				if (type != null)
+					sb.Append (type.Name);
+				else
+					sb.Append ((char)t);
 				sb.Append (" ");
 			}
 
@@ -244,14 +249,14 @@ namespace NDesk.DBus
 					return typeof (ObjectPath);
 				case DType.Signature:
 					return typeof (Signature);
+				case DType.Array:
+					return typeof (Array);
+				case DType.Struct:
+					return typeof (ValueType);
+				case DType.DictEntry:
+					return typeof (System.Collections.Generic.KeyValuePair<,>);
 				case DType.Variant:
 					return typeof (object);
-		/*
-		Array
-		Struct
-		DictEntry
-		Variant
-		*/
 				default:
 					return null;
 			}

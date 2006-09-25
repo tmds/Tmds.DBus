@@ -95,6 +95,9 @@ namespace NDesk.DBus
 
 		public UnixNativeTransport (string path, bool @abstract)
 		{
+			if (String.IsNullOrEmpty (path))
+				throw new ArgumentException ("path");
+
 			if (@abstract)
 				socket = OpenAbstractUnix (path);
 			else

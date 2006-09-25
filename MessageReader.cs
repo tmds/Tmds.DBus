@@ -27,16 +27,16 @@ namespace NDesk.DBus
 				throw new NotImplementedException ("Only native-endian message reading is currently supported");
 
 			if (data == null)
-				throw new ArgumentNullException ();
+				throw new ArgumentNullException ("data");
 
 			this.endianness = endianness;
 			this.data = data;
 		}
 
-		public MessageReader (Message msg) : this (msg.Header.Endianness, msg.Body)
+		public MessageReader (Message message) : this (message.Header.Endianness, message.Body)
 		{
-			if (msg == null)
-				throw new ArgumentNullException ();
+			if (message == null)
+				throw new ArgumentNullException ("message");
 		}
 
 		public void CloseRead ()

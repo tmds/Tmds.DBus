@@ -58,7 +58,12 @@ namespace NDesk.DBus
 			string path;
 			bool abstr;
 
-			Address.Parse (address, out path, out abstr);
+			if (address == null)
+				throw new ArgumentNullException ("address");
+
+			if (!Address.Parse (address, out path, out abstr))
+				throw new ArgumentException ("Invalid D-Bus address: '" + address + "'", "address");
+
 			Open (path, abstr);
 		}
 

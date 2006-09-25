@@ -406,9 +406,18 @@ namespace NDesk.DBus
 		{
 			Signature sig;
 			GetValue (out sig);
+
+			if (sig.Value == Signature.Empty.Value) {
+				val = null;
+				return;
+			}
+
 			//TODO: more flexibilty needed here
+			if (sig.Data.Length > 1) {
+				throw new Exception ("Reading variants with more than one primitive value is not supported");
+			}
+
 			DType t = (DType)sig.Data[0];
-			//Console.WriteLine ("var type " + t);
 			GetValue (t, out val);
 		}
 

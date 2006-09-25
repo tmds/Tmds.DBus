@@ -137,6 +137,12 @@ namespace NDesk.DBus
 				WriteFromDict (genArgs[0], genArgs[1], idict);
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				Write (type, (ValueType)val);
+				/*
+			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (Nullable<>)) {
+				//is it possible to support nullable types?
+				Type[] genArgs = type.GetGenericArguments ();
+				WriteVariant (genArgs[0], val);
+				*/
 			} else {
 				Write (Signature.TypeToDType (type), val);
 			}

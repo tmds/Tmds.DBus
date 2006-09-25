@@ -152,9 +152,9 @@ namespace NDesk.DBus
 
 	public static class Padding
 	{
-		public static int PadNeeded (int len, int alignment)
+		public static int PadNeeded (int pos, int alignment)
 		{
-			int pad = len % alignment;
+			int pad = pos % alignment;
 			pad = pad == 0 ? 0 : alignment - pad;
 
 			return pad;

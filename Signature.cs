@@ -22,6 +22,10 @@ namespace NDesk.DBus
 
 		public static bool operator == (Signature a, Signature b)
 		{
+			//FIXME: hack to handle bad case when Data is null
+			return a.Value == b.Value;
+
+			/*
 			if (a.Data == null && b.Data == null)
 				return true;
 
@@ -36,6 +40,7 @@ namespace NDesk.DBus
 					return false;
 
 			return true;
+			*/
 		}
 
 		public static bool operator != (Signature a, Signature b)
@@ -79,6 +84,10 @@ namespace NDesk.DBus
 		public string Value
 		{
 			get {
+				//FIXME: hack to handle bad case when Data is null
+				if (Data == null)
+					return String.Empty;
+
 				return Encoding.ASCII.GetString (Data);
 			} set {
 				Data = Encoding.ASCII.GetBytes (value);
@@ -87,6 +96,10 @@ namespace NDesk.DBus
 
 		public override string ToString ()
 		{
+			//FIXME: hack to handle bad case when Data is null
+			if (Data == null)
+				return String.Empty;
+
 			StringBuilder sb = new StringBuilder ();
 
 			foreach (DType t in Data) {

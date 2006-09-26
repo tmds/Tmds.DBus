@@ -153,18 +153,6 @@ namespace NDesk.DBus
 			if (type == typeof (void))
 				return DType.Invalid;
 
-			//Console.WriteLine (type);
-			//Console.WriteLine (Type.GetTypeCode (type));
-			if (type.IsPrimitive)
-				return TypeCodeToDType (Type.GetTypeCode (type));
-
-			if (type.IsEnum)
-				return TypeToDType (type.GetElementType ());
-
-			//needs work
-			if (type.IsArray)
-				return DType.Array;
-
 			if (type == typeof (string))
 				return DType.String;
 
@@ -176,6 +164,16 @@ namespace NDesk.DBus
 
 			if (type == typeof (object))
 				return DType.Variant;
+
+			if (type.IsPrimitive)
+				return TypeCodeToDType (Type.GetTypeCode (type));
+
+			if (type.IsEnum)
+				return TypeToDType (type.GetElementType ());
+
+			//needs work
+			if (type.IsArray)
+				return DType.Array;
 
 			if (!type.IsPrimitive && type.IsValueType && !type.IsEnum)
 				return DType.Struct;

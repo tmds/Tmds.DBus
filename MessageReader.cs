@@ -401,8 +401,9 @@ namespace NDesk.DBus
 			byte ln;
 			GetValue (out ln);
 
-			val.Data = new byte[ln];
-			Array.Copy (data, pos, val.Data, 0, (int)ln);
+			byte[] sigData = new byte[ln];
+			Array.Copy (data, pos, sigData, 0, (int)ln);
+			val = new Signature (sigData);
 			pos += (int)ln + 1; //+1 is null signature terminator
 		}
 
@@ -417,14 +418,13 @@ namespace NDesk.DBus
 				return;
 			}
 
-			if (sig.Data.Length == 1) {
-				DType t = (DType)sig.Data[0];
-				GetValue (t, out val);
+			if (sig.Length == 1) {
+				GetValue (sig[0], out val);
 				return;
 			}
 
-			if (sig.Data.Length == 2 && sig.Data[0] == (byte)DType.Array) {
-				DType elem_t = (DType)sig.Data[1];
+			if (sig.Length == 2 && sig[0] == DType.Array) {
+				DType elem_t = sig[1];
 				Type elem_type = Signature.DTypeToType (elem_t);
 				Type array_type = elem_type.MakeArrayType ();
 				GetValue (array_type, out val);

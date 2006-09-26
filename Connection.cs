@@ -491,9 +491,10 @@ namespace NDesk.DBus
 			if (msg.Body != null) {
 				MessageReader reader = new MessageReader (msg);
 
-				foreach (DType dtype in msg.Signature.Data) {
+				Signature sig = msg.Signature;
+				for (int i = 0 ; i != sig.Length ; i++) {
 					object arg;
-					reader.GetValue (dtype, out arg);
+					reader.GetValue (sig[i], out arg);
 					vals.Add (arg);
 				}
 			}

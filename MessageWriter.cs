@@ -122,8 +122,8 @@ namespace NDesk.DBus
 		public void Write (Signature val)
 		{
 			WritePad (1);
-			Write ((byte)val.Value.Length);
-			bw.Write (val.Data);
+			Write ((byte)val.Length);
+			bw.Write (val.GetBuffer ());
 			bw.Write ((byte)0); //NULL signature terminator
 		}
 

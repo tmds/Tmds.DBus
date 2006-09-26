@@ -61,48 +61,89 @@ namespace NDesk.DBus
 
 		public override int GetHashCode ()
 		{
-			return Data.GetHashCode ();
+			return data.GetHashCode ();
 		}
 
 		public Signature (string value)
 		{
-			this.Data = Encoding.ASCII.GetBytes (value);
+			this.data = Encoding.ASCII.GetBytes (value);
 		}
 
-		public Signature (params DType[] value)
+		public Signature (byte[] value)
 		{
-			this.Data = new byte[value.Length];
+			this.data = new byte[value.Length];
 
-			MemoryStream ms = new MemoryStream (this.Data);
+			for (int i = 0 ; i != value.Length ; i++)
+				this.data[i] = value[i];
+		}
+
+		//this will become obsolete soon
+		public Signature (DType value)
+		{
+			this.data = new byte[1];
+			this.data[0] = (byte)value;
+		}
+
+		public Signature (DType[] value)
+		{
+			this.data = new byte[value.Length];
+
+			/*
+			MemoryStream ms = new MemoryStream (this.data);
 
 			foreach (DType t in value)
 				ms.WriteByte ((byte)t);
+			*/
+
+			for (int i = 0 ; i != value.Length ; i++)
+				this.data[i] = (byte)value[i];
 		}
 
-		public byte[] Data;
+		byte[] data;
 
+		//TODO: this should be private, but MessageWriter and Monitor still use it
+		public byte[] GetBuffer ()
+		{
+			return data;
+		}
+
+		public DType this[int index]
+		{
+			get {
+				return (DType)data[index];
+			}
+		}
+
+		public int Length
+		{
+			get {
+				return data.Length;
+			}
+		}
+
+		//[Obsolete]
 		public string Value
 		{
 			get {
 				//FIXME: hack to handle bad case when Data is null
-				if (Data == null)
+				if (data == null)
 					return String.Empty;
 
-				return Encoding.ASCII.GetString (Data);
+				return Encoding.ASCII.GetString (data);
 			} set {
-				Data = Encoding.ASCII.GetBytes (value);
+				data = Encoding.ASCII.GetBytes (value);
 			}
 		}
 
 		public override string ToString ()
 		{
 			//FIXME: hack to handle bad case when Data is null
-			if (Data == null)
+			if (data == null)
 				return String.Empty;
 
 			StringBuilder sb = new StringBuilder ();
 
-			foreach (DType t in Data) {
+			foreach (DType t in data) {
 				//we shouldn't rely on object mapping here, but it's an easy way to get string representations for now
 				Type type = DTypeToType (t);
 				if (type != null) {
@@ -321,13 +362,12 @@ namespace NDesk.DBus
 
 			foreach (Type type in types) {
 				{
-					byte[] data = GetSig (type).Data;
+					byte[] data = GetSig (type).GetBuffer ();
 					ms.Write (data, 0, data.Length);
 				}
 			}
 
-			Signature sig;
-			sig.Data = ms.ToArray ();
+			Signature sig = new Signature (ms.ToArray ());
 			return sig;
 		}
 
@@ -343,7 +383,7 @@ namespace NDesk.DBus
 
 				Type elem_type = type.GetElementType ();
 				{
-					byte[] data = GetSig (elem_type).Data;
+					byte[] data = GetSig (elem_type).GetBuffer ();
 					ms.Write (data, 0, data.Length);
 				}
 			} else if (type.IsMarshalByRef) {
@@ -356,12 +396,12 @@ namespace NDesk.DBus
 				ms.WriteByte ((byte)'{');
 
 				{
-					byte[] data = GetSig (genArgs[0]).Data;
+					byte[] data = GetSig (genArgs[0]).GetBuffer ();
 					ms.Write (data, 0, data.Length);
 				}
 
 				{
-					byte[] data = GetSig (genArgs[1]).Data;
+					byte[] data = GetSig (genArgs[1]).GetBuffer ();
 					ms.Write (data, 0, data.Length);
 				}
 
@@ -376,7 +416,7 @@ namespace NDesk.DBus
 						//there didn't seem to be a way to do this with BindingFlags at time of writing
 						if (fi.IsStatic)
 							continue;
-						byte[] data = GetSig (fi.FieldType).Data;
+						byte[] data = GetSig (fi.FieldType).GetBuffer ();
 						ms.Write (data, 0, data.Length);
 					}
 				}
@@ -389,7 +429,7 @@ namespace NDesk.DBus
 
 					foreach (ParameterInfo parm in parms) {
 						{
-							byte[] data = GetSig (parm.ParameterType).Data;
+							byte[] data = GetSig (parm.ParameterType).GetBuffer ();
 							ms.Write (data, 0, data.Length);
 						}
 					}
@@ -399,7 +439,7 @@ namespace NDesk.DBus
 							//there didn't seem to be a way to do this with BindingFlags at time of writing
 							if (fi.IsStatic)
 								continue;
-							byte[] data = GetSig (fi.FieldType).Data;
+							byte[] data = GetSig (fi.FieldType).GetBuffer ();
 							ms.Write (data, 0, data.Length);
 						}
 					}
@@ -414,8 +454,7 @@ namespace NDesk.DBus
 				ms.WriteByte ((byte)dtype);
 			}
 
-			Signature sig;
-			sig.Data = ms.ToArray ();
+			Signature sig = new Signature (ms.ToArray ());
 			return sig;
 		}
 	}

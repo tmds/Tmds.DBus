@@ -18,7 +18,7 @@ namespace NDesk.DBus
 		//TODO: this class needs some work
 		//Data should probably include the null terminator
 
-		public static readonly Signature Empty = new Signature ();
+		public static readonly Signature Empty = new Signature (String.Empty);
 
 		public static bool operator == (Signature a, Signature b)
 		{

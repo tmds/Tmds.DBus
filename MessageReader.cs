@@ -417,13 +417,23 @@ namespace NDesk.DBus
 				return;
 			}
 
-			//TODO: more flexibilty needed here
-			if (sig.Data.Length > 1) {
-				throw new NotSupportedException ("Reading variants with more than one primitive value is not supported");
+			if (sig.Data.Length == 1) {
+				DType t = (DType)sig.Data[0];
+				GetValue (t, out val);
+				return;
 			}
 
-			DType t = (DType)sig.Data[0];
-			GetValue (t, out val);
+			if (sig.Data.Length == 2 && sig.Data[0] == (byte)DType.Array) {
+				DType elem_t = (DType)sig.Data[1];
+				Type elem_type = Signature.DTypeToType (elem_t);
+				Type array_type = elem_type.MakeArrayType ();
+				GetValue (array_type, out val);
+				return;
+			}
+
+			//TODO: more flexibilty needed here
+
+			throw new NotSupportedException ("Reading variants with more than one primitive value or primitive array is not supported");
 		}
 
 		//not pretty or efficient but works

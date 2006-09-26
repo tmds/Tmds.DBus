@@ -89,14 +89,18 @@ namespace NDesk.DBus
 		{
 			StringBuilder sb = new StringBuilder ();
 
-			//FIXME: this should never return unprintable chars
 			foreach (DType t in Data) {
 				//we shouldn't rely on object mapping here, but it's an easy way to get string representations for now
 				Type type = DTypeToType (t);
-				if (type != null)
+				if (type != null) {
 					sb.Append (type.Name);
-				else
-					sb.Append ((char)t);
+				} else {
+					char c = (char)t;
+					if (!Char.IsControl (c))
+						sb.Append (c);
+					else
+						sb.Append (@"\" + (int)c);
+				}
 				sb.Append (" ");
 			}
 

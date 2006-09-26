@@ -131,6 +131,12 @@ namespace NDesk.DBus
 		{
 			if (type.IsArray) {
 				Write (type, (Array)val);
+				/*
+			} else if (type == typeof (ObjectPath)) {
+				Write ((ObjectPath)val);
+			} else if (type == typeof (Signature)) {
+				Write ((Signature)val);
+				*/
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
@@ -237,11 +243,14 @@ namespace NDesk.DBus
 				throw new NotSupportedException ("Cannot send null variant");
 
 			Type type = val.GetType ();
+
 			DType t = Signature.TypeToDType (type);
-
 			Signature sig = new Signature (t);
-			Write (sig);
 
+			//Signature sig = Signature.GetSig (type);
+			//Console.Error.WriteLine ("Asked to write type " + type + ", variant " + sig);
+
+			Write (sig);
 			Write (t, val);
 		}
 

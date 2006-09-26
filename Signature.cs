@@ -89,9 +89,10 @@ namespace NDesk.DBus
 		{
 			StringBuilder sb = new StringBuilder ();
 
-			foreach (byte t in Data) {
+			//FIXME: this should never return unprintable chars
+			foreach (DType t in Data) {
 				//we shouldn't rely on object mapping here, but it's an easy way to get string representations for now
-				Type type = DTypeToType ((DType)t);
+				Type type = DTypeToType (t);
 				if (type != null)
 					sb.Append (type.Name);
 				else
@@ -149,6 +150,9 @@ namespace NDesk.DBus
 
 		public static DType TypeToDType (Type type)
 		{
+			if (type == typeof (void))
+				return DType.Invalid;
+
 			//Console.WriteLine (type);
 			//Console.WriteLine (Type.GetTypeCode (type));
 			if (type.IsPrimitive)
@@ -179,6 +183,7 @@ namespace NDesk.DBus
 			//if (type.UnderlyingSystemType != null)
 			//	return TypeToDType (type.UnderlyingSystemType);
 
+			//TODO: maybe throw an exception here
 			return DType.Invalid;
 		}
 
@@ -222,7 +227,7 @@ namespace NDesk.DBus
 		{
 			switch (dtype) {
 				case DType.Invalid:
-					return null;
+					return typeof (void);
 				case DType.Byte:
 					return typeof (byte);
 				case DType.Boolean:

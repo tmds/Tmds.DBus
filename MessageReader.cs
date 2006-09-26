@@ -433,7 +433,7 @@ namespace NDesk.DBus
 
 			//TODO: more flexibilty needed here
 
-			throw new NotSupportedException ("Reading variants with more than one primitive value or primitive array is not supported");
+			throw new NotSupportedException ("Reading variants with more than one primitive value or primitive array is not supported (signature of variant was '" + sig + "')");
 		}
 
 		//not pretty or efficient but works

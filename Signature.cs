@@ -339,31 +339,6 @@ namespace NDesk.DBus
 			}
 		}
 
-		public static Signature GetSig (ArgDirection dir, ParameterInfo[] parms)
-		{
-			List<Type> types = new List<Type> ();
-
-			//TODO: consider InOut/Ref
-
-			for (int i = 0 ; i != parms.Length ; i++) {
-				switch (dir) {
-					case ArgDirection.In:
-						if (parms[i].IsIn)
-							types.Add (parms[i].ParameterType);
-						break;
-					case ArgDirection.Out:
-						if (parms[i].IsOut) {
-							//TODO: note that IsOut is optional to the compiler, we may want to use IsByRef instead
-						//eg: if (parms[i].ParameterType.IsByRef)
-							types.Add (parms[i].ParameterType.GetElementType ());
-						}
-						break;
-				}
-			}
-
-			return GetSig (types.ToArray ());
-		}
-
 		public static Signature GetSig (object[] objs)
 		{
 			return GetSig (Type.GetTypeArray (objs));

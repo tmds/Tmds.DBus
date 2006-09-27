@@ -75,7 +75,9 @@ namespace NDesk.DBus
 				}
 			}
 
-			Signature inSig = Signature.GetSig (mcm.InArgs);
+			Type[] inTypes = GetTypes (ArgDirection.In, imi.GetParameters ());
+			object[] inValues = mcm.InArgs;
+			Signature inSig = Signature.GetSig (inTypes);
 
 			MethodCall method_call;
 			Message callMsg;
@@ -106,8 +108,8 @@ namespace NDesk.DBus
 				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
 					MessageWriter writer = new MessageWriter (EndianFlag.Little);
 
-					foreach (object arg in mcm.InArgs)
-						writer.Write (arg.GetType (), arg);
+					for (int i = 0 ; i != inTypes.Length ; i++)
+						writer.Write (inTypes[i], inValues[i]);
 
 					callMsg.Body = writer.ToArray ();
 				}
@@ -118,9 +120,11 @@ namespace NDesk.DBus
 			MethodInfo mi = newRet.MethodBase as MethodInfo;
 
 			//TODO: complete out parameter support
-			Signature oSig = Signature.GetSig (ArgDirection.Out, mi.GetParameters ());
-			if (oSig != Signature.Empty)
-				throw new Exception ("Out parameters not yet supported: out_signature='" + oSig.Value + "'");
+			Type[] outParmTypes = GetTypes (ArgDirection.Out, mi.GetParameters ());
+			Signature outParmSig = Signature.GetSig (outParmTypes);
+
+			if (outParmSig != Signature.Empty)
+				throw new Exception ("Out parameters not yet supported: out_signature='" + outParmSig.Value + "'");
 
 			if (mi.ReturnType == typeof (void))
 				needsReply = false;
@@ -133,12 +137,12 @@ namespace NDesk.DBus
 				return (IMethodReturnMessage) newRet;
 			}
 
-			Type[] retTypeArr = new Type[1];
-			retTypeArr[0] = mi.ReturnType;
+			Type[] outTypes = new Type[1];
+			outTypes[0] = mi.ReturnType;
 
 #if PROTO_REPLY_SIGNATURE
 			if (needsReply) {
-				Signature outSig = Signature.GetSig (retTypeArr);
+				Signature outSig = Signature.GetSig (outTypes);
 				callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
 			}
 #endif
@@ -157,7 +161,7 @@ namespace NDesk.DBus
 				Exception e = new Exception (error.ErrorName + ": " + errMsg);
 				newRet.Exception = e;
 			} else if (retMsg.Header.MessageType == MessageType.MethodReturn) {
-				newRet.ReturnValue = conn.GetDynamicValues (retMsg, retTypeArr)[0];
+				newRet.ReturnValue = conn.GetDynamicValues (retMsg, outTypes)[0];
 			} else {
 				//should not be possible to reach this at present
 				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn");
@@ -172,6 +176,33 @@ namespace NDesk.DBus
 			throw new System.NotImplementedException ();
 		}
 		*/
+
+		public static Type[] GetTypes (ArgDirection dir, ParameterInfo[] parms)
+		{
+			List<Type> types = new List<Type> ();
+
+			//TODO: consider InOut/Ref
+
+			for (int i = 0 ; i != parms.Length ; i++) {
+				switch (dir) {
+					case ArgDirection.In:
+						//docs say IsIn isn't reliable, and this is indeed true
+						//if (parms[i].IsIn)
+						if (!parms[i].IsOut)
+							types.Add (parms[i].ParameterType);
+						break;
+					case ArgDirection.Out:
+						if (parms[i].IsOut) {
+							//TODO: note that IsOut is optional to the compiler, we may want to use IsByRef instead
+						//eg: if (parms[i].ParameterType.IsByRef)
+							types.Add (parms[i].ParameterType.GetElementType ());
+						}
+						break;
+				}
+			}
+
+			return types.ToArray ();
+		}
 	}
 
 	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]

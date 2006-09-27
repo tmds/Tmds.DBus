@@ -53,6 +53,16 @@ namespace NDesk.DBus
 			Authenticate ();
 		}
 
+		protected bool isConnected = false;
+		public bool IsConnected
+		{
+			get {
+				return isConnected;
+			}
+		}
+
+		//TODO: make this static
+		//public static Connection Open (string address)
 		public void Open (string address)
 		{
 			string path;
@@ -65,9 +75,11 @@ namespace NDesk.DBus
 				throw new ArgumentException ("Invalid D-Bus address: '" + address + "'", "address");
 
 			Open (path, abstr);
+
+			isConnected = true;
 		}
 
-		public void Open (string path, bool abstr)
+		void Open (string path, bool abstr)
 		{
 			//transport = new UnixMonoTransport (path, abstr);
 			transport = new UnixNativeTransport (path, abstr);
@@ -79,6 +91,15 @@ namespace NDesk.DBus
 		{
 			SaslClient auth = new SaslClient (this);
 			auth.Run ();
+			isAuthenticated = true;
+		}
+
+		protected bool isAuthenticated = false;
+		public bool IsAuthenticated
+		{
+			get {
+				return isAuthenticated;
+			}
 		}
 
 		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint

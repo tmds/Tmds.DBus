@@ -599,6 +599,10 @@ namespace NDesk.DBus
 			//TODO: make this an ObjectPath struct rather than a string?
 			ilg.Emit (OpCodes.Ldstr, path.Value);
 
+			//MethodInfo
+			ilg.Emit (OpCodes.Ldtoken, ei.EventHandlerType.GetMethod ("Invoke"));
+			ilg.Emit (OpCodes.Call, typeof (MethodBase).GetMethod ("GetMethodFromHandle"));
+
 			//interface
 			ilg.Emit (OpCodes.Ldstr, GetInterfaceName (ei));
 
@@ -649,22 +653,21 @@ namespace NDesk.DBus
 			return obj;
 		}
 
-		//TODO: consider whether the dynamic approach will fall apart with variants, or if some kind of boxing tests can be used, whether to pass a Type[] signature, or is this a non-problem?
-		public void InvokeSignal (string bus_name, string object_path, string @interface, string member, object[] args)
+		public void InvokeSignal (string bus_name, string object_path, MethodInfo mi, string @interface, string member, object[] outValues)
 		{
 			//TODO: make use of bus_name
 
-			//Console.Error.WriteLine ("SomeHandler " + @interface + ", " + member);
-			Signature sig = Signature.GetSig (args);
+			Type[] outTypes = DProxy.GetTypes (ArgDirection.In, mi.GetParameters ());
+			Signature outSig = Signature.GetSig (outTypes);
 
 			Signal signal = new Signal (new ObjectPath (object_path), @interface, member);
-			signal.message.Signature = sig;
+			signal.message.Signature = outSig;
 
-			if (args != null && args.Length != 0) {
+			if (outValues != null && outValues.Length != 0) {
 				MessageWriter writer = new MessageWriter (EndianFlag.Little);
 
-				foreach (object arg in args)
-					writer.Write (arg.GetType (), arg);
+				for (int i = 0 ; i != outTypes.Length ; i++)
+					writer.Write (outTypes[i], outValues[i]);
 
 				signal.message.Body = writer.ToArray ();
 			}

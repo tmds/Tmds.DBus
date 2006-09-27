@@ -31,26 +31,10 @@ namespace NDesk.DBus
 			}
 		}
 
-		public Connection () : this (true)
+		//TODO: reduce visibility when test-server no longer needs this
+		//protected Connection ()
+		public Connection ()
 		{
-		}
-
-		public Connection (bool autoConnect)
-		{
-			if (!autoConnect)
-				return;
-
-			string path;
-			bool abstr;
-
-			Address.Parse (Address.SessionBus, out path, out abstr);
-
-			//not really correct
-			if (String.IsNullOrEmpty (path))
-				Address.Parse (Address.SystemBus, out path, out abstr);
-
-			Open (path, abstr);
-			Authenticate ();
 		}
 
 		protected bool isConnected = false;
@@ -61,9 +45,18 @@ namespace NDesk.DBus
 			}
 		}
 
-		//TODO: make this static
-		//public static Connection Open (string address)
-		public void Open (string address)
+		public static Connection Open (string address)
+		{
+			Connection conn = new Connection ();
+			conn.OpenPrivate (address);
+			conn.Authenticate ();
+
+			return conn;
+		}
+
+		//TODO: reduce visibility when test-server no longer needs this
+		//protected void OpenPrivate (string address)
+		public void OpenPrivate (string address)
 		{
 			string path;
 			bool abstr;

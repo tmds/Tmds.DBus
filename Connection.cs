@@ -639,7 +639,7 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Call, typeof (MethodBase).GetMethod ("GetMethodFromHandle"));
 
 			//interface
-			ilg.Emit (OpCodes.Ldstr, GetInterfaceName (ei));
+			ilg.Emit (OpCodes.Ldstr, Mapper.GetInterfaceName (ei));
 
 			//member
 			ilg.Emit (OpCodes.Ldstr, ei.Name);
@@ -692,7 +692,7 @@ namespace NDesk.DBus
 		{
 			//TODO: make use of bus_name
 
-			Type[] outTypes = DProxy.GetTypes (ArgDirection.In, mi.GetParameters ());
+			Type[] outTypes = Mapper.GetTypes (ArgDirection.In, mi.GetParameters ());
 			Signature outSig = Signature.GetSig (outTypes);
 
 			Signal signal = new Signal (new ObjectPath (object_path), @interface, member);
@@ -710,6 +710,19 @@ namespace NDesk.DBus
 			Send (signal.message);
 		}
 
+		static Connection ()
+		{
+			if (BitConverter.IsLittleEndian)
+				NativeEndianness = EndianFlag.Little;
+			else
+				NativeEndianness = EndianFlag.Big;
+		}
+
+		public static readonly EndianFlag NativeEndianness;
+	}
+
+	public static class Mapper
+	{
 		//TODO: move these Get*Name helpers somewhere more appropriate
 		public static string GetArgumentName (ParameterInfo pi)
 		{
@@ -750,14 +763,31 @@ namespace NDesk.DBus
 			return interfaceName;
 		}
 
-		static Connection ()
+		public static Type[] GetTypes (ArgDirection dir, ParameterInfo[] parms)
 		{
-			if (BitConverter.IsLittleEndian)
-				NativeEndianness = EndianFlag.Little;
-			else
-				NativeEndianness = EndianFlag.Big;
-		}
+			List<Type> types = new List<Type> ();
 
-		public static readonly EndianFlag NativeEndianness;
+			//TODO: consider InOut/Ref
+
+			for (int i = 0 ; i != parms.Length ; i++) {
+				switch (dir) {
+					case ArgDirection.In:
+						//docs say IsIn isn't reliable, and this is indeed true
+						//if (parms[i].IsIn)
+						if (!parms[i].IsOut)
+							types.Add (parms[i].ParameterType);
+						break;
+					case ArgDirection.Out:
+						if (parms[i].IsOut) {
+							//TODO: note that IsOut is optional to the compiler, we may want to use IsByRef instead
+						//eg: if (parms[i].ParameterType.IsByRef)
+							types.Add (parms[i].ParameterType.GetElementType ());
+						}
+						break;
+				}
+			}
+
+			return types.ToArray ();
+		}
 	}
 }

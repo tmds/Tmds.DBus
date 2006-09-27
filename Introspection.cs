@@ -111,12 +111,12 @@ namespace NDesk.DBus
 
 		public void WriteArg (ParameterInfo pi)
 		{
-			WriteArg (pi.ParameterType, Connection.GetArgumentName (pi), pi.IsOut, false);
+			WriteArg (pi.ParameterType, Mapper.GetArgumentName (pi), pi.IsOut, false);
 		}
 
 		public void WriteArgReverse (ParameterInfo pi)
 		{
-			WriteArg (pi.ParameterType, Connection.GetArgumentName (pi), pi.IsOut, true);
+			WriteArg (pi.ParameterType, Mapper.GetArgumentName (pi), pi.IsOut, true);
 		}
 
 		//TODO: clean up and get rid of reverse (or argIsOut) parm
@@ -166,7 +166,7 @@ namespace NDesk.DBus
 
 			//Mono <= 1.1.13 doesn't support MethodInfo.ReturnParameter, so avoid it
 			//WriteArgReverse (mi.ReturnParameter);
-			WriteArg (mi.ReturnType, Connection.GetArgumentName (mi.ReturnTypeCustomAttributes, "ret"), false, true);
+			WriteArg (mi.ReturnType, Mapper.GetArgumentName (mi.ReturnTypeCustomAttributes, "ret"), false, true);
 
 			writer.WriteEndElement ();
 		}
@@ -226,7 +226,7 @@ namespace NDesk.DBus
 
 			writer.WriteStartElement ("interface");
 
-			writer.WriteAttributeString ("name", Connection.GetInterfaceName (type));
+			writer.WriteAttributeString ("name", Mapper.GetInterfaceName (type));
 
 			/*
 			foreach (MemberInfo mbi in type.GetMembers (relevantBindingFlags)) {

@@ -48,7 +48,7 @@ namespace NDesk.DBus
 					//inelegant
 					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-						bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Connection.GetInterfaceName (imi), ename));
+						bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename));
 						conn.Iterate ();
 					}
 
@@ -65,7 +65,7 @@ namespace NDesk.DBus
 					//inelegant
 					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-						bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Connection.GetInterfaceName (imi), ename));
+						bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename));
 						conn.Iterate ();
 					}
 
@@ -75,7 +75,7 @@ namespace NDesk.DBus
 				}
 			}
 
-			Type[] inTypes = GetTypes (ArgDirection.In, imi.GetParameters ());
+			Type[] inTypes = Mapper.GetTypes (ArgDirection.In, imi.GetParameters ());
 			object[] inValues = mcm.InArgs;
 			Signature inSig = Signature.GetSig (inTypes);
 
@@ -87,7 +87,7 @@ namespace NDesk.DBus
 				//this bit is error-prone (no null checking) and will need rewriting when DProxy is replaced
 				string iface = null;
 				if (imi != null)
-					iface = Connection.GetInterfaceName (imi);
+					iface = Mapper.GetInterfaceName (imi);
 
 				//map property accessors
 				//TODO: this needs to be done properly, not with simple String.Replace
@@ -120,7 +120,7 @@ namespace NDesk.DBus
 			MethodInfo mi = newRet.MethodBase as MethodInfo;
 
 			//TODO: complete out parameter support
-			Type[] outParmTypes = GetTypes (ArgDirection.Out, mi.GetParameters ());
+			Type[] outParmTypes = Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ());
 			Signature outParmSig = Signature.GetSig (outParmTypes);
 
 			if (outParmSig != Signature.Empty)
@@ -176,33 +176,6 @@ namespace NDesk.DBus
 			throw new System.NotImplementedException ();
 		}
 		*/
-
-		public static Type[] GetTypes (ArgDirection dir, ParameterInfo[] parms)
-		{
-			List<Type> types = new List<Type> ();
-
-			//TODO: consider InOut/Ref
-
-			for (int i = 0 ; i != parms.Length ; i++) {
-				switch (dir) {
-					case ArgDirection.In:
-						//docs say IsIn isn't reliable, and this is indeed true
-						//if (parms[i].IsIn)
-						if (!parms[i].IsOut)
-							types.Add (parms[i].ParameterType);
-						break;
-					case ArgDirection.Out:
-						if (parms[i].IsOut) {
-							//TODO: note that IsOut is optional to the compiler, we may want to use IsByRef instead
-						//eg: if (parms[i].ParameterType.IsByRef)
-							types.Add (parms[i].ParameterType.GetElementType ());
-						}
-						break;
-				}
-			}
-
-			return types.ToArray ();
-		}
 	}
 
 	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]

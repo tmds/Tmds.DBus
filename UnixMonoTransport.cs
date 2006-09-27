@@ -10,7 +10,7 @@ using System.Net.Sockets;
 using Mono.Unix;
 using Mono.Unix.Native;
 
-namespace NDesk.DBus
+namespace NDesk.DBus.Transports
 {
 	public class UnixMonoTransport : Transport, IAuthenticator
 	{

@@ -15,6 +15,7 @@ using System.Reflection.Emit;
 namespace NDesk.DBus
 {
 	using Authentication;
+	using Transports;
 
 	public class Connection
 	{

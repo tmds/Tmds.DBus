@@ -5,7 +5,7 @@
 using System;
 using System.IO;
 
-namespace NDesk.DBus
+namespace NDesk.DBus.Transports
 {
 	public interface IAuthenticator
 	{

@@ -13,7 +13,7 @@ using System.Runtime.InteropServices;
 using Mono.Unix;
 using Mono.Unix.Native;
 
-namespace NDesk.DBus
+namespace NDesk.DBus.Transports
 {
 	public class UnixSocket
 	{

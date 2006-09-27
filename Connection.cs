@@ -580,7 +580,8 @@ namespace NDesk.DBus
 			if (ei.EventHandlerType.IsAssignableFrom (typeof (System.EventHandler)))
 				Console.Error.WriteLine ("Warning: Cannot yet fully marshal EventHandler and its subclasses: " + ei.EventHandlerType);
 
-			ParameterInfo[] delegateParms = ei.EventHandlerType.GetMethod ("Invoke").GetParameters ();
+			MethodInfo invokeMethod = ei.EventHandlerType.GetMethod ("Invoke");
+			ParameterInfo[] delegateParms = invokeMethod.GetParameters ();
 			Type[] hookupParms = new Type[delegateParms.Length+1];
 			hookupParms[0] = typeof (Connection);
 			for (int i = 0; i < delegateParms.Length ; i++)
@@ -600,7 +601,7 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Ldstr, path.Value);
 
 			//MethodInfo
-			ilg.Emit (OpCodes.Ldtoken, ei.EventHandlerType.GetMethod ("Invoke"));
+			ilg.Emit (OpCodes.Ldtoken, invokeMethod);
 			ilg.Emit (OpCodes.Call, typeof (MethodBase).GetMethod ("GetMethodFromHandle"));
 
 			//interface

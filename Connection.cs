@@ -607,12 +607,13 @@ namespace NDesk.DBus
 
 		public void Register (string bus_name, ObjectPath path, object obj)
 		{
-			//this is just the start of il generation work
-
 			Type type = obj.GetType ();
 
-			//note that this hooks up to all events, not declared only right now
-			foreach (EventInfo ei in type.GetEvents ()) {
+			foreach (EventInfo ei in type.GetEvents (BindingFlags.Public | BindingFlags.Instance)) {
+				//hook up only events that are public to the bus
+				if (!Mapper.IsPublic (ei))
+					continue;
+
 				Delegate dlg = GetHookupDelegate (ei, bus_name, path);
 				ei.AddEventHandler (obj, dlg);
 			}
@@ -624,6 +625,8 @@ namespace NDesk.DBus
 		//public static Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
 		public Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
 		{
+			//this is just the start of il generation work
+
 			//Console.Error.WriteLine (ei.Name);
 
 			if (ei.EventHandlerType.IsAssignableFrom (typeof (System.EventHandler)))
@@ -758,6 +761,22 @@ namespace NDesk.DBus
 				argName = aa.Name;
 
 			return argName;
+		}
+
+		public static bool IsPublic (MemberInfo mi)
+		{
+			return IsPublic (mi.DeclaringType);
+		}
+
+		public static bool IsPublic (Type type)
+		{
+			if (type.IsDefined (typeof (InterfaceAttribute), false))
+				return true;
+
+			if (type.IsMarshalByRef)
+				return true;
+
+			return false;
 		}
 
 		public static string GetInterfaceName (MemberInfo mi)

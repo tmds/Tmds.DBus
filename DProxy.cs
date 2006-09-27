@@ -95,26 +95,7 @@ namespace NDesk.DBus
 					methodName = methodName.Replace ("set_", "Set");
 				}
 
-				/*
-				callMsg.Header.Fields[FieldCode.Path] = object_path;
-				callMsg.Header.Fields[FieldCode.Interface] = iface;
-				callMsg.Header.Fields[FieldCode.Member] = methodName;
-				callMsg.Header.Fields[FieldCode.Destination] = bus_name;
-				if (inSig != Signature.Empty)
-					callMsg.Header.Fields[FieldCode.Signature] = inSig;
-				*/
-
-				//callMsg.WriteHeader ();
-
-				/*
-				if (inSig == Signature.Empty)
-				{
-					callMsg.WriteHeader (HeaderField.Create (FieldCode.Path, object_path), HeaderField.Create (FieldCode.Interface, iface), HeaderField.Create (FieldCode.Member, methodName), HeaderField.Create (FieldCode.Destination, bus_name));
-				} else {
-					callMsg.WriteHeader (HeaderField.Create (FieldCode.Path, object_path), HeaderField.Create (FieldCode.Interface, iface), HeaderField.Create (FieldCode.Member, methodName), HeaderField.Create (FieldCode.Destination, bus_name), HeaderField.Create (FieldCode.Signature, inSig));
-				}
-				*/
-
+				//TODO: no need for this conditional and overload
 				if (inSig != Signature.Empty)
 					method_call = new MethodCall (object_path, iface, methodName, bus_name, inSig);
 				else
@@ -145,14 +126,7 @@ namespace NDesk.DBus
 				needsReply = false;
 
 			callMsg.ReplyExpected = needsReply;
-
-			//signature helper is broken, so write it by hand
-			callMsg.Header.Fields[FieldCode.Path] = object_path;
-			//callMsg.Header.Fields[FieldCode.Interface] = iface;
-			callMsg.Header.Fields[FieldCode.Member] = methodName;
-			callMsg.Header.Fields[FieldCode.Destination] = bus_name;
-			if (inSig != Signature.Empty)
-				callMsg.Header.Fields[FieldCode.Signature] = inSig;
+			callMsg.Signature = inSig;
 
 			if (!needsReply) {
 				conn.Send (callMsg);
@@ -163,8 +137,10 @@ namespace NDesk.DBus
 			retTypeArr[0] = mi.ReturnType;
 
 #if PROTO_REPLY_SIGNATURE
-			Signature outSig = Signature.GetSig (retTypeArr);
-			callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
+			if (needsReply) {
+				Signature outSig = Signature.GetSig (retTypeArr);
+				callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
+			}
 #endif
 
 			Message retMsg = conn.SendWithReplyAndBlock (callMsg);

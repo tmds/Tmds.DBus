@@ -34,8 +34,10 @@ namespace NDesk.DBus
 				else
 					return Signature.Empty;
 			} set {
-				//TODO: remove from dict if value empty or null
-				Header.Fields[FieldCode.Signature] = value;
+				if (value == Signature.Empty)
+					Header.Fields.Remove (FieldCode.Signature);
+				else
+					Header.Fields[FieldCode.Signature] = value;
 			}
 		}
 

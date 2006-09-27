@@ -326,11 +326,7 @@ namespace NDesk.DBus
 		protected Message ConstructReplyFor (MethodCall method_call, object[] vals)
 		{
 			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
-			//Message replyMsg = new Message ();
 			Message replyMsg = method_return.message;
-
-			//replyMsg.Header.MessageType = MessageType.MethodReturn;
-			//replyMsg.ReplyExpected = false;
 
 			Signature inSig = Signature.GetSig (vals);
 
@@ -343,13 +339,11 @@ namespace NDesk.DBus
 				replyMsg.Body = writer.ToArray ();
 			}
 
-			//FIXME: this breaks the abstraction
-			replyMsg.Header.Fields[FieldCode.ReplySerial] = method_call.message.Header.Serial;
-			//TODO: this is a temporary hack to make p2p work, we should always send Destination
+			//temporary hack to make p2p work, maybe we should always send the Destination?
 			if (method_call.Sender != null)
 				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
-			if (inSig != Signature.Empty)
-				replyMsg.Header.Fields[FieldCode.Signature] = inSig;
+
+			replyMsg.Signature = inSig;
 
 			//replyMsg.WriteHeader ();
 
@@ -360,11 +354,7 @@ namespace NDesk.DBus
 		protected Message ConstructReplyFor (MethodCall method_call, Type retType, object retVal)
 		{
 			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
-			//Message replyMsg = new Message ();
 			Message replyMsg = method_return.message;
-
-			//replyMsg.Header.MessageType = MessageType.MethodReturn;
-			//replyMsg.ReplyExpected = false;
 
 			Signature inSig = Signature.GetSig (retType);
 
@@ -374,13 +364,11 @@ namespace NDesk.DBus
 				replyMsg.Body = writer.ToArray ();
 			}
 
-			//FIXME: this breaks the abstraction
-			replyMsg.Header.Fields[FieldCode.ReplySerial] = method_call.message.Header.Serial;
-			//TODO: this is a temporary hack to make p2p work, we should always send Destination
+			//temporary hack to make p2p work, maybe we should always send the Destination?
 			if (method_call.Sender != null)
 				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
-			if (inSig != Signature.Empty)
-				replyMsg.Header.Fields[FieldCode.Signature] = inSig;
+
+			replyMsg.Signature = inSig;
 
 			//replyMsg.WriteHeader ();
 

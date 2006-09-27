@@ -64,6 +64,22 @@ namespace NDesk.DBus
 			return data.GetHashCode ();
 		}
 
+		public static Signature operator + (Signature s1, Signature s2)
+		{
+			return Concat (s1, s2);
+		}
+
+		//these need to be optimized
+		public static Signature Concat (Signature s1, Signature s2)
+		{
+			return new Signature (s1.Value + s2.Value);
+		}
+
+		public static Signature Copy (Signature sig)
+		{
+			return new Signature (sig.Value);
+		}
+
 		public Signature (string value)
 		{
 			this.data = Encoding.ASCII.GetBytes (value);

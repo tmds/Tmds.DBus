@@ -60,5 +60,19 @@ namespace NDesk.DBus
 				return Environment.GetEnvironmentVariable ("DBUS_SESSION_BUS_ADDRESS");
 			}
 		}
+
+		public static string Starter
+		{
+			get {
+				return Environment.GetEnvironmentVariable ("DBUS_STARTER_ADDRESS");
+			}
+		}
+
+		public static string StarterBusType
+		{
+			get {
+				return Environment.GetEnvironmentVariable ("DBUS_STARTER_BUS_TYPE");
+			}
+		}
 	}
 }

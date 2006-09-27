@@ -43,13 +43,19 @@ namespace NDesk.DBus
 					string ename = parts[1];
 					Delegate dlg = (Delegate)mcm.InArgs[0];
 
-					conn.Handlers[ename] = dlg;
+					string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename);
 
-					//inelegant
-					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
-						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-						bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename));
-						conn.Iterate ();
+					if (conn.Handlers.ContainsKey (matchRule))
+						conn.Handlers[matchRule] = Delegate.Combine (conn.Handlers[matchRule], dlg);
+					else {
+						conn.Handlers[matchRule] = dlg;
+
+						//inelegant
+						if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
+							org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
+							bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename));
+							conn.Iterate ();
+						}
 					}
 
 					return (IMethodReturnMessage) newRet;
@@ -59,17 +65,20 @@ namespace NDesk.DBus
 					string[] parts = mcm.MethodName.Split ('_');
 
 					string ename = parts[1];
-					//Delegate dlg = (Delegate)mcm.InArgs[0];
+					string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename);
 
-					//FIXME: this removes the match rule even when we still have delegates connected to the event!
-					//inelegant
-					if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
-						org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-						bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename));
-						conn.Iterate ();
+					Delegate dlg = (Delegate)mcm.InArgs[0];
+
+					conn.Handlers[matchRule] = Delegate.Remove (conn.Handlers[matchRule], dlg);
+
+					if (conn.Handlers[matchRule] == null) {
+						//inelegant
+						if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
+							org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
+							bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename));
+							conn.Iterate ();
+						}
 					}
-
-					conn.Handlers.Remove (ename);
 
 					return (IMethodReturnMessage) newRet;
 				}

@@ -354,8 +354,10 @@ namespace NDesk.DBus
 		{
 			Signal signal = new Signal (msg);
 
-			if (Handlers.ContainsKey (signal.Member)) {
-				Delegate dlg = Handlers[signal.Member];
+			string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, signal.Path, signal.Interface, signal.Member);
+
+			if (Handlers.ContainsKey (matchRule)) {
+				Delegate dlg = Handlers[matchRule];
 				//dlg.DynamicInvoke (GetDynamicValues (msg));
 
 				MethodInfo mi = dlg.Method;

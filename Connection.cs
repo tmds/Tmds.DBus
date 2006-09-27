@@ -136,6 +136,7 @@ namespace NDesk.DBus
 			}
 		}
 
+		/*
 		protected Queue<Message> Inbound = new Queue<Message> ();
 		protected Queue<Message> Outbound = new Queue<Message> ();
 
@@ -147,6 +148,39 @@ namespace NDesk.DBus
 				WriteMessage (msg);
 			}
 		}
+
+		public bool ReadWrite (int timeout_milliseconds)
+		{
+			//TODO
+
+			return true;
+		}
+
+		public bool ReadWrite ()
+		{
+			return ReadWrite (-1);
+		}
+
+		public bool Dispatch ()
+		{
+			//TODO
+			Message msg = Inbound.Dequeue ();
+			//HandleMessage (msg);
+
+			return true;
+		}
+
+		public bool ReadWriteDispatch (int timeout_milliseconds)
+		{
+			//TODO
+			return Dispatch ();
+		}
+
+		public bool ReadWriteDispatch ()
+		{
+			return ReadWriteDispatch (-1);
+		}
+		*/
 
 		public Message ReadMessage ()
 		{

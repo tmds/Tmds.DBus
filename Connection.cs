@@ -482,16 +482,29 @@ namespace NDesk.DBus
 			 	try {
 					retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, mi.GetParameters ()));
 				} catch (TargetInvocationException e) {
-					Console.Error.WriteLine (e);
+					//TODO: consider whether it's correct to send an error for calls that don't expect a reply
 
 					//TODO: complete exception sending support
-					//need to find out what outgoing Error messages look like
-					/*
+					//TODO: method not found etc. exceptions
 					Exception ie = e.InnerException;
-					//Console.Error.WriteLine ("e \n\n" + e + "\n\n contains \n\n" + ie);
+					Console.Error.WriteLine ();
+					Console.Error.WriteLine (ie);
+					Console.Error.WriteLine ();
 
-					Error error = new Error ("org.ndesk.SomeException", method_call.message.Header.Serial);
-					//TODO: this is a temporary hack to make p2p work, we should always send Destination
+					if (!method_call.message.ReplyExpected) {
+						Console.Error.WriteLine ();
+						Console.Error.WriteLine ("Warning: Not sending Error message (" + ie.GetType ().Name + ") as reply because no reply was expected by call to '" + (method_call.Interface + "." + method_call.Member) + "'");
+						Console.Error.WriteLine ();
+						return;
+					}
+
+					Error error = new Error (Mapper.GetInterfaceName (ie.GetType ()), method_call.message.Header.Serial);
+					error.message.Signature = new Signature (DType.String);
+
+					MessageWriter writer = new MessageWriter ();
+					writer.Write (ie.Message);
+					error.message.Body = writer.ToArray ();
+
 					if (method_call.Sender != null)
 						error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
 
@@ -499,7 +512,6 @@ namespace NDesk.DBus
 					error.message.Header.Fields[FieldCode.Member] = method_call.Member;
 
 					Send (error.message);
-					*/
 					return;
 				}
 

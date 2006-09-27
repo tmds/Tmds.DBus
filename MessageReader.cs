@@ -51,6 +51,14 @@ namespace NDesk.DBus
 				Array valArr;
 				GetValue (type, out valArr);
 				val = valArr;
+			} else if (type == typeof (ObjectPath)) {
+				ObjectPath valOP;
+				GetValue (out valOP);
+				val = valOP;
+			} else if (type == typeof (Signature)) {
+				Signature valSig;
+				GetValue (out valSig);
+				val = valSig;
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
 				Type dictType = typeof (Dictionary<,>).MakeGenericType (genArgs);
@@ -413,6 +421,11 @@ namespace NDesk.DBus
 			Signature sig;
 			GetValue (out sig);
 
+			GetValue (sig, out val);
+		}
+
+		public void GetValue (Signature sig, out object val)
+		{
 			if (sig == Signature.Empty) {
 				val = null;
 				return;

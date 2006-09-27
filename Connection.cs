@@ -356,6 +356,37 @@ namespace NDesk.DBus
 			return replyMsg;
 		}
 
+		//TODO: merge this with the above method
+		protected Message ConstructReplyFor (MethodCall method_call, Type retType, object retVal)
+		{
+			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
+			//Message replyMsg = new Message ();
+			Message replyMsg = method_return.message;
+
+			//replyMsg.Header.MessageType = MessageType.MethodReturn;
+			//replyMsg.ReplyExpected = false;
+
+			Signature inSig = Signature.GetSig (retType);
+
+			if (inSig != Signature.Empty) {
+				MessageWriter writer = new MessageWriter (EndianFlag.Little);
+				writer.Write (retType, retVal);
+				replyMsg.Body = writer.ToArray ();
+			}
+
+			//FIXME: this breaks the abstraction
+			replyMsg.Header.Fields[FieldCode.ReplySerial] = method_call.message.Header.Serial;
+			//TODO: this is a temporary hack to make p2p work, we should always send Destination
+			if (method_call.Sender != null)
+				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+			if (inSig != Signature.Empty)
+				replyMsg.Header.Fields[FieldCode.Signature] = inSig;
+
+			//replyMsg.WriteHeader ();
+
+			return replyMsg;
+		}
+
 		//not particularly efficient and needs to be generalized
 		public void HandleMethodCall (MethodCall method_call)
 		{
@@ -434,6 +465,7 @@ namespace NDesk.DBus
 				}
 
 				if (method_call.message.ReplyExpected) {
+					/*
 					object[] retObjs;
 
 					if (retObj == null) {
@@ -444,6 +476,8 @@ namespace NDesk.DBus
 					}
 
 					Message reply = ConstructReplyFor (method_call, retObjs);
+					*/
+					Message reply = ConstructReplyFor (method_call, mi.ReturnType, retObj);
 					Send (reply);
 				}
 			} else {

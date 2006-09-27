@@ -376,6 +376,12 @@ namespace NDesk.DBus
 			if (type == null)
 				return Signature.Empty;
 
+			//this is inelegant, but works for now
+			if (type == typeof (Signature))
+				return new Signature (DType.Signature);
+			if (type == typeof (ObjectPath))
+				return new Signature (DType.ObjectPath);
+
 			MemoryStream ms = new MemoryStream ();
 
 			if (type.IsArray) {

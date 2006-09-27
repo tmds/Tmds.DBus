@@ -20,6 +20,12 @@ namespace NDesk.DBus
 		protected MemoryStream stream;
 		protected BinaryWriter bw;
 
+		//TODO: enable this ctor instead of the current one when endian support is done
+		//public MessageWriter () : this (Connection.NativeEndianness)
+		public MessageWriter () : this (EndianFlag.Little)
+		{
+		}
+
 		public MessageWriter (EndianFlag endianness)
 		{
 			if (endianness != EndianFlag.Little)

@@ -331,7 +331,7 @@ namespace NDesk.DBus
 			Signature inSig = Signature.GetSig (vals);
 
 			if (vals != null && vals.Length != 0) {
-				MessageWriter writer = new MessageWriter (EndianFlag.Little);
+				MessageWriter writer = new MessageWriter ();
 
 				foreach (object arg in vals)
 					writer.Write (arg.GetType (), arg);
@@ -359,7 +359,7 @@ namespace NDesk.DBus
 			Signature inSig = Signature.GetSig (retType);
 
 			if (inSig != Signature.Empty) {
-				MessageWriter writer = new MessageWriter (EndianFlag.Little);
+				MessageWriter writer = new MessageWriter ();
 				writer.Write (retType, retVal);
 				replyMsg.Body = writer.ToArray ();
 			}
@@ -664,7 +664,7 @@ namespace NDesk.DBus
 			signal.message.Signature = outSig;
 
 			if (outValues != null && outValues.Length != 0) {
-				MessageWriter writer = new MessageWriter (EndianFlag.Little);
+				MessageWriter writer = new MessageWriter ();
 
 				for (int i = 0 ; i != outTypes.Length ; i++)
 					writer.Write (outTypes[i], outValues[i]);

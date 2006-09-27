@@ -125,7 +125,7 @@ namespace NDesk.DBus
 			if (Body != null)
 				Header.Length = (uint)Body.Length;
 
-			MessageWriter writer = new MessageWriter (EndianFlag.Little);
+			MessageWriter writer = new MessageWriter ();
 			writer.Write (typeof (Header), Header);
 			//writer.WriteFromDict (typeof (FieldCode), typeof (object), Header.Fields);
 			writer.CloseWrite ();

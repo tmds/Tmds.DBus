@@ -106,7 +106,7 @@ namespace NDesk.DBus
 				callMsg = method_call.message;
 
 				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
-					MessageWriter writer = new MessageWriter (EndianFlag.Little);
+					MessageWriter writer = new MessageWriter ();
 
 					for (int i = 0 ; i != inTypes.Length ; i++)
 						writer.Write (inTypes[i], inValues[i]);

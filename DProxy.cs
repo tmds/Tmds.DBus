@@ -53,7 +53,7 @@ namespace NDesk.DBus
 						//inelegant
 						if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 							org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-							bus.AddMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename));
+							bus.AddMatch (matchRule);
 							conn.Iterate ();
 						}
 					}
@@ -75,7 +75,7 @@ namespace NDesk.DBus
 						//inelegant
 						if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
 							org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-							bus.RemoveMatch (MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename));
+							bus.RemoveMatch (matchRule);
 							conn.Iterate ();
 						}
 					}

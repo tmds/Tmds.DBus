@@ -484,6 +484,7 @@ namespace NDesk.DBus
 			return vals.ToArray ();
 		}
 
+		/*
 		public object[] GetDynamicValues (Message msg)
 		{
 			List<object> vals = new List<object> ();
@@ -501,6 +502,7 @@ namespace NDesk.DBus
 
 			return vals.ToArray ();
 		}
+		*/
 
 		//FIXME: this shouldn't be part of the core API
 		//that also applies to much of the other object mapping code

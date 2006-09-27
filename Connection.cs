@@ -542,21 +542,19 @@ namespace NDesk.DBus
 			return (T)GetObject (typeof (T), bus_name, object_path);
 		}
 
-		//see also:
-		//from System.Runtime.Remoting.RemotingServices:
-		//public static object Connect (Type classToProxy, string url);
-
-		//this may be silly API, but better than raw access to the dictionary:
-		//inspired by System.Runtime.Remoting.RemotingServices
-		//public ObjRef Marshal (MarshalByRefObject obj, string uri)
+		[Obsolete ("Use Register()")]
 		public void Marshal (MarshalByRefObject obj, string bus_name, ObjectPath path)
 		{
-			Marshal ((object) obj, bus_name, path);
+			Register (bus_name, path, (object)obj);
 		}
 
-		//just in case the MarshalByRefObject requirement is crack
-		//FIXME: this api is slightly confused right now
+		[Obsolete ("Use Register()")]
 		public void Marshal (object obj, string bus_name, ObjectPath path)
+		{
+			Register (bus_name, path, obj);
+		}
+
+		public void Register (string bus_name, ObjectPath path, object obj)
 		{
 			//this is just the start of il generation work
 
@@ -639,7 +637,13 @@ namespace NDesk.DBus
 			return d;
 		}
 
+		[Obsolete ("Use Unregister")]
 		public object Unmarshal (string bus_name, ObjectPath path)
+		{
+			return Unregister (bus_name, path);
+		}
+
+		public object Unregister (string bus_name, ObjectPath path)
 		{
 			//TODO: make use of bus_name
 

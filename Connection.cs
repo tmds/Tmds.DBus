@@ -590,18 +590,6 @@ namespace NDesk.DBus
 			return (T)GetObject (typeof (T), bus_name, object_path);
 		}
 
-		[Obsolete ("Use Register()")]
-		public void Marshal (MarshalByRefObject obj, string bus_name, ObjectPath path)
-		{
-			Register (bus_name, path, (object)obj);
-		}
-
-		[Obsolete ("Use Register()")]
-		public void Marshal (object obj, string bus_name, ObjectPath path)
-		{
-			Register (bus_name, path, obj);
-		}
-
 		public void Register (string bus_name, ObjectPath path, object obj)
 		{
 			//this is just the start of il generation work
@@ -683,12 +671,6 @@ namespace NDesk.DBus
 
 			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
 			return d;
-		}
-
-		[Obsolete ("Use Unregister")]
-		public object Unmarshal (string bus_name, ObjectPath path)
-		{
-			return Unregister (bus_name, path);
 		}
 
 		public object Unregister (string bus_name, ObjectPath path)

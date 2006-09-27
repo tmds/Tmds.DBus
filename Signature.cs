@@ -118,6 +118,7 @@ namespace NDesk.DBus
 		byte[] data;
 
 		//TODO: this should be private, but MessageWriter and Monitor still use it
+		//[Obsolete]
 		public byte[] GetBuffer ()
 		{
 			return data;
@@ -353,7 +354,7 @@ namespace NDesk.DBus
 
 			foreach (Type type in types) {
 				{
-					byte[] data = GetSig (type).GetBuffer ();
+					byte[] data = GetSig (type).data;
 					ms.Write (data, 0, data.Length);
 				}
 			}
@@ -380,7 +381,7 @@ namespace NDesk.DBus
 
 				Type elem_type = type.GetElementType ();
 				{
-					byte[] data = GetSig (elem_type).GetBuffer ();
+					byte[] data = GetSig (elem_type).data;
 					ms.Write (data, 0, data.Length);
 				}
 			} else if (type.IsMarshalByRef) {
@@ -393,12 +394,12 @@ namespace NDesk.DBus
 				ms.WriteByte ((byte)'{');
 
 				{
-					byte[] data = GetSig (genArgs[0]).GetBuffer ();
+					byte[] data = GetSig (genArgs[0]).data;
 					ms.Write (data, 0, data.Length);
 				}
 
 				{
-					byte[] data = GetSig (genArgs[1]).GetBuffer ();
+					byte[] data = GetSig (genArgs[1]).data;
 					ms.Write (data, 0, data.Length);
 				}
 
@@ -413,7 +414,7 @@ namespace NDesk.DBus
 						//there didn't seem to be a way to do this with BindingFlags at time of writing
 						if (fi.IsStatic)
 							continue;
-						byte[] data = GetSig (fi.FieldType).GetBuffer ();
+						byte[] data = GetSig (fi.FieldType).data;
 						ms.Write (data, 0, data.Length);
 					}
 				}
@@ -426,7 +427,7 @@ namespace NDesk.DBus
 
 					foreach (ParameterInfo parm in parms) {
 						{
-							byte[] data = GetSig (parm.ParameterType).GetBuffer ();
+							byte[] data = GetSig (parm.ParameterType).data;
 							ms.Write (data, 0, data.Length);
 						}
 					}
@@ -436,7 +437,7 @@ namespace NDesk.DBus
 							//there didn't seem to be a way to do this with BindingFlags at time of writing
 							if (fi.IsStatic)
 								continue;
-							byte[] data = GetSig (fi.FieldType).GetBuffer ();
+							byte[] data = GetSig (fi.FieldType).data;
 							ms.Write (data, 0, data.Length);
 						}
 					}

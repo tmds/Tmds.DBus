@@ -155,7 +155,11 @@ namespace NDesk.DBus
 		//protocol versions that we support
 		public const byte MinVersion = 0;
 		public const byte Version = 1;
+#if PROTO_TYPE_SINGLE
+		public const byte MaxVersion = 2;
+#else
 		public const byte MaxVersion = 1;
+#endif
 
 		public static int PadNeeded (int pos, int alignment)
 		{

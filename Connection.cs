@@ -223,6 +223,10 @@ namespace NDesk.DBus
 			if (endianness != Connection.NativeEndianness)
 				throw new NotImplementedException ("Only native-endian message reading is currently supported");
 
+			byte version = buf[3];
+			if (version < Protocol.MinVersion || version > Protocol.MaxVersion)
+				throw new NotSupportedException ("Protocol version '" + version.ToString () + "' is not supported");
+
 			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
 			toRead = (int)BitConverter.ToUInt32 (buf, 12);
 

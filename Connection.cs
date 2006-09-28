@@ -227,6 +227,11 @@ namespace NDesk.DBus
 			if (version < Protocol.MinVersion || version > Protocol.MaxVersion)
 				throw new NotSupportedException ("Protocol version '" + version.ToString () + "' is not supported");
 
+			if (Protocol.Verbose)
+				if (version != Protocol.Version)
+					Console.Error.WriteLine ("Warning: Protocol version '" + version.ToString () + "' is not explicitly supported but may be compatible");
+
+
 			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
 			toRead = (int)BitConverter.ToUInt32 (buf, 12);
 

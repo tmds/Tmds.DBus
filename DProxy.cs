@@ -170,7 +170,7 @@ namespace NDesk.DBus
 				Exception e = new Exception (error.ErrorName + ": " + errMsg);
 				newRet.Exception = e;
 			} else if (retMsg.Header.MessageType == MessageType.MethodReturn) {
-				newRet.ReturnValue = conn.GetDynamicValues (retMsg, outTypes)[0];
+				newRet.ReturnValue = Connection.GetDynamicValues (retMsg, outTypes)[0];
 			} else {
 				//should not be possible to reach this at present
 				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn");

@@ -384,7 +384,7 @@ namespace NDesk.DBus
 
 		//should generalize this method
 		//it is duplicated in DProxy
-		protected Message ConstructReplyFor (MethodCall method_call, object[] vals)
+		protected static Message ConstructReplyFor (MethodCall method_call, object[] vals)
 		{
 			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
 			Message replyMsg = method_return.message;
@@ -412,7 +412,7 @@ namespace NDesk.DBus
 		}
 
 		//TODO: merge this with the above method
-		protected Message ConstructReplyFor (MethodCall method_call, Type retType, object retVal)
+		protected static Message ConstructReplyFor (MethodCall method_call, Type retType, object retVal)
 		{
 			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
 			Message replyMsg = method_return.message;
@@ -553,7 +553,7 @@ namespace NDesk.DBus
 
 		//GetDynamicValues() should probably use yield eventually
 
-		protected object[] GetDynamicValues (Message msg, ParameterInfo[] parms)
+		protected static object[] GetDynamicValues (Message msg, ParameterInfo[] parms)
 		{
 			//TODO: consider out parameters
 
@@ -564,7 +564,7 @@ namespace NDesk.DBus
 			return GetDynamicValues (msg, types);
 		}
 
-		public object[] GetDynamicValues (Message msg, Type[] types)
+		public static object[] GetDynamicValues (Message msg, Type[] types)
 		{
 			List<object> vals = new List<object> ();
 
@@ -582,7 +582,7 @@ namespace NDesk.DBus
 		}
 
 		/*
-		public object[] GetDynamicValues (Message msg)
+		public static object[] GetDynamicValues (Message msg)
 		{
 			List<object> vals = new List<object> ();
 

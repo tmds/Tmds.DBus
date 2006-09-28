@@ -226,7 +226,7 @@ namespace NDesk.DBus
 			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
 			toRead = (int)BitConverter.ToUInt32 (buf, 12);
 
-			toRead = Padding.Padded ((int)toRead, 8);
+			toRead = Protocol.Padded ((int)toRead, 8);
 
 			buf = new byte[toRead];
 

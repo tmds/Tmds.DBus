@@ -456,7 +456,7 @@ namespace NDesk.DBus
 			GetValue (out ln);
 
 			//advance to the alignment of the element
-			//ReadPad (Padding.GetAlignment (Signature.TypeToDType (type)));
+			//ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 			ReadPad (8);
 
 			int endPos = pos + (int)ln;
@@ -490,7 +490,7 @@ namespace NDesk.DBus
 			GetValue (out ln);
 
 			//advance to the alignment of the element
-			ReadPad (Padding.GetAlignment (Signature.TypeToDType (type)));
+			ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 
 			int endPos = pos + (int)ln;
 
@@ -590,14 +590,14 @@ namespace NDesk.DBus
 		/*
 		public void ReadPad (int alignment)
 		{
-			pos = Padding.Padded (pos, alignment);
+			pos = Protocol.Padded (pos, alignment);
 		}
 		*/
 
 		public void ReadPad (int alignment)
 		{
 			//make sure the pos-1 is right for the exception message when we have a test suite
-			while (pos != Padding.Padded (pos, alignment))
+			while (pos != Protocol.Padded (pos, alignment))
 				if (data[pos++] != 0)
 					throw new Exception ("Read non-zero padding byte at pos " + (pos-1) + ", pad value was " + data[pos-1]);
 		}

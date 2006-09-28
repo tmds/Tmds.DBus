@@ -44,7 +44,7 @@ namespace NDesk.DBus
 
 		public void CloseWrite ()
 		{
-			int needed = Padding.PadNeeded ((int)stream.Position, 8);
+			int needed = Protocol.PadNeeded ((int)stream.Position, 8);
 			for (int i = 0 ; i != needed ; i++)
 				stream.WriteByte (0);
 		}
@@ -271,7 +271,7 @@ namespace NDesk.DBus
 			long lengthPos = stream.Position - 4;
 
 			//advance to the alignment of the element
-			WritePad (Padding.GetAlignment (Signature.TypeToDType (type)));
+			WritePad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 
 			long startPos = stream.Position;
 
@@ -292,7 +292,7 @@ namespace NDesk.DBus
 			long lengthPos = stream.Position - 4;
 
 			//advance to the alignment of the element
-			//WritePad (Padding.GetAlignment (Signature.TypeToDType (type)));
+			//WritePad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 			WritePad (8);
 
 			long startPos = stream.Position;
@@ -350,7 +350,7 @@ namespace NDesk.DBus
 		//RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider ();
 		public void WritePad (int alignment)
 		{
-			stream.Position = Padding.Padded ((int)stream.Position, alignment);
+			stream.Position = Protocol.Padded ((int)stream.Position, alignment);
 		}
 	}
 }

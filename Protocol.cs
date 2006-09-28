@@ -150,7 +150,7 @@ namespace NDesk.DBus
 		}
 	}
 
-	public static class Padding
+	public static class Protocol
 	{
 		public static int PadNeeded (int pos, int alignment)
 		{

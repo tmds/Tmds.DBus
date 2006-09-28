@@ -375,7 +375,8 @@ namespace NDesk.DBus
 
 			} else {
 				//TODO: how should we handle this condition? sending an Error may not be appropriate in this case
-				Console.Error.WriteLine ("Warning: No signal handler for " + signal.Member);
+				if (Protocol.Verbose)
+					Console.Error.WriteLine ("Warning: No signal handler for " + signal.Member);
 			}
 		}
 
@@ -496,9 +497,11 @@ namespace NDesk.DBus
 					//TODO: complete exception sending support
 					//TODO: method not found etc. exceptions
 					Exception ie = e.InnerException;
-					Console.Error.WriteLine ();
-					Console.Error.WriteLine (ie);
-					Console.Error.WriteLine ();
+					if (Protocol.Verbose) {
+						Console.Error.WriteLine ();
+						Console.Error.WriteLine (ie);
+						Console.Error.WriteLine ();
+					}
 
 					if (!method_call.message.ReplyExpected) {
 						Console.Error.WriteLine ();

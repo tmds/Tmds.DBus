@@ -215,6 +215,14 @@ namespace NDesk.DBus
 					throw new Exception ("Cannot determine alignment of " + dtype);
 			}
 		}
+
+		//this class may not be the best place for Verbose
+		public readonly static bool Verbose;
+
+		static Protocol ()
+		{
+			Verbose = !String.IsNullOrEmpty (Environment.GetEnvironmentVariable ("DBUS_VERBOSE"));
+		}
 	}
 
 #if UNDOCUMENTED_IN_SPEC

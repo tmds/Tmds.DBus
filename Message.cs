@@ -17,7 +17,7 @@ namespace NDesk.DBus
 			Header.MessageType = MessageType.MethodCall;
 			//hdr->Flags = HeaderFlag.None;
 			Header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
-			Header.MajorVersion = 1;
+			Header.MajorVersion = Protocol.Version;
 			Header.Length = 0;
 			//Header.Serial = conn.GenerateSerial ();
 			Header.Fields = new Dictionary<FieldCode,object> ();

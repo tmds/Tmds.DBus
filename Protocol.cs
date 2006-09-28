@@ -152,6 +152,11 @@ namespace NDesk.DBus
 
 	public static class Protocol
 	{
+		//protocol versions that we support
+		public const byte MinVersion = 0;
+		public const byte Version = 1;
+		public const byte MaxVersion = 1;
+
 		public static int PadNeeded (int pos, int alignment)
 		{
 			int pad = pos % alignment;

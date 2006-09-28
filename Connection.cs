@@ -98,7 +98,7 @@ namespace NDesk.DBus
 
 		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint
 		protected int serial = 0;
-		public uint GenerateSerial ()
+		protected uint GenerateSerial ()
 		{
 			//return ++serial;
 			return (uint)System.Threading.Interlocked.Increment (ref serial);
@@ -346,11 +346,11 @@ namespace NDesk.DBus
 			}
 		}
 
-		public Dictionary<uint,Message> PendingCalls = new Dictionary<uint,Message> ();
+		protected Dictionary<uint,Message> PendingCalls = new Dictionary<uint,Message> ();
 
 
 		//this might need reworking with MulticastDelegate
-		public void HandleSignal (Message msg)
+		protected void HandleSignal (Message msg)
 		{
 			Signal signal = new Signal (msg);
 
@@ -427,7 +427,7 @@ namespace NDesk.DBus
 		}
 
 		//not particularly efficient and needs to be generalized
-		public void HandleMethodCall (MethodCall method_call)
+		protected void HandleMethodCall (MethodCall method_call)
 		{
 			//Console.Error.WriteLine ("method_call destination: " + method_call.Destination);
 			//Console.Error.WriteLine ("method_call path: " + method_call.Path);
@@ -541,7 +541,7 @@ namespace NDesk.DBus
 
 		//GetDynamicValues() should probably use yield eventually
 
-		public object[] GetDynamicValues (Message msg, ParameterInfo[] parms)
+		protected object[] GetDynamicValues (Message msg, ParameterInfo[] parms)
 		{
 			//TODO: consider out parameters
 
@@ -623,7 +623,7 @@ namespace NDesk.DBus
 		}
 
 		//public static Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
-		public Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
+		protected Delegate GetHookupDelegate (EventInfo ei, string bus_name, ObjectPath path)
 		{
 			//this is just the start of il generation work
 

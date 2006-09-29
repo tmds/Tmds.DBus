@@ -63,7 +63,6 @@ namespace NDesk.DBus
 		}
 
 		//protected org.freedesktop.DBus.Bus bus_proxy;
-		protected string unique_name;
 		protected IBus bus;
 
 		static readonly string DBusName = "org.freedesktop.DBus";
@@ -86,12 +85,10 @@ namespace NDesk.DBus
 			unique_name = bus.Hello ();
 		}
 
-		public string UniqueName
+		public override string UniqueName
 		{
 			get {
 				return unique_name;
-			} set {
-				unique_name = value;
 			}
 		}
 

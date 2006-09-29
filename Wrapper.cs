@@ -80,7 +80,7 @@ namespace NDesk.DBus
 		public MethodReturn (uint reply_serial)
 		{
 			message.Header.MessageType = MessageType.MethodReturn;
-			message.ReplyExpected = false;
+			message.Header.Flags = HeaderFlag.NoReplyExpected | HeaderFlag.NoAutoStart;
 			message.Header.Fields[FieldCode.ReplySerial] = reply_serial;
 			//signature optional?
 			//message.Header.Fields[FieldCode.Signature] = signature;
@@ -102,7 +102,7 @@ namespace NDesk.DBus
 		public Error (string error_name, uint reply_serial)
 		{
 			message.Header.MessageType = MessageType.Error;
-			message.ReplyExpected = false;
+			message.Header.Flags = HeaderFlag.NoReplyExpected | HeaderFlag.NoAutoStart;
 			message.Header.Fields[FieldCode.ErrorName] = error_name;
 			message.Header.Fields[FieldCode.ReplySerial] = reply_serial;
 		}
@@ -127,7 +127,7 @@ namespace NDesk.DBus
 		public Signal (ObjectPath path, string @interface, string member)
 		{
 			message.Header.MessageType = MessageType.Signal;
-			message.ReplyExpected = false;
+			message.Header.Flags = HeaderFlag.NoReplyExpected | HeaderFlag.NoAutoStart;
 			message.Header.Fields[FieldCode.Path] = path;
 			message.Header.Fields[FieldCode.Interface] = @interface;
 			message.Header.Fields[FieldCode.Member] = member;

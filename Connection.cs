@@ -7,6 +7,8 @@ using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
 
+using System.Threading;
+
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -101,7 +103,7 @@ namespace NDesk.DBus
 		protected uint GenerateSerial ()
 		{
 			//return ++serial;
-			return (uint)System.Threading.Interlocked.Increment (ref serial);
+			return (uint)Interlocked.Increment (ref serial);
 		}
 
 
@@ -140,6 +142,8 @@ namespace NDesk.DBus
 		//could be cleaner
 		protected void WriteMessage (Message msg)
 		{
+			//Monitor.Enter (ns);
+
 			//ns.Write (msg.HeaderData, 0, msg.HeaderSize);
 			//Console.WriteLine ("headerSize: " + msg.HeaderSize);
 			//Console.WriteLine ("headerLength: " + msg.HeaderData.Length);
@@ -149,6 +153,8 @@ namespace NDesk.DBus
 				ns.Write (msg.Body, 0, msg.Body.Length);
 				//msg.Body.WriteTo (ns);
 			}
+
+			//Monitor.Exit (ns);
 		}
 
 		/*
@@ -199,6 +205,8 @@ namespace NDesk.DBus
 
 		public Message ReadMessage ()
 		{
+			//Monitor.Enter (ns);
+
 			//FIXME: fix reading algorithm to work in one step
 			//this code is a bit silly and inefficient
 			//hopefully it's at least correct and avoids polls for now
@@ -265,6 +273,8 @@ namespace NDesk.DBus
 				//msg.Body = new MemoryStream (body);
 				msg.Body = body;
 			}
+
+			//Monitor.Exit (ns);
 
 			//this needn't be done here
 			msg.ParseHeader ();

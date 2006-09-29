@@ -239,6 +239,9 @@ namespace NDesk.DBus
 				if (version != Protocol.Version)
 					Console.Error.WriteLine ("Warning: Protocol version '" + version.ToString () + "' is not explicitly supported but may be compatible");
 
+			//TODO: remove this limitation
+			if (BitConverter.ToUInt32 (buf, 4) > Int32.MaxValue || BitConverter.ToUInt32 (buf, 12) > Int32.MaxValue)
+				throw new NotImplementedException ("Long messages are not yet supported");
 
 			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
 			toRead = (int)BitConverter.ToUInt32 (buf, 12);

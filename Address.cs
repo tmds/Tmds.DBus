@@ -42,7 +42,7 @@ namespace NDesk.DBus
 		}
 
 		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";
-		public static string SystemBus
+		public static string System
 		{
 			get {
 				string addr = Environment.GetEnvironmentVariable ("DBUS_SYSTEM_BUS_ADDRESS");
@@ -54,7 +54,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		public static string SessionBus
+		public static string Session
 		{
 			get {
 				return Environment.GetEnvironmentVariable ("DBUS_SESSION_BUS_ADDRESS");

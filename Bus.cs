@@ -11,22 +11,22 @@ namespace NDesk.DBus
 	public class Bus : Connection
 	{
 		protected static Bus systemBus = null;
-		public static Bus SystemBus
+		public static Bus System
 		{
 			get {
 				if (systemBus == null)
-					systemBus = Bus.Open (Address.SystemBus);
+					systemBus = Bus.Open (Address.System);
 
 				return systemBus;
 			}
 		}
 
 		protected static Bus sessionBus = null;
-		public static Bus SessionBus
+		public static Bus Session
 		{
 			get {
 				if (sessionBus == null)
-					sessionBus = Bus.Open (Address.SessionBus);
+					sessionBus = Bus.Open (Address.Session);
 
 				return sessionBus;
 			}
@@ -44,7 +44,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		//public static readonly Bus SessionBus = null;
+		//public static readonly Bus Session = null;
 
 		//TODO: use the guid, not the whole address string
 		//TODO: consider what happens when a connection has been closed

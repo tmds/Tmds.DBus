@@ -381,7 +381,10 @@ namespace NDesk.DBus
 						MessageReader reader = new MessageReader (msg);
 						reader.GetValue (out errMsg);
 					}
-					throw new Exception ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
+					//throw new Exception ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
+					//if (Protocol.Verbose)
+					Console.Error.WriteLine ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
+					break;
 				case MessageType.Signal:
 					HandleSignal (msg);
 					break;

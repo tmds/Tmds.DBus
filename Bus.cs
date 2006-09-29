@@ -129,23 +129,5 @@ namespace NDesk.DBus
 			bus.RemoveMatch (rule);
 			Iterate ();
 		}
-
-		/*
-		protected abstract string Hello ();
-
-		protected abstract uint GetConnectionUnixUser (string connection_name);
-
-		public abstract NameReply RequestName (string name, NameFlag flags);
-
-		public abstract ReleaseNameReply ReleaseName (string name);
-
-		public abstract bool NameHasOwner (string name);
-
-		public abstract StartReply StartServiceByName (string name, uint flags);
-
-		public abstract void AddMatch (string rule);
-
-		public abstract void RemoveMatch (string rule);
-		*/
 	}
 }

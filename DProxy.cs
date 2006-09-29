@@ -112,8 +112,6 @@ namespace NDesk.DBus
 				}
 			}
 
-			bool needsReply = true;
-
 			MethodInfo mi = newRet.MethodBase as MethodInfo;
 
 			//TODO: complete out parameter support
@@ -123,8 +121,16 @@ namespace NDesk.DBus
 			if (outParmSig != Signature.Empty)
 				throw new Exception ("Out parameters not yet supported: out_signature='" + outParmSig.Value + "'");
 
-			if (mi.ReturnType == typeof (void))
-				needsReply = false;
+			Type[] outTypes = new Type[1];
+			outTypes[0] = mi.ReturnType;
+
+			//we default to always requiring replies for now, even though unnecessary
+			//this is to make sure errors are handled synchronously
+			//TODO: don't hard code this
+			bool needsReply = true;
+
+			//if (mi.ReturnType == typeof (void))
+			//	needsReply = false;
 
 			callMsg.ReplyExpected = needsReply;
 			callMsg.Signature = inSig;
@@ -133,9 +139,6 @@ namespace NDesk.DBus
 				conn.Send (callMsg);
 				return (IMethodReturnMessage) newRet;
 			}
-
-			Type[] outTypes = new Type[1];
-			outTypes[0] = mi.ReturnType;
 
 #if PROTO_REPLY_SIGNATURE
 			if (needsReply) {
@@ -158,7 +161,9 @@ namespace NDesk.DBus
 				Exception e = new Exception (error.ErrorName + ": " + errMsg);
 				newRet.Exception = e;
 			} else if (retMsg.Header.MessageType == MessageType.MethodReturn) {
-				newRet.ReturnValue = Connection.GetDynamicValues (retMsg, outTypes)[0];
+				object[] retVals = Connection.GetDynamicValues (retMsg, outTypes);
+				if (retVals.Length != 0)
+					newRet.ReturnValue = retVals[retVals.Length - 1];
 			} else {
 				//should not be possible to reach this at present
 				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn");

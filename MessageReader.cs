@@ -47,6 +47,11 @@ namespace NDesk.DBus
 
 		public void GetValue (Type type, out object val)
 		{
+			if (type == typeof (void)) {
+				val = null;
+				return;
+			}
+
 			if (type.IsArray) {
 				Array valArr;
 				GetValue (type, out valArr);

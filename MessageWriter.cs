@@ -135,6 +135,9 @@ namespace NDesk.DBus
 
 		public void Write (Type type, object val)
 		{
+			if (type == typeof (void))
+				return;
+
 			if (type.IsArray) {
 				Write (type, (Array)val);
 			} else if (type == typeof (ObjectPath)) {

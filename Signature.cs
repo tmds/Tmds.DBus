@@ -373,6 +373,8 @@ namespace NDesk.DBus
 				return new Signature (DType.Signature);
 			if (type == typeof (ObjectPath))
 				return new Signature (DType.ObjectPath);
+			if (type == typeof (void))
+				return Signature.Empty;
 
 			MemoryStream ms = new MemoryStream ();
 

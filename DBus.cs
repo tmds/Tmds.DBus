@@ -86,7 +86,7 @@ namespace org.freedesktop.DBus
 	}
 
 	[Interface ("org.freedesktop.DBus")]
-	public interface Bus : Introspectable
+	public interface IBus : Introspectable
 	{
 		NameReply RequestName (string name, NameFlag flags);
 		ReleaseNameReply ReleaseName (string name);

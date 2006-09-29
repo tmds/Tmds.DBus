@@ -49,13 +49,7 @@ namespace NDesk.DBus
 						conn.Handlers[matchRule] = Delegate.Combine (conn.Handlers[matchRule], dlg);
 					else {
 						conn.Handlers[matchRule] = dlg;
-
-						//inelegant
-						if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
-							org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-							bus.AddMatch (matchRule);
-							conn.Iterate ();
-						}
+						conn.AddMatch (matchRule);
 					}
 
 					return (IMethodReturnMessage) newRet;
@@ -71,14 +65,8 @@ namespace NDesk.DBus
 
 					conn.Handlers[matchRule] = Delegate.Remove (conn.Handlers[matchRule], dlg);
 
-					if (conn.Handlers[matchRule] == null) {
-						//inelegant
-						if (bus_name != "org.freedesktop.DBus" || object_path.Value != "/org/freedesktop/DBus" || ename != "NameAcquired") {
-							org.freedesktop.DBus.Bus bus = conn.GetObject<org.freedesktop.DBus.Bus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-							bus.RemoveMatch (matchRule);
-							conn.Iterate ();
-						}
-					}
+					if (conn.Handlers[matchRule] == null)
+						conn.RemoveMatch (matchRule);
 
 					return (IMethodReturnMessage) newRet;
 				}

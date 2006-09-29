@@ -40,6 +40,12 @@ namespace NDesk.DBus
 		{
 		}
 
+		public Connection (string address)
+		{
+			OpenPrivate (address);
+			Authenticate ();
+		}
+
 		protected bool isConnected = false;
 		public bool IsConnected
 		{
@@ -777,6 +783,15 @@ namespace NDesk.DBus
 			}
 
 			Send (signal.message);
+		}
+
+		//these look out of place, but are useful
+		public virtual void AddMatch (string rule)
+		{
+		}
+
+		public virtual void RemoveMatch (string rule)
+		{
 		}
 
 		static Connection ()

@@ -48,6 +48,29 @@ namespace NDesk.DBus
 			}
 		}
 
+		/*
+		//we can do connection sharing here, but its usefulness has been questioned
+		//idea: use the guid, not the whole address string
+		//idea: consider what happens when a connection has been closed
+		protected static Dictionary<string,Connection> connections = new Dictionary<string,Connection> ();
+
+		public static Connection Open (string address)
+		{
+			lock (connections) {
+				if (connections.ContainsKey (address))
+					return connections[address];
+
+				Connection conn = new Connection ();
+				conn.OpenPrivate (address);
+				connections[address] = conn;
+				//authentication is slow and shouldn't lock all other Opens as it does here!
+				conn.Authenticate ();
+
+				return conn;
+			}
+		}
+		*/
+
 		public static Connection Open (string address)
 		{
 			Connection conn = new Connection ();

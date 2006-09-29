@@ -173,6 +173,13 @@ namespace NDesk.DBus
 			throw new System.NotImplementedException ();
 		}
 		*/
+
+		~DProxy ()
+		{
+			//FIXME: remove handlers/match rules here
+			if (Protocol.Verbose)
+				Console.Error.WriteLine ("Warning: Finalization of " + object_path + " not yet supported");
+		}
 	}
 
 	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]

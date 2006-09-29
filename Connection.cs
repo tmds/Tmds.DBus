@@ -132,6 +132,7 @@ namespace NDesk.DBus
 			uint id = SendWithReply (msg);
 
 			Message retMsg = WaitForReplyTo (id);
+			DispatchSignals ();
 
 			return retMsg;
 		}
@@ -175,8 +176,8 @@ namespace NDesk.DBus
 			//Monitor.Exit (ns);
 		}
 
-		/*
 		protected Queue<Message> Inbound = new Queue<Message> ();
+		/*
 		protected Queue<Message> Outbound = new Queue<Message> ();
 
 		public void Flush ()
@@ -335,14 +336,28 @@ namespace NDesk.DBus
 						break;
 					case MessageType.Signal:
 						//Signal signal = new Signal (msg);
-						HandleSignal (msg);
+						//HandleSignal (msg);
+						lock (Inbound)
+							Inbound.Enqueue (msg);
 						break;
 				}
+
 			}
 
 			return null;
 		}
 
+
+		//temporary hack
+		protected void DispatchSignals ()
+		{
+			lock (Inbound) {
+				while (Inbound.Count != 0) {
+					Message msg = Inbound.Dequeue ();
+					HandleSignal (msg);
+				}
+			}
+		}
 
 		//temporary hack
 		public void Iterate ()
@@ -381,12 +396,16 @@ namespace NDesk.DBus
 					Console.Error.WriteLine ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
 					break;
 				case MessageType.Signal:
-					HandleSignal (msg);
+					//HandleSignal (msg);
+					lock (Inbound)
+						Inbound.Enqueue (msg);
 					break;
 				case MessageType.Invalid:
 				default:
 					throw new Exception ("Invalid message received: MessageType='" + msg.Header.MessageType + "'");
 			}
+
+			DispatchSignals ();
 		}
 
 		protected Dictionary<uint,Message> PendingCalls = new Dictionary<uint,Message> ();

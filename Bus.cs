@@ -10,25 +10,37 @@ namespace NDesk.DBus
 {
 	public class Bus : Connection
 	{
+		protected static Bus systemBus = null;
 		public static Bus SystemBus
 		{
 			get {
-				return Bus.Open (Address.SystemBus);
+				if (systemBus == null)
+					systemBus = Bus.Open (Address.SystemBus);
+
+				return systemBus;
 			}
 		}
 
+		protected static Bus sessionBus = null;
 		public static Bus SessionBus
 		{
 			get {
-				return Bus.Open (Address.SessionBus);
+				if (sessionBus == null)
+					sessionBus = Bus.Open (Address.SessionBus);
+
+				return sessionBus;
 			}
 		}
 
 		//TODO: parsing of starter bus type, or maybe do this another way
+		protected static Bus starterBus = null;
 		public static Bus Starter
 		{
 			get {
-				return Bus.Open (Address.Starter);
+				if(starterBus == null)
+					starterBus = Bus.Open (Address.Starter);
+
+				return starterBus;
 			}
 		}
 

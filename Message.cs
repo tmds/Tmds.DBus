@@ -41,19 +41,15 @@ namespace NDesk.DBus
 			}
 		}
 
-		//FIXME: hacked to work for the common cases since bit logic is broken
 		public bool ReplyExpected
 		{
 			get {
-				//return (Header.Flags & HeaderFlag.NoReplyExpected) != HeaderFlag.NoReplyExpected;
-				return (Header.Flags != HeaderFlag.NoReplyExpected);
+				return (Header.Flags & HeaderFlag.NoReplyExpected) == HeaderFlag.None;
 			} set {
 				if (value)
-					//Header.Flags &= ~HeaderFlag.NoReplyExpected; //flag off
-					Header.Flags = HeaderFlag.None; //flag off
+					Header.Flags &= ~HeaderFlag.NoReplyExpected; //flag off
 				else
-					//Header.Flags |= ~HeaderFlag.NoReplyExpected; //flag on
-					Header.Flags = HeaderFlag.NoReplyExpected; //flag on
+					Header.Flags |= HeaderFlag.NoReplyExpected; //flag on
 			}
 		}
 

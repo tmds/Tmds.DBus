@@ -453,7 +453,7 @@ namespace NDesk.DBus
 				replyMsg.Body = writer.ToArray ();
 			}
 
-			//temporary hack to make p2p work, maybe we should always send the Destination?
+			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
 			if (method_call.Sender != null)
 				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
 
@@ -478,7 +478,7 @@ namespace NDesk.DBus
 				replyMsg.Body = writer.ToArray ();
 			}
 
-			//temporary hack to make p2p work, maybe we should always send the Destination?
+			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
 			if (method_call.Sender != null)
 				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
 
@@ -541,6 +541,15 @@ namespace NDesk.DBus
 
 				//FIXME: breaks for overloaded methods
 				MethodInfo mi = type.GetMethod (methodName, BindingFlags.Public | BindingFlags.Instance);
+
+				//TODO: send errors instead of passing up local exceptions for these
+
+				if (mi == null)
+					throw new Exception ("The requested method could not be resolved");
+
+				if (!Mapper.IsPublic (mi))
+					throw new Exception ("The resolved method is not marked as being public on this bus");
+
 				object retObj = null;
 			 	try {
 					retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, mi.GetParameters ()));
@@ -570,6 +579,7 @@ namespace NDesk.DBus
 					writer.Write (ie.Message);
 					error.message.Body = writer.ToArray ();
 
+					//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
 					if (method_call.Sender != null)
 						error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
 

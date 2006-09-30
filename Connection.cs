@@ -435,60 +435,6 @@ namespace NDesk.DBus
 
 		public Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
 
-		//should generalize this method
-		//it is duplicated in DProxy
-		protected static Message ConstructReplyFor (MethodCall method_call, object[] vals)
-		{
-			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
-			Message replyMsg = method_return.message;
-
-			Signature inSig = Signature.GetSig (vals);
-
-			if (vals != null && vals.Length != 0) {
-				MessageWriter writer = new MessageWriter ();
-
-				foreach (object arg in vals)
-					writer.Write (arg.GetType (), arg);
-
-				replyMsg.Body = writer.ToArray ();
-			}
-
-			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
-			if (method_call.Sender != null)
-				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
-
-			replyMsg.Signature = inSig;
-
-			//replyMsg.WriteHeader ();
-
-			return replyMsg;
-		}
-
-		//TODO: merge this with the above method
-		protected static Message ConstructReplyFor (MethodCall method_call, Type retType, object retVal)
-		{
-			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
-			Message replyMsg = method_return.message;
-
-			Signature inSig = Signature.GetSig (retType);
-
-			if (inSig != Signature.Empty) {
-				MessageWriter writer = new MessageWriter ();
-				writer.Write (retType, retVal);
-				replyMsg.Body = writer.ToArray ();
-			}
-
-			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
-			if (method_call.Sender != null)
-				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
-
-			replyMsg.Signature = inSig;
-
-			//replyMsg.WriteHeader ();
-
-			return replyMsg;
-		}
-
 		//not particularly efficient and needs to be generalized
 		protected void HandleMethodCall (MethodCall method_call)
 		{
@@ -499,7 +445,7 @@ namespace NDesk.DBus
 
 			if (method_call.Interface == "org.freedesktop.DBus.Peer" && method_call.Member == "Ping") {
 				object[] pingRet = new object[0];
-				Message reply = ConstructReplyFor (method_call, pingRet);
+				Message reply = MessageHelper.ConstructReplyFor (method_call, pingRet);
 				Send (reply);
 				return;
 			}
@@ -519,7 +465,7 @@ namespace NDesk.DBus
 
 				object[] introRet = new object[1];
 				introRet[0] = intro.xml;
-				Message reply = ConstructReplyFor (method_call, introRet);
+				Message reply = MessageHelper.ConstructReplyFor (method_call, introRet);
 				Send (reply);
 				return;
 			}
@@ -604,7 +550,7 @@ namespace NDesk.DBus
 
 					Message reply = ConstructReplyFor (method_call, retObjs);
 					*/
-					Message reply = ConstructReplyFor (method_call, mi.ReturnType, retObj);
+					Message reply = MessageHelper.ConstructReplyFor (method_call, mi.ReturnType, retObj);
 					Send (reply);
 				}
 			} else {
@@ -826,6 +772,62 @@ namespace NDesk.DBus
 			return vals.ToArray ();
 		}
 		*/
+
+		//should generalize this method
+		//it is duplicated in DProxy
+		public static Message ConstructReplyFor (MethodCall method_call, object[] vals)
+		{
+			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
+			Message replyMsg = method_return.message;
+
+			Signature inSig = Signature.GetSig (vals);
+
+			if (vals != null && vals.Length != 0) {
+				MessageWriter writer = new MessageWriter ();
+
+				foreach (object arg in vals)
+					writer.Write (arg.GetType (), arg);
+
+				replyMsg.Body = writer.ToArray ();
+			}
+
+			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
+			if (method_call.Sender != null)
+				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+			replyMsg.Signature = inSig;
+
+			//replyMsg.WriteHeader ();
+
+			return replyMsg;
+		}
+
+		//TODO: merge this with the above method
+		public static Message ConstructReplyFor (MethodCall method_call, Type retType, object retVal)
+		{
+			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
+			Message replyMsg = method_return.message;
+
+			Signature inSig = Signature.GetSig (retType);
+
+			if (inSig != Signature.Empty) {
+				MessageWriter writer = new MessageWriter ();
+				writer.Write (retType, retVal);
+				replyMsg.Body = writer.ToArray ();
+			}
+
+			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
+			if (method_call.Sender != null)
+				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+			replyMsg.Signature = inSig;
+
+			//replyMsg.WriteHeader ();
+
+			return replyMsg;
+		}
+
+
 	}
 
 	public static class Mapper

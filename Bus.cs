@@ -120,7 +120,7 @@ namespace NDesk.DBus
 
 		public StartReply StartServiceByName (string name)
 		{
-			return StartServiceByName (name);
+			return StartServiceByName (name, 0);
 		}
 
 		public StartReply StartServiceByName (string name, uint flags)

@@ -533,13 +533,13 @@ namespace NDesk.DBus
 				Type[] sig = new Type[parms.Length];
 				for (int i = 0 ; i != parms.Length ; i++)
 					sig[i] = parms[i].ParameterType;
-				object retObj = ci.Invoke (null, GetDynamicValues (msg, sig));
+				object retObj = ci.Invoke (null, MessageHelper.GetDynamicValues (msg, sig));
 				*/
 
-				//TODO: use GetDynamicValues() when it's refactored to be applicable
+				//TODO: use MessageHelper.GetDynamicValues() when it's refactored to be applicable
 				/*
 				object[] vals;
-				vals = GetDynamicValues (msg, parms);
+				vals = MessageHelper.GetDynamicValues (msg, parms);
 				*/
 
 				List<object> vals = new List<object> (parms.Length);

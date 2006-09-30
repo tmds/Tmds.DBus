@@ -424,7 +424,7 @@ namespace NDesk.DBus
 
 				MethodInfo mi = dlg.Method;
 				//signals have no return value
-				dlg.DynamicInvoke (GetDynamicValues (msg, mi.GetParameters ()));
+				dlg.DynamicInvoke (MessageHelper.GetDynamicValues (msg, mi.GetParameters ()));
 
 			} else {
 				//TODO: how should we handle this condition? sending an Error may not be appropriate in this case
@@ -527,7 +527,7 @@ namespace NDesk.DBus
 			if (RegisteredObjects.ContainsKey (method_call.Path)) {
 				object obj = RegisteredObjects[method_call.Path];
 				Type type = obj.GetType ();
-				//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, GetDynamicValues (msg));
+				//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
 
 				string methodName = method_call.Member;
 
@@ -553,7 +553,7 @@ namespace NDesk.DBus
 
 				object retObj = null;
 			 	try {
-					retObj = mi.Invoke (obj, GetDynamicValues (method_call.message, mi.GetParameters ()));
+					retObj = mi.Invoke (obj, MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ()));
 				} catch (TargetInvocationException e) {
 					//TODO: consider whether it's correct to send an error for calls that don't expect a reply
 
@@ -614,56 +614,6 @@ namespace NDesk.DBus
 		}
 
 		protected Dictionary<ObjectPath,object> RegisteredObjects = new Dictionary<ObjectPath,object> ();
-
-		//GetDynamicValues() should probably use yield eventually
-
-		protected static object[] GetDynamicValues (Message msg, ParameterInfo[] parms)
-		{
-			//TODO: consider out parameters
-
-			Type[] types = new Type[parms.Length];
-			for (int i = 0 ; i != parms.Length ; i++)
-				types[i] = parms[i].ParameterType;
-
-			return GetDynamicValues (msg, types);
-		}
-
-		public static object[] GetDynamicValues (Message msg, Type[] types)
-		{
-			List<object> vals = new List<object> ();
-
-			if (msg.Body != null) {
-				MessageReader reader = new MessageReader (msg);
-
-				foreach (Type type in types) {
-					object arg;
-					reader.GetValue (type, out arg);
-					vals.Add (arg);
-				}
-			}
-
-			return vals.ToArray ();
-		}
-
-		/*
-		public static object[] GetDynamicValues (Message msg)
-		{
-			List<object> vals = new List<object> ();
-
-			if (msg.Body != null) {
-				MessageReader reader = new MessageReader (msg);
-
-				Signature sig = msg.Signature;
-				for (int i = 0 ; i != sig.Length ; i++) {
-					object arg;
-					reader.GetValue (sig[i], out arg);
-					vals.Add (arg);
-				}
-			}
-
-			return vals.ToArray ();
-		}
-		*/
 
 		//FIXME: this shouldn't be part of the core API
 		//that also applies to much of the other object mapping code
@@ -822,6 +772,60 @@ namespace NDesk.DBus
 		}
 
 		public static readonly EndianFlag NativeEndianness;
+	}
+
+	//TODO: this class is messy, move the methods somewhere more appropriate
+	public static class MessageHelper
+	{
+		//GetDynamicValues() should probably use yield eventually
+
+		public static object[] GetDynamicValues (Message msg, ParameterInfo[] parms)
+		{
+			//TODO: consider out parameters
+
+			Type[] types = new Type[parms.Length];
+			for (int i = 0 ; i != parms.Length ; i++)
+				types[i] = parms[i].ParameterType;
+
+			return MessageHelper.GetDynamicValues (msg, types);
+		}
+
+		public static object[] GetDynamicValues (Message msg, Type[] types)
+		{
+			List<object> vals = new List<object> ();
+
+			if (msg.Body != null) {
+				MessageReader reader = new MessageReader (msg);
+
+				foreach (Type type in types) {
+					object arg;
+					reader.GetValue (type, out arg);
+					vals.Add (arg);
+				}
+			}
+
+			return vals.ToArray ();
+		}
+
+		/*
+		public static object[] GetDynamicValues (Message msg)
+		{
+			List<object> vals = new List<object> ();
+
+			if (msg.Body != null) {
+				MessageReader reader = new MessageReader (msg);
+
+				Signature sig = msg.Signature;
+				for (int i = 0 ; i != sig.Length ; i++) {
+					object arg;
+					reader.GetValue (sig[i], out arg);
+					vals.Add (arg);
+				}
+			}
+
+			return vals.ToArray ();
+		}
+		*/
 	}
 
 	public static class Mapper

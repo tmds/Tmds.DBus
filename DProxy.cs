@@ -161,7 +161,7 @@ namespace NDesk.DBus
 				Exception e = new Exception (error.ErrorName + ": " + errMsg);
 				newRet.Exception = e;
 			} else if (retMsg.Header.MessageType == MessageType.MethodReturn) {
-				object[] retVals = Connection.GetDynamicValues (retMsg, outTypes);
+				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
 				if (retVals.Length != 0)
 					newRet.ReturnValue = retVals[retVals.Length - 1];
 			} else {

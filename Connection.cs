@@ -547,8 +547,9 @@ namespace NDesk.DBus
 				if (mi == null)
 					throw new Exception ("The requested method could not be resolved");
 
-				if (!Mapper.IsPublic (mi))
-					throw new Exception ("The resolved method is not marked as being public on this bus");
+				//FIXME: such a simple approach won't work unfortunately
+				//if (!Mapper.IsPublic (mi))
+				//	throw new Exception ("The resolved method is not marked as being public on this bus");
 
 				object retObj = null;
 			 	try {
@@ -854,10 +855,13 @@ namespace NDesk.DBus
 
 		public static bool IsPublic (Type type)
 		{
+			//we need to have a proper look at what's really public at some point
+			//this will do for now
+
 			if (type.IsDefined (typeof (InterfaceAttribute), false))
 				return true;
 
-			if (type.IsMarshalByRef)
+			if (type.IsSubclassOf (typeof (MarshalByRefObject)))
 				return true;
 
 			return false;

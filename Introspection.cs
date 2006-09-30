@@ -221,7 +221,7 @@ namespace NDesk.DBus
 				return;
 
 			//TODO: this is unreliable, fix it
-			if (!type.IsInterface && !type.IsSubclassOf (typeof (MarshalByRefObject)))
+			if (!Mapper.IsPublic (type))
 				return;
 
 			writer.WriteStartElement ("interface");

@@ -7,7 +7,11 @@ CLR_SOURCES=DBus.cs Introspection.cs DProxy.cs Signature.cs
 
 NDesk.DBus.dll: REFS=Mono.Posix
 
-NDesk.DBus.dll: CSFLAGS=-d:PROTO_REPLY_SIGNATURE
+#do not build in the expected reply extension by default
+
+#NDesk.DBus.dll: CSFLAGS=-d:PROTO_REPLY_SIGNATURE
+
+NDesk.DBus.dll:
 
 NDesk.DBus.dll: $(BUS_SOURCES) $(UNIX_SOURCES) $(CLR_SOURCES)
 

@@ -204,4 +204,26 @@ namespace NDesk.DBus
 			return replyMsg;
 		}
 	}
+
+	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]
+	public class InterfaceAttribute : Attribute
+	{
+		public string Name;
+
+		public InterfaceAttribute (string name)
+		{
+			this.Name = name;
+		}
+	}
+
+	[AttributeUsage (AttributeTargets.Parameter | AttributeTargets.ReturnValue, AllowMultiple=false, Inherited=true)]
+	public class ArgumentAttribute : Attribute
+	{
+		public string Name;
+
+		public ArgumentAttribute (string name)
+		{
+			this.Name = name;
+		}
+	}
 }

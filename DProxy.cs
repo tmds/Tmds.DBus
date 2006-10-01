@@ -52,39 +52,27 @@ namespace NDesk.DBus
 
 			MethodInfo mi = methodBase as MethodInfo;
 
-			if (mi != null && mi.IsSpecialName) {
-				if (methodName.StartsWith ("add_")) {
-					string[] parts = methodName.Split ('_');
-					string ename = parts[1];
-					Delegate dlg = (Delegate)inArgs[0];
+			if (mi != null && mi.IsSpecialName && (methodName.StartsWith ("add_") || methodName.StartsWith ("remove_"))) {
+				string[] parts = methodName.Split (new char[]{'_'}, 2);
+				string ename = parts[1];
+				Delegate dlg = (Delegate)inArgs[0];
+				string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (mi), ename);
 
-					string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (mi), ename);
-
+				if (parts[0] == "add") {
 					if (conn.Handlers.ContainsKey (matchRule))
 						conn.Handlers[matchRule] = Delegate.Combine (conn.Handlers[matchRule], dlg);
 					else {
 						conn.Handlers[matchRule] = dlg;
 						conn.AddMatch (matchRule);
 					}
-
-					return;
-				}
-
-				if (methodName.StartsWith ("remove_")) {
-					string[] parts = methodName.Split ('_');
-
-					string ename = parts[1];
-					string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (mi), ename);
-
-					Delegate dlg = (Delegate)inArgs[0];
-
+				} else if (parts[0] == "remove") {
 					conn.Handlers[matchRule] = Delegate.Remove (conn.Handlers[matchRule], dlg);
-
-					if (conn.Handlers[matchRule] == null)
+					if (conn.Handlers[matchRule] == null) {
 						conn.RemoveMatch (matchRule);
-
-					return;
+						conn.Handlers.Remove (matchRule);
+					}
 				}
+				return;
 			}
 
 			Type[] inTypes = Mapper.GetTypes (ArgDirection.In, mi.GetParameters ());

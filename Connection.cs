@@ -304,44 +304,18 @@ namespace NDesk.DBus
 			return msg;
 		}
 
-		//this is just a start
 		//needs to be done properly
 		public Message WaitForReplyTo (uint id)
 		{
 			//Message msg = Inbound.Dequeue ();
-
 			Message msg;
 
 			while ((msg = ReadMessage ()) != null) {
-				switch (msg.Header.MessageType) {
-					case MessageType.Invalid:
-						throw new Exception ("Invalid message received");
-					case MessageType.MethodCall:
-						MethodCall method_call = new MethodCall (msg);
-						HandleMethodCall (method_call);
-						break;
-					case MessageType.MethodReturn:
-						MethodReturn method_return = new MethodReturn (msg);
-						if (method_return.ReplySerial == id)
-							return msg;
-						//if the signature is empty, it's just a token return message
-						if (msg.Signature != Signature.Empty)
-							Console.Error.WriteLine ("Warning: While waiting for reply to " + id + ": Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial + " with signature '" + msg.Signature + "'");
-						break;
-					case MessageType.Error:
-						Error error = new Error (msg);
-						if (error.ReplySerial == id)
-							return msg;
-						Console.Error.WriteLine ("Warning: While waiting for reply to " + id + ": Couldn't handle async Error message for request id " + error.ReplySerial + " with signature '" + msg.Signature + "'");
-						break;
-					case MessageType.Signal:
-						//Signal signal = new Signal (msg);
-						//HandleSignal (msg);
-						lock (Inbound)
-							Inbound.Enqueue (msg);
-						break;
-				}
+				if (msg.Header.Fields.ContainsKey (FieldCode.ReplySerial))
+					if ((uint)msg.Header.Fields[FieldCode.ReplySerial] == id)
+						return msg;
 
+				HandleMessage (msg);
 			}
 
 			return null;
@@ -363,11 +337,13 @@ namespace NDesk.DBus
 		public void Iterate ()
 		{
 			//Message msg = Inbound.Dequeue ();
+			Message msg = ReadMessage ();
+			HandleMessage (msg);
+			DispatchSignals ();
+		}
 
-			Message msg;
-
-			msg = ReadMessage ();
-
+		protected void HandleMessage (Message msg)
+		{
 			switch (msg.Header.MessageType) {
 				case MessageType.MethodCall:
 					MethodCall method_call = new MethodCall (msg);
@@ -404,8 +380,6 @@ namespace NDesk.DBus
 				default:
 					throw new Exception ("Invalid message received: MessageType='" + msg.Header.MessageType + "'");
 			}
-
-			DispatchSignals ();
 		}
 
 		protected Dictionary<uint,Message> PendingCalls = new Dictionary<uint,Message> ();

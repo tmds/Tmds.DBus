@@ -28,22 +28,37 @@ namespace NDesk.DBus
 			this.object_path = object_path;
 		}
 
-		public override IMessage Invoke (IMessage msg)
+		public override IMessage Invoke (IMessage message)
 		{
-			IMethodCallMessage mcm = (IMethodCallMessage) msg;
+			IMethodCallMessage callMessage = (IMethodCallMessage) message;
 
-			MethodReturnMessageWrapper newRet = new MethodReturnMessageWrapper ((IMethodReturnMessage) msg);
+			object[] outArgs;
+			object retVal;
+			Exception exception;
+			Invoke (callMessage.MethodBase, callMessage.MethodName, callMessage.InArgs, out outArgs, out retVal, out exception);
 
-			MethodInfo imi = mcm.MethodBase as MethodInfo;
-			string methodName = mcm.MethodName;
+			MethodReturnMessageWrapper returnMessage = new MethodReturnMessageWrapper ((IMethodReturnMessage) message);
+			returnMessage.Exception = exception;
+			returnMessage.ReturnValue = retVal;
 
-			if (imi != null && imi.IsSpecialName) {
+			return returnMessage;
+		}
+
+		public void Invoke (MethodBase methodBase, string methodName, object[] inArgs, out object[] outArgs, out object retVal, out Exception exception)
+		{
+			outArgs = new object[0];
+			retVal = null;
+			exception = null;
+
+			MethodInfo mi = methodBase as MethodInfo;
+
+			if (mi != null && mi.IsSpecialName) {
 				if (methodName.StartsWith ("add_")) {
-					string[] parts = mcm.MethodName.Split ('_');
+					string[] parts = methodName.Split ('_');
 					string ename = parts[1];
-					Delegate dlg = (Delegate)mcm.InArgs[0];
+					Delegate dlg = (Delegate)inArgs[0];
 
-					string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename);
+					string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (mi), ename);
 
 					if (conn.Handlers.ContainsKey (matchRule))
 						conn.Handlers[matchRule] = Delegate.Combine (conn.Handlers[matchRule], dlg);
@@ -52,28 +67,27 @@ namespace NDesk.DBus
 						conn.AddMatch (matchRule);
 					}
 
-					return (IMethodReturnMessage) newRet;
+					return;
 				}
 
-				if (mcm.MethodName.StartsWith ("remove_")) {
-					string[] parts = mcm.MethodName.Split ('_');
+				if (methodName.StartsWith ("remove_")) {
+					string[] parts = methodName.Split ('_');
 
 					string ename = parts[1];
-					string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (imi), ename);
+					string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (mi), ename);
 
-					Delegate dlg = (Delegate)mcm.InArgs[0];
+					Delegate dlg = (Delegate)inArgs[0];
 
 					conn.Handlers[matchRule] = Delegate.Remove (conn.Handlers[matchRule], dlg);
 
 					if (conn.Handlers[matchRule] == null)
 						conn.RemoveMatch (matchRule);
 
-					return (IMethodReturnMessage) newRet;
+					return;
 				}
 			}
 
-			Type[] inTypes = Mapper.GetTypes (ArgDirection.In, imi.GetParameters ());
-			object[] inValues = mcm.InArgs;
+			Type[] inTypes = Mapper.GetTypes (ArgDirection.In, mi.GetParameters ());
 			Signature inSig = Signature.GetSig (inTypes);
 
 			MethodCall method_call;
@@ -83,13 +97,13 @@ namespace NDesk.DBus
 			{
 				//this bit is error-prone (no null checking) and will need rewriting when DProxy is replaced
 				string iface = null;
-				if (imi != null)
-					iface = Mapper.GetInterfaceName (imi);
+				if (mi != null)
+					iface = Mapper.GetInterfaceName (mi);
 
 				//map property accessors
 				//TODO: this needs to be done properly, not with simple String.Replace
 				//note that IsSpecialName is also for event accessors, but we already handled those and returned
-				if (imi != null && imi.IsSpecialName) {
+				if (mi != null && mi.IsSpecialName) {
 					methodName = methodName.Replace ("get_", "Get");
 					methodName = methodName.Replace ("set_", "Set");
 				}
@@ -102,17 +116,15 @@ namespace NDesk.DBus
 
 				callMsg = method_call.message;
 
-				if (mcm.InArgs != null && mcm.InArgs.Length != 0) {
+				if (inArgs != null && inArgs.Length != 0) {
 					MessageWriter writer = new MessageWriter ();
 
 					for (int i = 0 ; i != inTypes.Length ; i++)
-						writer.Write (inTypes[i], inValues[i]);
+						writer.Write (inTypes[i], inArgs[i]);
 
 					callMsg.Body = writer.ToArray ();
 				}
 			}
-
-			MethodInfo mi = newRet.MethodBase as MethodInfo;
 
 			//TODO: complete out parameter support
 			Type[] outParmTypes = Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ());
@@ -137,7 +149,7 @@ namespace NDesk.DBus
 
 			if (!needsReply) {
 				conn.Send (callMsg);
-				return (IMethodReturnMessage) newRet;
+				return;
 			}
 
 #if PROTO_REPLY_SIGNATURE
@@ -154,7 +166,7 @@ namespace NDesk.DBus
 				case MessageType.MethodReturn:
 				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
 				if (retVals.Length != 0)
-					newRet.ReturnValue = retVals[retVals.Length - 1];
+					retVal = retVals[retVals.Length - 1];
 				break;
 				case MessageType.Error:
 				//TODO: typed exceptions
@@ -164,14 +176,13 @@ namespace NDesk.DBus
 					MessageReader reader = new MessageReader (retMsg);
 					reader.GetValue (out errMsg);
 				}
-				Exception e = new Exception (error.ErrorName + ": " + errMsg);
-				newRet.Exception = e;
+				exception = new Exception (error.ErrorName + ": " + errMsg);
 				break;
 				default:
 				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
 			}
 
-			return (IMethodReturnMessage) newRet;
+			return;
 		}
 
 		/*

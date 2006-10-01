@@ -13,9 +13,9 @@ namespace NDesk.DBus
 	{
 		protected BusObject busObject;
 
-		public DProxy (Connection conn, string bus_name, ObjectPath object_path, Type type) : base(type)
+		public DProxy (BusObject busObject, Type type) : base(type)
 		{
-			this.busObject = new BusObject (conn, bus_name, object_path);
+			this.busObject = busObject;
 		}
 
 		public override IMessage Invoke (IMessage message)

@@ -539,15 +539,16 @@ namespace NDesk.DBus
 		//it should cache proxies and objects, really
 
 		//inspired by System.Activator
-		public object GetObject (Type type, string bus_name, ObjectPath object_path)
+		public object GetObject (Type type, string bus_name, ObjectPath path)
 		{
-			DProxy prox = new DProxy (this, bus_name, object_path, type);
+			BusObject busObject = new BusObject (this, bus_name, path);
+			DProxy prox = new DProxy (busObject, type);
 			return prox.GetTransparentProxy ();
 		}
 
-		public T GetObject<T> (string bus_name, ObjectPath object_path)
+		public T GetObject<T> (string bus_name, ObjectPath path)
 		{
-			return (T)GetObject (typeof (T), bus_name, object_path);
+			return (T)GetObject (typeof (T), bus_name, path);
 		}
 
 		public void Register (string bus_name, ObjectPath path, object obj)

@@ -44,6 +44,34 @@ namespace NDesk.DBus
 			}
 		}
 
+		//convenience method
+		public object InvokeMethod (MethodInfo methodInfo, params object[] inArgs)
+		{
+			//TODO: this ignores outArgs, doesn't wrap the exception etc.
+
+			object[] outArgs;
+			object retVal;
+			Exception exception;
+
+			Invoke (methodInfo, methodInfo.Name, inArgs, out outArgs, out retVal, out exception);
+
+			if (exception != null)
+				throw exception;
+
+			return retVal;
+		}
+
+		//this method is kept simple while IL generation support is worked on
+		public void Invoke (MethodInfo methodInfo, object[] inArgs)
+		{
+			//TODO: don't ignore retVal, exception etc.
+
+			object[] outArgs;
+			object retVal;
+			Exception exception;
+			Invoke (methodInfo, methodInfo.Name, inArgs, out outArgs, out retVal, out exception);
+		}
+
 		public void Invoke (MethodBase methodBase, string methodName, object[] inArgs, out object[] outArgs, out object retVal, out Exception exception)
 		{
 			outArgs = new object[0];

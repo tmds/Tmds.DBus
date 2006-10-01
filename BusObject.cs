@@ -4,6 +4,7 @@
 
 using System;
 using System.Reflection;
+using System.Reflection.Emit;
 
 namespace NDesk.DBus
 {
@@ -169,6 +170,74 @@ namespace NDesk.DBus
 			}
 
 			return;
+		}
+
+		public Delegate GetHookupDelegate (EventInfo ei)
+		{
+			//this is just the start of il generation work
+
+			//Console.Error.WriteLine (ei.Name);
+
+			if (ei.EventHandlerType.IsAssignableFrom (typeof (System.EventHandler)))
+				Console.Error.WriteLine ("Warning: Cannot yet fully marshal EventHandler and its subclasses: " + ei.EventHandlerType);
+
+			MethodInfo invokeMethod = ei.EventHandlerType.GetMethod ("Invoke");
+			ParameterInfo[] delegateParms = invokeMethod.GetParameters ();
+			Type[] hookupParms = new Type[delegateParms.Length+1];
+			hookupParms[0] = typeof (Connection);
+			for (int i = 0; i < delegateParms.Length ; i++)
+				hookupParms[i+1] = delegateParms[i].ParameterType;
+
+			DynamicMethod hookupMethod = new DynamicMethod ("Handle" + ei.Name, typeof (void), hookupParms, typeof (object));
+			ILGenerator ilg = hookupMethod.GetILGenerator ();
+
+			//the Connection instance
+			ilg.Emit (OpCodes.Ldarg_0);
+
+			//bus_name
+			ilg.Emit (OpCodes.Ldstr, bus_name);
+
+			//object_path
+			//TODO: make this an ObjectPath struct rather than a string?
+			ilg.Emit (OpCodes.Ldstr, object_path.Value);
+
+			//MethodInfo
+			ilg.Emit (OpCodes.Ldtoken, invokeMethod);
+			ilg.Emit (OpCodes.Call, typeof (MethodBase).GetMethod ("GetMethodFromHandle"));
+
+			//interface
+			ilg.Emit (OpCodes.Ldstr, Mapper.GetInterfaceName (ei));
+
+			//member
+			ilg.Emit (OpCodes.Ldstr, ei.Name);
+
+			LocalBuilder local = ilg.DeclareLocal (typeof (object[]));
+			ilg.Emit (OpCodes.Ldc_I4, hookupParms.Length - 1);
+			ilg.Emit (OpCodes.Newarr, typeof (object));
+			ilg.Emit (OpCodes.Stloc, local);
+
+			//offset by one because arg0 is the instance of the delegate
+			for (int i = 1 ; i < hookupParms.Length ; i++)
+			{
+				Type t = hookupParms[i];
+
+				ilg.Emit (OpCodes.Ldloc, local);
+				//the delegate instance offset requires a -1 here
+				ilg.Emit (OpCodes.Ldc_I4, i-1);
+				ilg.Emit (OpCodes.Ldarg, i);
+				if (t.IsValueType)
+					ilg.Emit (OpCodes.Box, t);
+				ilg.Emit (OpCodes.Stelem_Ref);
+			}
+
+			ilg.Emit (OpCodes.Ldloc, local);
+			ilg.Emit (OpCodes.Call, typeof (Connection).GetMethod ("InvokeSignal"));
+
+			//void return
+			ilg.Emit (OpCodes.Ret);
+
+			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, conn);
+			return d;
 		}
 	}
 }

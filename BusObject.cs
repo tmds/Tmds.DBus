@@ -9,6 +9,7 @@ using System.Reflection.Emit;
 namespace NDesk.DBus
 {
 	//marked internal because this isn't ready for public use yet
+	//it probably needs to be made into a base and import/export subclasses
 	internal class BusObject
 	{
 		Connection conn;
@@ -174,10 +175,6 @@ namespace NDesk.DBus
 
 		public Delegate GetHookupDelegate (EventInfo ei)
 		{
-			//this is just the start of il generation work
-
-			//Console.Error.WriteLine (ei.Name);
-
 			if (ei.EventHandlerType.IsAssignableFrom (typeof (System.EventHandler)))
 				Console.Error.WriteLine ("Warning: Cannot yet fully marshal EventHandler and its subclasses: " + ei.EventHandlerType);
 
@@ -191,15 +188,8 @@ namespace NDesk.DBus
 			DynamicMethod hookupMethod = new DynamicMethod ("Handle" + ei.Name, typeof (void), hookupParms, typeof (object));
 			ILGenerator ilg = hookupMethod.GetILGenerator ();
 
-			//the Connection instance
+			//the BusObject instance
 			ilg.Emit (OpCodes.Ldarg_0);
-
-			//bus_name
-			ilg.Emit (OpCodes.Ldstr, bus_name);
-
-			//object_path
-			//TODO: make this an ObjectPath struct rather than a string?
-			ilg.Emit (OpCodes.Ldstr, object_path.Value);
 
 			//MethodInfo
 			ilg.Emit (OpCodes.Ldtoken, invokeMethod);
@@ -231,13 +221,35 @@ namespace NDesk.DBus
 			}
 
 			ilg.Emit (OpCodes.Ldloc, local);
-			ilg.Emit (OpCodes.Call, typeof (Connection).GetMethod ("InvokeSignal"));
+			ilg.Emit (OpCodes.Call, typeof (BusObject).GetMethod ("InvokeSignal"));
 
 			//void return
 			ilg.Emit (OpCodes.Ret);
 
-			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, conn);
+			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
 			return d;
+		}
+
+		public void InvokeSignal (MethodInfo mi, string @interface, string member, object[] outValues)
+		{
+			//TODO: make use of bus_name?
+
+			Type[] outTypes = Mapper.GetTypes (ArgDirection.In, mi.GetParameters ());
+			Signature outSig = Signature.GetSig (outTypes);
+
+			Signal signal = new Signal (object_path, @interface, member);
+			signal.message.Signature = outSig;
+
+			if (outValues != null && outValues.Length != 0) {
+				MessageWriter writer = new MessageWriter ();
+
+				for (int i = 0 ; i != outTypes.Length ; i++)
+					writer.Write (outTypes[i], outValues[i]);
+
+				signal.message.Body = writer.ToArray ();
+			}
+
+			conn.Send (signal.message);
 		}
 	}
 }

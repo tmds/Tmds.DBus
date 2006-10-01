@@ -584,28 +584,6 @@ namespace NDesk.DBus
 			return obj;
 		}
 
-		public void InvokeSignal (string bus_name, string object_path, MethodInfo mi, string @interface, string member, object[] outValues)
-		{
-			//TODO: make use of bus_name
-
-			Type[] outTypes = Mapper.GetTypes (ArgDirection.In, mi.GetParameters ());
-			Signature outSig = Signature.GetSig (outTypes);
-
-			Signal signal = new Signal (new ObjectPath (object_path), @interface, member);
-			signal.message.Signature = outSig;
-
-			if (outValues != null && outValues.Length != 0) {
-				MessageWriter writer = new MessageWriter ();
-
-				for (int i = 0 ; i != outTypes.Length ; i++)
-					writer.Write (outTypes[i], outValues[i]);
-
-				signal.message.Body = writer.ToArray ();
-			}
-
-			Send (signal.message);
-		}
-
 		//these look out of place, but are useful
 		public virtual void AddMatch (string rule)
 		{

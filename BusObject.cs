@@ -179,13 +179,23 @@ namespace NDesk.DBus
 				Console.Error.WriteLine ("Warning: Cannot yet fully marshal EventHandler and its subclasses: " + ei.EventHandlerType);
 
 			MethodInfo invokeMethod = ei.EventHandlerType.GetMethod ("Invoke");
+
+			DynamicMethod hookupMethod = GetHookupMethod (invokeMethod, Mapper.GetInterfaceName (ei), ei.Name);
+
+			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
+
+			return d;
+		}
+
+		public DynamicMethod GetHookupMethod (MethodInfo invokeMethod, string @interface, string member)
+		{
 			ParameterInfo[] delegateParms = invokeMethod.GetParameters ();
 			Type[] hookupParms = new Type[delegateParms.Length+1];
 			hookupParms[0] = typeof (Connection);
 			for (int i = 0; i < delegateParms.Length ; i++)
 				hookupParms[i+1] = delegateParms[i].ParameterType;
 
-			DynamicMethod hookupMethod = new DynamicMethod ("Handle" + ei.Name, typeof (void), hookupParms, typeof (object));
+			DynamicMethod hookupMethod = new DynamicMethod ("Handle" + member, typeof (void), hookupParms, typeof (object));
 			ILGenerator ilg = hookupMethod.GetILGenerator ();
 
 			//the BusObject instance
@@ -196,10 +206,10 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Call, typeof (MethodBase).GetMethod ("GetMethodFromHandle"));
 
 			//interface
-			ilg.Emit (OpCodes.Ldstr, Mapper.GetInterfaceName (ei));
+			ilg.Emit (OpCodes.Ldstr, @interface);
 
 			//member
-			ilg.Emit (OpCodes.Ldstr, ei.Name);
+			ilg.Emit (OpCodes.Ldstr, member);
 
 			LocalBuilder local = ilg.DeclareLocal (typeof (object[]));
 			ilg.Emit (OpCodes.Ldc_I4, hookupParms.Length - 1);
@@ -226,8 +236,7 @@ namespace NDesk.DBus
 			//void return
 			ilg.Emit (OpCodes.Ret);
 
-			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
-			return d;
+			return hookupMethod;
 		}
 
 		public void InvokeSignal (MethodInfo mi, string @interface, string member, object[] outValues)

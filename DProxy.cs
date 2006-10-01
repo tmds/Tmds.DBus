@@ -150,7 +150,13 @@ namespace NDesk.DBus
 			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
 
 			//handle the reply message
-			if (retMsg.Header.MessageType == MessageType.Error) {
+			switch (retMsg.Header.MessageType) {
+				case MessageType.MethodReturn:
+				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
+				if (retVals.Length != 0)
+					newRet.ReturnValue = retVals[retVals.Length - 1];
+				break;
+				case MessageType.Error:
 				//TODO: typed exceptions
 				Error error = new Error (retMsg);
 				string errMsg = "";
@@ -160,13 +166,9 @@ namespace NDesk.DBus
 				}
 				Exception e = new Exception (error.ErrorName + ": " + errMsg);
 				newRet.Exception = e;
-			} else if (retMsg.Header.MessageType == MessageType.MethodReturn) {
-				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
-				if (retVals.Length != 0)
-					newRet.ReturnValue = retVals[retVals.Length - 1];
-			} else {
-				//should not be possible to reach this at present
-				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn");
+				break;
+				default:
+				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
 			}
 
 			return (IMethodReturnMessage) newRet;

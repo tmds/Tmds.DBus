@@ -546,6 +546,13 @@ namespace NDesk.DBus
 			return prox.GetTransparentProxy ();
 		}
 
+		/*
+		public object GetObject (Type type, string bus_name, ObjectPath path)
+		{
+			return BusObject.GetObject (this, bus_name, path, type);
+		}
+		*/
+
 		public T GetObject<T> (string bus_name, ObjectPath path)
 		{
 			return (T)GetObject (typeof (T), bus_name, path);

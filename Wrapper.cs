@@ -17,7 +17,7 @@ namespace NDesk.DBus
 	{
 		public Message message = new Message ();
 
-		public MethodCall (ObjectPath path, string @interface, string member, string destination)
+		public MethodCall (ObjectPath path, string @interface, string member, string destination, Signature signature)
 		{
 			message.Header.MessageType = MessageType.MethodCall;
 			message.ReplyExpected = true;
@@ -30,10 +30,6 @@ namespace NDesk.DBus
 #if PROTO_REPLY_SIGNATURE
 			//TODO
 #endif
-		}
-
-		public MethodCall (ObjectPath path, string @interface, string member, string destination, Signature signature) : this (path, @interface, member, destination)
-		{
 			//message.Header.Fields[FieldCode.Signature] = signature;
 			//use the wrapper in Message because it checks for emptiness
 			message.Signature = signature;

@@ -134,11 +134,7 @@ namespace NDesk.DBus
 					methodName = methodName.Replace ("set_", "Set");
 				}
 
-				//TODO: no need for this conditional and overload
-				if (inSig != Signature.Empty)
-					method_call = new MethodCall (object_path, iface, methodName, bus_name, inSig);
-				else
-					method_call = new MethodCall (object_path, iface, methodName, bus_name);
+				method_call = new MethodCall (object_path, iface, methodName, bus_name, inSig);
 
 				callMsg = method_call.message;
 

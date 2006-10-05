@@ -64,6 +64,8 @@ namespace org.freedesktop.DBus
 	public interface Peer
 	{
 		void Ping ();
+		[return: Argument ("machine_uuid")]
+		string GetMachineId ();
 	}
 
 	[Interface ("org.freedesktop.DBus.Introspectable")]

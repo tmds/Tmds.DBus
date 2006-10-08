@@ -115,40 +115,20 @@ namespace NDesk.DBus
 
 		public static object[] GetDynamicValues (Message msg, Type[] types)
 		{
-			List<object> vals = new List<object> ();
+			object[] vals = new object[types.Length];
 
 			if (msg.Body != null) {
 				MessageReader reader = new MessageReader (msg);
 
-				foreach (Type type in types) {
+				for (int i = 0 ; i != types.Length ; i++) {
 					object arg;
-					reader.GetValue (type, out arg);
-					vals.Add (arg);
+					reader.GetValue (types[i], out arg);
+					vals[i] = arg;
 				}
 			}
 
-			return vals.ToArray ();
+			return vals;
 		}
-
-		/*
-		public static object[] GetDynamicValues (Message msg)
-		{
-			List<object> vals = new List<object> ();
-
-			if (msg.Body != null) {
-				MessageReader reader = new MessageReader (msg);
-
-				Signature sig = msg.Signature;
-				for (int i = 0 ; i != sig.Length ; i++) {
-					object arg;
-					reader.GetValue (sig[i], out arg);
-					vals.Add (arg);
-				}
-			}
-
-			return vals.ToArray ();
-		}
-		*/
 
 		//should generalize this method
 		//it is duplicated in DProxy

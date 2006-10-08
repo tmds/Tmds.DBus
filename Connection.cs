@@ -472,7 +472,8 @@ namespace NDesk.DBus
 
 				object retObj = null;
 			 	try {
-					retObj = mi.Invoke (obj, MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ()));
+					object[] inArgs = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
+					retObj = mi.Invoke (obj, inArgs);
 				} catch (TargetInvocationException e) {
 					//TODO: consider whether it's correct to send an error for calls that don't expect a reply
 

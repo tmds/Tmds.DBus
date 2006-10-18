@@ -31,8 +31,9 @@ namespace NDesk.DBus.Transports
 		[DllImport ("libc", SetLastError=true)]
 			protected static extern int listen (int sockfd, int backlog);
 
-		//[DllImport ("libc", SetLastError=true)]
-		//	protected static extern int accept (int sockfd, out byte[] addr, out uint addrlen);
+		//TODO: this prototype is probably wrong, fix it
+		[DllImport ("libc", SetLastError=true)]
+			protected static extern int accept (int sockfd, byte[] addr, ref uint addrlen);
 
 		public int Handle;
 
@@ -76,17 +77,18 @@ namespace NDesk.DBus.Transports
 			UnixMarshal.ThrowExceptionForLastErrorIf (r);
 		}
 
-		/*
 		public UnixSocket Accept ()
 		{
-			byte[] addr;
-			uint addrlen;
+			byte[] addr = new byte[110];
+			uint addrlen = (uint)addr.Length;
 
-			int r = accept (Handle, out addr, out addrlen);
+			int r = accept (Handle, addr, ref addrlen);
 			UnixMarshal.ThrowExceptionForLastErrorIf (r);
-			return new UnixSocket ();
+			//TODO: use the returned addr
+			//TODO: fix probable memory leak here
+			//string str = Encoding.Default.GetString (addr, 0, (int)addrlen);
+			return new UnixSocket (r);
 		}
-		*/
 	}
 
 	public class UnixNativeTransport : Transport, IAuthenticator

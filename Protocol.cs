@@ -123,11 +123,11 @@ namespace NDesk.DBus
 		NoAutoStart = 0x2,
 	}
 
-	public struct ObjectPath
+	public struct ObjectPath //: IComparable, IComparable<ObjectPath>, IEquatable<ObjectPath>
 	{
 		public static readonly ObjectPath Root = new ObjectPath ("/");
 
-		public string Value;
+		public readonly string Value;
 
 		public ObjectPath (string value)
 		{
@@ -144,10 +144,29 @@ namespace NDesk.DBus
 		{
 			get {
 				return Value.Split ('/');
+			/*
 			} set {
 				Value = String.Join ("/", value);
+			*/
 			}
 		}
+
+		/*
+		public int CompareTo (object value)
+		{
+			return 1;
+		}
+
+		public int CompareTo (ObjectPath value)
+		{
+			return 1;
+		}
+
+		public bool Equals (ObjectPath value)
+		{
+			return false;
+		}
+		*/
 	}
 
 	public static class Protocol

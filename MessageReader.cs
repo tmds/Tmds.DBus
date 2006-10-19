@@ -406,7 +406,9 @@ namespace NDesk.DBus
 		public void GetValue (out ObjectPath val)
 		{
 			//exactly the same as string
-			GetValue (out val.Value);
+			string sval;
+			GetValue (out sval);
+			val = new ObjectPath (sval);
 		}
 
 		public void GetValue (out Signature val)

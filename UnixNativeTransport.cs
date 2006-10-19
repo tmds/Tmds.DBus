@@ -35,6 +35,13 @@ namespace NDesk.DBus.Transports
 		[DllImport ("libc", SetLastError=true)]
 			protected static extern int accept (int sockfd, byte[] addr, ref uint addrlen);
 
+		//TODO: confirm and make use of these functions
+		[DllImport ("libc", SetLastError=true)]
+			protected static extern int getsockopt (int s, int optname, IntPtr optval, ref uint optlen);
+
+		[DllImport ("libc", SetLastError=true)]
+			protected static extern int setsockopt (int s, int optname, IntPtr optval, uint optlen);
+
 		public int Handle;
 
 		public UnixSocket (int handle)

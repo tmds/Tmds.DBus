@@ -26,17 +26,17 @@ namespace NDesk.DBus
 			return a.Value == b.Value;
 
 			/*
-			if (a.Data == null && b.Data == null)
+			if (a.data == null && b.data == null)
 				return true;
 
-			if (a.Data == null || b.Data == null)
+			if (a.data == null || b.data == null)
 				return false;
 
-			if (a.Data.Length != b.Data.Length)
+			if (a.data.Length != b.data.Length)
 				return false;
 
-			for (int i = 0 ; i != a.Data.Length ; i++)
-				if (a.Data[i] != b.Data[i])
+			for (int i = 0 ; i != a.data.Length ; i++)
+				if (a.data[i] != b.data[i])
 					return false;
 
 			return true;

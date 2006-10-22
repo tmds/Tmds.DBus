@@ -4,7 +4,6 @@
 
 using System;
 using System.Text;
-using System.IO;
 
 using System.Collections.Generic;
 //TODO: Reflection should be done at a higher level than this class
@@ -350,16 +349,11 @@ namespace NDesk.DBus
 			if (types.Length == 0)
 				return Signature.Empty;
 
-			MemoryStream ms = new MemoryStream ();
+			Signature sig = Signature.Empty;
 
-			foreach (Type type in types) {
-				{
-					byte[] data = GetSig (type).data;
-					ms.Write (data, 0, data.Length);
-				}
-			}
+			foreach (Type type in types)
+					sig += GetSig (type);
 
-			Signature sig = new Signature (ms.ToArray ());
 			return sig;
 		}
 
@@ -371,53 +365,57 @@ namespace NDesk.DBus
 			//this is inelegant, but works for now
 			if (type == typeof (Signature))
 				return new Signature (DType.Signature);
+
 			if (type == typeof (ObjectPath))
 				return new Signature (DType.ObjectPath);
+
 			if (type == typeof (void))
 				return Signature.Empty;
 
-			MemoryStream ms = new MemoryStream ();
-
 			if (type.IsArray) {
-				ms.WriteByte ((byte)DType.Array);
+				Signature sig = Signature.Empty;
+				sig += new Signature (DType.Array);
 
 				Type elem_type = type.GetElementType ();
-				{
-					byte[] data = GetSig (elem_type).data;
-					ms.Write (data, 0, data.Length);
-				}
-			} else if (type.IsMarshalByRef) {
+				sig += GetSig (elem_type);
+
+				return sig;
+			}
+
+			if (type.IsMarshalByRef) {
 				//TODO: consider further what to do for remote object reference marshaling
-				ms.WriteByte ((byte)DType.ObjectPath);
-			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
+				return new Signature (DType.ObjectPath);
+			}
+			
+			if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
+				Signature sig = Signature.Empty;
+				sig += new Signature (DType.Array);
+				sig += new Signature ("{");
+
 				Type[] genArgs = type.GetGenericArguments ();
 
-				ms.WriteByte ((byte)'a');
-				ms.WriteByte ((byte)'{');
+				sig += GetSig (genArgs[0]);
+				sig += GetSig (genArgs[1]);
 
-				{
-					byte[] data = GetSig (genArgs[0]).data;
-					ms.Write (data, 0, data.Length);
-				}
+				sig += new Signature ("}");
 
-				{
-					byte[] data = GetSig (genArgs[1]).data;
-					ms.Write (data, 0, data.Length);
-				}
+				return sig;
+			}
 
-				ms.WriteByte ((byte)'}');
-			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+			if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+				Signature sig = Signature.Empty;
+
 				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
-					ms.WriteByte ((byte)'{');
+					sig += new Signature ("{");
 				else
-					ms.WriteByte ((byte)'(');
+					sig += new Signature ("(");
+
 				foreach (FieldInfo fi in type.GetFields ()) {
 					{
 						//there didn't seem to be a way to do this with BindingFlags at time of writing
 						if (fi.IsStatic)
 							continue;
-						byte[] data = GetSig (fi.FieldType).data;
-						ms.Write (data, 0, data.Length);
+						sig += GetSig (fi.FieldType);
 					}
 				}
 				//FIXME: the constructor hack is disabled here but still used in object mapping. the behaviour should be unified
@@ -445,17 +443,17 @@ namespace NDesk.DBus
 					}
 				}
 				*/
+
 				if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>))
-					ms.WriteByte ((byte)'}');
+					sig += new Signature ("}");
 				else
-					ms.WriteByte ((byte)')');
-			} else {
-				DType dtype = Signature.TypeToDType (type);
-				ms.WriteByte ((byte)dtype);
+					sig += new Signature (")");
+
+				return sig;
 			}
 
-			Signature sig = new Signature (ms.ToArray ());
-			return sig;
+			DType dtype = Signature.TypeToDType (type);
+			return new Signature (dtype);
 		}
 	}
 

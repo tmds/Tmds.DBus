@@ -346,6 +346,9 @@ namespace NDesk.DBus
 
 		public static Signature GetSig (Type[] types)
 		{
+			if (types == null)
+				throw new ArgumentNullException ("types");
+
 			if (types.Length == 0)
 				return Signature.Empty;
 
@@ -360,7 +363,7 @@ namespace NDesk.DBus
 		public static Signature GetSig (Type type)
 		{
 			if (type == null)
-				return Signature.Empty;
+				throw new ArgumentNullException ("type");
 
 			//this is inelegant, but works for now
 			if (type == typeof (Signature))

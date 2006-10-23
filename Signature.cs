@@ -21,8 +21,11 @@ namespace NDesk.DBus
 
 		public static bool operator == (Signature a, Signature b)
 		{
-			//FIXME: hack to handle bad case when Data is null
-			return a.Value == b.Value;
+			/*
+			//TODO: remove this hack to handle bad case when Data is null
+			if (a.data == null || b.data == null)
+				throw new Exception ("Encountered Signature with null buffer");
+			*/
 
 			/*
 			if (a.data == null && b.data == null)
@@ -30,6 +33,7 @@ namespace NDesk.DBus
 
 			if (a.data == null || b.data == null)
 				return false;
+			*/
 
 			if (a.data.Length != b.data.Length)
 				return false;
@@ -39,7 +43,6 @@ namespace NDesk.DBus
 					return false;
 
 			return true;
-			*/
 		}
 
 		public static bool operator != (Signature a, Signature b)
@@ -141,22 +144,18 @@ namespace NDesk.DBus
 		public string Value
 		{
 			get {
+				/*
 				//FIXME: hack to handle bad case when Data is null
 				if (data == null)
 					return String.Empty;
+				*/
 
 				return Encoding.ASCII.GetString (data);
-			} set {
-				data = Encoding.ASCII.GetBytes (value);
 			}
 		}
 
 		public override string ToString ()
 		{
-			//FIXME: hack to handle bad case when Data is null
-			if (data == null)
-				return String.Empty;
-
 			StringBuilder sb = new StringBuilder ();
 
 			foreach (DType t in data) {

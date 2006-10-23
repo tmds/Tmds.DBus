@@ -349,9 +349,6 @@ namespace NDesk.DBus
 			if (types == null)
 				throw new ArgumentNullException ("types");
 
-			if (types.Length == 0)
-				return Signature.Empty;
-
 			Signature sig = Signature.Empty;
 
 			foreach (Type type in types)

@@ -107,7 +107,9 @@ namespace org.freedesktop.DBus
 
 #if UNDOCUMENTED_IN_SPEC
 		//undocumented in spec
-		//there are more of these
+		string[] ListQueuedOwners (string name);
+		uint GetConnectionUnixProcessID (string connection_name);
+		byte[] GetConnectionSELinuxSecurityContext (string connection_name);
 		void ReloadConfig ();
 #endif
 	}

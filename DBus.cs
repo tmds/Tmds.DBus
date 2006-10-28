@@ -94,6 +94,7 @@ namespace org.freedesktop.DBus
 		ReleaseNameReply ReleaseName (string name);
 		string Hello ();
 		string[] ListNames ();
+		string[] ListActivatableNames ();
 		bool NameHasOwner (string name);
 		event NameOwnerChangedHandler NameOwnerChanged;
 		event NameLostHandler NameLost;

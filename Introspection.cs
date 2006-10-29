@@ -161,8 +161,9 @@ namespace NDesk.DBus
 			//writer.WriteAttributeString ("type", Signature.GetSig (argType).Value);
 			writer.WriteAttributeString ("type", sig.Value);
 
-			if (argType.IsEnum)
-				WriteAnnotation ("org.ndesk.DBus.Enum", Mapper.GetInterfaceName (argType));
+			//annotations aren't valid in an arg element, so this is disabled
+			//if (argType.IsEnum)
+			//	WriteAnnotation ("org.ndesk.DBus.Enum", Mapper.GetInterfaceName (argType));
 
 			writer.WriteEndElement ();
 		}

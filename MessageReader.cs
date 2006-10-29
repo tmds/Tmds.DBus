@@ -39,12 +39,6 @@ namespace NDesk.DBus
 				throw new ArgumentNullException ("message");
 		}
 
-		public void CloseRead ()
-		{
-			ReadPad (8);
-			//this needs more thought
-		}
-
 		public void GetValue (Type type, out object val)
 		{
 			if (type == typeof (void)) {
@@ -70,15 +64,6 @@ namespace NDesk.DBus
 				val = Activator.CreateInstance(dictType, new object[0]);
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
 				GetValueToDict (genArgs[0], genArgs[1], idict);
-				/*
-			} else if (type == typeof (ObjectPath)) {
-				//FIXME: find a better way of specifying structs that must be marshaled by value and not as a struct like ObjectPath
-				//this is just a quick proof of concept fix
-				//TODO: are there others we should special case in this hack?
-				//TODO: this code has analogues elsewhere that need both this quick fix, and the real fix when it becomes available
-				DType dtype = Signature.TypeToDType (type);
-				GetValue (dtype, out val);
-				*/
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				ValueType valV;
 				GetValue (type, out valV);
@@ -202,121 +187,6 @@ namespace NDesk.DBus
 				throw new Exception ("Unhandled D-Bus type: " + dtype);
 			}
 		}
-
-		/*
-		public void GetValue (out byte val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (1);
-			val = br.ReadByte ();
-		}
-
-		public void GetValue (out bool val)
-		{
-			uint intval;
-			GetValue (out intval);
-
-			//TODO: confirm semantics of dbus boolean
-			val = intval == 0 ? false : true;
-		}
-
-		public void GetValue (out short val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (2);
-			val = br.ReadInt16 ();
-		}
-
-		public void GetValue (out ushort val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (2);
-			val = br.ReadUInt16 ();
-		}
-
-		public void GetValue (out int val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (4);
-			val = br.ReadInt32 ();
-		}
-
-		public void GetValue (out uint val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (4);
-			val = br.ReadUInt32 ();
-		}
-
-		public void GetValue (out long val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (8);
-			val = br.ReadInt64 ();
-		}
-
-		public void GetValue (out ulong val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (8);
-			val = br.ReadUInt64 ();
-		}
-
-#if PROTO_TYPE_SINGLE
-		public void GetValue (out float val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (4);
-			val = br.ReadSingle ();
-		}
-#endif
-
-		public void GetValue (out double val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			ReadPad (8);
-			val = br.ReadDouble ();
-		}
-
-		public void GetValue (out string val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			uint ln;
-			GetValue (out ln);
-
-			byte[] rbytes = br.ReadBytes ((int)ln);
-			val = Encoding.UTF8.GetString (rbytes);
-			br.ReadByte (); //null string terminator
-		}
-
-		public void GetValue (out ObjectPath val)
-		{
-			//exactly the same as string
-			GetValue (out val.Value);
-		}
-
-		public void GetValue (out Signature val)
-		{
-			BinaryReader br = new BinaryReader (stream);
-
-			//ReadPad (1); //alignment for signature is 1
-			byte ln;
-			GetValue (out ln);
-
-			val.Data = br.ReadBytes ((int)ln);
-			br.ReadByte (); //null signature terminator
-		}
-		*/
 
 		//alternative GetValue() implementations
 		//needed for reading messages in machine-native format, until we do this properly

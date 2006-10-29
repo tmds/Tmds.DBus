@@ -176,6 +176,49 @@ namespace NDesk.DBus
 			return sb.ToString ();
 		}
 
+		public Signature MakeArraySignature ()
+		{
+			return new Signature (DType.Array) + this;
+		}
+
+		/*
+		//TODO: complete this
+		public bool IsPrimitive
+		{
+			get {
+				if (this == Signature.Empty)
+					return true;
+
+				return false;
+			}
+		}
+		*/
+
+		public bool IsArray
+		{
+			get {
+				if (Length < 2)
+					return false;
+
+				if (this[0] != DType.Array)
+					return false;
+
+				return true;
+			}
+		}
+
+		public Signature GetElementSignature ()
+		{
+			//TODO: throw an exception instead of this?
+			if (!IsArray)
+				throw new Exception ("Cannot get the element signature of a non-array (signature was '" + this + "')");
+
+			if (Length != 2)
+				throw new NotSupportedException ("Parsing signatures with more than one primitive value is not supported (signature was '" + this + "')");
+
+			return new Signature (this[1]);
+		}
+
 		public static DType TypeCodeToDType (TypeCode typeCode)
 		{
 			switch (typeCode)

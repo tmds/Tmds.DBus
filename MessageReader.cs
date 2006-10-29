@@ -443,8 +443,8 @@ namespace NDesk.DBus
 				return;
 			}
 
-			if (sig.Length == 2 && sig[0] == DType.Array) {
-				DType elem_t = sig[1];
+			if (sig.IsArray) {
+				DType elem_t = sig.GetElementSignature ()[0];
 				Type elem_type = Signature.DTypeToType (elem_t);
 				Type array_type = elem_type.MakeArrayType ();
 				GetValue (array_type, out val);

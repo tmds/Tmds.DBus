@@ -77,6 +77,14 @@ namespace NDesk.DBus
 				WriteNodeBody ();
 			}
 
+			/*
+			WriteEnum (typeof (org.freedesktop.DBus.NameFlag));
+			WriteEnum (typeof (org.freedesktop.DBus.NameReply));
+			WriteEnum (typeof (org.freedesktop.DBus.ReleaseNameReply));
+			WriteEnum (typeof (org.freedesktop.DBus.StartReply));
+			WriteInterface (typeof (org.freedesktop.DBus.IBus));
+			*/
+
 			writer.WriteEndElement ();
 
 			writer.Flush ();
@@ -153,6 +161,9 @@ namespace NDesk.DBus
 			//writer.WriteAttributeString ("type", Signature.GetSig (argType).Value);
 			writer.WriteAttributeString ("type", sig.Value);
 
+			if (argType.IsEnum)
+				WriteAnnotation ("org.ndesk.DBus.Enum", Mapper.GetInterfaceName (argType));
+
 			writer.WriteEndElement ();
 		}
 
@@ -167,6 +178,10 @@ namespace NDesk.DBus
 			//Mono <= 1.1.13 doesn't support MethodInfo.ReturnParameter, so avoid it
 			//WriteArgReverse (mi.ReturnParameter);
 			WriteArg (mi.ReturnType, Mapper.GetArgumentName (mi.ReturnTypeCustomAttributes, "ret"), false, true);
+
+			//FIXME: generalize this to apply to other elements, not just methods
+			if (mi.IsDefined (typeof (ObsoleteAttribute), false))
+				WriteAnnotation ("org.freedesktop.DBus.Deprecated", "true");
 
 			writer.WriteEndElement ();
 		}
@@ -274,6 +289,27 @@ namespace NDesk.DBus
 
 			writer.WriteAttributeString ("name", name);
 			writer.WriteAttributeString ("value", value);
+
+			writer.WriteEndElement ();
+		}
+
+		//this is not in the spec, and is not finalized
+		public void WriteEnum (Type type)
+		{
+			writer.WriteStartElement ("enum");
+			writer.WriteAttributeString ("name", Mapper.GetInterfaceName (type));
+			writer.WriteAttributeString ("type", Signature.GetSig (type.GetElementType ()).Value);
+			writer.WriteAttributeString ("flags", (type.IsDefined (typeof (FlagsAttribute), false)) ? "true" : "false");
+
+			string[] names = Enum.GetNames (type);
+
+			int i = 0;
+			foreach (Enum val in Enum.GetValues (type)) {
+				writer.WriteStartElement ("element");
+				writer.WriteAttributeString ("name", names[i++]);
+				writer.WriteAttributeString ("value", val.ToString ("d"));
+				writer.WriteEndElement ();
+			}
 
 			writer.WriteEndElement ();
 		}

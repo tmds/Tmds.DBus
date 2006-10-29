@@ -105,12 +105,14 @@ namespace org.freedesktop.DBus
 		void AddMatch (string rule);
 		void RemoveMatch (string rule);
 
-#if UNDOCUMENTED_IN_SPEC
 		//undocumented in spec
+		[Obsolete ("Undocumented in spec")]
 		string[] ListQueuedOwners (string name);
+		[Obsolete ("Undocumented in spec")]
 		uint GetConnectionUnixProcessID (string connection_name);
+		[Obsolete ("Undocumented in spec")]
 		byte[] GetConnectionSELinuxSecurityContext (string connection_name);
+		[Obsolete ("Undocumented in spec")]
 		void ReloadConfig ();
-#endif
 	}
 }

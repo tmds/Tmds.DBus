@@ -194,6 +194,22 @@ namespace NDesk.DBus
 		}
 		*/
 
+		public bool IsDict
+		{
+			get {
+				if (Length < 3)
+					return false;
+
+				if (!IsArray)
+					return false;
+
+				if (this[2] != DType.DictEntryBegin)
+					return false;
+
+				return true;
+			}
+		}
+
 		public bool IsArray
 		{
 			get {
@@ -209,14 +225,28 @@ namespace NDesk.DBus
 
 		public Signature GetElementSignature ()
 		{
-			//TODO: throw an exception instead of this?
 			if (!IsArray)
 				throw new Exception ("Cannot get the element signature of a non-array (signature was '" + this + "')");
 
+			//TODO: improve this
 			if (Length != 2)
 				throw new NotSupportedException ("Parsing signatures with more than one primitive value is not supported (signature was '" + this + "')");
 
 			return new Signature (this[1]);
+		}
+
+		public Type ToType ()
+		{
+			if (this == Signature.Empty)
+				return typeof (void);
+
+			if (IsArray)
+				return GetElementSignature ().ToType ().MakeArrayType ();
+
+			if (Length == 1)
+				return DTypeToType (this[0]);
+
+			throw new NotSupportedException ("Parsing or converting this signature is not yet supported (signature was '" + this + "')");
 		}
 
 		public static DType TypeCodeToDType (TypeCode typeCode)
@@ -526,6 +556,11 @@ namespace NDesk.DBus
 		Array = (byte)'a',
 		Struct = (byte)'r',
 		DictEntry = (byte)'e',
-		Variant = (byte)'v'
+		Variant = (byte)'v',
+
+		StructBegin = (byte)'(',
+		StructEnd = (byte)')',
+		DictEntryBegin = (byte)'{',
+		DictEntryEnd = (byte)'}',
 	}
 }

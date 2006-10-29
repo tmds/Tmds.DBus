@@ -433,27 +433,7 @@ namespace NDesk.DBus
 
 		public void GetValue (Signature sig, out object val)
 		{
-			if (sig == Signature.Empty) {
-				val = null;
-				return;
-			}
-
-			if (sig.Length == 1) {
-				GetValue (sig[0], out val);
-				return;
-			}
-
-			if (sig.IsArray) {
-				DType elem_t = sig.GetElementSignature ()[0];
-				Type elem_type = Signature.DTypeToType (elem_t);
-				Type array_type = elem_type.MakeArrayType ();
-				GetValue (array_type, out val);
-				return;
-			}
-
-			//TODO: more flexibilty needed here
-
-			throw new NotSupportedException ("Reading variants with more than one primitive value or primitive array is not supported (signature of variant was '" + sig + "')");
+			GetValue (sig.ToType (), out val);
 		}
 
 		//not pretty or efficient but works

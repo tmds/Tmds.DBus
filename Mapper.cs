@@ -95,6 +95,11 @@ namespace NDesk.DBus
 
 			return types.ToArray ();
 		}
+
+		public static bool IsDeprecated (ICustomAttributeProvider attrProvider)
+		{
+			return attrProvider.IsDefined (typeof (ObsoleteAttribute), false);
+		}
 	}
 
 	//TODO: this class is messy, move the methods somewhere more appropriate

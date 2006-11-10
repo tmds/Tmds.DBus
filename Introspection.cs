@@ -181,7 +181,7 @@ namespace NDesk.DBus
 			WriteArg (mi.ReturnType, Mapper.GetArgumentName (mi.ReturnTypeCustomAttributes, "ret"), false, true);
 
 			//FIXME: generalize this to apply to other elements, not just methods
-			if (mi.IsDefined (typeof (ObsoleteAttribute), false))
+			if (Mapper.IsDeprecated (mi))
 				WriteAnnotation ("org.freedesktop.DBus.Deprecated", "true");
 
 			writer.WriteEndElement ();

@@ -180,9 +180,7 @@ namespace NDesk.DBus
 			//WriteArgReverse (mi.ReturnParameter);
 			WriteArg (mi.ReturnType, Mapper.GetArgumentName (mi.ReturnTypeCustomAttributes, "ret"), false, true);
 
-			//FIXME: generalize this to apply to other elements, not just methods
-			if (Mapper.IsDeprecated (mi))
-				WriteAnnotation ("org.freedesktop.DBus.Deprecated", "true");
+			WriteAnnotations (mi);
 
 			writer.WriteEndElement ();
 		}
@@ -195,6 +193,7 @@ namespace NDesk.DBus
 			writer.WriteAttributeString ("type", Signature.GetSig (pri.PropertyType).Value);
 			string access = (pri.CanRead ? "read" : String.Empty) + (pri.CanWrite ? "write" : String.Empty);
 			writer.WriteAttributeString ("access", access);
+			WriteAnnotations (pri);
 			writer.WriteEndElement ();
 
 			//expose properties as methods also
@@ -224,6 +223,8 @@ namespace NDesk.DBus
 
 			foreach (ParameterInfo pi in ei.EventHandlerType.GetMethod ("Invoke").GetParameters ())
 				WriteArgReverse (pi);
+
+			WriteAnnotations (ei);
 
 			//no need to consider the delegate return value as dbus doesn't support it
 			writer.WriteEndElement ();
@@ -282,6 +283,12 @@ namespace NDesk.DBus
 
 			//this recursion seems somewhat inelegant
 			WriteInterface (type.BaseType);
+		}
+
+		public void WriteAnnotations (ICustomAttributeProvider attrProvider)
+		{
+			if (Mapper.IsDeprecated (attrProvider))
+				WriteAnnotation ("org.freedesktop.DBus.Deprecated", "true");
 		}
 
 		public void WriteAnnotation (string name, string value)

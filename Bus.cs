@@ -14,8 +14,13 @@ namespace NDesk.DBus
 		public static Bus System
 		{
 			get {
-				if (systemBus == null)
-					systemBus = Bus.Open (Address.System);
+				if (systemBus == null) {
+					try {
+						systemBus = Bus.Open (Address.System);
+					} catch (Exception e) {
+						throw new Exception ("Unable to open the system message bus.", e);
+					}
+				}
 
 				return systemBus;
 			}
@@ -25,8 +30,13 @@ namespace NDesk.DBus
 		public static Bus Session
 		{
 			get {
-				if (sessionBus == null)
-					sessionBus = Bus.Open (Address.Session);
+				if (sessionBus == null) {
+					try {
+						sessionBus = Bus.Open (Address.Session);
+					} catch (Exception e) {
+						throw new Exception ("Unable to open the session message bus.", e);
+					}
+				}
 
 				return sessionBus;
 			}
@@ -37,8 +47,13 @@ namespace NDesk.DBus
 		public static Bus Starter
 		{
 			get {
-				if(starterBus == null)
-					starterBus = Bus.Open (Address.Starter);
+				if (starterBus == null) {
+					try {
+						starterBus = Bus.Open (Address.Starter);
+					} catch (Exception e) {
+						throw new Exception ("Unable to open the starter message bus.", e);
+					}
+				}
 
 				return starterBus;
 			}

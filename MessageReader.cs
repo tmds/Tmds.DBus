@@ -23,9 +23,6 @@ namespace NDesk.DBus
 
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
-			if (endianness != Connection.NativeEndianness)
-				throw new NotImplementedException ("Only native-endian message reading is currently supported");
-
 			if (data == null)
 				throw new ArgumentNullException ("data");
 
@@ -206,62 +203,103 @@ namespace NDesk.DBus
 			val = intval == 0 ? false : true;
 		}
 
-		public void GetValue (out short val)
+		unsafe protected void MarshalUShort (byte *dst)
 		{
 			ReadPad (2);
-			val = BitConverter.ToInt16 (data, pos);
+
+			if (endianness == Connection.NativeEndianness) {
+				dst[0] = data[pos + 0];
+				dst[1] = data[pos + 1];
+			} else {
+				dst[0] = data[pos + 1];
+				dst[1] = data[pos + 0];
+			}
+
 			pos += 2;
 		}
 
-		public void GetValue (out ushort val)
+		unsafe public void GetValue (out short val)
 		{
-			ReadPad (2);
-			val = BitConverter.ToUInt16 (data, pos);
-			pos += 2;
+			fixed (short* ret = &val)
+				MarshalUShort ((byte*)ret);
 		}
 
-		public void GetValue (out int val)
+		unsafe public void GetValue (out ushort val)
+		{
+			fixed (ushort* ret = &val)
+				MarshalUShort ((byte*)ret);
+		}
+
+		unsafe protected void MarshalUInt (byte *dst)
 		{
 			ReadPad (4);
-			val = BitConverter.ToInt32 (data, pos);
+
+			if (endianness == Connection.NativeEndianness) {
+				dst[0] = data[pos + 0];
+				dst[1] = data[pos + 1];
+				dst[2] = data[pos + 2];
+				dst[3] = data[pos + 3];
+			} else {
+				dst[0] = data[pos + 3];
+				dst[1] = data[pos + 2];
+				dst[2] = data[pos + 1];
+				dst[3] = data[pos + 0];
+			}
+
 			pos += 4;
 		}
 
-		public void GetValue (out uint val)
+		unsafe public void GetValue (out int val)
 		{
-			ReadPad (4);
-			val = BitConverter.ToUInt32 (data, pos);
-			pos += 4;
+			fixed (int* ret = &val)
+				MarshalUInt ((byte*)ret);
 		}
 
-		public void GetValue (out long val)
+		unsafe public void GetValue (out uint val)
+		{
+			fixed (uint* ret = &val)
+				MarshalUInt ((byte*)ret);
+		}
+
+		unsafe protected void MarshalULong (byte *dst)
 		{
 			ReadPad (8);
-			val = BitConverter.ToInt64 (data, pos);
+
+			if (endianness == Connection.NativeEndianness) {
+				for (int i = 0; i < 8; ++i)
+					dst[i] = data[pos + i];
+			} else {
+				for (int i = 0; i < 8; ++i)
+					dst[i] = data[pos + (7 - i)];
+			}
+
 			pos += 8;
 		}
 
-		public void GetValue (out ulong val)
+		unsafe public void GetValue (out long val)
 		{
-			ReadPad (8);
-			val = BitConverter.ToUInt64 (data, pos);
-			pos += 8;
+			fixed (long* ret = &val)
+				MarshalULong ((byte*)ret);
+		}
+
+		unsafe public void GetValue (out ulong val)
+		{
+			fixed (ulong* ret = &val)
+				MarshalULong ((byte*)ret);
 		}
 
 #if PROTO_TYPE_SINGLE
-		public void GetValue (out float val)
+		unsafe public void GetValue (out float val)
 		{
-			ReadPad (4);
-			val = BitConverter.ToSingle (data, pos);
-			pos += 4;
+			fixed (float* ret = &val)
+				MarshalUInt ((byte*)ret);
 		}
 #endif
 
-		public void GetValue (out double val)
+		unsafe public void GetValue (out double val)
 		{
-			ReadPad (8);
-			val = BitConverter.ToDouble (data, pos);
-			pos += 8;
+			fixed (double* ret = &val)
+				MarshalULong ((byte*)ret);
 		}
 
 		public void GetValue (out string val)

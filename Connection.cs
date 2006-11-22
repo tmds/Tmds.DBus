@@ -241,15 +241,20 @@ namespace NDesk.DBus
 
 			ms.Write (buf, 0, 16);
 
-			int toRead;
-			int bodyLen;
-
-			//FIXME: use endianness instead of failing on non-native endianness
 			EndianFlag endianness = (EndianFlag)buf[0];
-			if (endianness != Connection.NativeEndianness)
-				throw new NotImplementedException ("Only native-endian message reading is currently supported");
+			MessageReader reader = new MessageReader (endianness, buf);
 
-			byte version = buf[3];
+			//discard the endian byte as we've already read it
+			byte tmp;
+			reader.GetValue (out tmp);
+
+			//discard message type and flags, which we don't care about here
+			reader.GetValue (out tmp);
+			reader.GetValue (out tmp);
+
+			byte version;
+			reader.GetValue (out version);
+
 			if (version < Protocol.MinVersion || version > Protocol.MaxVersion)
 				throw new NotSupportedException ("Protocol version '" + version.ToString () + "' is not supported");
 
@@ -257,12 +262,17 @@ namespace NDesk.DBus
 				if (version != Protocol.Version)
 					Console.Error.WriteLine ("Warning: Protocol version '" + version.ToString () + "' is not explicitly supported but may be compatible");
 
+			uint bodyLength, serial, headerLength;
+			reader.GetValue (out bodyLength);
+			reader.GetValue (out serial);
+			reader.GetValue (out headerLength);
+
 			//TODO: remove this limitation
-			if (BitConverter.ToUInt32 (buf, 4) > Int32.MaxValue || BitConverter.ToUInt32 (buf, 12) > Int32.MaxValue)
+			if (bodyLength > Int32.MaxValue || headerLength > Int32.MaxValue)
 				throw new NotImplementedException ("Long messages are not yet supported");
 
-			bodyLen = (int)BitConverter.ToUInt32 (buf, 4);
-			toRead = (int)BitConverter.ToUInt32 (buf, 12);
+			int bodyLen = (int)bodyLength;
+			int toRead = (int)headerLength;
 
 			toRead = Protocol.Padded ((int)toRead, 8);
 

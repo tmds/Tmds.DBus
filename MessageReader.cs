@@ -491,10 +491,9 @@ namespace NDesk.DBus
 
 		public void ReadPad (int alignment)
 		{
-			//make sure the pos-1 is right for the exception message when we have a test suite
-			while (pos != Protocol.Padded (pos, alignment))
-				if (data[pos++] != 0)
-					throw new Exception ("Read non-zero padding byte at pos " + (pos-1) + ", pad value was " + data[pos-1]);
+			for (int endPos = Protocol.Padded (pos, alignment) ; pos != endPos ; pos++)
+				if (data[pos] != 0)
+					throw new Exception ("Read non-zero byte at position " + pos + " while expecting padding");
 		}
 	}
 }

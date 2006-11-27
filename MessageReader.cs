@@ -15,7 +15,6 @@ namespace NDesk.DBus
 {
 	public class MessageReader
 	{
-		//FIXME: use endianness instead of failing on non-native endianness
 		protected EndianFlag endianness;
 		protected byte[] data;
 		//TODO: this should be uint or long to handle long messages

@@ -199,8 +199,16 @@ namespace NDesk.DBus
 			uint intval;
 			GetValue (out intval);
 
-			//TODO: confirm semantics of dbus boolean
-			val = intval == 0 ? false : true;
+			switch (intval) {
+				case 0:
+					val = false;
+					break;
+				case 1:
+					val = true;
+					break;
+				default:
+					throw new Exception ("Read value " + intval + " at position " + pos + " while expecting boolean (0/1)");
+			}
 		}
 
 		unsafe protected void MarshalUShort (byte *dst)
@@ -308,7 +316,8 @@ namespace NDesk.DBus
 			GetValue (out ln);
 
 			val = Encoding.UTF8.GetString (data, pos, (int)ln);
-			pos += (int)ln + 1; //+1 is null string terminator
+			pos += (int)ln;
+			ReadNull ();
 		}
 
 		public void GetValue (out ObjectPath val)
@@ -327,7 +336,8 @@ namespace NDesk.DBus
 			byte[] sigData = new byte[ln];
 			Array.Copy (data, pos, sigData, 0, (int)ln);
 			val = new Signature (sigData);
-			pos += (int)ln + 1; //+1 is null signature terminator
+			pos += (int)ln;
+			ReadNull ();
 		}
 
 		//variant
@@ -478,8 +488,9 @@ namespace NDesk.DBus
 
 		public void ReadNull ()
 		{
-			if (data[pos++] != 0)
-				throw new Exception ("Read non-zero null terminator");
+			if (data[pos] != 0)
+				throw new Exception ("Read non-zero byte at position " + pos + " while expecting null terminator");
+			pos++;
 		}
 
 		/*

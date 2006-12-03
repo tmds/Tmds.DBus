@@ -167,7 +167,7 @@ namespace NDesk.DBus
 			//Console.WriteLine ("headerLength: " + msg.HeaderData.Length);
 			//Console.WriteLine ();
 			ns.Write (msg.HeaderData, 0, msg.HeaderData.Length);
-			if (msg.Body != null) {
+			if (msg.Body != null && msg.Body.Length != 0) {
 				ns.Write (msg.Body, 0, msg.Body.Length);
 				//msg.Body.WriteTo (ns);
 			}

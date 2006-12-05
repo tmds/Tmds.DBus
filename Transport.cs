@@ -17,13 +17,32 @@ namespace NDesk.DBus.Transports
 		public static Transport Create (AddressEntry entry)
 		{
 			switch (entry.Method) {
+				case "tcp":
+				{
+					Transport transport = new SocketTransport ();
+					transport.Open (entry);
+					return transport;
+				}
 				case "unix":
+				{
 					//Transport transport = new UnixMonoTransport ();
 					Transport transport = new UnixNativeTransport ();
 					transport.Open (entry);
 					return transport;
+				}
 				default:
 					throw new NotSupportedException ("Transport method \"{0}\" not supported");
+			}
+		}
+
+		protected Connection connection;
+
+		public Connection Connection
+		{
+			get {
+				return connection;
+			} set {
+				connection = value;
 			}
 		}
 

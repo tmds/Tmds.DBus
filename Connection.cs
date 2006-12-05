@@ -28,10 +28,15 @@ namespace NDesk.DBus
 			}
 		}
 
-		//TODO: reduce visibility when test-server no longer needs this
-		//protected Connection ()
-		public Connection ()
+		//TODO: reduce visibility of this when possible
+		public Connection () {}
+
+		public Connection (Transport transport)
 		{
+			this.transport = transport;
+			transport.Connection = this;
+
+			//we probably need to do more here
 		}
 
 		public Connection (string address)
@@ -48,6 +53,7 @@ namespace NDesk.DBus
 			}
 		}
 
+		//should we do connection sharing here?
 		public static Connection Open (string address)
 		{
 			Connection conn = new Connection ();

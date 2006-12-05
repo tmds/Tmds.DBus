@@ -142,14 +142,13 @@ namespace NDesk.DBus.Transports
 		//different platforms do this in different ways
 		unsafe public override void WriteCred ()
 		{
-#if HAVE_CMSGCRED 
 			//null credentials byte
-			byte[] buf = new byte[] { 0 };
+			byte buf = 0;
 
+#if HAVE_CMSGCRED 
 			IOVector iov = new IOVector ();
-			fixed (byte *bufPtr = buf)
-				iov.Base = (IntPtr)bufPtr;
-			iov.Length = buf.Length;
+			iov.Base = (IntPtr)(&buf);
+			iov.Length = 1;
 
 			msghdr msg = new msghdr ();
 			msg.msg_iov = &iov;
@@ -164,10 +163,10 @@ namespace NDesk.DBus.Transports
 
 			int written = UnixSocket.sendmsg (socket.Handle, (IntPtr)(&msg), 0);
 			UnixMarshal.ThrowExceptionForLastErrorIf (written);
-			if (written != buf.Length)
+			if (written != 1)
 				throw new Exception ("Failed to write credentials");
 #else
-			Stream.WriteByte (0);
+			Stream.WriteByte (buf);
 #endif
 		}
 

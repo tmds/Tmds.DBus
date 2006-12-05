@@ -26,7 +26,7 @@ namespace NDesk.DBus.Transports
 					return transport;
 				}
 				default:
-					throw new NotSupportedException ("Transport method \"{0}\" not supported");
+					throw new NotSupportedException ("Transport method \"" + entry.Method + "\" not supported");
 			}
 		}
 

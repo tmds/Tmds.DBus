@@ -2,6 +2,11 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
+//We send BSD-style credentials on all platforms
+//Doesn't seem to break Linux (but is redundant there)
+//This may turn out to be a bad idea
+#define HAVE_CMSGCRED
+
 using System;
 using System.IO;
 using System.Text;

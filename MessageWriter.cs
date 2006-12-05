@@ -19,6 +19,8 @@ namespace NDesk.DBus
 		protected MemoryStream stream;
 		protected BinaryWriter bw;
 
+		public Connection connection;
+
 		//TODO: enable this ctor instead of the current one when endian support is done
 		//public MessageWriter () : this (Connection.NativeEndianness)
 		public MessageWriter () : this (EndianFlag.Little)
@@ -155,6 +157,8 @@ namespace NDesk.DBus
 				Type[] genArgs = type.GetGenericArguments ();
 				WriteVariant (genArgs[0], val);
 				*/
+			} else if (Mapper.IsPublic (type)) {
+				WriteObject (type, val);
 			} else {
 				Write (Signature.TypeToDType (type), val);
 			}
@@ -240,6 +244,19 @@ namespace NDesk.DBus
 				default:
 				throw new Exception ("Unhandled D-Bus type: " + dtype);
 			}
+		}
+
+		public void WriteObject (Type type, object val)
+		{
+			ObjectPath path;
+
+			BusObject bobj = val as BusObject;
+			if (bobj != null)
+				path = bobj.Path;
+			else
+				path = connection.RegisteredObjectPaths[val];
+
+			Write (path);
 		}
 
 		//variant

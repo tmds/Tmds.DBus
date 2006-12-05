@@ -359,6 +359,8 @@ namespace NDesk.DBus
 
 			//if (type.UnderlyingSystemType != null)
 			//	return TypeToDType (type.UnderlyingSystemType);
+			if (Mapper.IsPublic (type))
+				return DType.ObjectPath;
 
 			//TODO: maybe throw an exception here
 			return DType.Invalid;

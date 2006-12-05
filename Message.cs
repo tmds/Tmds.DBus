@@ -25,6 +25,8 @@ namespace NDesk.DBus
 		public Header Header;
 		public byte[] HeaderData;
 
+		public Connection Connection;
+
 		public Signature Signature
 		{
 			get {

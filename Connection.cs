@@ -270,6 +270,7 @@ namespace NDesk.DBus
 			ms.Write (buf, 0, buf.Length);
 
 			Message msg = new Message ();
+			msg.Connection = this;
 			msg.HeaderData = ms.ToArray ();
 
 			//read the body
@@ -487,6 +488,7 @@ namespace NDesk.DBus
 					error.message.Signature = new Signature (DType.String);
 
 					MessageWriter writer = new MessageWriter ();
+					writer.connection = this;
 					writer.Write (ie.Message);
 					error.message.Body = writer.ToArray ();
 
@@ -524,6 +526,7 @@ namespace NDesk.DBus
 		}
 
 		protected Dictionary<ObjectPath,object> RegisteredObjects = new Dictionary<ObjectPath,object> ();
+		public Dictionary<object,ObjectPath> RegisteredObjectPaths = new Dictionary<object,ObjectPath> ();
 
 		//FIXME: this shouldn't be part of the core API
 		//that also applies to much of the other object mapping code
@@ -534,7 +537,12 @@ namespace NDesk.DBus
 		{
 			BusObject busObject = new BusObject (this, bus_name, path);
 			DProxy prox = new DProxy (busObject, type);
-			return prox.GetTransparentProxy ();
+
+			object obj = prox.GetTransparentProxy ();
+
+			//TODO: this is a massive leak!
+			//RegisteredObjectPaths[obj] = path;
+			return obj;
 		}
 
 		/*
@@ -566,6 +574,7 @@ namespace NDesk.DBus
 
 			//FIXME: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
 			RegisteredObjects[path] = obj;
+			RegisteredObjectPaths[obj] = path;
 		}
 
 		public object Unregister (string bus_name, ObjectPath path)
@@ -576,6 +585,7 @@ namespace NDesk.DBus
 				throw new Exception ("Cannot unmarshal " + path + " as it isn't marshaled");
 			object obj = RegisteredObjects[path];
 
+			RegisteredObjectPaths.Remove (obj);
 			RegisteredObjects.Remove (path);
 
 			//FIXME: complete unmarshaling including the handlers we added etc.

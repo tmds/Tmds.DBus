@@ -378,6 +378,7 @@ namespace NDesk.DBus
 
 			if (outValues != null && outValues.Length != 0) {
 				MessageWriter writer = new MessageWriter ();
+				writer.connection = conn;
 
 				for (int i = 0 ; i != outTypes.Length ; i++)
 					writer.Write (outTypes[i], outValues[i]);

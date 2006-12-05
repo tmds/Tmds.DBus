@@ -18,6 +18,7 @@ namespace NDesk.DBus
 		protected byte[] data;
 		//TODO: this should be uint or long to handle long messages
 		protected int pos = 0;
+		protected Message message;
 
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
@@ -32,6 +33,8 @@ namespace NDesk.DBus
 		{
 			if (message == null)
 				throw new ArgumentNullException ("message");
+
+			this.message = message;
 		}
 
 		public void GetValue (Type type, out object val)
@@ -63,6 +66,8 @@ namespace NDesk.DBus
 				ValueType valV;
 				GetValue (type, out valV);
 				val = valV;
+			} else if (Mapper.IsPublic (type)) {
+				GetObject (type, out val);
 			} else {
 				DType dtype = Signature.TypeToDType (type);
 				GetValue (dtype, out val);
@@ -181,6 +186,13 @@ namespace NDesk.DBus
 				val = null;
 				throw new Exception ("Unhandled D-Bus type: " + dtype);
 			}
+		}
+
+		public void GetObject (Type type, out object val)
+		{
+			ObjectPath path;
+			GetValue (out path);
+			val = message.Connection.GetObject (type, (string)message.Header.Fields[FieldCode.Sender], path);
 		}
 
 		//alternative GetValue() implementations

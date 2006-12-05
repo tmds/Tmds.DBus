@@ -67,8 +67,23 @@ namespace NDesk.DBus
 			if (address == null)
 				throw new ArgumentNullException ("address");
 
-			if (!Address.Parse (address, out path, out abstr))
-				throw new ArgumentException ("Invalid D-Bus address: '" + address + "'", "address");
+			AddressEntry[] entries = Address.Parse (address);
+			if (entries.Length == 0)
+				throw new Exception ("No addresses were found");
+
+			//TODO: try alternative addresses if needed
+			AddressEntry entry = entries[0];
+
+			//TODO: move this code to the transport code
+			if (entry.Method != "unix")
+				throw new NotSupportedException ("Transport method \"{0}\" not supported");
+
+			if (entry.Properties.TryGetValue ("path", out path))
+				abstr = false;
+			else if (entry.Properties.TryGetValue ("abstract", out path))
+				abstr = true;
+			else
+				throw new Exception ("No path specified for UNIX transport");
 
 			Open (path, abstr);
 

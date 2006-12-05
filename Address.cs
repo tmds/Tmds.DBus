@@ -3,42 +3,100 @@
 // See COPYING for details
 
 using System;
+using System.Text;
+using System.Collections.Generic;
 
 namespace NDesk.DBus
 {
-	public class Address
+	public class BadAddressException : Exception
 	{
-		//this method is not pretty
-		//not worth improving until there is a spec for this format
-		//TODO: confirm that return value represents parse errors
-		public static bool Parse (string addr, out string path, out bool abstr)
+		public BadAddressException (string reason) : base (reason) {}
+	}
+
+	public class AddressEntry
+	{
+		public string Method;
+		public IDictionary<string,string> Properties = new SortedDictionary<string,string> ();
+
+		public override string ToString ()
 		{
-			//(unix:(path|abstract)=.*,guid=.*|tcp:host=.*(,port=.*)?);? ...
-			path = null;
-			abstr = false;
+			//TODO: hex escaping
 
-			if (String.IsNullOrEmpty (addr))
-				return false;
+			StringBuilder sb = new StringBuilder ();
+			sb.Append (Method);
+			sb.Append (':');
 
-			string[] parts;
-
-			parts = addr.Split (':');
-			if (parts[0] == "unix") {
-				parts = parts[1].Split (',');
-				parts = parts[0].Split ('=');
-				if (parts[0] == "path")
-					abstr = false;
-				else if (parts[0] == "abstract")
-					abstr = true;
+			bool first = true;
+			foreach (KeyValuePair<string,string> prop in Properties) {
+				if (first)
+					first = false;
 				else
-					return false;
+					sb.Append (',');
 
-				path = parts[1];
-			} else {
-				return false;
+				sb.Append (prop.Key);
+				sb.Append ('=');
+				sb.Append (prop.Value);
 			}
 
-			return true;
+			return sb.ToString ();
+		}
+	}
+
+	public class Address
+	{
+		//(unix:(path|abstract)=.*,guid=.*|tcp:host=.*(,port=.*)?);? ...
+		public static AddressEntry[] Parse (string addresses)
+		{
+			if (addresses == null)
+				throw new ArgumentNullException (addresses);
+
+			List<AddressEntry> entries = new List<AddressEntry> ();
+
+			foreach (string entryStr in addresses.Split (';')) {
+				AddressEntry entry = new AddressEntry ();
+
+				string[] parts = entryStr.Split (':');
+
+				if (parts.Length < 2)
+					throw new BadAddressException ("No colon found");
+				if (parts.Length > 2)
+					throw new BadAddressException ("Too many colons found");
+
+				entry.Method = Unescape (parts[0]);
+
+				foreach (string propStr in parts[1].Split (',')) {
+					parts = propStr.Split ('=');
+
+					if (parts.Length < 2)
+						throw new BadAddressException ("No equals sign found");
+					if (parts.Length > 2)
+						throw new BadAddressException ("Too many equals signs found");
+
+					entry.Properties[Unescape (parts[0])] = Unescape (parts[1]);
+				}
+
+				entries.Add (entry);
+			}
+
+			return entries.ToArray ();
+		}
+
+		static string Unescape (string str)
+		{
+			if (str == null)
+				return String.Empty;
+
+			StringBuilder sb = new StringBuilder ();
+			int len = str.Length;
+			int i = 0;
+			while (i != len) {
+				if (Uri.IsHexEncoding (str, i))
+					sb.Append (Uri.HexUnescape (str, ref i));
+				else
+					sb.Append (str[i++]);
+			}
+
+			return sb.ToString ();
 		}
 
 		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";

@@ -28,15 +28,16 @@ namespace NDesk.DBus
 			}
 		}
 
-		//TODO: reduce visibility of this when possible
-		public Connection () {}
+		protected Connection () {}
 
 		public Connection (Transport transport)
 		{
 			this.transport = transport;
 			transport.Connection = this;
 
-			//we probably need to do more here
+			//TODO: clean this bit up
+			ns = transport.Stream;
+			SocketHandle = transport.SocketHandle;
 		}
 
 		public Connection (string address)

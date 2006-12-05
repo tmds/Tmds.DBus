@@ -23,7 +23,7 @@ namespace NDesk.DBus
 			//TODO: hex escaping
 
 			StringBuilder sb = new StringBuilder ();
-			sb.Append (Method);
+			sb.Append (Escape (Method));
 			sb.Append (':');
 
 			bool first = true;
@@ -33,9 +33,30 @@ namespace NDesk.DBus
 				else
 					sb.Append (',');
 
-				sb.Append (prop.Key);
+				sb.Append (Escape (prop.Key));
 				sb.Append ('=');
-				sb.Append (prop.Value);
+				sb.Append (Escape (prop.Value));
+			}
+
+			return sb.ToString ();
+		}
+
+		static string Escape (string str)
+		{
+			if (str == null)
+				return String.Empty;
+
+			StringBuilder sb = new StringBuilder ();
+			int len = str.Length;
+
+			for (int i = 0 ; i != len ; i++) {
+				char c = str[i];
+
+				//everything other than the optionally escaped chars _must_ be escaped
+				if (!Char.IsLetterOrDigit (c) && c != '-' && c != '_' && c != '/' && c != '\\' && c != '.')
+					sb.Append (Uri.HexEscape (c));
+				else
+					sb.Append (c);
 			}
 
 			return sb.ToString ();

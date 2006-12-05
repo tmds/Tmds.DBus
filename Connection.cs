@@ -61,9 +61,6 @@ namespace NDesk.DBus
 		//protected void OpenPrivate (string address)
 		public void OpenPrivate (string address)
 		{
-			string path;
-			bool abstr;
-
 			if (address == null)
 				throw new ArgumentNullException ("address");
 
@@ -74,26 +71,9 @@ namespace NDesk.DBus
 			//TODO: try alternative addresses if needed
 			AddressEntry entry = entries[0];
 
-			//TODO: move this code to the transport code
-			if (entry.Method != "unix")
-				throw new NotSupportedException ("Transport method \"{0}\" not supported");
+			transport = Transport.Create (entry);
 
-			if (entry.Properties.TryGetValue ("path", out path))
-				abstr = false;
-			else if (entry.Properties.TryGetValue ("abstract", out path))
-				abstr = true;
-			else
-				throw new Exception ("No path specified for UNIX transport");
-
-			Open (path, abstr);
-
-			isConnected = true;
-		}
-
-		void Open (string path, bool abstr)
-		{
-			//transport = new UnixMonoTransport (path, abstr);
-			transport = new UnixNativeTransport (path, abstr);
+			//TODO: clean this bit up
 			ns = transport.Stream;
 			SocketHandle = transport.SocketHandle;
 		}

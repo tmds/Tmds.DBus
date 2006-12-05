@@ -10,8 +10,6 @@
 using System;
 using System.IO;
 using System.Text;
-using System.Net;
-using System.Net.Sockets;
 
 using System.Runtime.InteropServices;
 
@@ -119,11 +117,11 @@ namespace NDesk.DBus.Transports
 		public int Length;
 	}
 
-	public class UnixNativeTransport : Transport, IAuthenticator
+	public class UnixNativeTransport : UnixTransport, IAuthenticator
 	{
 		protected UnixSocket socket;
 
-		public UnixNativeTransport (string path, bool @abstract)
+		public override void Open (string path, bool @abstract)
 		{
 			if (String.IsNullOrEmpty (path))
 				throw new ArgumentException ("path");
@@ -168,13 +166,6 @@ namespace NDesk.DBus.Transports
 #else
 			Stream.WriteByte (buf);
 #endif
-		}
-
-		public override string AuthString ()
-		{
-			long uid = UnixUserInfo.GetRealUserId ();
-
-			return uid.ToString ();
 		}
 
 		protected UnixSocket OpenAbstractUnix (string path)

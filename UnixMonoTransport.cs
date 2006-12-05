@@ -12,7 +12,7 @@ using Mono.Unix.Native;
 
 namespace NDesk.DBus.Transports
 {
-	public class UnixMonoTransport : UnixTransport, IAuthenticator
+	public class UnixMonoTransport : UnixTransport
 	{
 		protected Socket socket;
 

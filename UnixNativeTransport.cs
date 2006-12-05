@@ -117,7 +117,7 @@ namespace NDesk.DBus.Transports
 		public int Length;
 	}
 
-	public class UnixNativeTransport : UnixTransport, IAuthenticator
+	public class UnixNativeTransport : UnixTransport
 	{
 		protected UnixSocket socket;
 

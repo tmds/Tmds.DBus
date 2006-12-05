@@ -7,12 +7,7 @@ using System.IO;
 
 namespace NDesk.DBus.Transports
 {
-	public interface IAuthenticator
-	{
-		string AuthString ();
-	}
-
-	public abstract class Transport : IAuthenticator
+	public abstract class Transport
 	{
 		public static Transport Create (AddressEntry entry)
 		{

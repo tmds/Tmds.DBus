@@ -23,6 +23,10 @@ namespace NDesk.DBus.Transports
 	public class UnixSocket
 	{
 		public const short AF_UNIX = 1;
+		//TODO: SOCK_STREAM is 2 on Solaris
+		public const short SOCK_STREAM = 1;
+
+		//TODO: some of these are provided by libsocket instead of libc on Solaris
 
 		[DllImport ("libc", SetLastError=true)]
 			protected static extern int socket (int domain, int type, int protocol);
@@ -62,10 +66,10 @@ namespace NDesk.DBus.Transports
 
 		public UnixSocket ()
 		{
-			//TODO: don't hard-code PF_UNIX and SocketType.Stream
+			//TODO: don't hard-code PF_UNIX and SOCK_STREAM or SocketType.Stream
 			//AddressFamily family, SocketType type, ProtocolType proto
 
-			int r = socket (AF_UNIX, (int)SocketType.Stream, 0);
+			int r = socket (AF_UNIX, SOCK_STREAM, 0);
 			//we should get the Exception from UnixMarshal and throw it here for a better stack trace, but the relevant API seems to be private
 			UnixMarshal.ThrowExceptionForLastErrorIf (r);
 			Handle = r;

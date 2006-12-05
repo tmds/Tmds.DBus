@@ -15,9 +15,9 @@ namespace NDesk.DBus
 
 	public class Connection
 	{
-		//TODO: reduce/correct visibility of these when appropriate
-		public Stream ns = null;
-		public long SocketHandle;
+		//TODO: factor out these fields
+		protected Stream ns = null;
+		protected long SocketHandle;
 
 		protected Transport transport;
 		public Transport Transport {

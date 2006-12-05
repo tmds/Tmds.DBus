@@ -3,15 +3,10 @@
 // See COPYING for details
 
 using System;
-using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
-
 using System.Threading;
-
 using System.Reflection;
-
-//using Console = System.Diagnostics.Trace;
 
 namespace NDesk.DBus
 {
@@ -126,9 +121,6 @@ namespace NDesk.DBus
 			return (uint)Interlocked.Increment (ref serial);
 		}
 
-
-
-
 		public Message SendWithReplyAndBlock (Message msg)
 		{
 			uint id = SendWithReply (msg);
@@ -160,22 +152,11 @@ namespace NDesk.DBus
 			return msg.Header.Serial;
 		}
 
-		//could be cleaner
 		protected void WriteMessage (Message msg)
 		{
-			//Monitor.Enter (ns);
-
-			//ns.Write (msg.HeaderData, 0, msg.HeaderSize);
-			//Console.WriteLine ("headerSize: " + msg.HeaderSize);
-			//Console.WriteLine ("headerLength: " + msg.HeaderData.Length);
-			//Console.WriteLine ();
 			ns.Write (msg.HeaderData, 0, msg.HeaderData.Length);
-			if (msg.Body != null && msg.Body.Length != 0) {
+			if (msg.Body != null && msg.Body.Length != 0)
 				ns.Write (msg.Body, 0, msg.Body.Length);
-				//msg.Body.WriteTo (ns);
-			}
-
-			//Monitor.Exit (ns);
 		}
 
 		protected Queue<Message> Inbound = new Queue<Message> ();
@@ -226,8 +207,6 @@ namespace NDesk.DBus
 
 		public Message ReadMessage ()
 		{
-			//Monitor.Enter (ns);
-
 			//FIXME: fix reading algorithm to work in one step
 			//this code is a bit silly and inefficient
 			//hopefully it's at least correct and avoids polls for now
@@ -308,8 +287,6 @@ namespace NDesk.DBus
 				msg.Body = body;
 			}
 
-			//Monitor.Exit (ns);
-
 			//this needn't be done here
 			msg.ParseHeader ();
 
@@ -363,10 +340,12 @@ namespace NDesk.DBus
 					break;
 				case MessageType.MethodReturn:
 					MethodReturn method_return = new MethodReturn (msg);
+					/*
 					if (PendingCalls.ContainsKey (method_return.ReplySerial)) {
 						//TODO: pending calls
 						//return msg;
 					}
+					*/
 					//if the signature is empty, it's just a token return message
 					if (msg.Signature != Signature.Empty)
 						Console.Error.WriteLine ("Warning: Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial + " with signature '" + msg.Signature + "'");
@@ -394,7 +373,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		protected Dictionary<uint,Message> PendingCalls = new Dictionary<uint,Message> ();
+		//protected Dictionary<uint,Message> PendingCalls = new Dictionary<uint,Message> ();
 
 
 		//this might need reworking with MulticastDelegate
@@ -424,9 +403,6 @@ namespace NDesk.DBus
 		//not particularly efficient and needs to be generalized
 		protected void HandleMethodCall (MethodCall method_call)
 		{
-			//Console.Error.WriteLine ("method_call destination: " + method_call.Destination);
-			//Console.Error.WriteLine ("method_call path: " + method_call.Path);
-
 			//TODO: Ping and Introspect need to be abstracted and moved somewhere more appropriate once message filter infrastructure is complete
 
 			if (method_call.Interface == "org.freedesktop.DBus.Peer" && method_call.Member == "Ping") {
@@ -465,11 +441,10 @@ namespace NDesk.DBus
 
 				//map property accessors
 				//FIXME: this needs to be done properly, not with simple String.Replace
-				//special case for Notifications left as a reminder that this is broken
-				if (method_call.Interface == "org.freedesktop.Notifications") {
-					methodName = methodName.Replace ("Get", "get_");
-					methodName = methodName.Replace ("Set", "set_");
-				}
+				/*
+				methodName = methodName.Replace ("Get", "get_");
+				methodName = methodName.Replace ("Set", "set_");
+				*/
 
 				//FIXME: breaks for overloaded methods
 				MethodInfo mi = type.GetMethod (methodName, BindingFlags.Public | BindingFlags.Instance);

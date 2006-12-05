@@ -90,6 +90,9 @@ namespace NDesk.DBus
 
 		public void Authenticate ()
 		{
+			if (transport != null)
+				transport.WriteCred ();
+
 			SaslClient auth = new SaslClient (this);
 			auth.Run ();
 			isAuthenticated = true;

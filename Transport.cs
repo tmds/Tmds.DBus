@@ -20,5 +20,6 @@ namespace NDesk.DBus.Transports
 		public Stream Stream;
 		public long SocketHandle;
 		public abstract string AuthString ();
+		public abstract void WriteCred ();
 	}
 }

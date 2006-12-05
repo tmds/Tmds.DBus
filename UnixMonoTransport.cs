@@ -29,6 +29,13 @@ namespace NDesk.DBus.Transports
 			Stream = new NetworkStream (socket);
 		}
 
+		//send peer credentials null byte. note that this might not be portable
+		//there are also selinux, BSD etc. considerations
+		public override void WriteCred ()
+		{
+			Stream.WriteByte (0);
+		}
+
 		public override string AuthString ()
 		{
 			long uid = UnixUserInfo.GetRealUserId ();

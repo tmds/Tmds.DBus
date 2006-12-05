@@ -49,10 +49,6 @@ namespace NDesk.DBus.Authentication
 			sw.NewLine = "\r\n";
 			//sw.AutoFlush = true;
 
-			//send peer credentials null byte. note that this might not be portable
-			//there are also selinux, BSD etc. considerations
-			sw.Write ('\0');
-
 			string str = conn.Transport.AuthString ();
 			byte[] bs = Encoding.ASCII.GetBytes (str);
 

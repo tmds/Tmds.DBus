@@ -398,14 +398,13 @@ namespace NDesk.DBus
 		//restricted to primitive elements because of the DType bottleneck
 		public void GetValue (Type type, out Array val)
 		{
-			if (type.IsArray)
-			type = type.GetElementType ();
+			Type elemType = type.GetElementType ();
 
 			uint ln;
 			GetValue (out ln);
 
 			//advance to the alignment of the element
-			ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
+			ReadPad (Protocol.GetAlignment (Signature.TypeToDType (elemType)));
 
 			int endPos = pos + (int)ln;
 
@@ -416,16 +415,16 @@ namespace NDesk.DBus
 			while (pos < endPos)
 			{
 				object elem;
-				//GetValue (Signature.TypeToDType (type), out elem);
-				GetValue (type, out elem);
+				//GetValue (Signature.TypeToDType (elemType), out elem);
+				GetValue (elemType, out elem);
 				vals.Add (elem);
 			}
 
 			if (pos != endPos)
 				throw new Exception ("Read pos " + pos + " != ep " + endPos);
 
-			val = vals.ToArray (type);
-			//val = Array.CreateInstance (type.UnderlyingSystemType, vals.Count);
+			val = vals.ToArray (elemType);
+			//val = Array.CreateInstance (elemType.UnderlyingSystemType, vals.Count);
 		}
 
 		//struct

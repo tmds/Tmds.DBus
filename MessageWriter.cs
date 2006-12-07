@@ -283,19 +283,18 @@ namespace NDesk.DBus
 		//this requires a seekable stream for now
 		public void Write (Type type, Array val)
 		{
-			//if (type.IsArray)
-			type = type.GetElementType ();
+			Type elemType = type.GetElementType ();
 
 			Write ((uint)0);
 			long lengthPos = stream.Position - 4;
 
 			//advance to the alignment of the element
-			WritePad (Protocol.GetAlignment (Signature.TypeToDType (type)));
+			WritePad (Protocol.GetAlignment (Signature.TypeToDType (elemType)));
 
 			long startPos = stream.Position;
 
 			foreach (object elem in val)
-				Write (type, elem);
+				Write (elemType, elem);
 
 			long endPos = stream.Position;
 

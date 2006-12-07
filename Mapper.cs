@@ -151,7 +151,7 @@ namespace NDesk.DBus
 			Signature inSig = Signature.GetSig (vals);
 
 			if (vals != null && vals.Length != 0) {
-				MessageWriter writer = new MessageWriter ();
+				MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
 
 				foreach (object arg in vals)
 					writer.Write (arg.GetType (), arg);
@@ -179,7 +179,7 @@ namespace NDesk.DBus
 			Signature inSig = Signature.GetSig (retType);
 
 			if (inSig != Signature.Empty) {
-				MessageWriter writer = new MessageWriter ();
+				MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
 				writer.Write (retType, retVal);
 				replyMsg.Body = writer.ToArray ();
 			}

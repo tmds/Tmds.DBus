@@ -17,24 +17,16 @@ namespace NDesk.DBus
 		//TODO: use endianness instead of writing the message is in native format
 		protected EndianFlag endianness;
 		protected MemoryStream stream;
-		protected BinaryWriter bw;
 
 		public Connection connection;
 
-		//TODO: enable this ctor instead of the current one when endian support is done
+		//a default constructor is a bad idea for now as we want to make sure the header and content-type match
 		//public MessageWriter () : this (Connection.NativeEndianness)
-		public MessageWriter () : this (EndianFlag.Little)
-		{
-		}
 
 		public MessageWriter (EndianFlag endianness)
 		{
-			if (endianness != EndianFlag.Little)
-				throw new NotImplementedException ("Only little-endian message writing is currently supported");
-
 			this.endianness = endianness;
 			stream = new MemoryStream ();
-			bw = new BinaryWriter (stream);
 		}
 
 		public byte[] ToArray ()
@@ -52,73 +44,114 @@ namespace NDesk.DBus
 
 		public void Write (byte val)
 		{
-			WritePad (1);
-			bw.Write (val);
+			stream.WriteByte (val);
 		}
 
 		public void Write (bool val)
 		{
-			WritePad (4);
-			bw.Write ((uint) (val ? 1 : 0));
+			Write ((uint) (val ? 1 : 0));
 		}
 
-		public void Write (short val)
+		unsafe protected void MarshalUShort (byte *data)
 		{
 			WritePad (2);
-			bw.Write (val);
+			byte[] dst = new byte[2];
+
+			if (endianness == Connection.NativeEndianness) {
+				dst[0] = data[0];
+				dst[1] = data[1];
+			} else {
+				dst[0] = data[1];
+				dst[1] = data[0];
+			}
+
+			stream.Write (dst, 0, 2);
 		}
 
-		public void Write (ushort val)
+		unsafe public void Write (short val)
 		{
-			WritePad (2);
-			bw.Write (val);
+			MarshalUShort ((byte*)&val);
 		}
 
-		public void Write (int val)
+		unsafe public void Write (ushort val)
+		{
+			MarshalUShort ((byte*)&val);
+		}
+
+		unsafe protected void MarshalUInt (byte *data)
 		{
 			WritePad (4);
-			bw.Write (val);
+			byte[] dst = new byte[4];
+
+			if (endianness == Connection.NativeEndianness) {
+				dst[0] = data[0];
+				dst[1] = data[1];
+				dst[2] = data[2];
+				dst[3] = data[3];
+			} else {
+				dst[0] = data[3];
+				dst[1] = data[2];
+				dst[2] = data[1];
+				dst[3] = data[0];
+			}
+
+			stream.Write (dst, 0, 4);
 		}
 
-		public void Write (uint val)
+		unsafe public void Write (int val)
 		{
-
-			WritePad (4);
-			bw.Write (val);
+			MarshalUInt ((byte*)&val);
 		}
 
-		public void Write (long val)
+		unsafe public void Write (uint val)
+		{
+			MarshalUInt ((byte*)&val);
+		}
+
+		unsafe protected void MarshalULong (byte *data)
 		{
 			WritePad (8);
-			bw.Write (val);
+			byte[] dst = new byte[8];
+
+			if (endianness == Connection.NativeEndianness) {
+				for (int i = 0; i < 8; ++i)
+					dst[i] = data[i];
+			} else {
+				for (int i = 0; i < 8; ++i)
+					dst[i] = data[7 - i];
+			}
+
+			stream.Write (dst, 0, 8);
 		}
 
-		public void Write (ulong val)
+		unsafe public void Write (long val)
 		{
-			WritePad (8);
-			bw.Write (val);
+			MarshalULong ((byte*)&val);
+		}
+
+		unsafe public void Write (ulong val)
+		{
+			MarshalULong ((byte*)&val);
 		}
 
 #if PROTO_TYPE_SINGLE
-		public void Write (float val)
+		unsafe public void Write (float val)
 		{
-			WritePad (4);
-			bw.Write (val);
+			MarshalUInt ((byte*)&val);
 		}
 #endif
 
-		public void Write (double val)
+		unsafe public void Write (double val)
 		{
-			WritePad (8);
-			bw.Write (val);
+			MarshalULong ((byte*)&val);
 		}
 
 		public void Write (string val)
 		{
 			byte[] utf8_data = Encoding.UTF8.GetBytes (val);
 			Write ((uint)utf8_data.Length);
-			bw.Write (utf8_data);
-			bw.Write ((byte)0); //NULL string terminator
+			stream.Write (utf8_data, 0, utf8_data.Length);
+			stream.WriteByte (0); //NULL string terminator
 		}
 
 		public void Write (ObjectPath val)
@@ -128,10 +161,10 @@ namespace NDesk.DBus
 
 		public void Write (Signature val)
 		{
-			WritePad (1);
-			Write ((byte)val.Length);
-			bw.Write (val.GetBuffer ());
-			bw.Write ((byte)0); //NULL signature terminator
+			byte[] ascii_data = val.GetBuffer ();
+			Write ((byte)ascii_data.Length);
+			stream.Write (ascii_data, 0, ascii_data.Length);
+			stream.WriteByte (0); //NULL signature terminator
 		}
 
 		public void Write (Type type, object val)

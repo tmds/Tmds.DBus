@@ -12,7 +12,7 @@ namespace NDesk.DBus
 	{
 		public Message ()
 		{
-			Header.Endianness = EndianFlag.Little;
+			Header.Endianness = Connection.NativeEndianness;
 			Header.MessageType = MessageType.MethodCall;
 			//hdr->Flags = HeaderFlag.None;
 			Header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
@@ -122,7 +122,7 @@ namespace NDesk.DBus
 			if (Body != null)
 				Header.Length = (uint)Body.Length;
 
-			MessageWriter writer = new MessageWriter ();
+			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
 			writer.Write (typeof (Header), Header);
 			//writer.WriteFromDict (typeof (FieldCode), typeof (object), Header.Fields);
 			writer.CloseWrite ();

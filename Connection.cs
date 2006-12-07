@@ -487,7 +487,7 @@ namespace NDesk.DBus
 					Error error = new Error (Mapper.GetInterfaceName (ie.GetType ()), method_call.message.Header.Serial);
 					error.message.Signature = new Signature (DType.String);
 
-					MessageWriter writer = new MessageWriter ();
+					MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
 					writer.connection = this;
 					writer.Write (ie.Message);
 					error.message.Body = writer.ToArray ();

@@ -285,6 +285,13 @@ namespace NDesk.DBus
 		{
 			Type elemType = type.GetElementType ();
 
+			//TODO: more fast paths for primitive arrays
+			if (elemType == typeof (byte)) {
+				Write ((uint)val.Length);
+				stream.Write ((byte[])val, 0, val.Length);
+				return;
+			}
+
 			Write ((uint)0);
 			long lengthPos = stream.Position - 4;
 

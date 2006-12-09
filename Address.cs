@@ -21,7 +21,7 @@ namespace NDesk.DBus
 		public override string ToString ()
 		{
 			StringBuilder sb = new StringBuilder ();
-			sb.Append (Escape (Method));
+			sb.Append (Method);
 			sb.Append (':');
 
 			bool first = true;
@@ -31,7 +31,7 @@ namespace NDesk.DBus
 				else
 					sb.Append (',');
 
-				sb.Append (Escape (prop.Key));
+				sb.Append (prop.Key);
 				sb.Append ('=');
 				sb.Append (Escape (prop.Value));
 			}
@@ -90,7 +90,7 @@ namespace NDesk.DBus
 			if (parts.Length > 2)
 				throw new BadAddressException ("Too many colons found");
 
-			entry.Method = Unescape (parts[0]);
+			entry.Method = parts[0];
 
 			foreach (string propStr in parts[1].Split (',')) {
 				parts = propStr.Split ('=');
@@ -100,7 +100,7 @@ namespace NDesk.DBus
 				if (parts.Length > 2)
 					throw new BadAddressException ("Too many equals signs found");
 
-				entry.Properties[Unescape (parts[0])] = Unescape (parts[1]);
+				entry.Properties[parts[0]] = Unescape (parts[1]);
 			}
 
 			return entry;

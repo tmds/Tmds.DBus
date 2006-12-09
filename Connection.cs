@@ -15,9 +15,8 @@ namespace NDesk.DBus
 
 	public class Connection
 	{
-		//TODO: factor out these fields
+		//TODO: reconsider this field
 		protected Stream ns = null;
-		protected long SocketHandle;
 
 		protected Transport transport;
 		public Transport Transport {
@@ -37,7 +36,6 @@ namespace NDesk.DBus
 
 			//TODO: clean this bit up
 			ns = transport.Stream;
-			SocketHandle = transport.SocketHandle;
 		}
 
 		public Connection (string address)
@@ -82,7 +80,6 @@ namespace NDesk.DBus
 
 			//TODO: clean this bit up
 			ns = transport.Stream;
-			SocketHandle = transport.SocketHandle;
 		}
 
 		public void Authenticate ()

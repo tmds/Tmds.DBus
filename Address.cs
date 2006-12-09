@@ -51,10 +51,10 @@ namespace NDesk.DBus
 				char c = str[i];
 
 				//everything other than the optionally escaped chars _must_ be escaped
-				if (!Char.IsLetterOrDigit (c) && c != '-' && c != '_' && c != '/' && c != '\\' && c != '.')
-					sb.Append (Uri.HexEscape (c));
-				else
+				if (Char.IsLetterOrDigit (c) || c == '-' || c == '_' || c == '/' || c == '\\' || c == '.')
 					sb.Append (c);
+				else
+					sb.Append (Uri.HexEscape (c));
 			}
 
 			return sb.ToString ();

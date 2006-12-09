@@ -103,18 +103,6 @@ namespace NDesk.DBus
 			}
 		}
 
-		protected string unique_name = null;
-		public virtual string UniqueName
-		{
-			get {
-				return unique_name;
-			} set {
-				if (unique_name != null)
-					throw new Exception ("Unique name of a Connection can only be set once");
-				unique_name = value;
-			}
-		}
-
 		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint
 		protected int serial = 0;
 		protected uint GenerateSerial ()

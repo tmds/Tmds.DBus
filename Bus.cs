@@ -104,13 +104,6 @@ namespace NDesk.DBus
 			unique_name = bus.Hello ();
 		}
 
-		public override string UniqueName
-		{
-			get {
-				return unique_name;
-			}
-		}
-
 		public ulong GetUnixUser (string name)
 		{
 			return bus.GetConnectionUnixUser (name);
@@ -161,13 +154,21 @@ namespace NDesk.DBus
 
 		protected void Register ()
 		{
+			if (unique_name != null)
+				throw new Exception ("Bus already has a unique name");
+
 			unique_name = (string)bus.InvokeMethod (typeof (IBus).GetMethod ("Hello"));
 		}
 
-		public override string UniqueName
+		protected string unique_name = null;
+		public string UniqueName
 		{
 			get {
 				return unique_name;
+			} set {
+				if (unique_name != null)
+					throw new Exception ("Unique name can only be set once");
+				unique_name = value;
 			}
 		}
 

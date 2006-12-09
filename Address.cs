@@ -20,8 +20,6 @@ namespace NDesk.DBus
 
 		public override string ToString ()
 		{
-			//TODO: hex escaping
-
 			StringBuilder sb = new StringBuilder ();
 			sb.Append (Escape (Method));
 			sb.Append (':');
@@ -61,46 +59,6 @@ namespace NDesk.DBus
 
 			return sb.ToString ();
 		}
-	}
-
-	public class Address
-	{
-		//(unix:(path|abstract)=.*,guid=.*|tcp:host=.*(,port=.*)?);? ...
-		public static AddressEntry[] Parse (string addresses)
-		{
-			if (addresses == null)
-				throw new ArgumentNullException (addresses);
-
-			List<AddressEntry> entries = new List<AddressEntry> ();
-
-			foreach (string entryStr in addresses.Split (';')) {
-				AddressEntry entry = new AddressEntry ();
-
-				string[] parts = entryStr.Split (':');
-
-				if (parts.Length < 2)
-					throw new BadAddressException ("No colon found");
-				if (parts.Length > 2)
-					throw new BadAddressException ("Too many colons found");
-
-				entry.Method = Unescape (parts[0]);
-
-				foreach (string propStr in parts[1].Split (',')) {
-					parts = propStr.Split ('=');
-
-					if (parts.Length < 2)
-						throw new BadAddressException ("No equals sign found");
-					if (parts.Length > 2)
-						throw new BadAddressException ("Too many equals signs found");
-
-					entry.Properties[Unescape (parts[0])] = Unescape (parts[1]);
-				}
-
-				entries.Add (entry);
-			}
-
-			return entries.ToArray ();
-		}
 
 		static string Unescape (string str)
 		{
@@ -118,6 +76,51 @@ namespace NDesk.DBus
 			}
 
 			return sb.ToString ();
+		}
+
+
+		public static AddressEntry Parse (string s)
+		{
+			AddressEntry entry = new AddressEntry ();
+
+			string[] parts = s.Split (':');
+
+			if (parts.Length < 2)
+				throw new BadAddressException ("No colon found");
+			if (parts.Length > 2)
+				throw new BadAddressException ("Too many colons found");
+
+			entry.Method = Unescape (parts[0]);
+
+			foreach (string propStr in parts[1].Split (',')) {
+				parts = propStr.Split ('=');
+
+				if (parts.Length < 2)
+					throw new BadAddressException ("No equals sign found");
+				if (parts.Length > 2)
+					throw new BadAddressException ("Too many equals signs found");
+
+				entry.Properties[Unescape (parts[0])] = Unescape (parts[1]);
+			}
+
+			return entry;
+		}
+	}
+
+	public class Address
+	{
+		//(unix:(path|abstract)=.*,guid=.*|tcp:host=.*(,port=.*)?);? ...
+		public static AddressEntry[] Parse (string addresses)
+		{
+			if (addresses == null)
+				throw new ArgumentNullException (addresses);
+
+			List<AddressEntry> entries = new List<AddressEntry> ();
+
+			foreach (string entryStr in addresses.Split (';'))
+				entries.Add (AddressEntry.Parse (entryStr));
+
+			return entries.ToArray ();
 		}
 
 		const string SYSTEM_BUS_ADDRESS = "unix:path=/var/run/dbus/system_bus_socket";

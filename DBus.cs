@@ -33,7 +33,7 @@ namespace org.freedesktop.DBus
 		DoNotQueue = 0x4,
 	}
 
-	public enum NameReply : uint
+	public enum RequestNameReply : uint
 	{
 		PrimaryOwner = 1,
 		InQueue,
@@ -90,7 +90,7 @@ namespace org.freedesktop.DBus
 	[Interface ("org.freedesktop.DBus")]
 	public interface IBus : Introspectable
 	{
-		NameReply RequestName (string name, NameFlag flags);
+		RequestNameReply RequestName (string name, NameFlag flags);
 		ReleaseNameReply ReleaseName (string name);
 		string Hello ();
 		string[] ListNames ();

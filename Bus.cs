@@ -109,12 +109,12 @@ namespace NDesk.DBus
 			return bus.GetConnectionUnixUser (name);
 		}
 
-		public NameReply RequestName (string name)
+		public RequestNameReply RequestName (string name)
 		{
 			return RequestName (name, NameFlag.None);
 		}
 
-		public NameReply RequestName (string name, NameFlag flags)
+		public RequestNameReply RequestName (string name, NameFlag flags)
 		{
 			return bus.RequestName (name, flags);
 		}
@@ -177,14 +177,14 @@ namespace NDesk.DBus
 			return (ulong)bus.InvokeMethod (typeof (IBus).GetMethod ("GetConnectionUnixUser"), name);
 		}
 
-		public NameReply RequestName (string name)
+		public RequestNameReply RequestName (string name)
 		{
 			return RequestName (name, NameFlag.None);
 		}
 
-		public NameReply RequestName (string name, NameFlag flags)
+		public RequestNameReply RequestName (string name, NameFlag flags)
 		{
-			return (NameReply)bus.InvokeMethod (typeof (IBus).GetMethod ("RequestName"), name, flags);
+			return (RequestNameReply)bus.InvokeMethod (typeof (IBus).GetMethod ("RequestName"), name, flags);
 		}
 
 		public ReleaseNameReply ReleaseName (string name)

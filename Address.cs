@@ -16,7 +16,7 @@ namespace NDesk.DBus
 	public class AddressEntry
 	{
 		public string Method;
-		public IDictionary<string,string> Properties = new SortedDictionary<string,string> ();
+		public IDictionary<string,string> Properties = new Dictionary<string,string> ();
 
 		public override string ToString ()
 		{

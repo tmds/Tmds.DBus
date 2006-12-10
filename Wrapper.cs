@@ -22,7 +22,8 @@ namespace NDesk.DBus
 			message.Header.MessageType = MessageType.MethodCall;
 			message.ReplyExpected = true;
 			message.Header.Fields[FieldCode.Path] = path;
-			message.Header.Fields[FieldCode.Interface] = @interface;
+			if (@interface != null)
+				message.Header.Fields[FieldCode.Interface] = @interface;
 			message.Header.Fields[FieldCode.Member] = member;
 			message.Header.Fields[FieldCode.Destination] = destination;
 			//TODO: consider setting Sender here for p2p situations
@@ -39,7 +40,8 @@ namespace NDesk.DBus
 		{
 			this.message = message;
 			Path = (ObjectPath)message.Header.Fields[FieldCode.Path];
-			Interface = (string)message.Header.Fields[FieldCode.Interface];
+			if (message.Header.Fields.ContainsKey (FieldCode.Interface))
+				Interface = (string)message.Header.Fields[FieldCode.Interface];
 			Member = (string)message.Header.Fields[FieldCode.Member];
 			Destination = (string)message.Header.Fields[FieldCode.Destination];
 			//TODO: filled by the bus so reliable, but not the case for p2p

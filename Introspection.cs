@@ -20,9 +20,7 @@ namespace NDesk.DBus
 
 		public StringBuilder sb;
 		public string xml;
-		public Type target_type = null;
 		public ObjectPath root_path = ObjectPath.Root;
-		public ObjectPath target_path = ObjectPath.Root;
 
 		protected XmlWriter writer;
 
@@ -38,7 +36,7 @@ namespace NDesk.DBus
 			writer = XmlWriter.Create (sb, settings);
 		}
 
-		public void HandleIntrospect ()
+		public void WriteStart ()
 		{
 			writer.WriteDocType ("node", PUBLIC_IDENTIFIER, SYSTEM_IDENTIFIER, null);
 
@@ -52,30 +50,17 @@ namespace NDesk.DBus
 
 			//the root node element
 			writer.WriteStartElement ("node");
+		}
 
-			//FIXME: don't hardcode this stuff, do it properly!
-			if (root_path.Value == "/") {
-				writer.WriteStartElement ("node");
-				writer.WriteAttributeString ("name", "org");
-				writer.WriteEndElement ();
-			}
+		public void WriteNode (string name)
+		{
+			writer.WriteStartElement ("node");
+			writer.WriteAttributeString ("name", name);
+			writer.WriteEndElement ();
+		}
 
-			if (root_path.Value == "/org") {
-				writer.WriteStartElement ("node");
-				writer.WriteAttributeString ("name", "ndesk");
-				writer.WriteEndElement ();
-			}
-
-			if (root_path.Value == "/org/ndesk") {
-				writer.WriteStartElement ("node");
-				writer.WriteAttributeString ("name", "test");
-				writer.WriteEndElement ();
-			}
-
-			if (root_path.Value == target_path.Value) {
-				WriteNodeBody ();
-			}
-
+		public void WriteEnd ()
+		{
 			/*
 			WriteEnum (typeof (org.freedesktop.DBus.NameFlag));
 			WriteEnum (typeof (org.freedesktop.DBus.NameReply));
@@ -91,7 +76,7 @@ namespace NDesk.DBus
 		}
 
 		//public void WriteNode ()
-		public void WriteNodeBody ()
+		public void WriteType (Type target_type)
 		{
 			//writer.WriteStartElement ("node");
 

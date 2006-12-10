@@ -389,14 +389,29 @@ namespace NDesk.DBus
 			if (method_call.Interface == "org.freedesktop.DBus.Introspectable" && method_call.Member == "Introspect") {
 				Introspector intro = new Introspector ();
 				intro.root_path = method_call.Path;
+				intro.WriteStart ();
+
 				//FIXME: do this properly
+				//this is messy and inefficient
+				List<string> linkNodes = new List<string> ();
+				int depth = method_call.Path.Decomposed.Length;
 				foreach (ObjectPath pth in RegisteredObjects.Keys) {
-					if (pth.Value.StartsWith (method_call.Path.Value)) {
-						intro.target_path = pth;
-						intro.target_type = RegisteredObjects[pth].GetType ();
+					if (pth.Value == (method_call.Path.Value)) {
+						intro.WriteType (RegisteredObjects[pth].GetType ());
+					} else {
+						for (ObjectPath cur = pth ; cur.Value != null ; cur = cur.Parent) {
+							if (cur.Value == method_call.Path.Value) {
+								string linkNode = pth.Decomposed[depth];
+								if (!linkNodes.Contains (linkNode)) {
+									intro.WriteNode (linkNode);
+									linkNodes.Add (linkNode);
+								}
+							}
+						}
 					}
 				}
-				intro.HandleIntrospect ();
+
+				intro.WriteEnd ();
 
 				object[] introRet = new object[1];
 				introRet[0] = intro.xml;

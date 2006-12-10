@@ -143,11 +143,25 @@ namespace NDesk.DBus
 		public string[] Decomposed
 		{
 			get {
-				return Value.Split ('/');
+				return Value.Split (new char[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
 			/*
 			} set {
 				Value = String.Join ("/", value);
 			*/
+			}
+		}
+
+		public ObjectPath Parent
+		{
+			get {
+				if (Value == Root.Value)
+					return new ObjectPath (null);
+
+				string par = Value.Substring (0, Value.LastIndexOf ('/'));
+				if (par == String.Empty)
+					par = "/";
+
+				return new ObjectPath (par);
 			}
 		}
 

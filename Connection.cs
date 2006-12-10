@@ -411,7 +411,6 @@ namespace NDesk.DBus
 					}
 				}
 				intro.HandleIntrospect ();
-				//Console.Error.WriteLine (intro.xml);
 
 				object[] introRet = new object[1];
 				introRet[0] = intro.xml;

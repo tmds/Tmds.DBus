@@ -14,7 +14,6 @@ namespace NDesk.DBus
 {
 	public class MessageWriter
 	{
-		//TODO: use endianness instead of writing the message is in native format
 		protected EndianFlag endianness;
 		protected MemoryStream stream;
 
@@ -405,7 +404,6 @@ namespace NDesk.DBus
 			}
 		}
 
-		//RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider ();
 		public void WritePad (int alignment)
 		{
 			stream.Position = Protocol.Padded ((int)stream.Position, alignment);

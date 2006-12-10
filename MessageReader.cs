@@ -195,10 +195,6 @@ namespace NDesk.DBus
 			val = message.Connection.GetObject (type, (string)message.Header.Fields[FieldCode.Sender], path);
 		}
 
-		//alternative GetValue() implementations
-		//needed for reading messages in machine-native format, until we do this properly
-		//TODO: don't ignore the endian flag in the header
-
 		public void GetValue (out byte val)
 		{
 			val = data[pos++];
@@ -395,7 +391,6 @@ namespace NDesk.DBus
 		}
 
 		//this could be made generic to avoid boxing
-		//restricted to primitive elements because of the DType bottleneck
 		public void GetValue (Type type, out Array val)
 		{
 			Type elemType = type.GetElementType ();

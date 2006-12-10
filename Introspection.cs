@@ -40,13 +40,8 @@ namespace NDesk.DBus
 		{
 			writer.WriteDocType ("node", PUBLIC_IDENTIFIER, SYSTEM_IDENTIFIER, null);
 
-			//TODO: write version info in a comment, when we get an AssemblyInfo.cs
-
-			writer.WriteComment (" Never rely on XML introspection data for dynamic binding. It is provided only for convenience and is subject to change at any time. ");
-
-			writer.WriteComment (" Warning: Intospection support is incomplete in this implementation ");
-
-			writer.WriteComment (" This is the introspection result for ObjectPath: " + root_path + " ");
+			AssemblyName aname = Assembly.GetExecutingAssembly().GetName ();
+			writer.WriteComment (" " + aname.Name + " " + aname.Version.ToString (3) + " ");
 
 			//the root node element
 			writer.WriteStartElement ("node");

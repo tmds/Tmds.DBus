@@ -94,8 +94,6 @@ namespace NDesk.DBus
 		};
 		*/
 			Register ();
-			//handle the signal -- might not work properly in all cases, needs testing
-			Iterate ();
 		}
 
 		/*
@@ -142,13 +140,11 @@ namespace NDesk.DBus
 		public override void AddMatch (string rule)
 		{
 			bus.AddMatch (rule);
-			//Iterate ();
 		}
 
 		public override void RemoveMatch (string rule)
 		{
 			bus.RemoveMatch (rule);
-			//Iterate ();
 		}
 		*/
 

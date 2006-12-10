@@ -112,7 +112,15 @@ namespace NDesk.DBus
 		{
 			uint id = SendWithReply (msg);
 
-			Message retMsg = WaitForReplyTo (id);
+			Message retMsg;
+
+			//TODO: this isn't fully thread-safe but works much of the time
+			while (!replies.TryGetValue (id, out retMsg))
+				HandleMessage (ReadMessage ());
+
+			replies.Remove (id);
+
+			//FIXME: we should dispatch signals and calls on the main thread
 			DispatchSignals ();
 
 			return retMsg;
@@ -281,24 +289,6 @@ namespace NDesk.DBus
 			return msg;
 		}
 
-		//needs to be done properly
-		public Message WaitForReplyTo (uint id)
-		{
-			//Message msg = Inbound.Dequeue ();
-			Message msg;
-
-			while ((msg = ReadMessage ()) != null) {
-				if (msg.Header.Fields.ContainsKey (FieldCode.ReplySerial))
-					if ((uint)msg.Header.Fields[FieldCode.ReplySerial] == id)
-						return msg;
-
-				HandleMessage (msg);
-			}
-
-			return null;
-		}
-
-
 		//temporary hack
 		protected void DispatchSignals ()
 		{
@@ -321,22 +311,24 @@ namespace NDesk.DBus
 
 		protected void HandleMessage (Message msg)
 		{
+			{
+				//TODO: don't store replies unless they are expected (right now all replies are expected as we don't support NoReplyExpected)
+				object reply_serial;
+				if (msg.Header.Fields.TryGetValue (FieldCode.ReplySerial, out reply_serial)) {
+					replies[(uint)reply_serial] = msg;
+					return;
+				}
+			}
+
 			switch (msg.Header.MessageType) {
 				case MessageType.MethodCall:
 					MethodCall method_call = new MethodCall (msg);
 					HandleMethodCall (method_call);
 					break;
-				case MessageType.MethodReturn:
-					MethodReturn method_return = new MethodReturn (msg);
-					/*
-					if (PendingCalls.ContainsKey (method_return.ReplySerial)) {
-						//TODO: pending calls
-						//return msg;
-					}
-					*/
-					//if the signature is empty, it's just a token return message
-					if (msg.Signature != Signature.Empty)
-						Console.Error.WriteLine ("Warning: Couldn't handle async MethodReturn message for request id " + method_return.ReplySerial + " with signature '" + msg.Signature + "'");
+				case MessageType.Signal:
+					//HandleSignal (msg);
+					lock (Inbound)
+						Inbound.Enqueue (msg);
 					break;
 				case MessageType.Error:
 					//TODO: better exception handling
@@ -350,19 +342,13 @@ namespace NDesk.DBus
 					//if (Protocol.Verbose)
 					Console.Error.WriteLine ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
 					break;
-				case MessageType.Signal:
-					//HandleSignal (msg);
-					lock (Inbound)
-						Inbound.Enqueue (msg);
-					break;
 				case MessageType.Invalid:
 				default:
 					throw new Exception ("Invalid message received: MessageType='" + msg.Header.MessageType + "'");
 			}
 		}
 
-		//protected Dictionary<uint,Message> PendingCalls = new Dictionary<uint,Message> ();
-
+		protected Dictionary<uint,Message> replies = new Dictionary<uint,Message> ();
 
 		//this might need reworking with MulticastDelegate
 		protected void HandleSignal (Message msg)

@@ -9,6 +9,7 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 
 namespace NDesk.DBus
 {
@@ -479,7 +480,7 @@ namespace NDesk.DBus
 			}
 			*/
 
-			System.Reflection.FieldInfo[] fis = type.GetFields ();
+			FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
 			foreach (System.Reflection.FieldInfo fi in fis) {
 				object elem;

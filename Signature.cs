@@ -496,12 +496,8 @@ namespace NDesk.DBus
 			if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				Signature sig = Signature.Empty;
 
-				foreach (FieldInfo fi in type.GetFields ()) {
-					//there didn't seem to be a way to do this with BindingFlags at time of writing
-					if (fi.IsStatic)
-						continue;
+				foreach (FieldInfo fi in type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
 					sig += GetSig (fi.FieldType);
-				}
 
 				return Signature.MakeStruct (sig);
 			}

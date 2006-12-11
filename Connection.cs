@@ -481,9 +481,6 @@ namespace NDesk.DBus
 					if (method_call.Sender != null)
 						error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
 
-					error.message.Header.Fields[FieldCode.Interface] = method_call.Interface;
-					error.message.Header.Fields[FieldCode.Member] = method_call.Member;
-
 					Send (error.message);
 					return;
 				}

@@ -374,6 +374,36 @@ namespace NDesk.DBus
 
 		public Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
 
+		//very messy
+		void MaybeSendUnknownMethodError (MethodCall method_call)
+		{
+			string errMsg = String.Format ("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist", method_call.Member, method_call.Signature.Value, method_call.Interface);
+
+			if (!method_call.message.ReplyExpected) {
+				if (!Protocol.Verbose)
+					return;
+
+				Console.Error.WriteLine ();
+				Console.Error.WriteLine ("Warning: Not sending Error message (" + errMsg + ") as reply because no reply was expected");
+				Console.Error.WriteLine ();
+				return;
+			}
+
+			Error error = new Error ("org.freedesktop.DBus.Error.UnknownMethod", method_call.message.Header.Serial);
+			error.message.Signature = new Signature (DType.String);
+
+			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
+			writer.connection = this;
+			writer.Write (errMsg);
+			error.message.Body = writer.ToArray ();
+
+			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
+			if (method_call.Sender != null)
+				error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+			Send (error.message);
+		}
+
 		//not particularly efficient and needs to be generalized
 		protected void HandleMethodCall (MethodCall method_call)
 		{
@@ -420,90 +450,78 @@ namespace NDesk.DBus
 				return;
 			}
 
-			if (RegisteredObjects.ContainsKey (method_call.Path)) {
-				object obj = RegisteredObjects[method_call.Path];
-				Type type = obj.GetType ();
-				//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
+			if (!RegisteredObjects.ContainsKey (method_call.Path)) {
+				MaybeSendUnknownMethodError (method_call);
+				return;
+			}
 
-				string methodName = method_call.Member;
+			object obj = RegisteredObjects[method_call.Path];
+			Type type = obj.GetType ();
+			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
 
-				//map property accessors
-				//FIXME: this needs to be done properly, not with simple String.Replace
-				/*
-				methodName = methodName.Replace ("Get", "get_");
-				methodName = methodName.Replace ("Set", "set_");
-				*/
+			//TODO: there is no member name mapping for properties etc. yet
 
-				//FIXME: breaks for overloaded methods
-				MethodInfo mi = type.GetMethod (methodName, BindingFlags.Public | BindingFlags.Instance);
+			//FIXME: breaks for overloaded methods and ignores Interface
+			MethodInfo mi = type.GetMethod (method_call.Member, BindingFlags.Public | BindingFlags.Instance);
 
-				//TODO: send errors instead of passing up local exceptions for these
+			if (mi == null) {
+				MaybeSendUnknownMethodError (method_call);
+				return;
+			}
 
-				if (mi == null)
-					throw new Exception ("The requested method could not be resolved");
+			//FIXME: such a simple approach won't work unfortunately
+			//if (!Mapper.IsPublic (mi))
+			//	throw new Exception ("The resolved method is not marked as being public on this bus");
 
-				//FIXME: such a simple approach won't work unfortunately
-				//if (!Mapper.IsPublic (mi))
-				//	throw new Exception ("The resolved method is not marked as being public on this bus");
+			object retObj = null;
+			try {
+				object[] inArgs = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
+				retObj = mi.Invoke (obj, inArgs);
+			} catch (TargetInvocationException e) {
+				Exception ie = e.InnerException;
+				//TODO: complete exception sending support
 
-				object retObj = null;
-			 	try {
-					object[] inArgs = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
-					retObj = mi.Invoke (obj, inArgs);
-				} catch (TargetInvocationException e) {
-					//TODO: consider whether it's correct to send an error for calls that don't expect a reply
-
-					//TODO: complete exception sending support
-					//TODO: method not found etc. exceptions
-					Exception ie = e.InnerException;
-					if (Protocol.Verbose) {
-						Console.Error.WriteLine ();
-						Console.Error.WriteLine (ie);
-						Console.Error.WriteLine ();
-					}
-
-					if (!method_call.message.ReplyExpected) {
-						Console.Error.WriteLine ();
-						Console.Error.WriteLine ("Warning: Not sending Error message (" + ie.GetType ().Name + ") as reply because no reply was expected by call to '" + (method_call.Interface + "." + method_call.Member) + "'");
-						Console.Error.WriteLine ();
+				if (!method_call.message.ReplyExpected) {
+					if (!Protocol.Verbose)
 						return;
-					}
 
-					Error error = new Error (Mapper.GetInterfaceName (ie.GetType ()), method_call.message.Header.Serial);
-					error.message.Signature = new Signature (DType.String);
-
-					MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-					writer.connection = this;
-					writer.Write (ie.Message);
-					error.message.Body = writer.ToArray ();
-
-					//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
-					if (method_call.Sender != null)
-						error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
-
-					Send (error.message);
+					Console.Error.WriteLine ();
+					Console.Error.WriteLine ("Warning: Not sending Error message (" + ie.GetType ().Name + ") as reply because no reply was expected by call to '" + (method_call.Interface + "." + method_call.Member) + "'");
+					Console.Error.WriteLine ();
 					return;
 				}
 
-				if (method_call.message.ReplyExpected) {
-					/*
-					object[] retObjs;
+				Error error = new Error (Mapper.GetInterfaceName (ie.GetType ()), method_call.message.Header.Serial);
+				error.message.Signature = new Signature (DType.String);
 
-					if (retObj == null) {
-						retObjs = new object[0];
-					} else {
-						retObjs = new object[1];
-						retObjs[0] = retObj;
-					}
+				MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
+				writer.connection = this;
+				writer.Write (ie.Message);
+				error.message.Body = writer.ToArray ();
 
-					Message reply = ConstructReplyFor (method_call, retObjs);
-					*/
-					Message reply = MessageHelper.ConstructReplyFor (method_call, mi.ReturnType, retObj);
-					Send (reply);
+				//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
+				if (method_call.Sender != null)
+					error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+				Send (error.message);
+				return;
+			}
+
+			if (method_call.message.ReplyExpected) {
+				/*
+				object[] retObjs;
+
+				if (retObj == null) {
+					retObjs = new object[0];
+				} else {
+					retObjs = new object[1];
+					retObjs[0] = retObj;
 				}
-			} else {
-				//FIXME: send the appropriate Error message
-				Console.Error.WriteLine ("Warning: No method handler for " + method_call.Member);
+
+				Message reply = ConstructReplyFor (method_call, retObjs);
+				*/
+				Message reply = MessageHelper.ConstructReplyFor (method_call, mi.ReturnType, retObj);
+				Send (reply);
 			}
 		}
 

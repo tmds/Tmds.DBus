@@ -178,14 +178,18 @@ namespace NDesk.DBus
 				Write ((ObjectPath)val);
 			} else if (type == typeof (Signature)) {
 				Write ((Signature)val);
+			} else if (type == typeof (object)) {
+				Write (val);
+			} else if (type == typeof (string)) {
+				Write ((string)val);
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
 				WriteFromDict (genArgs[0], genArgs[1], idict);
 			} else if (Mapper.IsPublic (type)) {
 				WriteObject (type, val);
-			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
-				Write (type, (ValueType)val);
+			} else if (!type.IsPrimitive && !type.IsEnum) {
+				WriteStruct (type, val);
 				/*
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (Nullable<>)) {
 				//is it possible to support nullable types?
@@ -371,7 +375,7 @@ namespace NDesk.DBus
 			stream.Position = endPos;
 		}
 
-		public void Write (Type type, ValueType val)
+		public void WriteStruct (Type type, object val)
 		{
 			WritePad (8); //offset for structs, right?
 

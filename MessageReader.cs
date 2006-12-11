@@ -57,6 +57,12 @@ namespace NDesk.DBus
 				Signature valSig;
 				GetValue (out valSig);
 				val = valSig;
+			} else if (type == typeof (object)) {
+				GetValue (out val);
+			} else if (type == typeof (string)) {
+				string valStr;
+				GetValue (out valStr);
+				val = valStr;
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
 				Type dictType = typeof (Dictionary<,>).MakeGenericType (genArgs);
@@ -65,10 +71,8 @@ namespace NDesk.DBus
 				GetValueToDict (genArgs[0], genArgs[1], idict);
 			} else if (Mapper.IsPublic (type)) {
 				GetObject (type, out val);
-			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
-				ValueType valV;
-				GetValue (type, out valV);
-				val = valV;
+			} else if (!type.IsPrimitive && !type.IsEnum) {
+				GetValueStruct (type, out val);
 			} else {
 				DType dtype = Signature.TypeToDType (type);
 				GetValue (dtype, out val);
@@ -426,43 +430,11 @@ namespace NDesk.DBus
 		//struct
 		//probably the wrong place for this
 		//there might be more elegant solutions
-		public void GetValue (Type type, out ValueType val)
+		public void GetValueStruct (Type type, out object val)
 		{
-			System.Reflection.ConstructorInfo[] cis = type.GetConstructors ();
-			if (cis.Length != 0) {
-				System.Reflection.ConstructorInfo ci = cis[0];
-				//Console.WriteLine ("ci: " + ci);
-				System.Reflection.ParameterInfo[]  parms = ci.GetParameters ();
-
-				/*
-				Type[] sig = new Type[parms.Length];
-				for (int i = 0 ; i != parms.Length ; i++)
-					sig[i] = parms[i].ParameterType;
-				object retObj = ci.Invoke (null, MessageHelper.GetDynamicValues (msg, sig));
-				*/
-
-				//TODO: use MessageHelper.GetDynamicValues() when it's refactored to be applicable
-				/*
-				object[] vals;
-				vals = MessageHelper.GetDynamicValues (msg, parms);
-				*/
-
-				List<object> vals = new List<object> (parms.Length);
-				foreach (System.Reflection.ParameterInfo parm in parms) {
-					object arg;
-					GetValue (parm.ParameterType, out arg);
-					vals.Add (arg);
-				}
-
-				//object retObj = ci.Invoke (val, vals.ToArray ());
-				val = (ValueType)Activator.CreateInstance (type, vals.ToArray ());
-				return;
-			}
-
-			//no suitable ctor, marshal as a struct
 			ReadPad (8);
 
-			val = (ValueType)Activator.CreateInstance (type);
+			val = Activator.CreateInstance (type);
 
 			/*
 			if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>)) {

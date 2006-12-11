@@ -479,14 +479,15 @@ namespace NDesk.DBus
 			if (type == typeof (void))
 				return Signature.Empty;
 
+			if (type == typeof (string))
+				return new Signature (DType.String);
+
+			if (type == typeof (object))
+				return new Signature (DType.Variant);
+
 			if (type.IsArray)
 				return GetSig (type.GetElementType ()).MakeArraySignature ();
 
-			if (type.IsMarshalByRef) {
-				//TODO: consider further what to do for remote object reference marshaling
-				return new Signature (DType.ObjectPath);
-			}
-			
 			if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 
 				Type[] genArgs = type.GetGenericArguments ();
@@ -497,7 +498,7 @@ namespace NDesk.DBus
 				return new Signature (DType.ObjectPath);
 			}
 
-			if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
+			if (!type.IsPrimitive && !type.IsEnum) {
 				Signature sig = Signature.Empty;
 
 				foreach (FieldInfo fi in type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))

@@ -75,8 +75,8 @@ namespace NDesk.DBus
 			EndianFlag endianness = (EndianFlag)HeaderData[0];
 			MessageReader reader = new MessageReader (endianness, HeaderData);
 
-			ValueType valT;
-			reader.GetValue (typeof (Header), out valT);
+			object valT;
+			reader.GetValueStruct (typeof (Header), out valT);
 			Header = (Header)valT;
 
 			/*
@@ -123,7 +123,7 @@ namespace NDesk.DBus
 				Header.Length = (uint)Body.Length;
 
 			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-			writer.Write (typeof (Header), Header);
+			writer.WriteStruct (typeof (Header), Header);
 			//writer.WriteFromDict (typeof (FieldCode), typeof (object), Header.Fields);
 			writer.CloseWrite ();
 			HeaderData = writer.ToArray ();

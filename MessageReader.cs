@@ -63,12 +63,12 @@ namespace NDesk.DBus
 				val = Activator.CreateInstance(dictType, new object[0]);
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
 				GetValueToDict (genArgs[0], genArgs[1], idict);
+			} else if (Mapper.IsPublic (type)) {
+				GetObject (type, out val);
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				ValueType valV;
 				GetValue (type, out valV);
 				val = valV;
-			} else if (Mapper.IsPublic (type)) {
-				GetObject (type, out val);
 			} else {
 				DType dtype = Signature.TypeToDType (type);
 				GetValue (dtype, out val);

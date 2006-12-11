@@ -493,6 +493,10 @@ namespace NDesk.DBus
 				return Signature.MakeDict (GetSig (genArgs[0]), GetSig (genArgs[1]));
 			}
 
+			if (Mapper.IsPublic (type)) {
+				return new Signature (DType.ObjectPath);
+			}
+
 			if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				Signature sig = Signature.Empty;
 

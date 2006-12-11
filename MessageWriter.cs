@@ -182,6 +182,8 @@ namespace NDesk.DBus
 				Type[] genArgs = type.GetGenericArguments ();
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
 				WriteFromDict (genArgs[0], genArgs[1], idict);
+			} else if (Mapper.IsPublic (type)) {
+				WriteObject (type, val);
 			} else if (!type.IsPrimitive && type.IsValueType && !type.IsEnum) {
 				Write (type, (ValueType)val);
 				/*
@@ -190,8 +192,6 @@ namespace NDesk.DBus
 				Type[] genArgs = type.GetGenericArguments ();
 				WriteVariant (genArgs[0], val);
 				*/
-			} else if (Mapper.IsPublic (type)) {
-				WriteObject (type, val);
 			} else {
 				Write (Signature.TypeToDType (type), val);
 			}

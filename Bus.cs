@@ -74,6 +74,9 @@ namespace NDesk.DBus
 		//public static Connection Open (string address)
 		public static new Bus Open (string address)
 		{
+			if (address == null)
+				throw new ArgumentNullException ("address");
+
 			if (buses.ContainsKey (address))
 				return buses[address];
 

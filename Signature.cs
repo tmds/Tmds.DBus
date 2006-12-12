@@ -327,6 +327,7 @@ namespace NDesk.DBus
 			}
 		}
 
+		//FIXME: this method is bad, get rid of it
 		public static DType TypeToDType (Type type)
 		{
 			if (type == typeof (void))
@@ -354,13 +355,13 @@ namespace NDesk.DBus
 			if (type.IsArray)
 				return DType.Array;
 
-			if (!type.IsPrimitive && type.IsValueType && !type.IsEnum)
-				return DType.Struct;
-
 			//if (type.UnderlyingSystemType != null)
 			//	return TypeToDType (type.UnderlyingSystemType);
 			if (Mapper.IsPublic (type))
 				return DType.ObjectPath;
+
+			if (!type.IsPrimitive && !type.IsEnum)
+				return DType.Struct;
 
 			//TODO: maybe throw an exception here
 			return DType.Invalid;

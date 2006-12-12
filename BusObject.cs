@@ -193,7 +193,7 @@ namespace NDesk.DBus
 				case MessageType.Error:
 				//TODO: typed exceptions
 				Error error = new Error (retMsg);
-				string errMsg = "";
+				string errMsg = String.Empty;
 				if (retMsg.Signature.Value.StartsWith ("s")) {
 					MessageReader reader = new MessageReader (retMsg);
 					reader.GetValue (out errMsg);

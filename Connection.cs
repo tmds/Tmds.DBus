@@ -333,8 +333,8 @@ namespace NDesk.DBus
 				case MessageType.Error:
 					//TODO: better exception handling
 					Error error = new Error (msg);
-					string errMsg = "";
-					if (msg.Signature.Value == "s") {
+					string errMsg = String.Empty;
+					if (msg.Signature.Value.StartsWith ("s")) {
 						MessageReader reader = new MessageReader (msg);
 						reader.GetValue (out errMsg);
 					}

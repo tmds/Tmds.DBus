@@ -18,6 +18,7 @@ namespace NDesk.DBus.Transports
 					transport.Open (entry);
 					return transport;
 				}
+#if !PORTABLE
 				case "unix":
 				{
 					//Transport transport = new UnixMonoTransport ();
@@ -25,6 +26,7 @@ namespace NDesk.DBus.Transports
 					transport.Open (entry);
 					return transport;
 				}
+#endif
 				default:
 					throw new NotSupportedException ("Transport method \"" + entry.Method + "\" not supported");
 			}

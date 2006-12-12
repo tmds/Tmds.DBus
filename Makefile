@@ -15,5 +15,8 @@ NDesk.DBus.dll: CSFLAGS=/unsafe
 
 NDesk.DBus.dll: $(BUS_SOURCES) $(UNIX_SOURCES) $(CLR_SOURCES)
 
+NDesk.DBus.Portable.dll: CSFLAGS=/unsafe -d:PORTABLE
+
+NDesk.DBus.Portable.dll: $(BUS_SOURCES) $(CLR_SOURCES)
 
 include ../include.mk

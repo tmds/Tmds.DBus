@@ -16,7 +16,10 @@ namespace NDesk.DBus
 			get {
 				if (systemBus == null) {
 					try {
-						systemBus = Bus.Open (Address.System);
+						if (Address.StarterBusType == "system")
+							systemBus = Starter;
+						else
+							systemBus = Bus.Open (Address.System);
 					} catch (Exception e) {
 						throw new Exception ("Unable to open the system message bus.", e);
 					}
@@ -32,7 +35,10 @@ namespace NDesk.DBus
 			get {
 				if (sessionBus == null) {
 					try {
-						sessionBus = Bus.Open (Address.Session);
+						if (Address.StarterBusType == "session")
+							sessionBus = Starter;
+						else
+							sessionBus = Bus.Open (Address.Session);
 					} catch (Exception e) {
 						throw new Exception ("Unable to open the session message bus.", e);
 					}

@@ -137,10 +137,13 @@ namespace NDesk.DBus
 			Path = (ObjectPath)message.Header.Fields[FieldCode.Path];
 			Interface = (string)message.Header.Fields[FieldCode.Interface];
 			Member = (string)message.Header.Fields[FieldCode.Member];
+			if (message.Header.Fields.ContainsKey (FieldCode.Sender))
+				Sender = (string)message.Header.Fields[FieldCode.Sender];
 		}
 
 		public ObjectPath Path;
 		public string Interface;
 		public string Member;
+		public string Sender;
 	}
 }

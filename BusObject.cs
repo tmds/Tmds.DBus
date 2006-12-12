@@ -140,6 +140,7 @@ namespace NDesk.DBus
 
 				if (inArgs != null && inArgs.Length != 0) {
 					MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
+					writer.connection = conn;
 
 					for (int i = 0 ; i != inTypes.Length ; i++)
 						writer.Write (inTypes[i], inArgs[i]);

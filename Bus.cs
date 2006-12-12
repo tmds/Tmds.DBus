@@ -97,7 +97,7 @@ namespace NDesk.DBus
 		}
 
 		/*
-		protected void Register ()
+		public void Register ()
 		{
 			unique_name = bus.Hello ();
 		}
@@ -148,7 +148,7 @@ namespace NDesk.DBus
 		}
 		*/
 
-		protected void Register ()
+		public void Register ()
 		{
 			if (unique_name != null)
 				throw new Exception ("Bus already has a unique name");

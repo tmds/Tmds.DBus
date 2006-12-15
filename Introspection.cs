@@ -113,12 +113,6 @@ namespace NDesk.DBus
 			if (argType == typeof (void))
 				return;
 
-			//FIXME: remove these special cases, they are just for testing
-			if (argType.FullName == "GLib.Value")
-				argType = typeof (object);
-			if (argType.FullName == "GLib.GType")
-				argType = typeof (Signature);
-
 			writer.WriteStartElement ("arg");
 
 			if (!String.IsNullOrEmpty (argName))
@@ -133,11 +127,7 @@ namespace NDesk.DBus
 
 			Signature sig = Signature.GetSig (argType);
 
-			//FIXME: this hides the fact that there are invalid types coming up
-			//sig.Value = sig.Value.Replace ((char)DType.Invalid, (char)DType.Variant);
-			//sig.Value = sig.Value.Replace ((char)DType.Single, (char)DType.UInt32);
-
-			//writer.WriteAttributeString ("type", Signature.GetSig (argType).Value);
+			//TODO: avoid writing null (DType.Invalid) to the XML stream
 			writer.WriteAttributeString ("type", sig.Value);
 
 			//annotations aren't valid in an arg element, so this is disabled

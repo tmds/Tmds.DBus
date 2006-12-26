@@ -156,6 +156,9 @@ namespace NDesk.DBus
 
 		public override string ToString ()
 		{
+			return Value;
+
+			/*
 			StringBuilder sb = new StringBuilder ();
 
 			foreach (DType t in data) {
@@ -174,6 +177,7 @@ namespace NDesk.DBus
 			}
 
 			return sb.ToString ();
+			*/
 		}
 
 		public Signature MakeArraySignature ()
@@ -268,18 +272,20 @@ namespace NDesk.DBus
 			return new Signature (this[1]);
 		}
 
+		public Type[] ToTypes ()
+		{
+			List<Type> types = new List<Type> ();
+			for (int i = 0 ; i != data.Length ; types.Add (ToType (ref i)));
+			return types.ToArray ();
+		}
+
 		public Type ToType ()
 		{
-			if (this == Signature.Empty)
-				return typeof (void);
-
-			if (IsArray)
-				return GetElementSignature ().ToType ().MakeArrayType ();
-
-			if (Length == 1)
-				return DTypeToType (this[0]);
-
-			throw new NotSupportedException ("Parsing or converting this signature is not yet supported (signature was '" + this + "')");
+			int pos = 0;
+			Type ret = ToType (ref pos);
+			if (pos != data.Length)
+				throw new Exception ("Sig parse error: at " + pos + " but should be at " + data.Length);
+			return ret;
 		}
 
 		public static DType TypeCodeToDType (TypeCode typeCode)
@@ -403,8 +409,10 @@ namespace NDesk.DBus
 		}
 		*/
 
-		public static Type DTypeToType (DType dtype)
+		public Type ToType (ref int pos)
 		{
+			DType dtype = (DType)data[pos++];
+
 			switch (dtype) {
 				case DType.Invalid:
 					return typeof (void);
@@ -435,7 +443,18 @@ namespace NDesk.DBus
 				case DType.Signature:
 					return typeof (Signature);
 				case DType.Array:
-					return typeof (Array);
+					//peek to see if this is in fact a dictionary
+					if ((DType)data[pos] == DType.DictEntryBegin) {
+						//skip over the {
+						pos++;
+						Type keyType = ToType (ref pos);
+						Type valueType = ToType (ref pos);
+						//skip over the }
+						pos++;
+						return typeof (IDictionary<,>).MakeGenericType (new Type[] {keyType, valueType});
+					} else {
+						return ToType (ref pos).MakeArrayType ();
+					}
 				case DType.Struct:
 					return typeof (ValueType);
 				case DType.DictEntry:
@@ -443,7 +462,7 @@ namespace NDesk.DBus
 				case DType.Variant:
 					return typeof (object);
 				default:
-					return null;
+					throw new NotSupportedException ("Parsing or converting this signature is not yet supported (signature was '" + this + "'), at DType." + dtype);
 			}
 		}
 
@@ -538,6 +557,7 @@ namespace NDesk.DBus
 		Signature = (byte)'g',
 
 		Array = (byte)'a',
+		//TODO: remove Struct and DictEntry -- they are not relevant to wire protocol
 		Struct = (byte)'r',
 		DictEntry = (byte)'e',
 		Variant = (byte)'v',

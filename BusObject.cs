@@ -284,7 +284,7 @@ namespace NDesk.DBus
 		public Delegate GetHookupDelegate (EventInfo ei)
 		{
 			if (ei.EventHandlerType.IsAssignableFrom (typeof (System.EventHandler)))
-				Console.Error.WriteLine ("Warning: Cannot yet fully marshal EventHandler and its subclasses: " + ei.EventHandlerType);
+				Console.Error.WriteLine ("Warning: Cannot yet fully expose EventHandler and its subclasses: " + ei.EventHandlerType);
 
 			MethodInfo declMethod = ei.EventHandlerType.GetMethod ("Invoke");
 

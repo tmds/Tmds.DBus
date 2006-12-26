@@ -578,12 +578,12 @@ namespace NDesk.DBus
 			//TODO: make use of bus_name
 
 			if (!RegisteredObjects.ContainsKey (path))
-				throw new Exception ("Cannot unmarshal " + path + " as it isn't marshaled");
+				throw new Exception ("Cannot unregister " + path + " as it isn't registered");
 			object obj = RegisteredObjects[path];
 
 			RegisteredObjects.Remove (path);
 
-			//FIXME: complete unmarshaling including the handlers we added etc.
+			//FIXME: complete unregistering including the handlers we added etc.
 
 			return obj;
 		}

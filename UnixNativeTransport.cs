@@ -138,12 +138,12 @@ namespace NDesk.DBus.Transports
 
 		//send peer credentials null byte
 		//different platforms do this in different ways
-		unsafe public override void WriteCred ()
+#if HAVE_CMSGCRED
+		unsafe void WriteBsdCred ()
 		{
 			//null credentials byte
 			byte buf = 0;
 
-#if HAVE_CMSGCRED 
 			IOVector iov = new IOVector ();
 			iov.Base = (IntPtr)(&buf);
 			iov.Length = 1;
@@ -163,7 +163,24 @@ namespace NDesk.DBus.Transports
 			UnixMarshal.ThrowExceptionForLastErrorIf (written);
 			if (written != 1)
 				throw new Exception ("Failed to write credentials");
+		}
+#endif
+
+		public override void WriteCred ()
+		{
+#if HAVE_CMSGCRED
+			try {
+				WriteBsdCred ();
+			} catch {
+				if (Protocol.Verbose)
+					Console.Error.WriteLine ("Warning: WriteBsdCred() failed; falling back to ordinary WriteCred()");
+				//null credentials byte
+				byte buf = 0;
+				Stream.WriteByte (buf);
+			}
 #else
+			//null credentials byte
+			byte buf = 0;
 			Stream.WriteByte (buf);
 #endif
 		}

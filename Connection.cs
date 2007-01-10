@@ -560,17 +560,17 @@ namespace NDesk.DBus
 
 			BusObject busObject = new BusObject (this, bus_name, path);
 
-			//FIXME: this doesn't hook up events declared in interfaces, only the type itself
-			foreach (EventInfo ei in type.GetEvents (BindingFlags.Public | BindingFlags.Instance)) {
-				//hook up only events that are public to the bus
-				if (!Mapper.IsPublic (ei))
+			foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
+				EventInfo ei = mi as EventInfo;
+
+				if (ei == null)
 					continue;
 
 				Delegate dlg = busObject.GetHookupDelegate (ei);
 				ei.AddEventHandler (obj, dlg);
 			}
 
-			//FIXME: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
+			//TODO: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
 			RegisteredObjects[path] = obj;
 		}
 

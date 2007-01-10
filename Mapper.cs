@@ -32,6 +32,21 @@ namespace NDesk.DBus
 			return argName;
 		}
 
+		public static MemberInfo[] GetPublicMembers (Type type)
+		{
+			List<MemberInfo> mis = new List<MemberInfo> ();
+
+			foreach (Type ifType in type.GetInterfaces ())
+				mis.AddRange (GetPublicMembers (ifType));
+
+			//TODO: will DeclaredOnly for inherited members? inheritance support isn't widely used or tested in other places though
+			if (IsPublic (type))
+				foreach (MemberInfo mi in type.GetMembers (BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+					mis.Add (mi);
+
+			return mis.ToArray ();
+		}
+
 		public static bool IsPublic (MemberInfo mi)
 		{
 			return IsPublic (mi.DeclaringType);

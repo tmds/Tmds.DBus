@@ -560,6 +560,7 @@ namespace NDesk.DBus
 
 			BusObject busObject = new BusObject (this, bus_name, path);
 
+			//FIXME: this doesn't hook up events declared in interfaces, only the type itself
 			foreach (EventInfo ei in type.GetEvents (BindingFlags.Public | BindingFlags.Instance)) {
 				//hook up only events that are public to the bus
 				if (!Mapper.IsPublic (ei))

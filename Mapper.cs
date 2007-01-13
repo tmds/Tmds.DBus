@@ -32,6 +32,7 @@ namespace NDesk.DBus
 			return argName;
 		}
 
+		//this will be inefficient for larger interfaces, could be easily rewritten
 		public static MemberInfo[] GetPublicMembers (Type type)
 		{
 			List<MemberInfo> mis = new List<MemberInfo> ();
@@ -45,6 +46,35 @@ namespace NDesk.DBus
 					mis.Add (mi);
 
 			return mis.ToArray ();
+		}
+
+		//this method walks the interface tree in an undefined manner and returns the first match, or if no matches are found, null
+		public static MethodInfo GetMethod (Type type, MethodCall method_call)
+		{
+			foreach (MemberInfo member in Mapper.GetPublicMembers (type)) {
+				MethodInfo meth = member as MethodInfo;
+
+				if (meth == null)
+					continue;
+
+				if (meth.Name != method_call.Member)
+					continue;
+
+				//this could be made more efficient by using the given interface name earlier and avoiding walking through all public interfaces
+				if (method_call.Interface != null)
+					if (GetInterfaceName (meth) != method_call.Interface)
+						continue;
+
+				Type[] inTypes = Mapper.GetTypes (ArgDirection.In, meth.GetParameters ());
+				Signature inSig = Signature.GetSig (inTypes);
+
+				if (inSig != method_call.Signature)
+					continue;
+
+				return meth;
+			}
+
+			return null;
 		}
 
 		public static bool IsPublic (MemberInfo mi)

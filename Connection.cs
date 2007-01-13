@@ -460,18 +460,12 @@ namespace NDesk.DBus
 			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
 
 			//TODO: there is no member name mapping for properties etc. yet
-
-			//FIXME: breaks for overloaded methods and ignores Interface
-			MethodInfo mi = type.GetMethod (method_call.Member, BindingFlags.Public | BindingFlags.Instance);
+			MethodInfo mi = Mapper.GetMethod (type, method_call);
 
 			if (mi == null) {
 				MaybeSendUnknownMethodError (method_call);
 				return;
 			}
-
-			//FIXME: such a simple approach won't work unfortunately
-			//if (!Mapper.IsPublic (mi))
-			//	throw new Exception ("The resolved method is not marked as being public on this bus");
 
 			object retObj = null;
 			try {

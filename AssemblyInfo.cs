@@ -10,3 +10,6 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyDescription ("D-Bus IPC protocol library and CLR binding")]
 [assembly: AssemblyCopyright ("Copyright (C) Alp Toker")]
 [assembly: AssemblyCompany ("NDesk")]
+
+[assembly: InternalsVisibleTo ("dbus-monitor")]
+[assembly: InternalsVisibleTo ("dbus-daemon")]

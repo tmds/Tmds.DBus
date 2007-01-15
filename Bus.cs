@@ -146,12 +146,12 @@ namespace NDesk.DBus
 			return bus.StartServiceByName (name, flags);
 		}
 
-		public override void AddMatch (string rule)
+		protected override void AddMatch (string rule)
 		{
 			bus.AddMatch (rule);
 		}
 
-		public override void RemoveMatch (string rule)
+		protected override void RemoveMatch (string rule)
 		{
 			bus.RemoveMatch (rule);
 		}
@@ -212,12 +212,12 @@ namespace NDesk.DBus
 			return (StartReply)bus.InvokeMethod (typeof (IBus).GetMethod ("StartServiceByName"), name, flags);
 		}
 
-		public override void AddMatch (string rule)
+		internal protected override void AddMatch (string rule)
 		{
 			bus.InvokeMethod (typeof (IBus).GetMethod ("AddMatch"), rule);
 		}
 
-		public override void RemoveMatch (string rule)
+		internal protected override void RemoveMatch (string rule)
 		{
 			bus.InvokeMethod (typeof (IBus).GetMethod ("RemoveMatch"), rule);
 		}

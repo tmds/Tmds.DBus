@@ -16,7 +16,7 @@ namespace NDesk.DBus
 	public class Connection
 	{
 		//TODO: reconsider this field
-		protected Stream ns = null;
+		Stream ns = null;
 
 		Transport transport;
 		internal Transport Transport {
@@ -44,7 +44,7 @@ namespace NDesk.DBus
 			Authenticate ();
 		}
 
-		protected bool isConnected = false;
+		bool isConnected = false;
 		public bool IsConnected
 		{
 			get {
@@ -62,9 +62,7 @@ namespace NDesk.DBus
 			return conn;
 		}
 
-		//TODO: reduce visibility when test-server no longer needs this
-		//protected void OpenPrivate (string address)
-		public void OpenPrivate (string address)
+		internal void OpenPrivate (string address)
 		{
 			if (address == null)
 				throw new ArgumentNullException ("address");
@@ -82,7 +80,7 @@ namespace NDesk.DBus
 			ns = transport.Stream;
 		}
 
-		public void Authenticate ()
+		void Authenticate ()
 		{
 			if (transport != null)
 				transport.WriteCred ();
@@ -92,7 +90,7 @@ namespace NDesk.DBus
 			isAuthenticated = true;
 		}
 
-		protected bool isAuthenticated = false;
+		bool isAuthenticated = false;
 		public bool IsAuthenticated
 		{
 			get {
@@ -101,8 +99,8 @@ namespace NDesk.DBus
 		}
 
 		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint
-		protected int serial = 0;
-		protected uint GenerateSerial ()
+		int serial = 0;
+		uint GenerateSerial ()
 		{
 			//return ++serial;
 			return (uint)Interlocked.Increment (ref serial);
@@ -154,9 +152,9 @@ namespace NDesk.DBus
 				ns.Write (msg.Body, 0, msg.Body.Length);
 		}
 
-		protected Queue<Message> Inbound = new Queue<Message> ();
+		Queue<Message> Inbound = new Queue<Message> ();
 		/*
-		protected Queue<Message> Outbound = new Queue<Message> ();
+		Queue<Message> Outbound = new Queue<Message> ();
 
 		public void Flush ()
 		{
@@ -290,7 +288,7 @@ namespace NDesk.DBus
 		}
 
 		//temporary hack
-		protected void DispatchSignals ()
+		void DispatchSignals ()
 		{
 			lock (Inbound) {
 				while (Inbound.Count != 0) {
@@ -348,7 +346,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		protected Dictionary<uint,Message> replies = new Dictionary<uint,Message> ();
+		Dictionary<uint,Message> replies = new Dictionary<uint,Message> ();
 
 		//this might need reworking with MulticastDelegate
 		internal void HandleSignal (Message msg)
@@ -372,7 +370,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		public Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
+		internal Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
 
 		//very messy
 		void MaybeSendUnknownMethodError (MethodCall method_call)
@@ -519,7 +517,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		protected Dictionary<ObjectPath,object> RegisteredObjects = new Dictionary<ObjectPath,object> ();
+		Dictionary<ObjectPath,object> RegisteredObjects = new Dictionary<ObjectPath,object> ();
 
 		//FIXME: this shouldn't be part of the core API
 		//that also applies to much of the other object mapping code
@@ -584,11 +582,11 @@ namespace NDesk.DBus
 		}
 
 		//these look out of place, but are useful
-		public virtual void AddMatch (string rule)
+		internal protected virtual void AddMatch (string rule)
 		{
 		}
 
-		public virtual void RemoveMatch (string rule)
+		internal protected virtual void RemoveMatch (string rule)
 		{
 		}
 

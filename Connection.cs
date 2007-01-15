@@ -108,7 +108,7 @@ namespace NDesk.DBus
 			return (uint)Interlocked.Increment (ref serial);
 		}
 
-		public Message SendWithReplyAndBlock (Message msg)
+		internal Message SendWithReplyAndBlock (Message msg)
 		{
 			uint id = SendWithReply (msg);
 
@@ -126,13 +126,13 @@ namespace NDesk.DBus
 			return retMsg;
 		}
 
-		public uint SendWithReply (Message msg)
+		internal uint SendWithReply (Message msg)
 		{
 			msg.ReplyExpected = true;
 			return Send (msg);
 		}
 
-		public uint Send (Message msg)
+		internal uint Send (Message msg)
 		{
 			msg.Header.Serial = GenerateSerial ();
 
@@ -147,7 +147,7 @@ namespace NDesk.DBus
 			return msg.Header.Serial;
 		}
 
-		protected void WriteMessage (Message msg)
+		internal void WriteMessage (Message msg)
 		{
 			ns.Write (msg.HeaderData, 0, msg.HeaderData.Length);
 			if (msg.Body != null && msg.Body.Length != 0)
@@ -200,7 +200,7 @@ namespace NDesk.DBus
 		}
 		*/
 
-		public Message ReadMessage ()
+		internal Message ReadMessage ()
 		{
 			//FIXME: fix reading algorithm to work in one step
 			//this code is a bit silly and inefficient
@@ -309,7 +309,7 @@ namespace NDesk.DBus
 			DispatchSignals ();
 		}
 
-		protected void HandleMessage (Message msg)
+		internal void HandleMessage (Message msg)
 		{
 			{
 				//TODO: don't store replies unless they are expected (right now all replies are expected as we don't support NoReplyExpected)
@@ -351,7 +351,7 @@ namespace NDesk.DBus
 		protected Dictionary<uint,Message> replies = new Dictionary<uint,Message> ();
 
 		//this might need reworking with MulticastDelegate
-		protected void HandleSignal (Message msg)
+		internal void HandleSignal (Message msg)
 		{
 			Signal signal = new Signal (msg);
 
@@ -405,7 +405,7 @@ namespace NDesk.DBus
 		}
 
 		//not particularly efficient and needs to be generalized
-		protected void HandleMethodCall (MethodCall method_call)
+		internal void HandleMethodCall (MethodCall method_call)
 		{
 			//TODO: Ping and Introspect need to be abstracted and moved somewhere more appropriate once message filter infrastructure is complete
 
@@ -600,6 +600,6 @@ namespace NDesk.DBus
 				NativeEndianness = EndianFlag.Big;
 		}
 
-		public static readonly EndianFlag NativeEndianness;
+		internal static readonly EndianFlag NativeEndianness;
 	}
 }

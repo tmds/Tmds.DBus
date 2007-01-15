@@ -11,7 +11,7 @@ using System.Collections.Generic;
 namespace NDesk.DBus
 {
 	//yyyyuua{yv}
-	public struct Header
+	struct Header
 	{
 		public EndianFlag Endianness;
 		public MessageType MessageType;
@@ -79,7 +79,7 @@ namespace NDesk.DBus
 	}
 	*/
 
-	public enum MessageType : byte
+	enum MessageType : byte
 	{
 		//This is an invalid type.
 		Invalid,
@@ -93,7 +93,7 @@ namespace NDesk.DBus
 		Signal,
 	}
 
-	public enum FieldCode : byte
+	enum FieldCode : byte
 	{
 		Invalid,
 			Path,
@@ -109,14 +109,14 @@ namespace NDesk.DBus
 #endif
 	}
 
-	public enum EndianFlag : byte
+	enum EndianFlag : byte
 	{
 		Little = (byte)'l',
 		Big = (byte)'B',
 	}
 
 	[Flags]
-	public enum HeaderFlag : byte
+	enum HeaderFlag : byte
 	{
 		None = 0,
 		NoReplyExpected = 0x1,
@@ -183,7 +183,7 @@ namespace NDesk.DBus
 		*/
 	}
 
-	public static class Protocol
+	static class Protocol
 	{
 		//protocol versions that we support
 		public const byte MinVersion = 0;

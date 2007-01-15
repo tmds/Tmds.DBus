@@ -6,7 +6,7 @@ using System;
 
 namespace NDesk.DBus
 {
-	public class MessageFilter
+	class MessageFilter
 	{
 		//this should probably be made to use HeaderField or similar
 		//this class is not generalized yet

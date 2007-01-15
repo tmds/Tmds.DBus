@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace NDesk.DBus
 {
-	public static class Mapper
+	static class Mapper
 	{
 		//TODO: move these Get*Name helpers somewhere more appropriate
 		public static string GetArgumentName (ParameterInfo pi)
@@ -148,7 +148,7 @@ namespace NDesk.DBus
 	}
 
 	//TODO: this class is messy, move the methods somewhere more appropriate
-	public static class MessageHelper
+	static class MessageHelper
 	{
 		//GetDynamicValues() should probably use yield eventually
 

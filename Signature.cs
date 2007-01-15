@@ -96,13 +96,13 @@ namespace NDesk.DBus
 		}
 
 		//this will become obsolete soon
-		public Signature (DType value)
+		internal Signature (DType value)
 		{
 			this.data = new byte[1];
 			this.data[0] = (byte)value;
 		}
 
-		public Signature (DType[] value)
+		internal Signature (DType[] value)
 		{
 			this.data = new byte[value.Length];
 
@@ -126,7 +126,7 @@ namespace NDesk.DBus
 			return data;
 		}
 
-		public DType this[int index]
+		internal DType this[int index]
 		{
 			get {
 				return (DType)data[index];
@@ -288,7 +288,7 @@ namespace NDesk.DBus
 			return ret;
 		}
 
-		public static DType TypeCodeToDType (TypeCode typeCode)
+		internal static DType TypeCodeToDType (TypeCode typeCode)
 		{
 			switch (typeCode)
 			{
@@ -334,7 +334,7 @@ namespace NDesk.DBus
 		}
 
 		//FIXME: this method is bad, get rid of it
-		public static DType TypeToDType (Type type)
+		internal static DType TypeToDType (Type type)
 		{
 			if (type == typeof (void))
 				return DType.Invalid;
@@ -532,13 +532,13 @@ namespace NDesk.DBus
 		}
 	}
 
-	public enum ArgDirection
+	enum ArgDirection
 	{
 		In,
 		Out,
 	}
 
-	public enum DType : byte
+	enum DType : byte
 	{
 		Invalid = (byte)'\0',
 

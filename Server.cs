@@ -10,7 +10,7 @@ using System.Net.Sockets;
 namespace NDesk.DBus
 {
 	//TODO: complete this class
-	public class Server
+	class Server
 	{
 		public void Listen (string address)
 		{

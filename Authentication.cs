@@ -10,21 +10,21 @@ using System.Globalization;
 
 namespace NDesk.DBus.Authentication
 {
-	public enum ClientState
+	enum ClientState
 	{
 		WaitingForData,
 		WaitingForOK,
 		WaitingForReject,
 	}
 
-	public enum ServerState
+	enum ServerState
 	{
 		WaitingForAuth,
 		WaitingForData,
 		WaitingForBegin,
 	}
 
-	public class SaslClient
+	class SaslClient
 	{
 		protected Connection conn;
 

@@ -8,7 +8,7 @@ using Mono.Unix;
 
 namespace NDesk.DBus.Transports
 {
-	public abstract class UnixTransport : Transport
+	abstract class UnixTransport : Transport
 	{
 		public override void Open (AddressEntry entry)
 		{

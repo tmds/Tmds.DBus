@@ -18,8 +18,8 @@ namespace NDesk.DBus
 		//TODO: reconsider this field
 		protected Stream ns = null;
 
-		protected Transport transport;
-		public Transport Transport {
+		Transport transport;
+		internal Transport Transport {
 			get {
 				return transport;
 			} set {
@@ -29,7 +29,7 @@ namespace NDesk.DBus
 
 		protected Connection () {}
 
-		public Connection (Transport transport)
+		internal Connection (Transport transport)
 		{
 			this.transport = transport;
 			transport.Connection = this;

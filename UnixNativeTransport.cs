@@ -18,7 +18,7 @@ using Mono.Unix.Native;
 
 namespace NDesk.DBus.Transports
 {
-	public class UnixSocket
+	class UnixSocket
 	{
 		public const short AF_UNIX = 1;
 		//TODO: SOCK_STREAM is 2 on Solaris
@@ -111,13 +111,13 @@ namespace NDesk.DBus.Transports
 		}
 	}
 
-	public struct IOVector
+	struct IOVector
 	{
 		public IntPtr Base;
 		public int Length;
 	}
 
-	public class UnixNativeTransport : UnixTransport
+	class UnixNativeTransport : UnixTransport
 	{
 		protected UnixSocket socket;
 
@@ -240,7 +240,7 @@ namespace NDesk.DBus.Transports
 	}
 	*/
 
-	unsafe public struct msghdr
+	unsafe struct msghdr
 	{
 		public IntPtr msg_name; //optional address
 		public uint msg_namelen; //size of address
@@ -258,7 +258,7 @@ namespace NDesk.DBus.Transports
 		public int cmsg_type; //protocol-specific type
 	}
 
-	unsafe public struct cmsgcred
+	unsafe struct cmsgcred
 	{
 		public int cmcred_pid; //PID of sending process
 		public uint cmcred_uid; //real UID of sending process
@@ -268,7 +268,7 @@ namespace NDesk.DBus.Transports
 		public fixed uint cmcred_groups[16]; //groups, CMGROUP_MAX
 	}
 
-	public struct cmsg
+	struct cmsg
 	{
 		public cmsghdr hdr;
 		public cmsgcred cred;

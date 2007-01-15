@@ -11,5 +11,6 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyCopyright ("Copyright (C) Alp Toker")]
 [assembly: AssemblyCompany ("NDesk")]
 
+[assembly: InternalsVisibleTo ("dbus-sharp-glib")]
 [assembly: InternalsVisibleTo ("dbus-monitor")]
 [assembly: InternalsVisibleTo ("dbus-daemon")]

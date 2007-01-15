@@ -251,7 +251,7 @@ namespace NDesk.DBus.Transports
 		public int msg_flags; //flags on received message
 	}
 
-	public struct cmsghdr
+	struct cmsghdr
 	{
 		public uint cmsg_len; //data byte count, including header
 		public int cmsg_level; //originating protocol

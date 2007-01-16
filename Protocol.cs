@@ -127,7 +127,7 @@ namespace NDesk.DBus
 	{
 		public static readonly ObjectPath Root = new ObjectPath ("/");
 
-		public readonly string Value;
+		internal readonly string Value;
 
 		public ObjectPath (string value)
 		{
@@ -140,7 +140,7 @@ namespace NDesk.DBus
 		}
 
 		//this may or may not prove useful
-		public string[] Decomposed
+		internal string[] Decomposed
 		{
 			get {
 				return Value.Split (new char[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
@@ -151,7 +151,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		public ObjectPath Parent
+		internal ObjectPath Parent
 		{
 			get {
 				if (Value == Root.Value)

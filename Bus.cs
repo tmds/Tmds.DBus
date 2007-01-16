@@ -86,16 +86,14 @@ namespace NDesk.DBus
 			return bus;
 		}
 
-		//IBus bus;
-		BusObject bus;
+		IBus bus;
 
 		static readonly string DBusName = "org.freedesktop.DBus";
 		static readonly ObjectPath DBusPath = new ObjectPath ("/org/freedesktop/DBus");
 
 		public Bus (string address) : base (address)
 		{
-			//bus = GetObject<IBus> (DBusName, DBusPath);
-			bus = new BusObject (this, DBusName, DBusPath);
+			bus = GetObject<IBus> (DBusName, DBusPath);
 
 			/*
 					bus.NameAcquired += delegate (string acquired_name) {
@@ -105,9 +103,13 @@ namespace NDesk.DBus
 			Register ();
 		}
 
-		/*
-		public void Register ()
+		//should this be public?
+		//as long as Bus subclasses Connection, having a Register with a completely different meaning is bad
+		void Register ()
 		{
+			if (unique_name != null)
+				throw new Exception ("Bus already has a unique name");
+
 			unique_name = bus.Hello ();
 		}
 
@@ -146,25 +148,14 @@ namespace NDesk.DBus
 			return bus.StartServiceByName (name, flags);
 		}
 
-		protected override void AddMatch (string rule)
+		internal protected override void AddMatch (string rule)
 		{
 			bus.AddMatch (rule);
 		}
 
-		protected override void RemoveMatch (string rule)
+		internal protected override void RemoveMatch (string rule)
 		{
 			bus.RemoveMatch (rule);
-		}
-		*/
-
-		//should this be public?
-		//as long as Bus subclasses Connection, having a Register with a completely different meaning is bad
-		void Register ()
-		{
-			if (unique_name != null)
-				throw new Exception ("Bus already has a unique name");
-
-			unique_name = (string)bus.InvokeMethod (typeof (IBus).GetMethod ("Hello"));
 		}
 
 		string unique_name = null;
@@ -177,51 +168,6 @@ namespace NDesk.DBus
 					throw new Exception ("Unique name can only be set once");
 				unique_name = value;
 			}
-		}
-
-		public ulong GetUnixUser (string name)
-		{
-			return (ulong)bus.InvokeMethod (typeof (IBus).GetMethod ("GetConnectionUnixUser"), name);
-		}
-
-		public RequestNameReply RequestName (string name)
-		{
-			return RequestName (name, NameFlag.None);
-		}
-
-		public RequestNameReply RequestName (string name, NameFlag flags)
-		{
-			return (RequestNameReply)bus.InvokeMethod (typeof (IBus).GetMethod ("RequestName"), name, flags);
-		}
-
-		public ReleaseNameReply ReleaseName (string name)
-		{
-			return (ReleaseNameReply)bus.InvokeMethod (typeof (IBus).GetMethod ("ReleaseName"), name);
-		}
-
-		public bool NameHasOwner (string name)
-		{
-			return (bool)bus.InvokeMethod (typeof (IBus).GetMethod ("NameHasOwner"), name);
-		}
-
-		public StartReply StartServiceByName (string name)
-		{
-			return StartServiceByName (name, 0);
-		}
-
-		public StartReply StartServiceByName (string name, uint flags)
-		{
-			return (StartReply)bus.InvokeMethod (typeof (IBus).GetMethod ("StartServiceByName"), name, flags);
-		}
-
-		internal protected override void AddMatch (string rule)
-		{
-			bus.InvokeMethod (typeof (IBus).GetMethod ("AddMatch"), rule);
-		}
-
-		internal protected override void RemoveMatch (string rule)
-		{
-			bus.InvokeMethod (typeof (IBus).GetMethod ("RemoveMatch"), rule);
 		}
 	}
 }

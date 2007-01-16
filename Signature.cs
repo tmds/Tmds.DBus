@@ -12,7 +12,7 @@ using System.Reflection;
 namespace NDesk.DBus
 {
 	//maybe this should be nullable?
-	public struct Signature
+	struct Signature
 	{
 		//TODO: this class needs some work
 		//Data should probably include the null terminator

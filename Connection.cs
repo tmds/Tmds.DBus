@@ -38,12 +38,14 @@ namespace NDesk.DBus
 			ns = transport.Stream;
 		}
 
-		public Connection (string address)
+		//should this be public?
+		internal Connection (string address)
 		{
 			OpenPrivate (address);
 			Authenticate ();
 		}
 
+		/*
 		bool isConnected = false;
 		public bool IsConnected
 		{
@@ -51,6 +53,7 @@ namespace NDesk.DBus
 				return isConnected;
 			}
 		}
+		*/
 
 		//should we do connection sharing here?
 		public static Connection Open (string address)
@@ -91,7 +94,7 @@ namespace NDesk.DBus
 		}
 
 		bool isAuthenticated = false;
-		public bool IsAuthenticated
+		internal bool IsAuthenticated
 		{
 			get {
 				return isAuthenticated;

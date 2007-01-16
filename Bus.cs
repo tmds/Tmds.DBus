@@ -8,9 +8,9 @@ using org.freedesktop.DBus;
 
 namespace NDesk.DBus
 {
-	public class Bus : Connection
+	public sealed class Bus : Connection
 	{
-		protected static Bus systemBus = null;
+		static Bus systemBus = null;
 		public static Bus System
 		{
 			get {
@@ -29,7 +29,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		protected static Bus sessionBus = null;
+		static Bus sessionBus = null;
 		public static Bus Session
 		{
 			get {
@@ -49,7 +49,7 @@ namespace NDesk.DBus
 		}
 
 		//TODO: parsing of starter bus type, or maybe do this another way
-		protected static Bus starterBus = null;
+		static Bus starterBus = null;
 		public static Bus Starter
 		{
 			get {
@@ -69,7 +69,7 @@ namespace NDesk.DBus
 
 		//TODO: use the guid, not the whole address string
 		//TODO: consider what happens when a connection has been closed
-		protected static Dictionary<string,Bus> buses = new Dictionary<string,Bus> ();
+		static Dictionary<string,Bus> buses = new Dictionary<string,Bus> ();
 
 		//public static Connection Open (string address)
 		public static new Bus Open (string address)
@@ -86,8 +86,8 @@ namespace NDesk.DBus
 			return bus;
 		}
 
-		//protected IBus bus;
-		private BusObject bus;
+		//IBus bus;
+		BusObject bus;
 
 		static readonly string DBusName = "org.freedesktop.DBus";
 		static readonly ObjectPath DBusPath = new ObjectPath ("/org/freedesktop/DBus");
@@ -157,7 +157,9 @@ namespace NDesk.DBus
 		}
 		*/
 
-		public void Register ()
+		//should this be public?
+		//as long as Bus subclasses Connection, having a Register with a completely different meaning is bad
+		void Register ()
 		{
 			if (unique_name != null)
 				throw new Exception ("Bus already has a unique name");
@@ -165,7 +167,7 @@ namespace NDesk.DBus
 			unique_name = (string)bus.InvokeMethod (typeof (IBus).GetMethod ("Hello"));
 		}
 
-		protected string unique_name = null;
+		string unique_name = null;
 		public string UniqueName
 		{
 			get {

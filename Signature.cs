@@ -394,7 +394,7 @@ namespace NDesk.DBus
 				return DType.Int64;
 			else if (type == typeof (ulong))
 				return DType.UInt64;
-			else if (type == typeof (float)) //FIXME: this isn't supported by DBus yet
+			else if (type == typeof (float)) //not supported by libdbus at time of writing
 				return DType.Single;
 			else if (type == typeof (double))
 				return DType.Double;
@@ -432,7 +432,7 @@ namespace NDesk.DBus
 					return typeof (long);
 				case DType.UInt64:
 					return typeof (ulong);
-				case DType.Single: //Not yet supported!
+				case DType.Single: ////not supported by libdbus at time of writing
 					return typeof (float);
 				case DType.Double:
 					return typeof (double);

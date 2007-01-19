@@ -19,4 +19,8 @@ NDesk.DBus.Portable.dll: CSFLAGS=/unsafe -d:PORTABLE
 
 NDesk.DBus.Portable.dll: $(BUS_SOURCES) $(CLR_SOURCES)
 
+.PHONY:
+install: NDesk.DBus.dll
+	$(GACUTIL) -i NDesk.DBus.dll -f -package ndesk-dbus-1.0
+
 include ../include.mk

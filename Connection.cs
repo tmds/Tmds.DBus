@@ -212,6 +212,9 @@ namespace NDesk.DBus
 			byte[] buf = new byte[16];
 			read = ns.Read (buf, 0, 16);
 
+			if (read == 0)
+				return null;
+
 			if (read != 16)
 				throw new Exception ("Header read length mismatch: " + read + " of expected " + "16");
 
@@ -312,6 +315,10 @@ namespace NDesk.DBus
 
 		internal void HandleMessage (Message msg)
 		{
+			//TODO: support disconnection situations properly and move this check elsewhere
+			if (msg == null)
+				throw new ArgumentNullException ("msg", "Cannot handle a null message; maybe the bus was disconnected");
+
 			{
 				//TODO: don't store replies unless they are expected (right now all replies are expected as we don't support NoReplyExpected)
 				object reply_serial;

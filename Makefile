@@ -11,7 +11,7 @@ NDesk.DBus.dll: REFS=Mono.Posix
 
 #NDesk.DBus.dll: CSFLAGS=-d:PROTO_REPLY_SIGNATURE
 
-NDesk.DBus.dll: CSFLAGS=/unsafe
+NDesk.DBus.dll: CSFLAGS=/unsafe -d:STRONG_NAME
 
 NDesk.DBus.dll: $(BUS_SOURCES) $(UNIX_SOURCES) $(CLR_SOURCES) ../ndesk.snk
 

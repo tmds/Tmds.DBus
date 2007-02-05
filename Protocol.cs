@@ -123,7 +123,7 @@ namespace NDesk.DBus
 		NoAutoStart = 0x2,
 	}
 
-	public struct ObjectPath //: IComparable, IComparable<ObjectPath>, IEquatable<ObjectPath>
+	public class ObjectPath //: IComparable, IComparable<ObjectPath>, IEquatable<ObjectPath>
 	{
 		public static readonly ObjectPath Root = new ObjectPath ("/");
 
@@ -132,6 +132,21 @@ namespace NDesk.DBus
 		public ObjectPath (string value)
 		{
 			this.Value = value;
+		}
+
+		public override bool Equals (object o)
+		{
+			ObjectPath b = o as ObjectPath;
+
+			if (b == null)
+				return false;
+
+			return Value.Equals (b.Value);
+		}
+
+		public override int GetHashCode ()
+		{
+			return Value.GetHashCode ();
 		}
 
 		public override string ToString ()

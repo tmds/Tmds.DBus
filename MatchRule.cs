@@ -20,8 +20,6 @@ namespace NDesk.DBus
 		//TODO: args
 		//public Signature Signature;
 
-		//TODO: parsing
-
 		public MatchRule ()
 		{
 		}
@@ -141,6 +139,65 @@ namespace NDesk.DBus
 						return false;
 
 			return true;
+		}
+
+		//this could be made more efficient
+		public static MatchRule Parse (string text)
+		{
+			MatchRule r = new MatchRule ();
+
+			foreach (string propStr in text.Split (',')) {
+				string[] parts = propStr.Split ('=');
+
+				if (parts.Length < 2)
+					throw new Exception ("No equals sign found");
+				if (parts.Length > 2)
+					throw new Exception ("Too many equals signs found");
+
+				string key = parts[0].Trim ();
+				string value = parts[1].Trim ();
+
+				if (!value.StartsWith ("'") || !value.EndsWith ("'"))
+					throw new Exception ("Too many equals signs found");
+
+				value = value.Substring (1, value.Length - 2);
+
+				//TODO: more consistent error handling
+				switch (key) {
+					case "type":
+						if (r.MessageType != null)
+							return null;
+						r.MessageType = MessageFilter.StringToMessageType (value);
+						break;
+					case "interface":
+						if (r.Interface != null)
+							return null;
+						r.Interface = value;
+						break;
+					case "member":
+						if (r.Member != null)
+							return null;
+						r.Member = value;
+						break;
+					case "path":
+						if (r.Path != null)
+							return null;
+						r.Path = new ObjectPath (value);
+						break;
+					case "sender":
+						if (r.Sender != null)
+							return null;
+						r.Sender = value;
+						break;
+					case "destination":
+						if (r.Destination != null)
+							return null;
+						r.Destination = value;
+						break;
+				}
+			}
+
+			return r;
 		}
 	}
 }

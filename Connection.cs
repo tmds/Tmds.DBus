@@ -363,10 +363,15 @@ namespace NDesk.DBus
 		{
 			Signal signal = new Signal (msg);
 
-			string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, signal.Path, signal.Interface, signal.Member);
+			//TODO: this is a hack, not necessary when MatchRule is complete
+			MatchRule rule = new MatchRule ();
+			rule.MessageType = MessageType.Signal;
+			rule.Interface = signal.Interface;
+			rule.Member = signal.Member;
+			rule.Path = signal.Path;
 
-			if (Handlers.ContainsKey (matchRule)) {
-				Delegate dlg = Handlers[matchRule];
+			if (Handlers.ContainsKey (rule)) {
+				Delegate dlg = Handlers[rule];
 				//dlg.DynamicInvoke (GetDynamicValues (msg));
 
 				MethodInfo mi = dlg.Method;
@@ -380,7 +385,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		internal Dictionary<string,Delegate> Handlers = new Dictionary<string,Delegate> ();
+		internal Dictionary<MatchRule,Delegate> Handlers = new Dictionary<MatchRule,Delegate> ();
 
 		//very messy
 		void MaybeSendUnknownMethodError (MethodCall method_call)

@@ -94,20 +94,25 @@ namespace NDesk.DBus
 				string[] parts = methodName.Split (new char[]{'_'}, 2);
 				string ename = parts[1];
 				Delegate dlg = (Delegate)inArgs[0];
-				string matchRule = MessageFilter.CreateMatchRule (MessageType.Signal, object_path, Mapper.GetInterfaceName (mi), ename);
+
+				MatchRule rule = new MatchRule ();
+				rule.MessageType = MessageType.Signal;
+				rule.Interface = Mapper.GetInterfaceName (mi);
+				rule.Member = ename;
+				rule.Path = object_path;
 
 				if (parts[0] == "add") {
-					if (conn.Handlers.ContainsKey (matchRule))
-						conn.Handlers[matchRule] = Delegate.Combine (conn.Handlers[matchRule], dlg);
+					if (conn.Handlers.ContainsKey (rule))
+						conn.Handlers[rule] = Delegate.Combine (conn.Handlers[rule], dlg);
 					else {
-						conn.Handlers[matchRule] = dlg;
-						conn.AddMatch (matchRule);
+						conn.Handlers[rule] = dlg;
+						conn.AddMatch (rule.ToString ());
 					}
 				} else if (parts[0] == "remove") {
-					conn.Handlers[matchRule] = Delegate.Remove (conn.Handlers[matchRule], dlg);
-					if (conn.Handlers[matchRule] == null) {
-						conn.RemoveMatch (matchRule);
-						conn.Handlers.Remove (matchRule);
+					conn.Handlers[rule] = Delegate.Remove (conn.Handlers[rule], dlg);
+					if (conn.Handlers[rule] == null) {
+						conn.RemoveMatch (rule.ToString ());
+						conn.Handlers.Remove (rule);
 					}
 				}
 				return;

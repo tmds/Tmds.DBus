@@ -4,6 +4,7 @@
 
 using System;
 using System.Text;
+using System.Collections.Generic;
 
 namespace NDesk.DBus
 {
@@ -17,8 +18,7 @@ namespace NDesk.DBus
 		public ObjectPath Path;
 		public string Sender;
 		public string Destination;
-		//TODO: args
-		//public Signature Signature;
+		public readonly SortedDictionary<int,string> Args = new SortedDictionary<int,string> ();
 
 		public MatchRule ()
 		{
@@ -34,12 +34,10 @@ namespace NDesk.DBus
 			sb.Append ("'");
 		}
 
-		/*
 		void AppendArg (StringBuilder sb, int index, string value)
 		{
 			Append (sb, "arg" + index, value);
 		}
-		*/
 
 		public override bool Equals (object o)
 		{
@@ -67,6 +65,8 @@ namespace NDesk.DBus
 
 			if (r.Destination != Destination)
 				return false;
+
+			//FIXME: do args
 
 			return true;
 		}
@@ -99,6 +99,11 @@ namespace NDesk.DBus
 
 			if (Destination != null)
 				Append (sb, "destination", Destination);
+
+			if (Args != null) {
+				foreach (KeyValuePair<int,string> pair in Args)
+					AppendArg (sb, pair.Key, pair.Value);
+			}
 
 			return sb.ToString ();
 		}
@@ -137,6 +142,8 @@ namespace NDesk.DBus
 				if (msg.Header.Fields.TryGetValue (FieldCode.Destination, out value))
 					if ((string)value != Destination)
 						return false;
+			
+			//FIXME: do args
 
 			return true;
 		}
@@ -161,6 +168,20 @@ namespace NDesk.DBus
 					throw new Exception ("Too many equals signs found");
 
 				value = value.Substring (1, value.Length - 2);
+
+				if (key.StartsWith ("arg")) {
+					int argnum = Int32.Parse (key.Remove (0, "arg".Length));
+
+					if (argnum < 0 || argnum > 63)
+						throw new Exception ("arg match must be between 0 and 63 inclusive");
+
+					if (r.Args.ContainsKey (argnum))
+						return null;
+
+					r.Args[argnum] = value;
+
+					continue;
+				}
 
 				//TODO: more consistent error handling
 				switch (key) {
@@ -193,6 +214,10 @@ namespace NDesk.DBus
 						if (r.Destination != null)
 							return null;
 						r.Destination = value;
+						break;
+					default:
+						if (Protocol.Verbose)
+							Console.Error.WriteLine ("Warning: Unrecognized match rule key: " + key);
 						break;
 				}
 			}

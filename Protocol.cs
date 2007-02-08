@@ -2,9 +2,6 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
-//defined by default, since this is not a controversial extension
-#define PROTO_TYPE_SINGLE
-
 using System;
 using System.Collections.Generic;
 
@@ -238,7 +235,7 @@ namespace NDesk.DBus
 				case DType.Int64:
 				case DType.UInt64:
 					return 8;
-#if PROTO_TYPE_SINGLE
+#if !DISABLE_SINGLE
 				case DType.Single: //Not yet supported!
 					return 4;
 #endif

@@ -2,9 +2,6 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
-//defined by default, since this is not a controversial extension
-#define PROTO_TYPE_SINGLE
-
 using System;
 using System.Text;
 using System.Collections.Generic;
@@ -143,7 +140,7 @@ namespace NDesk.DBus
 					val = vval;
 				}
 				break;
-#if PROTO_TYPE_SINGLE
+#if !DISABLE_SINGLE
 				case DType.Single:
 				{
 					float vval;
@@ -307,7 +304,7 @@ namespace NDesk.DBus
 				MarshalULong ((byte*)ret);
 		}
 
-#if PROTO_TYPE_SINGLE
+#if !DISABLE_SINGLE
 		unsafe public void GetValue (out float val)
 		{
 			fixed (float* ret = &val)

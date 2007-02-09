@@ -442,7 +442,7 @@ namespace NDesk.DBus
 					if (pth.Value == (method_call.Path.Value)) {
 						intro.WriteType (RegisteredObjects[pth].GetType ());
 					} else {
-						for (ObjectPath cur = pth ; cur.Value != null ; cur = cur.Parent) {
+						for (ObjectPath cur = pth ; cur != null ; cur = cur.Parent) {
 							if (cur.Value == method_call.Path.Value) {
 								string linkNode = pth.Decomposed[depth];
 								if (!linkNodes.Contains (linkNode)) {

@@ -128,6 +128,9 @@ namespace NDesk.DBus
 
 		public ObjectPath (string value)
 		{
+			if (value == null)
+				throw new ArgumentNullException ("value");
+
 			this.Value = value;
 		}
 
@@ -167,7 +170,7 @@ namespace NDesk.DBus
 		{
 			get {
 				if (Value == Root.Value)
-					return new ObjectPath (null);
+					return null;
 
 				string par = Value.Substring (0, Value.LastIndexOf ('/'));
 				if (par == String.Empty)

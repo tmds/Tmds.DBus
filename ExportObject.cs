@@ -17,32 +17,28 @@ namespace NDesk.DBus
 		public ExportObject (Connection conn, string bus_name, ObjectPath object_path, object obj) : base (conn, bus_name, object_path)
 		{
 			this.obj = obj;
-
-			Type type = obj.GetType ();
-
-			foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
-				EventInfo ei = mi as EventInfo;
-
-				if (ei == null)
-					continue;
-
-				Delegate dlg = GetHookupDelegate (ei);
-				ei.AddEventHandler (obj, dlg);
-			}
 		}
 
-		public void Unregister ()
+		//maybe add checks to make sure this is not called more than once
+		//it's a bit silly as a property
+		public bool Registered
 		{
-			Type type = obj.GetType ();
+			set {
+				Type type = obj.GetType ();
 
-			foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
-				EventInfo ei = mi as EventInfo;
+				foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
+					EventInfo ei = mi as EventInfo;
 
-				if (ei == null)
-					continue;
+					if (ei == null)
+						continue;
 
-				Delegate dlg = GetHookupDelegate (ei);
-				ei.RemoveEventHandler (obj, dlg);
+					Delegate dlg = GetHookupDelegate (ei);
+
+					if (value)
+						ei.AddEventHandler (obj, dlg);
+					else
+						ei.RemoveEventHandler (obj, dlg);
+				}
 			}
 		}
 

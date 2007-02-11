@@ -567,10 +567,11 @@ namespace NDesk.DBus
 
 		public void Register (string bus_name, ObjectPath path, object obj)
 		{
-			BusObject busObject = new ExportObject (this, bus_name, path, obj);
+			ExportObject eo = new ExportObject (this, bus_name, path, obj);
+			eo.Registered = true;
 
 			//TODO: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
-			RegisteredObjects[path] = busObject;
+			RegisteredObjects[path] = eo;
 		}
 
 		public object Unregister (string bus_name, ObjectPath path)
@@ -585,7 +586,7 @@ namespace NDesk.DBus
 			RegisteredObjects.Remove (path);
 
 			ExportObject eo = (ExportObject)bo;
-			eo.Unregister ();
+			eo.Registered = false;
 
 			return eo.obj;
 		}

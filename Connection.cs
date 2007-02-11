@@ -463,12 +463,12 @@ namespace NDesk.DBus
 				return;
 			}
 
-			if (!RegisteredObjects.ContainsKey (method_call.Path)) {
+			object obj;
+			if (!RegisteredObjects.TryGetValue (method_call.Path, out obj)) {
 				MaybeSendUnknownMethodError (method_call);
 				return;
 			}
 
-			object obj = RegisteredObjects[method_call.Path];
 			Type type = obj.GetType ();
 			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
 
@@ -585,9 +585,10 @@ namespace NDesk.DBus
 		{
 			//TODO: make use of bus_name
 
-			if (!RegisteredObjects.ContainsKey (path))
+			object obj;
+
+			if (!RegisteredObjects.TryGetValue (path, out obj))
 				throw new Exception ("Cannot unregister " + path + " as it isn't registered");
-			object obj = RegisteredObjects[path];
 
 			RegisteredObjects.Remove (path);
 

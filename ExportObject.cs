@@ -31,6 +31,21 @@ namespace NDesk.DBus
 			}
 		}
 
+		public void Unregister ()
+		{
+			Type type = obj.GetType ();
+
+			foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
+				EventInfo ei = mi as EventInfo;
+
+				if (ei == null)
+					continue;
+
+				Delegate dlg = GetHookupDelegate (ei);
+				ei.RemoveEventHandler (obj, dlg);
+			}
+		}
+
 		/*
 		public void Ping ()
 		{

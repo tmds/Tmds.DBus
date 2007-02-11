@@ -584,9 +584,9 @@ namespace NDesk.DBus
 
 			RegisteredObjects.Remove (path);
 
-			//FIXME: complete unregistering including the handlers we added etc.
-
 			ExportObject eo = (ExportObject)bo;
+			eo.Unregister ();
+
 			return eo.obj;
 		}
 

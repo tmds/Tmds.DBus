@@ -32,20 +32,16 @@ namespace NDesk.DBus
 			return argName;
 		}
 
-		//this will be inefficient for larger interfaces, could be easily rewritten
-		public static MemberInfo[] GetPublicMembers (Type type)
+		public static IEnumerable<MemberInfo> GetPublicMembers (Type type)
 		{
-			List<MemberInfo> mis = new List<MemberInfo> ();
-
 			foreach (Type ifType in type.GetInterfaces ())
-				mis.AddRange (GetPublicMembers (ifType));
+				foreach (MemberInfo mi in GetPublicMembers (ifType))
+					yield return mi;
 
 			//TODO: will DeclaredOnly for inherited members? inheritance support isn't widely used or tested in other places though
 			if (IsPublic (type))
 				foreach (MemberInfo mi in type.GetMembers (BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-					mis.Add (mi);
-
-			return mis.ToArray ();
+					yield return mi;
 		}
 
 		//this method walks the interface tree in an undefined manner and returns the first match, or if no matches are found, null

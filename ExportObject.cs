@@ -10,8 +10,28 @@ using org.freedesktop.DBus;
 
 namespace NDesk.DBus
 {
-	internal class ExportObject : BusObject, Peer
+	internal class ExportObject : BusObject //, Peer
 	{
+		public readonly object obj;
+
+		public ExportObject (Connection conn, string bus_name, ObjectPath object_path, object obj) : base (conn, bus_name, object_path)
+		{
+			this.obj = obj;
+
+			Type type = obj.GetType ();
+
+			foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
+				EventInfo ei = mi as EventInfo;
+
+				if (ei == null)
+					continue;
+
+				Delegate dlg = GetHookupDelegate (ei);
+				ei.AddEventHandler (obj, dlg);
+			}
+		}
+
+		/*
 		public void Ping ()
 		{
 		}
@@ -21,5 +41,6 @@ namespace NDesk.DBus
 			//TODO: implement this
 			return String.Empty;
 		}
+		*/
 	}
 }

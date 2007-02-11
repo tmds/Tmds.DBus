@@ -463,11 +463,14 @@ namespace NDesk.DBus
 				return;
 			}
 
-			object obj;
-			if (!RegisteredObjects.TryGetValue (method_call.Path, out obj)) {
+			BusObject bo;
+			if (!RegisteredObjects.TryGetValue (method_call.Path, out bo)) {
 				MaybeSendUnknownMethodError (method_call);
 				return;
 			}
+
+			ExportObject eo = (ExportObject)bo;
+			object obj = eo.obj;
 
 			Type type = obj.GetType ();
 			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
@@ -532,7 +535,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		Dictionary<ObjectPath,object> RegisteredObjects = new Dictionary<ObjectPath,object> ();
+		Dictionary<ObjectPath,BusObject> RegisteredObjects = new Dictionary<ObjectPath,BusObject> ();
 
 		//FIXME: this shouldn't be part of the core API
 		//that also applies to much of the other object mapping code
@@ -563,38 +566,27 @@ namespace NDesk.DBus
 
 		public void Register (string bus_name, ObjectPath path, object obj)
 		{
-			Type type = obj.GetType ();
-
-			BusObject busObject = new BusObject (this, bus_name, path);
-
-			foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
-				EventInfo ei = mi as EventInfo;
-
-				if (ei == null)
-					continue;
-
-				Delegate dlg = busObject.GetHookupDelegate (ei);
-				ei.AddEventHandler (obj, dlg);
-			}
+			BusObject busObject = new ExportObject (this, bus_name, path, obj);
 
 			//TODO: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
-			RegisteredObjects[path] = obj;
+			RegisteredObjects[path] = busObject;
 		}
 
 		public object Unregister (string bus_name, ObjectPath path)
 		{
 			//TODO: make use of bus_name
 
-			object obj;
+			BusObject bo;
 
-			if (!RegisteredObjects.TryGetValue (path, out obj))
+			if (!RegisteredObjects.TryGetValue (path, out bo))
 				throw new Exception ("Cannot unregister " + path + " as it isn't registered");
 
 			RegisteredObjects.Remove (path);
 
 			//FIXME: complete unregistering including the handlers we added etc.
 
-			return obj;
+			ExportObject eo = (ExportObject)bo;
+			return eo.obj;
 		}
 
 		//these look out of place, but are useful

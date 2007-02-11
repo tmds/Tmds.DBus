@@ -440,7 +440,8 @@ namespace NDesk.DBus
 				int depth = method_call.Path.Decomposed.Length;
 				foreach (ObjectPath pth in RegisteredObjects.Keys) {
 					if (pth.Value == (method_call.Path.Value)) {
-						intro.WriteType (RegisteredObjects[pth].GetType ());
+						ExportObject exo = (ExportObject)RegisteredObjects[pth];
+						intro.WriteType (exo.obj.GetType ());
 					} else {
 						for (ObjectPath cur = pth ; cur != null ; cur = cur.Parent) {
 							if (cur.Value == method_call.Path.Value) {

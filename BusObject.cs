@@ -5,6 +5,7 @@
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Collections.Generic;
 
 namespace NDesk.DBus
 {
@@ -288,16 +289,28 @@ namespace NDesk.DBus
 
 		public Delegate GetHookupDelegate (EventInfo ei)
 		{
+			DynamicMethod hookupMethod = GetHookupMethod (ei);
+			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
+			return d;
+		}
+
+		static Dictionary<EventInfo,DynamicMethod> hookup_methods = new Dictionary<EventInfo,DynamicMethod> ();
+		public static DynamicMethod GetHookupMethod (EventInfo ei)
+		{
+			DynamicMethod hookupMethod;
+			if (hookup_methods.TryGetValue (ei, out hookupMethod))
+				return hookupMethod;
+
 			if (ei.EventHandlerType.IsAssignableFrom (typeof (System.EventHandler)))
 				Console.Error.WriteLine ("Warning: Cannot yet fully expose EventHandler and its subclasses: " + ei.EventHandlerType);
 
 			MethodInfo declMethod = ei.EventHandlerType.GetMethod ("Invoke");
 
-			DynamicMethod hookupMethod = GetHookupMethod (declMethod, sendSignalMethod, Mapper.GetInterfaceName (ei), ei.Name);
+			hookupMethod = GetHookupMethod (declMethod, sendSignalMethod, Mapper.GetInterfaceName (ei), ei.Name);
 
-			Delegate d = hookupMethod.CreateDelegate (ei.EventHandlerType, this);
+			hookup_methods[ei] = hookupMethod;
 
-			return d;
+			return hookupMethod;
 		}
 
 		public static DynamicMethod GetHookupMethod (MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member)

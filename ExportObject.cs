@@ -60,18 +60,11 @@ namespace NDesk.DBus
 				object[] inArgs = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
 				retObj = mi.Invoke (obj, inArgs);
 			} catch (TargetInvocationException e) {
+				if (!method_call.message.ReplyExpected)
+					return;
+
 				Exception ie = e.InnerException;
 				//TODO: complete exception sending support
-
-				if (!method_call.message.ReplyExpected) {
-					if (!Protocol.Verbose)
-						return;
-
-					Console.Error.WriteLine ();
-					Console.Error.WriteLine ("Warning: Not sending Error message (" + ie.GetType ().Name + ") as reply because no reply was expected by call to '" + (method_call.Interface + "." + method_call.Member) + "'");
-					Console.Error.WriteLine ();
-					return;
-				}
 
 				Error error = new Error (Mapper.GetInterfaceName (ie.GetType ()), method_call.message.Header.Serial);
 				error.message.Signature = new Signature (DType.String);

@@ -146,6 +146,27 @@ namespace NDesk.DBus
 	//TODO: this class is messy, move the methods somewhere more appropriate
 	static class MessageHelper
 	{
+		public static Message CreateUnknownMethodError (MethodCall method_call)
+		{
+			if (!method_call.message.ReplyExpected)
+				return null;
+
+			string errMsg = String.Format ("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist", method_call.Member, method_call.Signature.Value, method_call.Interface);
+
+			Error error = new Error ("org.freedesktop.DBus.Error.UnknownMethod", method_call.message.Header.Serial);
+			error.message.Signature = new Signature (DType.String);
+
+			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
+			writer.Write (errMsg);
+			error.message.Body = writer.ToArray ();
+
+			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
+			if (method_call.Sender != null)
+				error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+			return error.message;
+		}
+
 		//GetDynamicValues() should probably use yield eventually
 
 		public static object[] GetDynamicValues (Message msg, ParameterInfo[] parms)

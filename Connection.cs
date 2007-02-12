@@ -390,31 +390,9 @@ namespace NDesk.DBus
 		//very messy
 		internal void MaybeSendUnknownMethodError (MethodCall method_call)
 		{
-			string errMsg = String.Format ("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist", method_call.Member, method_call.Signature.Value, method_call.Interface);
-
-			if (!method_call.message.ReplyExpected) {
-				if (!Protocol.Verbose)
-					return;
-
-				Console.Error.WriteLine ();
-				Console.Error.WriteLine ("Warning: Not sending Error message (" + errMsg + ") as reply because no reply was expected");
-				Console.Error.WriteLine ();
-				return;
-			}
-
-			Error error = new Error ("org.freedesktop.DBus.Error.UnknownMethod", method_call.message.Header.Serial);
-			error.message.Signature = new Signature (DType.String);
-
-			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-			writer.connection = this;
-			writer.Write (errMsg);
-			error.message.Body = writer.ToArray ();
-
-			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
-			if (method_call.Sender != null)
-				error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
-
-			Send (error.message);
+			Message msg = MessageHelper.CreateUnknownMethodError (method_call);
+			if (msg != null)
+				Send (msg);
 		}
 
 		//not particularly efficient and needs to be generalized

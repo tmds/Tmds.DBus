@@ -30,8 +30,9 @@ namespace NDesk.DBus
 		public Signature Signature
 		{
 			get {
-				if (Header.Fields.ContainsKey (FieldCode.Signature))
-					return (Signature)Header.Fields[FieldCode.Signature];
+				object o;
+				if (Header.Fields.TryGetValue (FieldCode.Signature, out o))
+					return (Signature)o;
 				else
 					return Signature.Empty;
 			} set {

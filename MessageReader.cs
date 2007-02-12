@@ -400,6 +400,14 @@ namespace NDesk.DBus
 			uint ln;
 			GetValue (out ln);
 
+			//TODO: more fast paths for primitive arrays
+			if (elemType == typeof (byte)) {
+				byte[] valb = new byte[ln];
+				Array.Copy (data, pos, valb, 0, (int)ln);
+				val = valb;
+				return;
+			}
+
 			//advance to the alignment of the element
 			ReadPad (Protocol.GetAlignment (Signature.TypeToDType (elemType)));
 

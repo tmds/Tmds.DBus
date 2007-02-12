@@ -370,8 +370,8 @@ namespace NDesk.DBus
 			rule.Member = signal.Member;
 			rule.Path = signal.Path;
 
-			if (Handlers.ContainsKey (rule)) {
-				Delegate dlg = Handlers[rule];
+			Delegate dlg;
+			if (Handlers.TryGetValue (rule, out dlg)) {
 				//dlg.DynamicInvoke (GetDynamicValues (msg));
 
 				MethodInfo mi = dlg.Method;

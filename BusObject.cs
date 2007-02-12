@@ -13,7 +13,7 @@ namespace NDesk.DBus
 	//it probably needs to be made into a base and import/export subclasses
 	internal class BusObject
 	{
-		Connection conn;
+		protected Connection conn;
 		string bus_name;
 		ObjectPath object_path;
 

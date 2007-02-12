@@ -42,6 +42,71 @@ namespace NDesk.DBus
 			}
 		}
 
+		public void HandleMethodCall (MethodCall method_call)
+		{
+			Type type = obj.GetType ();
+			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
+
+			//TODO: there is no member name mapping for properties etc. yet
+			MethodInfo mi = Mapper.GetMethod (type, method_call);
+
+			if (mi == null) {
+				conn.MaybeSendUnknownMethodError (method_call);
+				return;
+			}
+
+			object retObj = null;
+			try {
+				object[] inArgs = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
+				retObj = mi.Invoke (obj, inArgs);
+			} catch (TargetInvocationException e) {
+				Exception ie = e.InnerException;
+				//TODO: complete exception sending support
+
+				if (!method_call.message.ReplyExpected) {
+					if (!Protocol.Verbose)
+						return;
+
+					Console.Error.WriteLine ();
+					Console.Error.WriteLine ("Warning: Not sending Error message (" + ie.GetType ().Name + ") as reply because no reply was expected by call to '" + (method_call.Interface + "." + method_call.Member) + "'");
+					Console.Error.WriteLine ();
+					return;
+				}
+
+				Error error = new Error (Mapper.GetInterfaceName (ie.GetType ()), method_call.message.Header.Serial);
+				error.message.Signature = new Signature (DType.String);
+
+				MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
+				writer.connection = conn;
+				writer.Write (ie.Message);
+				error.message.Body = writer.ToArray ();
+
+				//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
+				if (method_call.Sender != null)
+					error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+				conn.Send (error.message);
+				return;
+			}
+
+			if (method_call.message.ReplyExpected) {
+				/*
+				object[] retObjs;
+
+				if (retObj == null) {
+					retObjs = new object[0];
+				} else {
+					retObjs = new object[1];
+					retObjs[0] = retObj;
+				}
+
+				Message reply = ConstructReplyFor (method_call, retObjs);
+				*/
+				Message reply = MessageHelper.ConstructReplyFor (method_call, mi.ReturnType, retObj);
+				conn.Send (reply);
+			}
+		}
+
 		/*
 		public void Ping ()
 		{

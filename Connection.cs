@@ -388,7 +388,7 @@ namespace NDesk.DBus
 		internal Dictionary<MatchRule,Delegate> Handlers = new Dictionary<MatchRule,Delegate> ();
 
 		//very messy
-		void MaybeSendUnknownMethodError (MethodCall method_call)
+		internal void MaybeSendUnknownMethodError (MethodCall method_call)
 		{
 			string errMsg = String.Format ("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist", method_call.Member, method_call.Signature.Value, method_call.Interface);
 
@@ -422,6 +422,7 @@ namespace NDesk.DBus
 		{
 			//TODO: Ping and Introspect need to be abstracted and moved somewhere more appropriate once message filter infrastructure is complete
 
+			//FIXME: these special cases are slightly broken for the case where the member but not the interface is specified in the message
 			if (method_call.Interface == "org.freedesktop.DBus.Peer" && method_call.Member == "Ping") {
 				object[] pingRet = new object[0];
 				Message reply = MessageHelper.ConstructReplyFor (method_call, pingRet);
@@ -465,74 +466,11 @@ namespace NDesk.DBus
 			}
 
 			BusObject bo;
-			if (!RegisteredObjects.TryGetValue (method_call.Path, out bo)) {
+			if (RegisteredObjects.TryGetValue (method_call.Path, out bo)) {
+				ExportObject eo = (ExportObject)bo;
+				eo.HandleMethodCall (method_call);
+			} else {
 				MaybeSendUnknownMethodError (method_call);
-				return;
-			}
-
-			ExportObject eo = (ExportObject)bo;
-			object obj = eo.obj;
-
-			Type type = obj.GetType ();
-			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
-
-			//TODO: there is no member name mapping for properties etc. yet
-			MethodInfo mi = Mapper.GetMethod (type, method_call);
-
-			if (mi == null) {
-				MaybeSendUnknownMethodError (method_call);
-				return;
-			}
-
-			object retObj = null;
-			try {
-				object[] inArgs = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
-				retObj = mi.Invoke (obj, inArgs);
-			} catch (TargetInvocationException e) {
-				Exception ie = e.InnerException;
-				//TODO: complete exception sending support
-
-				if (!method_call.message.ReplyExpected) {
-					if (!Protocol.Verbose)
-						return;
-
-					Console.Error.WriteLine ();
-					Console.Error.WriteLine ("Warning: Not sending Error message (" + ie.GetType ().Name + ") as reply because no reply was expected by call to '" + (method_call.Interface + "." + method_call.Member) + "'");
-					Console.Error.WriteLine ();
-					return;
-				}
-
-				Error error = new Error (Mapper.GetInterfaceName (ie.GetType ()), method_call.message.Header.Serial);
-				error.message.Signature = new Signature (DType.String);
-
-				MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-				writer.connection = this;
-				writer.Write (ie.Message);
-				error.message.Body = writer.ToArray ();
-
-				//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
-				if (method_call.Sender != null)
-					error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
-
-				Send (error.message);
-				return;
-			}
-
-			if (method_call.message.ReplyExpected) {
-				/*
-				object[] retObjs;
-
-				if (retObj == null) {
-					retObjs = new object[0];
-				} else {
-					retObjs = new object[1];
-					retObjs[0] = retObj;
-				}
-
-				Message reply = ConstructReplyFor (method_call, retObjs);
-				*/
-				Message reply = MessageHelper.ConstructReplyFor (method_call, mi.ReturnType, retObj);
-				Send (reply);
 			}
 		}
 

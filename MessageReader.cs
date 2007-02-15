@@ -405,6 +405,7 @@ namespace NDesk.DBus
 				byte[] valb = new byte[ln];
 				Array.Copy (data, pos, valb, 0, (int)ln);
 				val = valb;
+				pos += (int)ln;
 				return;
 			}
 

@@ -45,23 +45,47 @@ namespace NDesk.DBus
 		}
 
 		//this method walks the interface tree in an undefined manner and returns the first match, or if no matches are found, null
+		//the logic needs review and cleanup
+		//TODO: unify member name mapping as is already done with interfaces and args
 		public static MethodInfo GetMethod (Type type, MethodCall method_call)
 		{
 			foreach (MemberInfo member in Mapper.GetPublicMembers (type)) {
-				MethodInfo meth = member as MethodInfo;
-
-				if (meth == null)
-					continue;
-
-				if (meth.Name != method_call.Member)
-					continue;
-
 				//this could be made more efficient by using the given interface name earlier and avoiding walking through all public interfaces
 				if (method_call.Interface != null)
-					if (GetInterfaceName (meth) != method_call.Interface)
+					if (GetInterfaceName (member) != method_call.Interface)
 						continue;
 
-				Type[] inTypes = Mapper.GetTypes (ArgDirection.In, meth.GetParameters ());
+				MethodInfo meth = null;
+				Type[] inTypes = null;
+
+				if (member is PropertyInfo) {
+					PropertyInfo prop = member as PropertyInfo;
+
+					MethodInfo getter = prop.GetGetMethod (false);
+					MethodInfo setter = prop.GetSetMethod (false);
+
+					if (getter != null && "Get" + prop.Name == method_call.Member) {
+						meth = getter;
+						inTypes = new Type[0];
+					} else if (setter != null && "Set" + prop.Name == method_call.Member) {
+						meth = setter;
+						inTypes = new Type[] {prop.PropertyType};
+					}
+				} else {
+					meth = member as MethodInfo;
+
+					if (meth == null)
+						continue;
+
+					if (meth.Name != method_call.Member)
+						continue;
+
+					inTypes = Mapper.GetTypes (ArgDirection.In, meth.GetParameters ());
+				}
+
+				if (meth == null || inTypes == null)
+					continue;
+
 				Signature inSig = Signature.GetSig (inTypes);
 
 				if (inSig != method_call.Signature)

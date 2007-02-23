@@ -284,7 +284,7 @@ namespace NDesk.DBus
 			int pos = 0;
 			Type ret = ToType (ref pos);
 			if (pos != data.Length)
-				throw new Exception ("Sig parse error: at " + pos + " but should be at " + data.Length);
+				throw new Exception ("Signature '" + Value + "' is not a single complete type");
 			return ret;
 		}
 

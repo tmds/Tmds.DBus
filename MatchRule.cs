@@ -142,7 +142,7 @@ namespace NDesk.DBus
 				if (msg.Header.Fields.TryGetValue (FieldCode.Destination, out value))
 					if ((string)value != Destination)
 						return false;
-			
+
 			//FIXME: do args
 
 			return true;

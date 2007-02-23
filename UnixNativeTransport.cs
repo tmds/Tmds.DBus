@@ -228,7 +228,7 @@ namespace NDesk.DBus.Transports
 		}
 	}
 
-#if HAVE_CMSGCRED 
+#if HAVE_CMSGCRED
 	/*
 	public struct msg
 	{

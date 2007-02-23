@@ -24,7 +24,7 @@ namespace NDesk.DBus.Transports
 
 			Open (path, abstr);
 		}
-	
+
 		public override string AuthString ()
 		{
 			long uid = UnixUserInfo.GetRealUserId ();

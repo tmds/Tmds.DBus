@@ -456,25 +456,19 @@ namespace NDesk.DBus
 
 		//FIXME: this shouldn't be part of the core API
 		//that also applies to much of the other object mapping code
-		//it should cache proxies and objects, really
 
-		//inspired by System.Activator
 		public object GetObject (Type type, string bus_name, ObjectPath path)
 		{
-			BusObject busObject = new BusObject (this, bus_name, path);
-			DProxy prox = new DProxy (busObject, type);
-
-			object obj = prox.GetTransparentProxy ();
-
-			return obj;
+			//if the requested type is an interface, we can implement it efficiently
+			//otherwise we fall back to using a transparent proxy
+			if (type.IsInterface) {
+				return BusObject.GetObject (this, bus_name, path, type);
+			} else {
+				BusObject busObject = new BusObject (this, bus_name, path);
+				DProxy prox = new DProxy (busObject, type);
+				return prox.GetTransparentProxy ();
+			}
 		}
-
-		/*
-		public object GetObject (Type type, string bus_name, ObjectPath path)
-		{
-			return BusObject.GetObject (this, bus_name, path, type);
-		}
-		*/
 
 		public T GetObject<T> (string bus_name, ObjectPath path)
 		{

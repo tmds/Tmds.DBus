@@ -68,17 +68,13 @@ namespace NDesk.DBus
 		}
 
 		//this method is kept simple while IL generation support is worked on
-		public object SendMethodCall (MethodInfo methodInfo, string @interface, string member, object[] inArgs)
+		public object SendMethodCall (MethodInfo methodInfo, string @interface, string member, object[] inArgs, out Exception exception)
 		{
 			//TODO: don't ignore retVal, exception etc.
 
 			object[] outArgs;
 			object retVal;
-			Exception exception;
 			Invoke (methodInfo, methodInfo.Name, inArgs, out outArgs, out retVal, out exception);
-
-			if (exception != null)
-				throw exception;
 
 			return retVal;
 		}
@@ -369,7 +365,27 @@ namespace NDesk.DBus
 			}
 
 			ilg.Emit (OpCodes.Ldloc, local);
+
+			LocalBuilder exc = ilg.DeclareLocal (typeof (Exception));
+			ilg.Emit (OpCodes.Ldloca_S, exc);
+
+			//make the call
 			ilg.Emit (OpCodes.Call, invokeMethod);
+
+			//define a label we'll use to deal with a non-null Exception
+			Label noErr = ilg.DefineLabel ();
+
+			//if the out Exception is not null...
+			ilg.Emit (OpCodes.Ldloc, exc);
+			ilg.Emit (OpCodes.Ldnull);
+			ilg.Emit (OpCodes.Beq, noErr);
+
+			//...throw it.
+			ilg.Emit (OpCodes.Ldloc, exc);
+			ilg.Emit (OpCodes.Throw);
+
+			//Exception was null, so all is well
+			ilg.MarkLabel (noErr);
 
 			if (retType == typeof (void)) {
 				//we aren't expecting a return value, so throw away the (hopefully) null return
@@ -385,8 +401,10 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Ret);
 		}
 
-		public void SendSignal (MethodInfo mi, string @interface, string member, object[] outValues)
+		public void SendSignal (MethodInfo mi, string @interface, string member, object[] outValues, out Exception exception)
 		{
+			exception = null;
+
 			//TODO: make use of bus_name?
 
 			Type[] outTypes = Mapper.GetTypes (ArgDirection.In, mi.GetParameters ());

@@ -235,10 +235,8 @@ namespace NDesk.DBus
 
 			Implement (typeB, declType);
 
-			foreach (Type iface in declType.GetInterfaces ()) {
+			foreach (Type iface in declType.GetInterfaces ())
 				Implement (typeB, iface);
-				//typeB.DefineMethodOverride (body, declMethod);
-			}
 
 			Type retT = typeB.CreateType ();
 
@@ -265,6 +263,8 @@ namespace NDesk.DBus
 					hookupParms[i+1] = delegateParms[i].ParameterType;
 
 				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name, hookupParms);
+
+				typeB.DefineMethodOverride (method_builder, declMethod);
 			}
 		}
 

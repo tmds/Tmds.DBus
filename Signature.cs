@@ -79,7 +79,7 @@ namespace NDesk.DBus
 
 		public static Signature Copy (Signature sig)
 		{
-			return new Signature (sig.Value);
+			return new Signature (sig.data);
 		}
 
 		public Signature (string value)
@@ -89,17 +89,13 @@ namespace NDesk.DBus
 
 		public Signature (byte[] value)
 		{
-			this.data = new byte[value.Length];
-
-			for (int i = 0 ; i != value.Length ; i++)
-				this.data[i] = value[i];
+			this.data = (byte[])value.Clone ();
 		}
 
 		//this will become obsolete soon
 		internal Signature (DType value)
 		{
-			this.data = new byte[1];
-			this.data[0] = (byte)value;
+			this.data = new byte[] {(byte)value};
 		}
 
 		internal Signature (DType[] value)

@@ -326,6 +326,9 @@ namespace NDesk.DBus
 			return hookupMethod;
 		}
 
+		static MethodInfo getMethodFromHandleMethod = typeof (MethodBase).GetMethod ("GetMethodFromHandle");
+		static ConstructorInfo argumentNullExceptionConstructor = typeof (ArgumentNullException).GetConstructor (new Type[] {typeof (string)});
+
 		public static void GenHookupMethod (ILGenerator ilg, MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member, Type[] hookupParms)
 		{
 			Type retType = declMethod.ReturnType;
@@ -335,7 +338,7 @@ namespace NDesk.DBus
 
 			//MethodInfo
 			ilg.Emit (OpCodes.Ldtoken, declMethod);
-			ilg.Emit (OpCodes.Call, typeof (MethodBase).GetMethod ("GetMethodFromHandle"));
+			ilg.Emit (OpCodes.Call, getMethodFromHandleMethod);
 
 			//interface
 			ilg.Emit (OpCodes.Ldstr, @interface);
@@ -352,6 +355,25 @@ namespace NDesk.DBus
 			for (int i = 1 ; i < hookupParms.Length ; i++)
 			{
 				Type t = hookupParms[i];
+
+				//null checking of parameters (but not their recursive contents)
+				if (!t.IsValueType) {
+					Label notNull = ilg.DefineLabel ();
+
+					//if the value is null...
+					ilg.Emit (OpCodes.Ldarg, i);
+					ilg.Emit (OpCodes.Brtrue_S, notNull);
+
+					//...throw Exception
+					//TODO: use proper parameter names
+					string paramName = "arg" + (i-1);
+					ilg.Emit (OpCodes.Ldstr, paramName);
+					ilg.Emit (OpCodes.Newobj, argumentNullExceptionConstructor);
+					ilg.Emit (OpCodes.Throw);
+
+					//was not null, so all is well
+					ilg.MarkLabel (notNull);
+				}
 
 				ilg.Emit (OpCodes.Ldloc, local);
 				//the instance parameter requires the -1 offset here
@@ -377,8 +399,7 @@ namespace NDesk.DBus
 
 			//if the out Exception is not null...
 			ilg.Emit (OpCodes.Ldloc, exc);
-			ilg.Emit (OpCodes.Ldnull);
-			ilg.Emit (OpCodes.Beq, noErr);
+			ilg.Emit (OpCodes.Brfalse_S, noErr);
 
 			//...throw it.
 			ilg.Emit (OpCodes.Ldloc, exc);

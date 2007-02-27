@@ -370,7 +370,7 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Ldloca_S, exc);
 
 			//make the call
-			ilg.Emit (OpCodes.Call, invokeMethod);
+			ilg.Emit (invokeMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, invokeMethod);
 
 			//define a label we'll use to deal with a non-null Exception
 			Label noErr = ilg.DefineLabel ();

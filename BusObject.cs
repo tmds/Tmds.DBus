@@ -256,13 +256,13 @@ namespace NDesk.DBus
 				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual, declMethod.ReturnType, Mapper.GetTypes (ArgDirection.In, declMethod.GetParameters ()));
 				ILGenerator ilg = method_builder.GetILGenerator ();
 
-			//Mapper.GetTypes (ArgDirection.In, declMethod.GetParameters ())
+				//Mapper.GetTypes (ArgDirection.In, declMethod.GetParameters ())
 
-			ParameterInfo[] delegateParms = declMethod.GetParameters ();
-			Type[] hookupParms = new Type[delegateParms.Length+1];
-			hookupParms[0] = typeof (BusObject);
-			for (int i = 0; i < delegateParms.Length ; i++)
-				hookupParms[i+1] = delegateParms[i].ParameterType;
+				ParameterInfo[] delegateParms = declMethod.GetParameters ();
+				Type[] hookupParms = new Type[delegateParms.Length+1];
+				hookupParms[0] = typeof (BusObject);
+				for (int i = 0; i < delegateParms.Length ; i++)
+					hookupParms[i+1] = delegateParms[i].ParameterType;
 
 				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name, hookupParms);
 			}

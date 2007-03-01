@@ -351,7 +351,7 @@ namespace NDesk.DBus
 				return TypeCodeToDType (Type.GetTypeCode (type));
 
 			if (type.IsEnum)
-				return TypeToDType (type.GetElementType ());
+				return TypeToDType (Enum.GetUnderlyingType (type));
 
 			//needs work
 			if (type.IsArray)

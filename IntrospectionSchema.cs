@@ -6,8 +6,8 @@ using System;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 
-namespace Schemas {
-
+namespace NDesk.DBus.Introspection
+{
 	[XmlRootAttribute(IsNullable=true)]
 	public class Member {
 		[XmlAttributeAttribute("name")]

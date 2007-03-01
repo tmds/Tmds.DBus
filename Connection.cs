@@ -8,10 +8,13 @@ using System.IO;
 using System.Threading;
 using System.Reflection;
 
+using System.Xml.Serialization;
+
 namespace NDesk.DBus
 {
 	using Authentication;
 	using Transports;
+	using Introspection;
 
 	public class Connection
 	{
@@ -459,6 +462,9 @@ namespace NDesk.DBus
 
 		public object GetObject (Type type, string bus_name, ObjectPath path)
 		{
+			//if (type == null)
+			//	return GetObject (bus_name, path);
+
 			//if the requested type is an interface, we can implement it efficiently
 			//otherwise we fall back to using a transparent proxy
 			if (type.IsInterface) {
@@ -468,6 +474,21 @@ namespace NDesk.DBus
 				DProxy prox = new DProxy (busObject, type);
 				return prox.GetTransparentProxy ();
 			}
+		}
+
+		//dynamically defines a Type for the proxy object using D-Bus introspection
+		public object GetObject (string bus_name, ObjectPath path)
+		{
+			org.freedesktop.DBus.Introspectable intros = GetObject<org.freedesktop.DBus.Introspectable> (bus_name, path);
+			string data = intros.Introspect ();
+
+			StringReader sr = new StringReader (data);
+			XmlSerializer sz = new XmlSerializer (typeof (Node));
+			Node node = (Node)sz.Deserialize (sr);
+
+			Type type = BusObject.Define (node.Interfaces);
+
+			return GetObject (type, bus_name, path);
 		}
 
 		public T GetObject<T> (string bus_name, ObjectPath path)
@@ -516,6 +537,12 @@ namespace NDesk.DBus
 				NativeEndianness = EndianFlag.Little;
 			else
 				NativeEndianness = EndianFlag.Big;
+		}
+
+		//FIXME: debug hack
+		~Connection ()
+		{
+			BusObject.Save ();
 		}
 
 		internal static readonly EndianFlag NativeEndianness;

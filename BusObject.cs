@@ -9,9 +9,12 @@ using System.Collections.Generic;
 
 namespace NDesk.DBus
 {
-	//marked internal because this isn't ready for public use yet
-	//it probably needs to be made into a base and import/export subclasses
-	internal class BusObject
+	using Introspection;
+
+	//FIXME: debug hack
+	public delegate void VoidHandler ();
+
+	class BusObject
 	{
 		protected Connection conn;
 		string bus_name;
@@ -213,6 +216,9 @@ namespace NDesk.DBus
 		static AssemblyBuilder asmB;
 		static ModuleBuilder modB;
 
+		static AssemblyBuilder asmBdef;
+		static ModuleBuilder modBdef;
+
 		static void InitHack ()
 		{
 			if (asmB != null)
@@ -220,6 +226,10 @@ namespace NDesk.DBus
 
 			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("ProxyAssembly"), AssemblyBuilderAccess.Run);
 			modB = asmB.DefineDynamicModule ("ProxyModule");
+
+			asmBdef = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("Defs"), AssemblyBuilderAccess.RunAndSave);
+			//asmBdef = System.Threading.Thread.GetDomain ().DefineDynamicAssembly (new AssemblyName ("DefAssembly"), AssemblyBuilderAccess.RunAndSave);
+			modBdef = asmBdef.DefineDynamicModule ("Defs.dll", "Defs.dll");
 		}
 
 		static System.Collections.Generic.Dictionary<Type,Type> map = new System.Collections.Generic.Dictionary<Type,Type> ();
@@ -231,7 +241,7 @@ namespace NDesk.DBus
 
 			InitHack ();
 
-			TypeBuilder typeB = modB.DefineType (declType.Name, TypeAttributes.Class | TypeAttributes.Public, typeof (BusObject));
+			TypeBuilder typeB = modB.DefineType (declType.Name + "Proxy", TypeAttributes.Class | TypeAttributes.Public, typeof (BusObject));
 
 			Implement (typeB, declType);
 
@@ -243,6 +253,102 @@ namespace NDesk.DBus
 			map[declType] = retT;
 			//return typeB.CreateType ();
 			return retT;
+		}
+
+		static uint ifaceId = 0;
+		public static Type Define (Interface[] ifaces)
+		{
+			InitHack ();
+
+			//Provide a unique interface name
+			//This is a bit ugly
+			string ifaceName = "Aggregate" + (ifaceId++);
+
+			TypeBuilder typeB = modB.DefineType (ifaceName, TypeAttributes.Public | TypeAttributes.Interface);
+			foreach (Interface iface in ifaces)
+				typeB.AddInterfaceImplementation (Define (iface));
+
+			return typeB.CreateType ();
+		}
+
+		public static Type Define (Interface iface)
+		{
+			InitHack ();
+
+			int lastDotPos = iface.Name.LastIndexOf ('.');
+			string nsName = iface.Name.Substring (0, lastDotPos);
+			string ifaceName = iface.Name.Substring (lastDotPos+1);
+
+			//using the full interface name is ok, but makes consuming the type from C# difficult since namespaces/Type names may overlap
+			TypeBuilder typeB = modBdef.DefineType (nsName + ".I" + ifaceName, TypeAttributes.Public | TypeAttributes.Interface);
+			Define (typeB, iface);
+
+			return typeB.CreateType ();
+		}
+
+		public static void Save ()
+		{
+			asmBdef.Save ("Defs.dll");
+		}
+
+		public static void Define (TypeBuilder typeB, Interface iface)
+		{
+			foreach (Method declMethod in iface.Methods) {
+
+				//MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual, declMethod.ReturnType, Mapper.GetTypes (ArgDirection.In, declMethod.GetParameters ()));
+
+				List<Type> parms = new List<Type> ();
+
+				if (declMethod.Arguments != null)
+					foreach (Argument arg in declMethod.Arguments) {
+						if (arg.Direction == Introspection.ArgDirection.@in)
+							parms.Add (new Signature (arg.Type).ToType ());
+						//if (arg.Direction == Introspection.ArgDirection.@out)
+						//	parms.Add (new Signature (arg.Type).ToType ().MakeByRefType ());
+					}
+
+				Signature outSig = Signature.Empty;
+				//this just takes the last out arg and uses is as the return type
+				if (declMethod.Arguments != null)
+					foreach (Argument arg in declMethod.Arguments)
+						if (arg.Direction == Introspection.ArgDirection.@out)
+							outSig = new Signature (arg.Type);
+
+				Type retType = outSig == Signature.Empty ? null : outSig.ToType ();
+
+				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, retType, parms.ToArray ());
+
+				//define the parameter attributes and names
+				if (declMethod.Arguments != null) {
+					int argNum = 0;
+
+					foreach (Argument arg in declMethod.Arguments) {
+						if (arg.Direction == Introspection.ArgDirection.@in)
+							method_builder.DefineParameter (++argNum, ParameterAttributes.In, arg.Name);
+						//if (arg.Direction == Introspection.ArgDirection.@out)
+						//	method_builder.DefineParameter (++argNum, ParameterAttributes.Out, arg.Name);
+					}
+				}
+			}
+
+			if (iface.Signals != null)
+			foreach (NDesk.DBus.Introspection.Signal signal in iface.Signals) {
+				//Type eventType = typeof (EventHandler);
+				Type eventType = typeof (VoidHandler);
+
+				EventBuilder event_builder = typeB.DefineEvent (signal.Name, EventAttributes.None, eventType);
+
+				event_builder.SetAddOnMethod (typeB.DefineMethod ("add_" + signal.Name, MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, null, new Type[] {eventType}));
+
+				event_builder.SetRemoveOnMethod (typeB.DefineMethod ("remove_" + signal.Name, MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, null, new Type[] {eventType}));
+			}
+
+			//apply InterfaceAttribute
+			ConstructorInfo interfaceAttributeCtor = typeof (InterfaceAttribute).GetConstructor(new Type[] {typeof (string)});
+
+			CustomAttributeBuilder cab = new CustomAttributeBuilder (interfaceAttributeCtor, new object[] {iface.Name});
+
+			typeB.SetCustomAttribute (cab);
 		}
 
 		public static void Implement (TypeBuilder typeB, Type iface)

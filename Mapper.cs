@@ -32,13 +32,21 @@ namespace NDesk.DBus
 			return argName;
 		}
 
+		//TODO: these two methods are quite messy and need review
 		public static IEnumerable<MemberInfo> GetPublicMembers (Type type)
 		{
+			//note that Type.GetInterfaces() returns all interfaces with flattened hierarchy
 			foreach (Type ifType in type.GetInterfaces ())
-				foreach (MemberInfo mi in GetPublicMembers (ifType))
+				foreach (MemberInfo mi in GetDeclaredPublicMembers (ifType))
 					yield return mi;
 
-			//TODO: will DeclaredOnly for inherited members? inheritance support isn't widely used or tested in other places though
+			if (IsPublic (type))
+				foreach (MemberInfo mi in GetDeclaredPublicMembers (type))
+					yield return mi;
+		}
+
+		static IEnumerable<MemberInfo> GetDeclaredPublicMembers (Type type)
+		{
 			if (IsPublic (type))
 				foreach (MemberInfo mi in type.GetMembers (BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
 					yield return mi;

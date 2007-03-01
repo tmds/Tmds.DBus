@@ -542,7 +542,8 @@ namespace NDesk.DBus
 		//FIXME: debug hack
 		~Connection ()
 		{
-			BusObject.Save ();
+			if (Protocol.Verbose)
+				BusObject.Save ();
 		}
 
 		internal static readonly EndianFlag NativeEndianness;

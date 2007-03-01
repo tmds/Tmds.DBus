@@ -107,7 +107,7 @@ namespace NDesk.DBus
 			//we need to have a proper look at what's really public at some point
 			//this will do for now
 
-			if (type.IsDefined (typeof (InterfaceAttribute), true))
+			if (type.IsDefined (typeof (InterfaceAttribute), false))
 				return true;
 
 			if (type.IsSubclassOf (typeof (MarshalByRefObject)))

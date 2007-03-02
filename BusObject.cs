@@ -342,10 +342,10 @@ namespace NDesk.DBus
 				PropertyBuilder prop_builder = typeB.DefineProperty (prop.Name, PropertyAttributes.None, propType, Type.EmptyTypes);
 
 				if (prop.Access == propertyAccess.read || prop.Access == propertyAccess.readwrite)
-					prop_builder.SetGetMethod (typeB.DefineMethod ("get_" + prop.Name, MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, propType, Type.EmptyTypes));
+					prop_builder.SetGetMethod (typeB.DefineMethod ("get_" + prop.Name, MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, propType, Type.EmptyTypes));
 
 				if (prop.Access == propertyAccess.write || prop.Access == propertyAccess.readwrite)
-						prop_builder.SetSetMethod (typeB.DefineMethod ("set_" + prop.Name, MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, null, new Type[] {propType}));
+						prop_builder.SetSetMethod (typeB.DefineMethod ("set_" + prop.Name, MethodAttributes.HideBySig | MethodAttributes.NewSlot |MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, null, new Type[] {propType}));
 			}
 
 			if (iface.Signals != null)

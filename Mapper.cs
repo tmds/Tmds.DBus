@@ -74,7 +74,7 @@ namespace NDesk.DBus
 
 					if (getter != null && "Get" + prop.Name == method_call.Member) {
 						meth = getter;
-						inTypes = new Type[0];
+						inTypes = Type.EmptyTypes;
 					} else if (setter != null && "Set" + prop.Name == method_call.Member) {
 						meth = setter;
 						inTypes = new Type[] {prop.PropertyType};

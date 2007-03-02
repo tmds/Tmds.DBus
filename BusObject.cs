@@ -155,11 +155,13 @@ namespace NDesk.DBus
 			}
 
 			//TODO: complete out parameter support
+			/*
 			Type[] outParmTypes = Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ());
 			Signature outParmSig = Signature.GetSig (outParmTypes);
 
 			if (outParmSig != Signature.Empty)
 				throw new Exception ("Out parameters not yet supported: out_signature='" + outParmSig.Value + "'");
+			*/
 
 			Type[] outTypes = new Type[1];
 			outTypes[0] = mi.ReturnType;

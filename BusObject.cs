@@ -295,6 +295,8 @@ namespace NDesk.DBus
 			asmBdef.Save ("Defs.dll");
 		}
 
+		const MethodAttributes ifaceMethAttr = MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual;
+
 		public static void Define (TypeBuilder typeB, Interface iface)
 		{
 			foreach (Method declMethod in iface.Methods) {
@@ -320,7 +322,7 @@ namespace NDesk.DBus
 
 				Type retType = outSig == Signature.Empty ? null : outSig.ToType ();
 
-				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, retType, parms.ToArray ());
+				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, ifaceMethAttr, retType, parms.ToArray ());
 
 				//define the parameter attributes and names
 				if (declMethod.Arguments != null) {
@@ -342,10 +344,10 @@ namespace NDesk.DBus
 				PropertyBuilder prop_builder = typeB.DefineProperty (prop.Name, PropertyAttributes.None, propType, Type.EmptyTypes);
 
 				if (prop.Access == propertyAccess.read || prop.Access == propertyAccess.readwrite)
-					prop_builder.SetGetMethod (typeB.DefineMethod ("get_" + prop.Name, MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, propType, Type.EmptyTypes));
+					prop_builder.SetGetMethod (typeB.DefineMethod ("get_" + prop.Name, ifaceMethAttr | MethodAttributes.SpecialName, propType, Type.EmptyTypes));
 
 				if (prop.Access == propertyAccess.write || prop.Access == propertyAccess.readwrite)
-						prop_builder.SetSetMethod (typeB.DefineMethod ("set_" + prop.Name, MethodAttributes.HideBySig | MethodAttributes.NewSlot |MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, null, new Type[] {propType}));
+					prop_builder.SetSetMethod (typeB.DefineMethod ("set_" + prop.Name, ifaceMethAttr | MethodAttributes.SpecialName, null, new Type[] {propType}));
 			}
 
 			if (iface.Signals != null)
@@ -355,9 +357,9 @@ namespace NDesk.DBus
 
 				EventBuilder event_builder = typeB.DefineEvent (signal.Name, EventAttributes.None, eventType);
 
-				event_builder.SetAddOnMethod (typeB.DefineMethod ("add_" + signal.Name, MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, null, new Type[] {eventType}));
+				event_builder.SetAddOnMethod (typeB.DefineMethod ("add_" + signal.Name, ifaceMethAttr | MethodAttributes.SpecialName, null, new Type[] {eventType}));
 
-				event_builder.SetRemoveOnMethod (typeB.DefineMethod ("remove_" + signal.Name, MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, null, new Type[] {eventType}));
+				event_builder.SetRemoveOnMethod (typeB.DefineMethod ("remove_" + signal.Name, ifaceMethAttr | MethodAttributes.SpecialName, null, new Type[] {eventType}));
 			}
 
 			//apply InterfaceAttribute

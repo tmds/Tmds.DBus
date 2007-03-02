@@ -335,6 +335,19 @@ namespace NDesk.DBus
 				}
 			}
 
+			if (iface.Properties != null)
+			foreach (NDesk.DBus.Introspection.Property prop in iface.Properties) {
+				Type propType = new Signature (prop.Type).ToType ();
+
+				PropertyBuilder prop_builder = typeB.DefineProperty (prop.Name, PropertyAttributes.None, propType, Type.EmptyTypes);
+
+				if (prop.Access == propertyAccess.read || prop.Access == propertyAccess.readwrite)
+					prop_builder.SetGetMethod (typeB.DefineMethod ("get_" + prop.Name, MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, propType, Type.EmptyTypes));
+
+				if (prop.Access == propertyAccess.write || prop.Access == propertyAccess.readwrite)
+						prop_builder.SetSetMethod (typeB.DefineMethod ("set_" + prop.Name, MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual, null, new Type[] {propType}));
+			}
+
 			if (iface.Signals != null)
 			foreach (NDesk.DBus.Introspection.Signal signal in iface.Signals) {
 				//Type eventType = typeof (EventHandler);

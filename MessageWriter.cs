@@ -407,6 +407,7 @@ namespace NDesk.DBus
 		{
 			MethodInfo mi = BusObject.GetWriteMethod (type);
 			mi.Invoke (null, new object[] {this, val});
+			//mi.Invoke (this, new object[] {val});
 		}
 
 		public void WriteStructOld (Type type, object val)

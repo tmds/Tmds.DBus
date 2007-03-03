@@ -677,9 +677,8 @@ namespace NDesk.DBus
 
 				ilg.Emit (OpCodes.Ldc_I4, adding ? 1 : 0);
 
-				//TODO: tailcall?
+				ilg.Emit (OpCodes.Tailcall);
 				ilg.Emit (toggleSignalMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, toggleSignalMethod);
-
 				ilg.Emit (OpCodes.Ret);
 				return;
 			}

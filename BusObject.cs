@@ -70,6 +70,126 @@ namespace NDesk.DBus
 			return retVal;
 		}
 
+		public void ToggleSignal (string iface, string member, Delegate dlg, bool adding)
+		{
+			MatchRule rule = new MatchRule ();
+			rule.MessageType = MessageType.Signal;
+			rule.Interface = iface;
+			rule.Member = member;
+			rule.Path = object_path;
+
+			if (adding) {
+				if (conn.Handlers.ContainsKey (rule))
+					conn.Handlers[rule] = Delegate.Combine (conn.Handlers[rule], dlg);
+				else {
+					conn.Handlers[rule] = dlg;
+					conn.AddMatch (rule.ToString ());
+				}
+			} else {
+				conn.Handlers[rule] = Delegate.Remove (conn.Handlers[rule], dlg);
+				if (conn.Handlers[rule] == null) {
+					conn.RemoveMatch (rule.ToString ());
+					conn.Handlers.Remove (rule);
+				}
+			}
+		}
+
+		public void SendSignalNew (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
+		{
+			exception = null;
+
+			//TODO: don't ignore retVal, exception etc.
+
+			Signature outSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
+
+			Signal signal = new Signal (object_path, iface, member);
+			signal.message.Signature = outSig;
+
+			Message signalMsg = signal.message;
+			signalMsg.Body = writer.ToArray ();
+
+			conn.Send (signalMsg);
+		}
+
+		public object SendMethodCallNew (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
+		{
+			exception = null;
+
+			//TODO: don't ignore retVal, exception etc.
+
+			Signature inSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
+
+			MethodCall method_call = new MethodCall (object_path, iface, member, bus_name, inSig);
+
+			Message callMsg = method_call.message;
+			callMsg.Body = writer.ToArray ();
+
+			//Invoke Code::
+
+			//TODO: complete out parameter support
+			/*
+			Type[] outParmTypes = Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ());
+			Signature outParmSig = Signature.GetSig (outParmTypes);
+
+			if (outParmSig != Signature.Empty)
+				throw new Exception ("Out parameters not yet supported: out_signature='" + outParmSig.Value + "'");
+			*/
+
+			Type[] outTypes = new Type[1];
+			outTypes[0] = retType;
+
+			//we default to always requiring replies for now, even though unnecessary
+			//this is to make sure errors are handled synchronously
+			//TODO: don't hard code this
+			bool needsReply = true;
+
+			//if (mi.ReturnType == typeof (void))
+			//	needsReply = false;
+
+			callMsg.ReplyExpected = needsReply;
+			callMsg.Signature = inSig;
+
+			if (!needsReply) {
+				conn.Send (callMsg);
+				return null;
+			}
+
+#if PROTO_REPLY_SIGNATURE
+			if (needsReply) {
+				Signature outSig = Signature.GetSig (outTypes);
+				callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
+			}
+#endif
+
+			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
+
+			object retVal = null;
+
+			//handle the reply message
+			switch (retMsg.Header.MessageType) {
+				case MessageType.MethodReturn:
+				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
+				if (retVals.Length != 0)
+					retVal = retVals[retVals.Length - 1];
+				break;
+				case MessageType.Error:
+				//TODO: typed exceptions
+				Error error = new Error (retMsg);
+				string errMsg = String.Empty;
+				if (retMsg.Signature.Value.StartsWith ("s")) {
+					MessageReader reader = new MessageReader (retMsg);
+					reader.GetValue (out errMsg);
+				}
+				exception = new Exception (error.ErrorName + ": " + errMsg);
+				break;
+				default:
+				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
+			}
+
+			return retVal;
+		}
+
+
 		//this method is kept simple while IL generation support is worked on
 		public object SendMethodCall (MethodInfo methodInfo, string @interface, string member, object[] inArgs, out Exception exception)
 		{
@@ -95,26 +215,8 @@ namespace NDesk.DBus
 				string ename = parts[1];
 				Delegate dlg = (Delegate)inArgs[0];
 
-				MatchRule rule = new MatchRule ();
-				rule.MessageType = MessageType.Signal;
-				rule.Interface = Mapper.GetInterfaceName (mi);
-				rule.Member = ename;
-				rule.Path = object_path;
+				ToggleSignal (Mapper.GetInterfaceName (mi), ename, dlg, parts[0] == "add");
 
-				if (parts[0] == "add") {
-					if (conn.Handlers.ContainsKey (rule))
-						conn.Handlers[rule] = Delegate.Combine (conn.Handlers[rule], dlg);
-					else {
-						conn.Handlers[rule] = dlg;
-						conn.AddMatch (rule.ToString ());
-					}
-				} else if (parts[0] == "remove") {
-					conn.Handlers[rule] = Delegate.Remove (conn.Handlers[rule], dlg);
-					if (conn.Handlers[rule] == null) {
-						conn.RemoveMatch (rule.ToString ());
-						conn.Handlers.Remove (rule);
-					}
-				}
 				return;
 			}
 
@@ -405,8 +507,9 @@ namespace NDesk.DBus
 			return inst;
 		}
 
-		static MethodInfo sendMethodCallMethod = typeof (BusObject).GetMethod ("SendMethodCall");
-		static MethodInfo sendSignalMethod = typeof (BusObject).GetMethod ("SendSignal");
+		static MethodInfo sendMethodCallMethod = typeof (BusObject).GetMethod ("SendMethodCallNew");
+		static MethodInfo sendSignalMethod = typeof (BusObject).GetMethod ("SendSignalNew");
+		static MethodInfo toggleSignalMethod = typeof (BusObject).GetMethod ("ToggleSignal");
 
 		public Delegate GetHookupDelegate (EventInfo ei)
 		{
@@ -451,8 +554,11 @@ namespace NDesk.DBus
 			return hookupMethod;
 		}
 
-		static MethodInfo getMethodFromHandleMethod = typeof (MethodBase).GetMethod ("GetMethodFromHandle", new Type[] {typeof (RuntimeMethodHandle)});
+		//static MethodInfo getMethodFromHandleMethod = typeof (MethodBase).GetMethod ("GetMethodFromHandle", new Type[] {typeof (RuntimeMethodHandle)});
+		static MethodInfo getTypeFromHandleMethod = typeof (Type).GetMethod ("GetTypeFromHandle", new Type[] {typeof (RuntimeTypeHandle)});
 		static ConstructorInfo argumentNullExceptionConstructor = typeof (ArgumentNullException).GetConstructor (new Type[] {typeof (string)});
+		static ConstructorInfo messageWriterConstructor = typeof (MessageWriter).GetConstructor (Type.EmptyTypes);
+		static MethodInfo messageWriterWriteMethod = typeof (MessageWriter).GetMethod ("Write", new Type[] {typeof (Type), typeof (object)});
 
 		public static void GenHookupMethod (ILGenerator ilg, MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member, Type[] hookupParms)
 		{
@@ -462,19 +568,57 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Ldarg_0);
 
 			//MethodInfo
+			/*
 			ilg.Emit (OpCodes.Ldtoken, declMethod);
 			ilg.Emit (OpCodes.Call, getMethodFromHandleMethod);
+			*/
 
 			//interface
 			ilg.Emit (OpCodes.Ldstr, @interface);
 
+			if (declMethod.IsSpecialName && (declMethod.Name.StartsWith ("add_") || declMethod.Name.StartsWith ("remove_"))) {
+				string[] parts = declMethod.Name.Split (new char[]{'_'}, 2);
+				string ename = parts[1];
+				//Delegate dlg = (Delegate)inArgs[0];
+				bool adding = parts[0] == "add";
+
+				ilg.Emit (OpCodes.Ldstr, ename);
+
+				ilg.Emit (OpCodes.Ldarg_1);
+
+				ilg.Emit (OpCodes.Ldc_I4, adding ? 1 : 0);
+
+				//TODO: tailcall?
+				ilg.Emit (toggleSignalMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, toggleSignalMethod);
+
+				ilg.Emit (OpCodes.Ret);
+				return;
+			}
+
+			//property accessor mapping
+			if (declMethod.IsSpecialName) {
+				if (member.StartsWith ("get_"))
+					member = "Get" + member.Substring (4);
+				else if (member.StartsWith ("set_"))
+					member = "Set" + member.Substring (4);
+			}
+
 			//member
 			ilg.Emit (OpCodes.Ldstr, member);
 
-			LocalBuilder local = ilg.DeclareLocal (typeof (object[]));
-			ilg.Emit (OpCodes.Ldc_I4, hookupParms.Length - 1);
-			ilg.Emit (OpCodes.Newarr, typeof (object));
-			ilg.Emit (OpCodes.Stloc, local);
+			//signature
+			Signature inSig = Signature.Empty;
+			if (!declMethod.IsSpecialName)
+			for (int i = 1 ; i < hookupParms.Length ; i++)
+			{
+				inSig += Signature.GetSig (hookupParms[i]);
+			}
+
+			ilg.Emit (OpCodes.Ldstr, inSig.Value);
+
+			LocalBuilder writer = ilg.DeclareLocal (typeof (MessageWriter));
+			ilg.Emit (OpCodes.Newobj, messageWriterConstructor);
+			ilg.Emit (OpCodes.Stloc, writer);
 
 			//offset by one because arg0 is the instance of the delegate
 			for (int i = 1 ; i < hookupParms.Length ; i++)
@@ -500,18 +644,52 @@ namespace NDesk.DBus
 					ilg.MarkLabel (notNull);
 				}
 
-				ilg.Emit (OpCodes.Ldloc, local);
-				//the instance parameter requires the -1 offset here
-				ilg.Emit (OpCodes.Ldc_I4, i-1);
-				ilg.Emit (OpCodes.Ldarg, i);
+				ilg.Emit (OpCodes.Ldloc, writer);
 
-				if (t.IsValueType)
-					ilg.Emit (OpCodes.Box, t);
+				//FIXME: t type is lost too soon with this code
+				bool imprecise = false;
 
-				ilg.Emit (OpCodes.Stelem_Ref);
+				/*
+				if (t.IsEnum) {
+					t = Enum.GetUnderlyingType (t);
+					imprecise = true;
+				}
+
+				MethodInfo exactWriteMethod = typeof (MessageWriter).GetMethod ("Write", new Type[] {t});
+				*/
+
+				MethodInfo exactWriteMethod = null;
+				//ExactBinding InvokeMethod
+
+				if (exactWriteMethod != null) {
+					//the parameter
+					ilg.Emit (OpCodes.Ldarg, i);
+
+					if (imprecise)
+						ilg.Emit (OpCodes.Castclass, t);
+
+					ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
+				} else {
+					//the Type parameter
+					ilg.Emit (OpCodes.Ldtoken, t);
+					ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
+
+					//the object parameter
+					ilg.Emit (OpCodes.Ldarg, i);
+
+					//..boxed if necessary
+					if (t.IsValueType)
+						ilg.Emit (OpCodes.Box, t);
+
+					ilg.Emit (messageWriterWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageWriterWriteMethod);
+				}
 			}
 
-			ilg.Emit (OpCodes.Ldloc, local);
+			ilg.Emit (OpCodes.Ldloc, writer);
+
+			//the expected return Type
+			ilg.Emit (OpCodes.Ldtoken, retType);
+			ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
 
 			LocalBuilder exc = ilg.DeclareLocal (typeof (Exception));
 			ilg.Emit (OpCodes.Ldloca_S, exc);

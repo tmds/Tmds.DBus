@@ -18,7 +18,7 @@ namespace NDesk.DBus
 		public Connection connection;
 
 		//a default constructor is a bad idea for now as we want to make sure the header and content-type match
-		//public MessageWriter () : this (Connection.NativeEndianness)
+		public MessageWriter () : this (Connection.NativeEndianness) {}
 
 		public MessageWriter (EndianFlag endianness)
 		{

@@ -558,7 +558,108 @@ namespace NDesk.DBus
 		static MethodInfo getTypeFromHandleMethod = typeof (Type).GetMethod ("GetTypeFromHandle", new Type[] {typeof (RuntimeTypeHandle)});
 		static ConstructorInfo argumentNullExceptionConstructor = typeof (ArgumentNullException).GetConstructor (new Type[] {typeof (string)});
 		static ConstructorInfo messageWriterConstructor = typeof (MessageWriter).GetConstructor (Type.EmptyTypes);
-		static MethodInfo messageWriterWriteMethod = typeof (MessageWriter).GetMethod ("Write", new Type[] {typeof (Type), typeof (object)});
+		static MethodInfo messageWriterWriteMethod = typeof (MessageWriter).GetMethod ("WriteComplex", new Type[] {typeof (object), typeof (Type)});
+		static MethodInfo messageWriterWritePad = typeof (MessageWriter).GetMethod ("WritePad", new Type[] {typeof (int)});
+
+		static Dictionary<Type,MethodInfo> writeMethods = new Dictionary<Type,MethodInfo> ();
+
+		public static MethodInfo GetWriteMethod (Type t)
+		{
+			MethodInfo meth;
+
+			if (writeMethods.TryGetValue (t, out meth))
+				return meth;
+
+			/*
+			Type tUnder = t;
+			if (t.IsEnum)
+				tUnder = Enum.GetUnderlyingType (t);
+
+			meth = typeof (MessageWriter).GetMethod ("Write", BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public, null, new Type[] {tUnder}, null);
+			if (meth != null) {
+				writeMethods[t] = meth;
+				return meth;
+			}
+			*/
+
+			DynamicMethod method_builder = new DynamicMethod ("Write" + t.Name, null, new Type[] {typeof (MessageWriter), t}, typeof (object));
+			ILGenerator ilg = method_builder.GetILGenerator ();
+
+			ilg.Emit (OpCodes.Ldarg_0);
+			ilg.Emit (OpCodes.Ldarg_1);
+
+			GenMarshalWrite (ilg, t);
+
+			ilg.Emit (OpCodes.Ret);
+
+			meth = method_builder;
+
+			writeMethods[t] = meth;
+			return meth;
+		}
+
+		//takes the Writer instance and the value of Type t off the stack, writes it
+		public static void GenWriter (ILGenerator ilg, Type t)
+		{
+			Type tUnder = t;
+			//bool imprecise = false;
+
+			if (t.IsEnum) {
+				tUnder = Enum.GetUnderlyingType (t);
+				//imprecise = true;
+			}
+
+			//MethodInfo exactWriteMethod = typeof (MessageWriter).GetMethod ("Write", new Type[] {tUnder});
+			MethodInfo exactWriteMethod = typeof (MessageWriter).GetMethod ("Write", BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public, null, new Type[] {tUnder}, null);
+			//ExactBinding InvokeMethod
+
+			if (exactWriteMethod != null) {
+				//if (imprecise)
+				//	ilg.Emit (OpCodes.Castclass, tUnder);
+
+				ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
+			} else {
+				//..boxed if necessary
+				if (t.IsValueType)
+					ilg.Emit (OpCodes.Box, t);
+
+				//the Type parameter
+				ilg.Emit (OpCodes.Ldtoken, t);
+				ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
+
+				ilg.Emit (messageWriterWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageWriterWriteMethod);
+			}
+		}
+
+		//takes a writer and a reference to an object off the stack
+		public static void GenMarshalWrite (ILGenerator ilg, Type type)
+		{
+			LocalBuilder val = ilg.DeclareLocal (type);
+			ilg.Emit (OpCodes.Stloc, val);
+
+			LocalBuilder writer = ilg.DeclareLocal (typeof (MessageWriter));
+			ilg.Emit (OpCodes.Stloc, writer);
+
+			FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+			//align to 8 for structs
+			ilg.Emit (OpCodes.Ldloc, writer);
+			ilg.Emit (OpCodes.Ldc_I4, 8);
+			ilg.Emit (messageWriterWritePad.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageWriterWritePad);
+
+			foreach (FieldInfo fi in fis) {
+				Type t = fi.FieldType;
+
+				//the Writer to write to
+				ilg.Emit (OpCodes.Ldloc, writer);
+
+				//the object parameter
+				ilg.Emit (OpCodes.Ldloc, val);
+				ilg.Emit (OpCodes.Ldfld, fi);
+
+				GenWriter (ilg, t);
+			}
+		}
 
 		public static void GenHookupMethod (ILGenerator ilg, MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member, Type[] hookupParms)
 		{
@@ -576,6 +677,7 @@ namespace NDesk.DBus
 			//interface
 			ilg.Emit (OpCodes.Ldstr, @interface);
 
+			//special case event add/remove methods
 			if (declMethod.IsSpecialName && (declMethod.Name.StartsWith ("add_") || declMethod.Name.StartsWith ("remove_"))) {
 				string[] parts = declMethod.Name.Split (new char[]{'_'}, 2);
 				string ename = parts[1];
@@ -646,43 +748,10 @@ namespace NDesk.DBus
 
 				ilg.Emit (OpCodes.Ldloc, writer);
 
-				//FIXME: t type is lost too soon with this code
-				bool imprecise = false;
+				//the parameter
+				ilg.Emit (OpCodes.Ldarg, i);
 
-				/*
-				if (t.IsEnum) {
-					t = Enum.GetUnderlyingType (t);
-					imprecise = true;
-				}
-
-				MethodInfo exactWriteMethod = typeof (MessageWriter).GetMethod ("Write", new Type[] {t});
-				*/
-
-				MethodInfo exactWriteMethod = null;
-				//ExactBinding InvokeMethod
-
-				if (exactWriteMethod != null) {
-					//the parameter
-					ilg.Emit (OpCodes.Ldarg, i);
-
-					if (imprecise)
-						ilg.Emit (OpCodes.Castclass, t);
-
-					ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
-				} else {
-					//the Type parameter
-					ilg.Emit (OpCodes.Ldtoken, t);
-					ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
-
-					//the object parameter
-					ilg.Emit (OpCodes.Ldarg, i);
-
-					//..boxed if necessary
-					if (t.IsValueType)
-						ilg.Emit (OpCodes.Box, t);
-
-					ilg.Emit (messageWriterWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageWriterWriteMethod);
-				}
+				GenWriter (ilg, t);
 			}
 
 			ilg.Emit (OpCodes.Ldloc, writer);

@@ -164,6 +164,32 @@ namespace NDesk.DBus
 			stream.WriteByte (0); //NULL signature terminator
 		}
 
+		public void WriteComplex (object val, Type type)
+		{
+			if (type == typeof (void))
+				return;
+
+			if (type.IsArray) {
+				Write (type, (Array)val);
+			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
+				Type[] genArgs = type.GetGenericArguments ();
+				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
+				WriteFromDict (genArgs[0], genArgs[1], idict);
+			} else if (Mapper.IsPublic (type)) {
+				WriteObject (type, val);
+			} else if (!type.IsPrimitive && !type.IsEnum) {
+				WriteStruct (type, val);
+				/*
+			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (Nullable<>)) {
+				//is it possible to support nullable types?
+				Type[] genArgs = type.GetGenericArguments ();
+				WriteVariant (genArgs[0], val);
+				*/
+			} else {
+				throw new Exception ("Can't write");
+			}
+		}
+
 		public void Write (Type type, object val)
 		{
 			if (type == typeof (void))
@@ -378,6 +404,12 @@ namespace NDesk.DBus
 		}
 
 		public void WriteStruct (Type type, object val)
+		{
+			MethodInfo mi = BusObject.GetWriteMethod (type);
+			mi.Invoke (null, new object[] {this, val});
+		}
+
+		public void WriteStructOld (Type type, object val)
 		{
 			WritePad (8); //offset for structs, right?
 

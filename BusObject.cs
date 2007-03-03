@@ -397,7 +397,7 @@ namespace NDesk.DBus
 			asmBdef.Save ("Defs.dll");
 		}
 
-		const MethodAttributes ifaceMethAttr = MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.SpecialName | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual;
+		const MethodAttributes ifaceMethAttr = MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual;
 
 		public static void Define (TypeBuilder typeB, Interface iface)
 		{

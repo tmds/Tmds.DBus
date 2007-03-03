@@ -94,7 +94,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		public void SendSignalNew (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
+		public void SendSignal (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
 		{
 			exception = null;
 
@@ -111,7 +111,7 @@ namespace NDesk.DBus
 			conn.Send (signalMsg);
 		}
 
-		public object SendMethodCallNew (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
+		public object SendMethodCall (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
 		{
 			exception = null;
 
@@ -185,19 +185,6 @@ namespace NDesk.DBus
 				default:
 				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
 			}
-
-			return retVal;
-		}
-
-
-		//this method is kept simple while IL generation support is worked on
-		public object SendMethodCall (MethodInfo methodInfo, string @interface, string member, object[] inArgs, out Exception exception)
-		{
-			//TODO: don't ignore retVal, exception etc.
-
-			object[] outArgs;
-			object retVal;
-			Invoke (methodInfo, methodInfo.Name, inArgs, out outArgs, out retVal, out exception);
 
 			return retVal;
 		}
@@ -507,8 +494,8 @@ namespace NDesk.DBus
 			return inst;
 		}
 
-		static MethodInfo sendMethodCallMethod = typeof (BusObject).GetMethod ("SendMethodCallNew");
-		static MethodInfo sendSignalMethod = typeof (BusObject).GetMethod ("SendSignalNew");
+		static MethodInfo sendMethodCallMethod = typeof (BusObject).GetMethod ("SendMethodCall");
+		static MethodInfo sendSignalMethod = typeof (BusObject).GetMethod ("SendSignal");
 		static MethodInfo toggleSignalMethod = typeof (BusObject).GetMethod ("ToggleSignal");
 
 		public Delegate GetHookupDelegate (EventInfo ei)
@@ -792,31 +779,6 @@ namespace NDesk.DBus
 			}
 
 			ilg.Emit (OpCodes.Ret);
-		}
-
-		public void SendSignal (MethodInfo mi, string @interface, string member, object[] outValues, out Exception exception)
-		{
-			exception = null;
-
-			//TODO: make use of bus_name?
-
-			Type[] outTypes = Mapper.GetTypes (ArgDirection.In, mi.GetParameters ());
-			Signature outSig = Signature.GetSig (outTypes);
-
-			Signal signal = new Signal (object_path, @interface, member);
-			signal.message.Signature = outSig;
-
-			if (outValues != null && outValues.Length != 0) {
-				MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-				writer.connection = conn;
-
-				for (int i = 0 ; i != outTypes.Length ; i++)
-					writer.Write (outTypes[i], outValues[i]);
-
-				signal.message.Body = writer.ToArray ();
-			}
-
-			conn.Send (signal.message);
 		}
 	}
 }

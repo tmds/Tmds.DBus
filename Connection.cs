@@ -140,8 +140,6 @@ namespace NDesk.DBus
 		{
 			msg.Header.Serial = GenerateSerial ();
 
-			msg.WriteHeader ();
-
 			WriteMessage (msg);
 
 			//Outbound.Enqueue (msg);
@@ -153,7 +151,9 @@ namespace NDesk.DBus
 
 		internal void WriteMessage (Message msg)
 		{
-			ns.Write (msg.HeaderData, 0, msg.HeaderData.Length);
+			byte[] HeaderData = msg.GetHeaderData ();
+
+			ns.Write (HeaderData, 0, HeaderData.Length);
 			if (msg.Body != null && msg.Body.Length != 0)
 				ns.Write (msg.Body, 0, msg.Body.Length);
 		}
@@ -271,7 +271,6 @@ namespace NDesk.DBus
 
 			Message msg = new Message ();
 			msg.Connection = this;
-			msg.HeaderData = ms.ToArray ();
 
 			//read the body
 			if (bodyLen != 0) {
@@ -291,7 +290,7 @@ namespace NDesk.DBus
 			}
 
 			//this needn't be done here
-			msg.ParseHeader ();
+			msg.SetHeaderData (ms.ToArray ());
 
 			return msg;
 		}

@@ -23,7 +23,6 @@ namespace NDesk.DBus
 		}
 
 		public Header Header;
-		public byte[] HeaderData;
 
 		public Connection Connection;
 
@@ -69,12 +68,12 @@ namespace NDesk.DBus
 			}
 		}
 
-		public void ParseHeader ()
+		public void SetHeaderData (byte[] data)
 		{
 			//GetValue (stream, typeof (Header), out Header);
 
-			EndianFlag endianness = (EndianFlag)HeaderData[0];
-			MessageReader reader = new MessageReader (endianness, HeaderData);
+			EndianFlag endianness = (EndianFlag)data[0];
+			MessageReader reader = new MessageReader (endianness, data);
 
 			object valT;
 			reader.GetValueStruct (typeof (Header), out valT);
@@ -118,7 +117,7 @@ namespace NDesk.DBus
 			*/
 		}
 
-		public void WriteHeader ()
+		public byte[] GetHeaderData ()
 		{
 			if (Body != null)
 				Header.Length = (uint)Body.Length;
@@ -127,7 +126,7 @@ namespace NDesk.DBus
 			writer.WriteStruct (typeof (Header), Header);
 			//writer.WriteFromDict (typeof (FieldCode), typeof (object), Header.Fields);
 			writer.CloseWrite ();
-			HeaderData = writer.ToArray ();
+			return writer.ToArray ();
 		}
 	}
 }

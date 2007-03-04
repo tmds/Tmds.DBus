@@ -67,10 +67,10 @@ namespace NDesk.DBus
 			} else {
 				DType dtype = Signature.TypeToDType (type);
 				val = ReadValue (dtype);
-			}
 
-			if (type.IsEnum)
-				val = Enum.ToObject (type, val);
+				if (type.IsEnum)
+					val = Enum.ToObject (type, val);
+			}
 		}
 
 		//helper method, should not be used generally

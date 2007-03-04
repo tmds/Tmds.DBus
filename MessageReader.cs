@@ -66,7 +66,7 @@ namespace NDesk.DBus
 				GetValueStruct (type, out val);
 			} else {
 				DType dtype = Signature.TypeToDType (type);
-				GetValue (dtype, out val);
+				val = ReadValue (dtype);
 			}
 
 			if (type.IsEnum)
@@ -74,97 +74,56 @@ namespace NDesk.DBus
 		}
 
 		//helper method, should not be used generally
-		public void GetValue (DType dtype, out object val)
+		public object ReadValue (DType dtype)
 		{
 			switch (dtype)
 			{
 				case DType.Byte:
-				{
-					val = ReadByte ();
-				}
-				break;
+					return ReadByte ();
+
 				case DType.Boolean:
-				{
-					val = ReadBoolean ();
-				}
-				break;
+					return ReadBoolean ();
+
 				case DType.Int16:
-				{
-					short vval;
-					GetValue (out vval);
-					val = vval;
-				}
-				break;
+					return ReadInt16 ();
+
 				case DType.UInt16:
-				{
-					ushort vval;
-					GetValue (out vval);
-					val = vval;
-				}
-				break;
+					return ReadUInt16 ();
+
 				case DType.Int32:
-				{
-					val = ReadInt32 ();
-				}
-				break;
+					return ReadInt32 ();
+
 				case DType.UInt32:
-				{
-					val = ReadUInt32 ();
-				}
-				break;
+					return ReadUInt32 ();
+
 				case DType.Int64:
-				{
-					long vval;
-					GetValue (out vval);
-					val = vval;
-				}
-				break;
+					return ReadInt64 ();
+
 				case DType.UInt64:
-				{
-					ulong vval;
-					GetValue (out vval);
-					val = vval;
-				}
-				break;
+					return ReadUInt64 ();
+
 #if !DISABLE_SINGLE
 				case DType.Single:
-				{
-					float vval;
-					GetValue (out vval);
-					val = vval;
-				}
-				break;
+					return ReadSingle ();
 #endif
+
 				case DType.Double:
-				{
-					double vval;
-					GetValue (out vval);
-					val = vval;
-				}
-				break;
+					return ReadDouble ();
+
 				case DType.String:
-				{
-					val = ReadString ();
-				}
-				break;
+					return ReadString ();
+
 				case DType.ObjectPath:
-				{
-					val = ReadObjectPath ();
-				}
-				break;
+					return ReadObjectPath ();
+
 				case DType.Signature:
-				{
-					val = ReadSignature ();
-				}
-				break;
+					return ReadSignature ();
+
 				case DType.Variant:
-				{
-					val = ReadVariant ();
-				}
-				break;
+					return ReadVariant ();
+
 				default:
-				val = null;
-				throw new Exception ("Unhandled D-Bus type: " + dtype);
+					throw new Exception ("Unhandled D-Bus type: " + dtype);
 			}
 		}
 
@@ -209,16 +168,22 @@ namespace NDesk.DBus
 			pos += 2;
 		}
 
-		unsafe public void GetValue (out short val)
+		unsafe public short ReadInt16 ()
 		{
-			fixed (short* ret = &val)
-				MarshalUShort ((byte*)ret);
+			short val;
+
+			MarshalUShort ((byte*)&val);
+
+			return val;
 		}
 
-		unsafe public void GetValue (out ushort val)
+		unsafe public ushort ReadUInt16 ()
 		{
-			fixed (ushort* ret = &val)
-				MarshalUShort ((byte*)ret);
+			ushort val;
+
+			MarshalUShort ((byte*)&val);
+
+			return val;
 		}
 
 		unsafe protected void MarshalUInt (byte *dst)
@@ -273,30 +238,42 @@ namespace NDesk.DBus
 			pos += 8;
 		}
 
-		unsafe public void GetValue (out long val)
+		unsafe public long ReadInt64 ()
 		{
-			fixed (long* ret = &val)
-				MarshalULong ((byte*)ret);
+			long val;
+
+			MarshalULong ((byte*)&val);
+
+			return val;
 		}
 
-		unsafe public void GetValue (out ulong val)
+		unsafe public ulong ReadUInt64 ()
 		{
-			fixed (ulong* ret = &val)
-				MarshalULong ((byte*)ret);
+			ulong val;
+
+			MarshalULong ((byte*)&val);
+
+			return val;
 		}
 
 #if !DISABLE_SINGLE
-		unsafe public void GetValue (out float val)
+		unsafe public float ReadSingle ()
 		{
-			fixed (float* ret = &val)
-				MarshalUInt ((byte*)ret);
+			float val;
+
+			MarshalUInt ((byte*)&val);
+
+			return val;
 		}
 #endif
 
-		unsafe public void GetValue (out double val)
+		unsafe public double ReadDouble ()
 		{
-			fixed (double* ret = &val)
-				MarshalULong ((byte*)ret);
+			double val;
+
+			MarshalULong ((byte*)&val);
+
+			return val;
 		}
 
 		public string ReadString ()
@@ -333,7 +310,7 @@ namespace NDesk.DBus
 			return ReadVariant (ReadSignature ());
 		}
 
-		public object ReadVariant (Signature sig)
+		object ReadVariant (Signature sig)
 		{
 			object val;
 

@@ -61,7 +61,7 @@ namespace NDesk.DBus.Authentication
 			parts = ok_rep.Split (' ');
 
 			if (parts.Length < 1 || parts[0] != "OK")
-				throw new Exception ("Authentication error: AUTH EXTERNAL was not OK");
+				throw new Exception ("Authentication error: AUTH EXTERNAL was not OK: \"" + ok_rep + "\"");
 
 			/*
 			string guid = parts[1];

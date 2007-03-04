@@ -47,19 +47,13 @@ namespace NDesk.DBus
 				GetValue (type, out valArr);
 				val = valArr;
 			} else if (type == typeof (ObjectPath)) {
-				ObjectPath valOP;
-				GetValue (out valOP);
-				val = valOP;
+				val = ReadObjectPath ();
 			} else if (type == typeof (Signature)) {
-				Signature valSig;
-				GetValue (out valSig);
-				val = valSig;
+				val = ReadSignature ();
 			} else if (type == typeof (object)) {
-				GetValue (out val);
+				val = ReadVariant ();
 			} else if (type == typeof (string)) {
-				string valStr;
-				GetValue (out valStr);
-				val = valStr;
+				val = ReadString ();
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
 				Type dictType = typeof (Dictionary<,>).MakeGenericType (genArgs);
@@ -86,16 +80,12 @@ namespace NDesk.DBus
 			{
 				case DType.Byte:
 				{
-					byte vval;
-					GetValue (out vval);
-					val = vval;
+					val = ReadByte ();
 				}
 				break;
 				case DType.Boolean:
 				{
-					bool vval;
-					GetValue (out vval);
-					val = vval;
+					val = ReadBoolean ();
 				}
 				break;
 				case DType.Int16:
@@ -114,16 +104,12 @@ namespace NDesk.DBus
 				break;
 				case DType.Int32:
 				{
-					int vval;
-					GetValue (out vval);
-					val = vval;
+					val = ReadInt32 ();
 				}
 				break;
 				case DType.UInt32:
 				{
-					uint vval;
-					GetValue (out vval);
-					val = vval;
+					val = ReadUInt32 ();
 				}
 				break;
 				case DType.Int64:
@@ -158,30 +144,22 @@ namespace NDesk.DBus
 				break;
 				case DType.String:
 				{
-					string vval;
-					GetValue (out vval);
-					val = vval;
+					val = ReadString ();
 				}
 				break;
 				case DType.ObjectPath:
 				{
-					ObjectPath vval;
-					GetValue (out vval);
-					val = vval;
+					val = ReadObjectPath ();
 				}
 				break;
 				case DType.Signature:
 				{
-					Signature vval;
-					GetValue (out vval);
-					val = vval;
+					val = ReadSignature ();
 				}
 				break;
 				case DType.Variant:
 				{
-					object vval;
-					GetValue (out vval);
-					val = vval;
+					val = ReadVariant ();
 				}
 				break;
 				default:
@@ -192,28 +170,25 @@ namespace NDesk.DBus
 
 		public void GetObject (Type type, out object val)
 		{
-			ObjectPath path;
-			GetValue (out path);
+			ObjectPath path = ReadObjectPath ();
+
 			val = message.Connection.GetObject (type, (string)message.Header.Fields[FieldCode.Sender], path);
 		}
 
-		public void GetValue (out byte val)
+		public byte ReadByte ()
 		{
-			val = data[pos++];
+			return data[pos++];
 		}
 
-		public void GetValue (out bool val)
+		public bool ReadBoolean ()
 		{
-			uint intval;
-			GetValue (out intval);
+			uint intval = ReadUInt32 ();
 
 			switch (intval) {
 				case 0:
-					val = false;
-					break;
+					return false;
 				case 1:
-					val = true;
-					break;
+					return true;
 				default:
 					throw new Exception ("Read value " + intval + " at position " + pos + " while expecting boolean (0/1)");
 			}
@@ -265,16 +240,22 @@ namespace NDesk.DBus
 			pos += 4;
 		}
 
-		unsafe public void GetValue (out int val)
+		unsafe public int ReadInt32 ()
 		{
-			fixed (int* ret = &val)
-				MarshalUInt ((byte*)ret);
+			int val;
+
+			MarshalUInt ((byte*)&val);
+
+			return val;
 		}
 
-		unsafe public void GetValue (out uint val)
+		unsafe public uint ReadUInt32 ()
 		{
-			fixed (uint* ret = &val)
-				MarshalUInt ((byte*)ret);
+			uint val;
+
+			MarshalUInt ((byte*)&val);
+
+			return val;
 		}
 
 		unsafe protected void MarshalULong (byte *dst)
@@ -318,55 +299,53 @@ namespace NDesk.DBus
 				MarshalULong ((byte*)ret);
 		}
 
-		public void GetValue (out string val)
+		public string ReadString ()
 		{
-			uint ln;
-			GetValue (out ln);
+			uint ln = ReadUInt32 ();
 
-			val = Encoding.UTF8.GetString (data, pos, (int)ln);
+			string val = Encoding.UTF8.GetString (data, pos, (int)ln);
 			pos += (int)ln;
 			ReadNull ();
+
+			return val;
 		}
 
-		public void GetValue (out ObjectPath val)
+		public ObjectPath ReadObjectPath ()
 		{
 			//exactly the same as string
-			string sval;
-			GetValue (out sval);
-			val = new ObjectPath (sval);
+			return new ObjectPath (ReadString ());
 		}
 
-		public void GetValue (out Signature val)
+		public Signature ReadSignature ()
 		{
-			byte ln;
-			GetValue (out ln);
+			byte ln = ReadByte ();
 
 			byte[] sigData = new byte[ln];
 			Array.Copy (data, pos, sigData, 0, (int)ln);
-			val = new Signature (sigData);
 			pos += (int)ln;
 			ReadNull ();
+
+			return new Signature (sigData);
 		}
 
-		//variant
-		public void GetValue (out object val)
+		public object ReadVariant ()
 		{
-			Signature sig;
-			GetValue (out sig);
-
-			GetValue (sig, out val);
+			return ReadVariant (ReadSignature ());
 		}
 
-		public void GetValue (Signature sig, out object val)
+		public object ReadVariant (Signature sig)
 		{
+			object val;
+
 			GetValue (sig.ToType (), out val);
+
+			return val;
 		}
 
 		//not pretty or efficient but works
 		public void GetValueToDict (Type keyType, Type valType, System.Collections.IDictionary val)
 		{
-			uint ln;
-			GetValue (out ln);
+			uint ln = ReadUInt32 ();
 
 			//advance to the alignment of the element
 			//ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
@@ -397,8 +376,7 @@ namespace NDesk.DBus
 		{
 			Type elemType = type.GetElementType ();
 
-			uint ln;
-			GetValue (out ln);
+			uint ln = ReadUInt32 ();
 
 			//TODO: more fast paths for primitive arrays
 			if (elemType == typeof (byte)) {

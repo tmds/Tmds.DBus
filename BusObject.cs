@@ -178,7 +178,7 @@ namespace NDesk.DBus
 				string errMsg = String.Empty;
 				if (retMsg.Signature.Value.StartsWith ("s")) {
 					MessageReader reader = new MessageReader (retMsg);
-					reader.GetValue (out errMsg);
+					errMsg = reader.ReadString ();
 				}
 				exception = new Exception (error.ErrorName + ": " + errMsg);
 				break;
@@ -293,7 +293,7 @@ namespace NDesk.DBus
 				string errMsg = String.Empty;
 				if (retMsg.Signature.Value.StartsWith ("s")) {
 					MessageReader reader = new MessageReader (retMsg);
-					reader.GetValue (out errMsg);
+					errMsg = reader.ReadString ();
 				}
 				exception = new Exception (error.ErrorName + ": " + errMsg);
 				break;

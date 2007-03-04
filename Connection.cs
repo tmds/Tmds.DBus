@@ -229,15 +229,13 @@ namespace NDesk.DBus
 			MessageReader reader = new MessageReader (endianness, buf);
 
 			//discard the endian byte as we've already read it
-			byte tmp;
-			reader.GetValue (out tmp);
+			reader.ReadByte ();
 
 			//discard message type and flags, which we don't care about here
-			reader.GetValue (out tmp);
-			reader.GetValue (out tmp);
+			reader.ReadByte ();
+			reader.ReadByte ();
 
-			byte version;
-			reader.GetValue (out version);
+			byte version = reader.ReadByte ();
 
 			if (version < Protocol.MinVersion || version > Protocol.MaxVersion)
 				throw new NotSupportedException ("Protocol version '" + version.ToString () + "' is not supported");
@@ -246,10 +244,10 @@ namespace NDesk.DBus
 				if (version != Protocol.Version)
 					Console.Error.WriteLine ("Warning: Protocol version '" + version.ToString () + "' is not explicitly supported but may be compatible");
 
-			uint bodyLength, serial, headerLength;
-			reader.GetValue (out bodyLength);
-			reader.GetValue (out serial);
-			reader.GetValue (out headerLength);
+			uint bodyLength = reader.ReadUInt32 ();
+			//discard serial
+			reader.ReadUInt32 ();
+			uint headerLength = reader.ReadUInt32 ();
 
 			//TODO: remove this limitation
 			if (bodyLength > Int32.MaxValue || headerLength > Int32.MaxValue)
@@ -346,7 +344,7 @@ namespace NDesk.DBus
 					string errMsg = String.Empty;
 					if (msg.Signature.Value.StartsWith ("s")) {
 						MessageReader reader = new MessageReader (msg);
-						reader.GetValue (out errMsg);
+						errMsg = reader.ReadString ();
 					}
 					//throw new Exception ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
 					//if (Protocol.Verbose)

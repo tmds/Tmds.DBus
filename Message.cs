@@ -14,11 +14,8 @@ namespace NDesk.DBus
 		{
 			Header.Endianness = Connection.NativeEndianness;
 			Header.MessageType = MessageType.MethodCall;
-			//hdr->Flags = HeaderFlag.None;
 			Header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
 			Header.MajorVersion = Protocol.Version;
-			Header.Length = 0;
-			//Header.Serial = conn.GenerateSerial ();
 			Header.Fields = new Dictionary<FieldCode,object> ();
 		}
 
@@ -70,51 +67,12 @@ namespace NDesk.DBus
 
 		public void SetHeaderData (byte[] data)
 		{
-			//GetValue (stream, typeof (Header), out Header);
-
 			EndianFlag endianness = (EndianFlag)data[0];
 			MessageReader reader = new MessageReader (endianness, data);
 
 			object valT;
 			reader.GetValueStruct (typeof (Header), out valT);
 			Header = (Header)valT;
-
-			/*
-			//foreach (HeaderField field in HeaderFields)
-			foreach (KeyValuePair<FieldCode,object> field in Header.Fields)
-			{
-				//Console.WriteLine (field.Key + " = " + field.Value);
-				switch (field.Key)
-				{
-					case FieldCode.Invalid:
-						break;
-					case FieldCode.Path:
-						Path = (ObjectPath)field.Value;
-						break;
-					case FieldCode.Interface:
-						Interface = (string)field.Value;
-						break;
-					case FieldCode.Member:
-						Member = (string)field.Value;
-						break;
-					case FieldCode.ErrorName:
-						ErrorName = (string)field.Value;
-						break;
-					case FieldCode.ReplySerial:
-						ReplySerial = (uint)field.Value;
-						break;
-					case FieldCode.Destination:
-						Destination = (string)field.Value;
-						break;
-					case FieldCode.Sender:
-						Sender = (string)field.Value;
-						break;
-					case FieldCode.Signature:
-						Signature = (Signature)field.Value;
-						break;
-				}
-			}
-			*/
 		}
 
 		public byte[] GetHeaderData ()
@@ -124,8 +82,8 @@ namespace NDesk.DBus
 
 			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
 			writer.WriteValueType (Header, typeof (Header));
-			//writer.WriteFromDict (typeof (FieldCode), typeof (object), Header.Fields);
 			writer.CloseWrite ();
+
 			return writer.ToArray ();
 		}
 	}

@@ -213,12 +213,6 @@ namespace NDesk.DBus
 				WriteObject (type, val);
 			} else if (!type.IsPrimitive && !type.IsEnum) {
 				WriteValueType (val, type);
-				/*
-			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (Nullable<>)) {
-				//is it possible to support nullable types?
-				Type[] genArgs = type.GetGenericArguments ();
-				WriteVariant (genArgs[0], val);
-				*/
 			} else {
 				Write (Signature.TypeToDType (type), val);
 			}
@@ -410,19 +404,11 @@ namespace NDesk.DBus
 			//mi.Invoke (this, new object[] {val});
 		}
 
+		/*
 		public void WriteValueTypeOld (object val, Type type)
 		{
-			WritePad (8); //offset for structs, right?
+			WritePad (8);
 
-			/*
-			ConstructorInfo[] cis = type.GetConstructors ();
-			if (cis.Length != 0) {
-				System.Reflection.ParameterInfo[]  parms = ci.GetParameters ();
-
-				foreach (ParameterInfo parm in parms) {
-				}
-			}
-			*/
 			if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>)) {
 				System.Reflection.PropertyInfo key_prop = type.GetProperty ("Key");
 				Write (key_prop.PropertyType, key_prop.GetValue (val, null));
@@ -437,12 +423,11 @@ namespace NDesk.DBus
 
 			foreach (System.Reflection.FieldInfo fi in fis) {
 				object elem;
-				//public virtual object GetValueDirect (TypedReference obj);
 				elem = fi.GetValue (val);
-				//Write (Signature.TypeToDType (fi.FieldType), elem);
 				Write (fi.FieldType, elem);
 			}
 		}
+		*/
 
 		public void WritePad (int alignment)
 		{

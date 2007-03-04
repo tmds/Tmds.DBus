@@ -5,25 +5,8 @@
 using System;
 using NDesk.DBus;
 
-//namespace org.freedesktop.DBus
 namespace org.freedesktop.DBus
 {
-	/*
-	//what's this for?
-	public class DBusException : ApplicationException
-	{
-	}
-	*/
-
-#if UNDOCUMENTED_IN_SPEC
-	//TODO: maybe this should be mapped to its CLR counterpart directly?
-	//not yet used
-	[Interface ("org.freedesktop.DBus.Error.InvalidArgs")]
-	public class InvalidArgsException : ApplicationException
-	{
-	}
-#endif
-
 	[Flags]
 	public enum NameFlag : uint
 	{
@@ -78,12 +61,8 @@ namespace org.freedesktop.DBus
 	[Interface ("org.freedesktop.DBus.Properties")]
 	public interface Properties
 	{
-		//TODO: some kind of indexer mapping?
-		//object this [string propname] {get; set;}
-
 		[return: Argument ("value")]
 		object Get (string @interface, string propname);
-		//void Get (string @interface, string propname, out object value);
 		void Set (string @interface, string propname, object value);
 	}
 

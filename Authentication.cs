@@ -39,13 +39,10 @@ namespace NDesk.DBus.Authentication
 
 		public void Run ()
 		{
-			//NetworkStream ns = new NetworkStream (sock);
-			//UnixStream ns = new UnixStream ((int)sock.Handle);
 			StreamReader sr = new StreamReader (conn.Transport.Stream, Encoding.ASCII);
 			StreamWriter sw = new StreamWriter (conn.Transport.Stream, Encoding.ASCII);
 
 			sw.NewLine = "\r\n";
-			//sw.AutoFlush = true;
 
 			string str = conn.Transport.AuthString ();
 			byte[] bs = Encoding.ASCII.GetBytes (str);

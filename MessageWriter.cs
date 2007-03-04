@@ -178,7 +178,7 @@ namespace NDesk.DBus
 			} else if (Mapper.IsPublic (type)) {
 				WriteObject (type, val);
 			} else if (!type.IsPrimitive && !type.IsEnum) {
-				WriteStruct (type, val);
+				WriteValueType (val, type);
 				/*
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (Nullable<>)) {
 				//is it possible to support nullable types?
@@ -212,7 +212,7 @@ namespace NDesk.DBus
 			} else if (Mapper.IsPublic (type)) {
 				WriteObject (type, val);
 			} else if (!type.IsPrimitive && !type.IsEnum) {
-				WriteStruct (type, val);
+				WriteValueType (val, type);
 				/*
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (Nullable<>)) {
 				//is it possible to support nullable types?
@@ -403,14 +403,14 @@ namespace NDesk.DBus
 			stream.Position = endPos;
 		}
 
-		public void WriteStruct (Type type, object val)
+		public void WriteValueType (object val, Type type)
 		{
 			MethodInfo mi = BusObject.GetWriteMethod (type);
 			mi.Invoke (null, new object[] {this, val});
 			//mi.Invoke (this, new object[] {val});
 		}
 
-		public void WriteStructOld (Type type, object val)
+		public void WriteValueTypeOld (object val, Type type)
 		{
 			WritePad (8); //offset for structs, right?
 

@@ -123,7 +123,7 @@ namespace NDesk.DBus
 				Header.Length = (uint)Body.Length;
 
 			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-			writer.WriteStruct (typeof (Header), Header);
+			writer.WriteValueType (Header, typeof (Header));
 			//writer.WriteFromDict (typeof (FieldCode), typeof (object), Header.Fields);
 			writer.CloseWrite ();
 			return writer.ToArray ();

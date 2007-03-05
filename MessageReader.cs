@@ -56,7 +56,9 @@ namespace NDesk.DBus
 				val = ReadString ();
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
-				Type dictType = typeof (Dictionary<,>).MakeGenericType (genArgs);
+				//Type dictType = typeof (Dictionary<,>).MakeGenericType (genArgs);
+				//workaround for Mono bug #81035 (memory leak)
+				Type dictType = Mapper.GetGenericType (typeof (Dictionary<,>), genArgs);
 				val = Activator.CreateInstance(dictType, new object[0]);
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
 				GetValueToDict (genArgs[0], genArgs[1], idict);

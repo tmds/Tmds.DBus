@@ -48,23 +48,6 @@ namespace NDesk.DBus
 			}
 		}
 
-		//convenience method
-		public object InvokeMethod (MethodInfo methodInfo, params object[] inArgs)
-		{
-			//TODO: this ignores outArgs, doesn't wrap the exception etc.
-
-			object[] outArgs;
-			object retVal;
-			Exception exception;
-
-			Invoke (methodInfo, methodInfo.Name, inArgs, out outArgs, out retVal, out exception);
-
-			if (exception != null)
-				throw exception;
-
-			return retVal;
-		}
-
 		public void ToggleSignal (string iface, string member, Delegate dlg, bool adding)
 		{
 			MatchRule rule = new MatchRule ();

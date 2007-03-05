@@ -399,7 +399,7 @@ namespace NDesk.DBus
 
 		public void WriteValueType (object val, Type type)
 		{
-			MethodInfo mi = BusObject.GetWriteMethod (type);
+			MethodInfo mi = TypeImplementer.GetWriteMethod (type);
 			mi.Invoke (null, new object[] {this, val});
 			//mi.Invoke (this, new object[] {val});
 		}

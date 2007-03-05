@@ -323,7 +323,7 @@ namespace NDesk.DBus
 			modBdef = asmBdef.DefineDynamicModule ("Defs.dll", "Defs.dll");
 		}
 
-		static System.Collections.Generic.Dictionary<Type,Type> map = new System.Collections.Generic.Dictionary<Type,Type> ();
+		static Dictionary<Type,Type> map = new Dictionary<Type,Type> ();
 
 		public static Type DefineType (Type declType)
 		{

@@ -483,7 +483,7 @@ namespace NDesk.DBus
 			XmlSerializer sz = new XmlSerializer (typeof (Node));
 			Node node = (Node)sz.Deserialize (sr);
 
-			Type type = BusObject.Define (node.Interfaces);
+			Type type = TypeDefiner.Define (node.Interfaces);
 
 			return GetObject (type, bus_name, path);
 		}
@@ -540,7 +540,7 @@ namespace NDesk.DBus
 		~Connection ()
 		{
 			if (Protocol.Verbose)
-				BusObject.Save ();
+				TypeDefiner.Save ();
 		}
 
 		internal static readonly EndianFlag NativeEndianness;

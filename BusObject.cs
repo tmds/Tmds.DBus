@@ -316,10 +316,12 @@ namespace NDesk.DBus
 
 		static Dictionary<Type,Type> map = new Dictionary<Type,Type> ();
 
-		public static Type DefineType (Type declType)
+		public static Type GetImplementation (Type declType)
 		{
-			if (map.ContainsKey (declType))
-				return map[declType];
+			Type retT;
+
+			if (map.TryGetValue (declType, out retT))
+				return retT;
 
 			InitHack ();
 
@@ -330,10 +332,9 @@ namespace NDesk.DBus
 			foreach (Type iface in declType.GetInterfaces ())
 				Implement (typeB, iface);
 
-			Type retT = typeB.CreateType ();
-
+			retT = typeB.CreateType ();
 			map[declType] = retT;
-			//return typeB.CreateType ();
+
 			return retT;
 		}
 
@@ -362,7 +363,7 @@ namespace NDesk.DBus
 
 		public static object GetObject (Connection conn, string bus_name, ObjectPath object_path, Type declType)
 		{
-			Type proxyType = DefineType (declType);
+			Type proxyType = GetImplementation (declType);
 
 			BusObject inst = (BusObject)Activator.CreateInstance (proxyType);
 			inst.conn = conn;

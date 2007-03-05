@@ -57,6 +57,7 @@ namespace NDesk.DBus
 		public byte[] Body;
 
 		//TODO: make use of Locked
+		/*
 		protected bool locked = false;
 		public bool Locked
 		{
@@ -64,6 +65,7 @@ namespace NDesk.DBus
 				return locked;
 			}
 		}
+		*/
 
 		public void SetHeaderData (byte[] data)
 		{

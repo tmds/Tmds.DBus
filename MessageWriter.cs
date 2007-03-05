@@ -170,7 +170,7 @@ namespace NDesk.DBus
 				return;
 
 			if (type.IsArray) {
-				Write (type, (Array)val);
+				WriteArray (val, type.GetElementType ());
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
 				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
@@ -196,7 +196,7 @@ namespace NDesk.DBus
 				return;
 
 			if (type.IsArray) {
-				Write (type, (Array)val);
+				WriteArray (val, type.GetElementType ());
 			} else if (type == typeof (ObjectPath)) {
 				Write ((ObjectPath)val);
 			} else if (type == typeof (Signature)) {
@@ -340,9 +340,9 @@ namespace NDesk.DBus
 		}
 
 		//this requires a seekable stream for now
-		public void Write (Type type, Array val)
+		public void WriteArray (object obj, Type elemType)
 		{
-			Type elemType = type.GetElementType ();
+			Array val = (Array)obj;
 
 			//TODO: more fast paths for primitive arrays
 			if (elemType == typeof (byte)) {

@@ -120,7 +120,7 @@ namespace NDesk.DBus
 		NoAutoStart = 0x2,
 	}
 
-	public class ObjectPath //: IComparable, IComparable<ObjectPath>, IEquatable<ObjectPath>
+	public sealed class ObjectPath //: IComparable, IComparable<ObjectPath>, IEquatable<ObjectPath>
 	{
 		public static readonly ObjectPath Root = new ObjectPath ("/");
 

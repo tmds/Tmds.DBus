@@ -7,9 +7,37 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Collections.Generic;
 
+using System.IO;
+using System.Xml.Serialization;
+
 namespace NDesk.DBus
 {
 	using Introspection;
+
+	public partial class Connection
+	{
+		//dynamically defines a Type for the proxy object using D-Bus introspection
+		public object GetObject (string bus_name, ObjectPath path)
+		{
+			org.freedesktop.DBus.Introspectable intros = GetObject<org.freedesktop.DBus.Introspectable> (bus_name, path);
+			string data = intros.Introspect ();
+
+			StringReader sr = new StringReader (data);
+			XmlSerializer sz = new XmlSerializer (typeof (Node));
+			Node node = (Node)sz.Deserialize (sr);
+
+			Type type = TypeDefiner.Define (node.Interfaces);
+
+			return GetObject (type, bus_name, path);
+		}
+
+		//FIXME: debug hack
+		~Connection ()
+		{
+			if (Protocol.Verbose)
+				TypeDefiner.Save ();
+		}
+	}
 
 	static class TypeDefiner
 	{

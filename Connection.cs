@@ -8,15 +8,12 @@ using System.IO;
 using System.Threading;
 using System.Reflection;
 
-using System.Xml.Serialization;
-
 namespace NDesk.DBus
 {
 	using Authentication;
 	using Transports;
-	using Introspection;
 
-	public class Connection
+	public partial class Connection
 	{
 		//TODO: reconsider this field
 		Stream ns = null;
@@ -473,21 +470,6 @@ namespace NDesk.DBus
 			}
 		}
 
-		//dynamically defines a Type for the proxy object using D-Bus introspection
-		public object GetObject (string bus_name, ObjectPath path)
-		{
-			org.freedesktop.DBus.Introspectable intros = GetObject<org.freedesktop.DBus.Introspectable> (bus_name, path);
-			string data = intros.Introspect ();
-
-			StringReader sr = new StringReader (data);
-			XmlSerializer sz = new XmlSerializer (typeof (Node));
-			Node node = (Node)sz.Deserialize (sr);
-
-			Type type = TypeDefiner.Define (node.Interfaces);
-
-			return GetObject (type, bus_name, path);
-		}
-
 		public T GetObject<T> (string bus_name, ObjectPath path)
 		{
 			return (T)GetObject (typeof (T), bus_name, path);
@@ -534,13 +516,6 @@ namespace NDesk.DBus
 				NativeEndianness = EndianFlag.Little;
 			else
 				NativeEndianness = EndianFlag.Big;
-		}
-
-		//FIXME: debug hack
-		~Connection ()
-		{
-			if (Protocol.Verbose)
-				TypeDefiner.Save ();
 		}
 
 		internal static readonly EndianFlag NativeEndianness;

@@ -9,9 +9,6 @@ using System.Collections.Generic;
 
 namespace NDesk.DBus
 {
-	//FIXME: debug hack
-	public delegate void VoidHandler ();
-
 	static class TypeImplementer
 	{
 		static AssemblyBuilder asmB;

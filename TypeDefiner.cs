@@ -14,6 +14,9 @@ namespace NDesk.DBus
 {
 	using Introspection;
 
+	//FIXME: debug hack
+	public delegate void VoidHandler ();
+
 	public partial class Connection
 	{
 		//dynamically defines a Type for the proxy object using D-Bus introspection

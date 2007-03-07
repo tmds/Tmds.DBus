@@ -464,6 +464,9 @@ namespace NDesk.DBus
 			if (type.IsInterface) {
 				return BusObject.GetObject (this, bus_name, path, type);
 			} else {
+				if (Protocol.Verbose)
+					Console.Error.WriteLine ("Warning: Note that MarshalByRefObject use is not recommended; for best performance, define interfaces");
+
 				BusObject busObject = new BusObject (this, bus_name, path);
 				DProxy prox = new DProxy (busObject, type);
 				return prox.GetTransparentProxy ();

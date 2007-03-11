@@ -120,7 +120,7 @@ namespace NDesk.DBus
 						if (arg.Direction == Introspection.ArgDirection.@out)
 							outSig = new Signature (arg.Type);
 
-				Type retType = outSig == Signature.Empty ? null : outSig.ToType ();
+				Type retType = outSig == Signature.Empty ? typeof (void) : outSig.ToType ();
 
 				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, ifaceMethAttr, retType, parms.ToArray ());
 

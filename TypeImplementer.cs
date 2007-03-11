@@ -138,7 +138,7 @@ namespace NDesk.DBus
 			}
 			*/
 
-			DynamicMethod method_builder = new DynamicMethod ("Write" + t.Name, null, new Type[] {typeof (MessageWriter), t}, typeof (object));
+			DynamicMethod method_builder = new DynamicMethod ("Write" + t.Name, typeof (void), new Type[] {typeof (MessageWriter), t}, typeof (object));
 			ILGenerator ilg = method_builder.GetILGenerator ();
 
 			ilg.Emit (OpCodes.Ldarg_0);

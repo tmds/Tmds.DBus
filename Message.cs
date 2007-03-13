@@ -72,9 +72,7 @@ namespace NDesk.DBus
 			EndianFlag endianness = (EndianFlag)data[0];
 			MessageReader reader = new MessageReader (endianness, data);
 
-			object valT;
-			reader.GetValueStruct (typeof (Header), out valT);
-			Header = (Header)valT;
+			Header = (Header)reader.ReadStruct (typeof (Header));
 		}
 
 		public byte[] GetHeaderData ()

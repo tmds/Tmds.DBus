@@ -35,43 +35,42 @@ namespace NDesk.DBus
 			this.message = message;
 		}
 
-		public void GetValue (Type type, out object val)
+		public object ReadValue (Type type)
 		{
-			if (type == typeof (void)) {
-				val = null;
-				return;
-			}
+			if (type == typeof (void))
+				return null;
 
 			if (type.IsArray) {
-				Array valArr;
-				GetValue (type, out valArr);
-				val = valArr;
+				return ReadArray (type.GetElementType ());
 			} else if (type == typeof (ObjectPath)) {
-				val = ReadObjectPath ();
+				return ReadObjectPath ();
 			} else if (type == typeof (Signature)) {
-				val = ReadSignature ();
+				return ReadSignature ();
 			} else if (type == typeof (object)) {
-				val = ReadVariant ();
+				return ReadVariant ();
 			} else if (type == typeof (string)) {
-				val = ReadString ();
+				return ReadString ();
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
 				//Type dictType = typeof (Dictionary<,>).MakeGenericType (genArgs);
 				//workaround for Mono bug #81035 (memory leak)
 				Type dictType = Mapper.GetGenericType (typeof (Dictionary<,>), genArgs);
-				val = Activator.CreateInstance(dictType, new object[0]);
-				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
+				System.Collections.IDictionary idict = (System.Collections.IDictionary)Activator.CreateInstance(dictType, new object[0]);
 				GetValueToDict (genArgs[0], genArgs[1], idict);
+				return idict;
 			} else if (Mapper.IsPublic (type)) {
-				GetObject (type, out val);
+				return GetObject (type);
 			} else if (!type.IsPrimitive && !type.IsEnum) {
-				GetValueStruct (type, out val);
+				return ReadStruct (type);
 			} else {
+				object val;
 				DType dtype = Signature.TypeToDType (type);
 				val = ReadValue (dtype);
 
 				if (type.IsEnum)
 					val = Enum.ToObject (type, val);
+
+				return val;
 			}
 		}
 
@@ -129,11 +128,11 @@ namespace NDesk.DBus
 			}
 		}
 
-		public void GetObject (Type type, out object val)
+		public object GetObject (Type type)
 		{
 			ObjectPath path = ReadObjectPath ();
 
-			val = message.Connection.GetObject (type, (string)message.Header.Fields[FieldCode.Sender], path);
+			return message.Connection.GetObject (type, (string)message.Header.Fields[FieldCode.Sender], path);
 		}
 
 		public byte ReadByte ()
@@ -314,11 +313,7 @@ namespace NDesk.DBus
 
 		object ReadVariant (Signature sig)
 		{
-			object val;
-
-			GetValue (sig.ToType (), out val);
-
-			return val;
+			return ReadValue (sig.ToType ());
 		}
 
 		//not pretty or efficient but works
@@ -337,13 +332,7 @@ namespace NDesk.DBus
 			{
 				ReadPad (8);
 
-				object keyVal;
-				GetValue (keyType, out keyVal);
-
-				object valVal;
-				GetValue (valType, out valVal);
-
-				val.Add (keyVal, valVal);
+				val.Add (ReadValue (keyType), ReadValue (valType));
 			}
 
 			if (pos != endPos)
@@ -351,19 +340,16 @@ namespace NDesk.DBus
 		}
 
 		//this could be made generic to avoid boxing
-		public void GetValue (Type type, out Array val)
+		public Array ReadArray (Type elemType)
 		{
-			Type elemType = type.GetElementType ();
-
 			uint ln = ReadUInt32 ();
 
 			//TODO: more fast paths for primitive arrays
 			if (elemType == typeof (byte)) {
 				byte[] valb = new byte[ln];
 				Array.Copy (data, pos, valb, 0, (int)ln);
-				val = valb;
 				pos += (int)ln;
-				return;
+				return valb;
 			}
 
 			//advance to the alignment of the element
@@ -376,28 +362,22 @@ namespace NDesk.DBus
 
 			//while (stream.Position != endPos)
 			while (pos < endPos)
-			{
-				object elem;
-				//GetValue (Signature.TypeToDType (elemType), out elem);
-				GetValue (elemType, out elem);
-				vals.Add (elem);
-			}
+				vals.Add (ReadValue (elemType));
 
 			if (pos != endPos)
 				throw new Exception ("Read pos " + pos + " != ep " + endPos);
 
-			val = vals.ToArray (elemType);
-			//val = Array.CreateInstance (elemType.UnderlyingSystemType, vals.Count);
+			return vals.ToArray (elemType);
 		}
 
 		//struct
 		//probably the wrong place for this
 		//there might be more elegant solutions
-		public void GetValueStruct (Type type, out object val)
+		public object ReadStruct (Type type)
 		{
 			ReadPad (8);
 
-			val = Activator.CreateInstance (type);
+			object val = Activator.CreateInstance (type);
 
 			/*
 			if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>)) {
@@ -417,13 +397,10 @@ namespace NDesk.DBus
 
 			FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
-			foreach (System.Reflection.FieldInfo fi in fis) {
-				object elem;
-				//GetValue (Signature.TypeToDType (fi.FieldType), out elem);
-				GetValue (fi.FieldType, out elem);
-				//public virtual void SetValueDirect (TypedReference obj, object value);
-				fi.SetValue (val, elem);
-			}
+			foreach (System.Reflection.FieldInfo fi in fis)
+				fi.SetValue (val, ReadValue (fi.FieldType));
+
+			return val;
 		}
 
 		public void ReadNull ()

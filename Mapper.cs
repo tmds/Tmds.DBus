@@ -258,11 +258,8 @@ namespace NDesk.DBus
 			if (msg.Body != null) {
 				MessageReader reader = new MessageReader (msg);
 
-				for (int i = 0 ; i != types.Length ; i++) {
-					object arg;
-					reader.GetValue (types[i], out arg);
-					vals[i] = arg;
-				}
+				for (int i = 0 ; i != types.Length ; i++)
+					vals[i] = reader.ReadValue (types[i]);
 			}
 
 			return vals;

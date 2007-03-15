@@ -148,7 +148,7 @@ namespace NDesk.DBus
 			byte[] utf8_data = Encoding.UTF8.GetBytes (val);
 			Write ((uint)utf8_data.Length);
 			stream.Write (utf8_data, 0, utf8_data.Length);
-			stream.WriteByte (0); //NULL string terminator
+			WriteNull ();
 		}
 
 		public void Write (ObjectPath val)
@@ -161,7 +161,7 @@ namespace NDesk.DBus
 			byte[] ascii_data = val.GetBuffer ();
 			Write ((byte)ascii_data.Length);
 			stream.Write (ascii_data, 0, ascii_data.Length);
-			stream.WriteByte (0); //NULL signature terminator
+			WriteNull ();
 		}
 
 		public void WriteComplex (object val, Type type)
@@ -428,6 +428,11 @@ namespace NDesk.DBus
 			}
 		}
 		*/
+
+		public void WriteNull ()
+		{
+			stream.WriteByte (0);
+		}
 
 		public void WritePad (int alignment)
 		{

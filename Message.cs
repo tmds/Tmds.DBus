@@ -80,7 +80,7 @@ namespace NDesk.DBus
 			if (Body != null)
 				Header.Length = (uint)Body.Length;
 
-			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
+			MessageWriter writer = new MessageWriter (Header.Endianness);
 			writer.WriteValueType (Header, typeof (Header));
 			writer.CloseWrite ();
 

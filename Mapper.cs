@@ -247,10 +247,12 @@ namespace NDesk.DBus
 
 		public static object[] GetDynamicValues (Message msg, Type[] types)
 		{
-			//TODO: this validation check should provide better information, eg. message dump or a stack trace
+			//TODO: this validation check should provide better information, eg. message dump or a stack trace, or at least the interface/member
 			if (Protocol.Verbose) {
-				if (Signature.GetSig (types) != msg.Signature)
-					Console.Error.WriteLine ("Warning: The signature of the message does not match that of the handler");
+				Signature expected = Signature.GetSig (types);
+				Signature actual = msg.Signature;
+				if (actual != expected)
+					Console.Error.WriteLine ("Warning: The signature of the message does not match that of the handler: " + "Expected '" + expected + "', got '" + actual + "'");
 			}
 
 			object[] vals = new object[types.Length];

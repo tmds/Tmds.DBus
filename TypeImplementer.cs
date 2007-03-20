@@ -101,6 +101,7 @@ namespace NDesk.DBus
 			for (int i = 0; i < delegateParms.Length ; i++)
 				hookupParms[i+1] = delegateParms[i].ParameterType;
 
+			//TODO: make sure this dynamic method has correct visibility permissions (Mono doesn't verify them at time of writing)
 			DynamicMethod hookupMethod = new DynamicMethod ("Handle" + member, declMethod.ReturnType, hookupParms, typeof (object));
 
 			ILGenerator ilg = hookupMethod.GetILGenerator ();
@@ -138,7 +139,7 @@ namespace NDesk.DBus
 			}
 			*/
 
-			DynamicMethod method_builder = new DynamicMethod ("Write" + t.Name, typeof (void), new Type[] {typeof (MessageWriter), t}, typeof (object));
+			DynamicMethod method_builder = new DynamicMethod ("Write" + t.Name, typeof (void), new Type[] {typeof (MessageWriter), t}, typeof (MessageWriter));
 			ILGenerator ilg = method_builder.GetILGenerator ();
 
 			ilg.Emit (OpCodes.Ldarg_0);

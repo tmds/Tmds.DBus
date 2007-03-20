@@ -19,7 +19,7 @@ namespace NDesk.DBus
 			if (asmB != null)
 				return;
 
-			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("ProxyAssembly"), AssemblyBuilderAccess.Run);
+			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("NDesk.DBus.Proxies"), AssemblyBuilderAccess.Run);
 			modB = asmB.DefineDynamicModule ("ProxyModule");
 		}
 

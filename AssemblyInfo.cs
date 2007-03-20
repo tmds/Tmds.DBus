@@ -17,4 +17,5 @@ using System.Runtime.CompilerServices;
 #else
 [assembly: InternalsVisibleTo ("dbus-monitor")]
 [assembly: InternalsVisibleTo ("NDesk.DBus.GLib")]
+[assembly: InternalsVisibleTo ("NDesk.DBus.Proxies")]
 #endif

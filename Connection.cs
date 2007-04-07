@@ -150,6 +150,10 @@ namespace NDesk.DBus
 		{
 			byte[] HeaderData = msg.GetHeaderData ();
 
+			long msgLength = HeaderData.Length + (msg.Body != null ? msg.Body.Length : 0);
+			if (msgLength > Protocol.MaxMessageLength)
+				throw new Exception ("Message length " + msgLength + " exceeds maximum allowed " + Protocol.MaxMessageLength + " bytes");
+
 			ns.Write (HeaderData, 0, HeaderData.Length);
 			if (msg.Body != null && msg.Body.Length != 0)
 				ns.Write (msg.Body, 0, msg.Body.Length);
@@ -242,15 +246,21 @@ namespace NDesk.DBus
 			reader.ReadUInt32 ();
 			uint headerLength = reader.ReadUInt32 ();
 
-			//TODO: remove this limitation
+			//this check may become relevant if a future version of the protocol allows larger messages
+			/*
 			if (bodyLength > Int32.MaxValue || headerLength > Int32.MaxValue)
 				throw new NotImplementedException ("Long messages are not yet supported");
+			*/
 
 			int bodyLen = (int)bodyLength;
 			int toRead = (int)headerLength;
 
 			//we fixup to include the padding following the header
 			toRead = Protocol.Padded (toRead, 8);
+
+			long msgLength = toRead + bodyLen;
+			if (msgLength > Protocol.MaxMessageLength)
+				throw new Exception ("Message length " + msgLength + " exceeds maximum allowed " + Protocol.MaxMessageLength + " bytes");
 
 			header = new byte[16 + toRead];
 			Array.Copy (hbuf, header, 16);

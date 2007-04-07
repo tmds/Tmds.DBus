@@ -321,6 +321,9 @@ namespace NDesk.DBus
 		{
 			uint ln = ReadUInt32 ();
 
+			if (ln > Protocol.MaxArrayLength)
+				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+
 			//advance to the alignment of the element
 			//ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 			ReadPad (8);
@@ -343,6 +346,9 @@ namespace NDesk.DBus
 		public Array ReadArray (Type elemType)
 		{
 			uint ln = ReadUInt32 ();
+
+			if (ln > Protocol.MaxArrayLength)
+				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
 
 			//TODO: more fast paths for primitive arrays
 			if (elemType == typeof (byte)) {

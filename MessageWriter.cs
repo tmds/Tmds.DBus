@@ -346,13 +346,16 @@ namespace NDesk.DBus
 
 			//TODO: more fast paths for primitive arrays
 			if (elemType == typeof (byte)) {
+				if (val.Length > Protocol.MaxArrayLength)
+					throw new Exception ("Array length " + val.Length + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+
 				Write ((uint)val.Length);
 				stream.Write ((byte[])val, 0, val.Length);
 				return;
 			}
 
+			long origPos = stream.Position;
 			Write ((uint)0);
-			long lengthPos = stream.Position - 4;
 
 			//advance to the alignment of the element
 			WritePad (Protocol.GetAlignment (Signature.TypeToDType (elemType)));
@@ -363,17 +366,20 @@ namespace NDesk.DBus
 				Write (elemType, elem);
 
 			long endPos = stream.Position;
+			uint ln = (uint)(endPos - startPos);
+			stream.Position = origPos;
 
-			stream.Position = lengthPos;
-			Write ((uint)(endPos - startPos));
+			if (ln > Protocol.MaxArrayLength)
+				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
 
+			Write (ln);
 			stream.Position = endPos;
 		}
 
 		public void WriteFromDict (Type keyType, Type valType, System.Collections.IDictionary val)
 		{
+			long origPos = stream.Position;
 			Write ((uint)0);
-			long lengthPos = stream.Position - 4;
 
 			//advance to the alignment of the element
 			//WritePad (Protocol.GetAlignment (Signature.TypeToDType (type)));
@@ -390,10 +396,13 @@ namespace NDesk.DBus
 			}
 
 			long endPos = stream.Position;
+			uint ln = (uint)(endPos - startPos);
+			stream.Position = origPos;
 
-			stream.Position = lengthPos;
-			Write ((uint)(endPos - startPos));
+			if (ln > Protocol.MaxArrayLength)
+				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
 
+			Write (ln);
 			stream.Position = endPos;
 		}
 

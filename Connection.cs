@@ -203,14 +203,14 @@ namespace NDesk.DBus
 
 		internal Message ReadMessage ()
 		{
-			//FIXME: fix reading algorithm to work in one step
-			//this code is a bit silly and inefficient
-			//hopefully it's at least correct and avoids polls for now
+			byte[] header;
+			byte[] body = null;
 
 			int read;
 
-			byte[] buf = new byte[16];
-			read = ns.Read (buf, 0, 16);
+			//16 bytes is the size of the fixed part of the header
+			byte[] hbuf = new byte[16];
+			read = ns.Read (hbuf, 0, 16);
 
 			if (read == 0)
 				return null;
@@ -218,12 +218,8 @@ namespace NDesk.DBus
 			if (read != 16)
 				throw new Exception ("Header read length mismatch: " + read + " of expected " + "16");
 
-			MemoryStream ms = new MemoryStream ();
-
-			ms.Write (buf, 0, 16);
-
-			EndianFlag endianness = (EndianFlag)buf[0];
-			MessageReader reader = new MessageReader (endianness, buf);
+			EndianFlag endianness = (EndianFlag)hbuf[0];
+			MessageReader reader = new MessageReader (endianness, hbuf);
 
 			//discard the endian byte as we've already read it
 			reader.ReadByte ();
@@ -253,39 +249,30 @@ namespace NDesk.DBus
 			int bodyLen = (int)bodyLength;
 			int toRead = (int)headerLength;
 
-			toRead = Protocol.Padded ((int)toRead, 8);
+			//we fixup to include the padding following the header
+			toRead = Protocol.Padded (toRead, 8);
 
-			buf = new byte[toRead];
+			header = new byte[16 + toRead];
+			Array.Copy (hbuf, header, 16);
 
-			read = ns.Read (buf, 0, toRead);
+			read = ns.Read (header, 16, toRead);
 
 			if (read != toRead)
-				throw new Exception ("Read length mismatch: " + read + " of expected " + toRead);
-
-			ms.Write (buf, 0, buf.Length);
-
-			Message msg = new Message ();
-			msg.Connection = this;
+				throw new Exception ("Message header length mismatch: " + read + " of expected " + toRead);
 
 			//read the body
 			if (bodyLen != 0) {
-				//FIXME
-				//msg.Body = new byte[(int)msg.Header->Length];
-				byte[] body = new byte[bodyLen];
+				body = new byte[bodyLen];
+				read = ns.Read (body, 0, bodyLen);
 
-				//int len = ns.Read (msg.Body, 0, msg.Body.Length);
-				int len = ns.Read (body, 0, bodyLen);
-
-				//if (len != msg.Body.Length)
-				if (len != bodyLen)
-					throw new Exception ("Message body size mismatch");
-
-				//msg.Body = new MemoryStream (body);
-				msg.Body = body;
+				if (read != bodyLen)
+					throw new Exception ("Message body length mismatch: " + read + " of expected " + bodyLen);
 			}
 
-			//this needn't be done here
-			msg.SetHeaderData (ms.ToArray ());
+			Message msg = new Message ();
+			msg.Connection = this;
+			msg.Body = body;
+			msg.SetHeaderData (header);
 
 			return msg;
 		}

@@ -205,6 +205,15 @@ namespace NDesk.DBus
 		public const byte Version = 1;
 		public const byte MaxVersion = Version;
 
+		public const uint MaxMessageLength = 134217728; //2 to the 27th power
+		public const uint MaxArrayLength = 67108864; //2 to the 26th power
+		public const uint MaxSignatureLength = 255;
+		public const uint MaxArrayDepth = 32;
+		public const uint MaxStructDepth = 32;
+
+		//this is not strictly related to Protocol since names are passed around as strings
+		internal const uint MaxNameLength = 255;
+
 		public static int PadNeeded (int pos, int alignment)
 		{
 			int pad = pos % alignment;

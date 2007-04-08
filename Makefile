@@ -1,6 +1,6 @@
 all: NDesk.DBus.dll
 
-BUS_SOURCES=Address.cs AssemblyInfo.cs Bus.cs BusObject.cs Connection.cs ExportObject.cs Authentication.cs Protocol.cs Mapper.cs MatchRule.cs Message.cs MessageFilter.cs MessageReader.cs MessageWriter.cs SocketTransport.cs Transport.cs TypeImplementer.cs Wrapper.cs
+BUS_SOURCES=Address.cs AssemblyInfo.cs Bus.cs BusObject.cs Connection.cs ExportObject.cs Authentication.cs Protocol.cs Mapper.cs MatchRule.cs Message.cs MessageFilter.cs MessageReader.cs MessageWriter.cs PendingCall.cs SocketTransport.cs Transport.cs TypeImplementer.cs Wrapper.cs
 #IntrospectionSchema.cs TypeDefiner.cs
 #UNIX_SOURCES=UnixTransport.cs UnixMonoTransport.cs
 UNIX_SOURCES=UnixTransport.cs UnixNativeTransport.cs

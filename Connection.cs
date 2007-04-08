@@ -111,26 +111,22 @@ namespace NDesk.DBus
 
 		internal Message SendWithReplyAndBlock (Message msg)
 		{
-			uint id = SendWithReply (msg);
-
-			Message retMsg;
-
-			//TODO: this isn't fully thread-safe but works much of the time
-			while (!replies.TryGetValue (id, out retMsg))
-				HandleMessage (ReadMessage ());
-
-			replies.Remove (id);
-
-			//FIXME: we should dispatch signals and calls on the main thread
-			DispatchSignals ();
-
-			return retMsg;
+			PendingCall pending = SendWithReply (msg);
+			return pending.Reply;
 		}
 
-		internal uint SendWithReply (Message msg)
+		internal PendingCall SendWithReply (Message msg)
 		{
 			msg.ReplyExpected = true;
-			return Send (msg);
+			msg.Header.Serial = GenerateSerial ();
+
+			//TODO: throttle the maximum number of concurrent PendingCalls
+			PendingCall pending = new PendingCall (this);
+			pendingCalls[msg.Header.Serial] = pending;
+
+			WriteMessage (msg);
+
+			return pending;
 		}
 
 		internal uint Send (Message msg)
@@ -146,6 +142,7 @@ namespace NDesk.DBus
 			return msg.Header.Serial;
 		}
 
+		object writeLock = new object ();
 		internal void WriteMessage (Message msg)
 		{
 			byte[] HeaderData = msg.GetHeaderData ();
@@ -154,9 +151,11 @@ namespace NDesk.DBus
 			if (msgLength > Protocol.MaxMessageLength)
 				throw new Exception ("Message length " + msgLength + " exceeds maximum allowed " + Protocol.MaxMessageLength + " bytes");
 
-			ns.Write (HeaderData, 0, HeaderData.Length);
-			if (msg.Body != null && msg.Body.Length != 0)
-				ns.Write (msg.Body, 0, msg.Body.Length);
+			lock (writeLock) {
+				ns.Write (HeaderData, 0, HeaderData.Length);
+				if (msg.Body != null && msg.Body.Length != 0)
+					ns.Write (msg.Body, 0, msg.Body.Length);
+			}
 		}
 
 		Queue<Message> Inbound = new Queue<Message> ();
@@ -288,7 +287,7 @@ namespace NDesk.DBus
 		}
 
 		//temporary hack
-		void DispatchSignals ()
+		internal void DispatchSignals ()
 		{
 			lock (Inbound) {
 				while (Inbound.Count != 0) {
@@ -298,9 +297,13 @@ namespace NDesk.DBus
 			}
 		}
 
+		internal Thread mainThread = Thread.CurrentThread;
+
 		//temporary hack
 		public void Iterate ()
 		{
+			mainThread = Thread.CurrentThread;
+
 			//Message msg = Inbound.Dequeue ();
 			Message msg = ReadMessage ();
 			HandleMessage (msg);
@@ -314,10 +317,22 @@ namespace NDesk.DBus
 				throw new ArgumentNullException ("msg", "Cannot handle a null message; maybe the bus was disconnected");
 
 			{
-				//TODO: don't store replies unless they are expected (right now all replies are expected as we don't support NoReplyExpected)
-				object reply_serial;
-				if (msg.Header.Fields.TryGetValue (FieldCode.ReplySerial, out reply_serial)) {
-					replies[(uint)reply_serial] = msg;
+				object field_value;
+				if (msg.Header.Fields.TryGetValue (FieldCode.ReplySerial, out field_value)) {
+					uint reply_serial = (uint)field_value;
+					PendingCall pending;
+
+					if (pendingCalls.TryGetValue (reply_serial, out pending)) {
+						if (pendingCalls.Remove (reply_serial))
+							pending.Reply = msg;
+
+						return;
+					}
+
+					//we discard reply messages with no corresponding PendingCall
+					if (Protocol.Verbose)
+						Console.Error.WriteLine ("Unexpected reply message received: MessageType='" + msg.Header.MessageType + "', ReplySerial=" + reply_serial);
+
 					return;
 				}
 			}
@@ -350,7 +365,7 @@ namespace NDesk.DBus
 			}
 		}
 
-		Dictionary<uint,Message> replies = new Dictionary<uint,Message> ();
+		Dictionary<uint,PendingCall> pendingCalls = new Dictionary<uint,PendingCall> ();
 
 		//this might need reworking with MulticastDelegate
 		internal void HandleSignal (Message msg)

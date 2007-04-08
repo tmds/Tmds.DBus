@@ -35,10 +35,12 @@ namespace NDesk.DBus
 					conn.DispatchSignals ();
 				} else {
 					lock (lockObj) {
-						waiters++;
+						Interlocked.Increment (ref waiters);
+
 						while (reply == null)
 							Monitor.Wait (lockObj);
-						waiters--;
+
+						Interlocked.Decrement (ref waiters);
 					}
 				}
 

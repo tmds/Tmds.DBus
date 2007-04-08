@@ -159,6 +159,10 @@ namespace NDesk.DBus
 		public void Write (Signature val)
 		{
 			byte[] ascii_data = val.GetBuffer ();
+
+			if (ascii_data.Length > Protocol.MaxSignatureLength)
+				throw new Exception ("Signature length " + ascii_data.Length + " exceeds maximum allowed " + Protocol.MaxSignatureLength + " bytes");
+
 			Write ((byte)ascii_data.Length);
 			stream.Write (ascii_data, 0, ascii_data.Length);
 			WriteNull ();

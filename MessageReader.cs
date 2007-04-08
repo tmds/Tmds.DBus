@@ -298,6 +298,9 @@ namespace NDesk.DBus
 		{
 			byte ln = ReadByte ();
 
+			if (ln > Protocol.MaxSignatureLength)
+				throw new Exception ("Signature length " + ln + " exceeds maximum allowed " + Protocol.MaxSignatureLength + " bytes");
+
 			byte[] sigData = new byte[ln];
 			Array.Copy (data, pos, sigData, 0, (int)ln);
 			pos += (int)ln;

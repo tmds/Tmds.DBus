@@ -414,7 +414,6 @@ namespace NDesk.DBus
 		{
 			MethodInfo mi = TypeImplementer.GetWriteMethod (type);
 			mi.Invoke (null, new object[] {this, val});
-			//mi.Invoke (this, new object[] {val});
 		}
 
 		/*

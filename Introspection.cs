@@ -42,7 +42,6 @@ namespace NDesk.DBus
 
 			AssemblyName aname = Assembly.GetExecutingAssembly().GetName ();
 			writer.WriteComment (" " + aname.Name + " " + aname.Version.ToString (3) + " ");
-			writer.WriteComment (" hax ");
 
 			//the root node element
 			writer.WriteStartElement ("node");

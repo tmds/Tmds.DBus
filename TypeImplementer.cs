@@ -52,21 +52,21 @@ namespace NDesk.DBus
 			typeB.AddInterfaceImplementation (iface);
 
 			foreach (MethodInfo declMethod in iface.GetMethods ()) {
+				ParameterInfo[] parms = declMethod.GetParameters ();
 
-				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual, declMethod.ReturnType, Mapper.GetTypes (ArgDirection.In, declMethod.GetParameters ()));
-				ILGenerator ilg = method_builder.GetILGenerator ();
+				Type[] parmTypes = new Type[parms.Length];
+				for (int i = 0 ; i < parms.Length ; i++)
+					parmTypes[i] = parms[i].ParameterType;
 
-				//Mapper.GetTypes (ArgDirection.In, declMethod.GetParameters ())
-
-				ParameterInfo[] delegateParms = declMethod.GetParameters ();
-				Type[] hookupParms = new Type[delegateParms.Length+1];
-				hookupParms[0] = typeof (BusObject);
-				for (int i = 0; i < delegateParms.Length ; i++)
-					hookupParms[i+1] = delegateParms[i].ParameterType;
-
-				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name, hookupParms);
-
+				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual, declMethod.ReturnType, parmTypes);
 				typeB.DefineMethodOverride (method_builder, declMethod);
+
+				//define in/out/ref/name for each of the parameters
+				for (int i = 0; i < parms.Length ; i++)
+					method_builder.DefineParameter (i, parms[i].Attributes, parms[i].Name);
+
+				ILGenerator ilg = method_builder.GetILGenerator ();
+				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
 			}
 		}
 
@@ -105,7 +105,7 @@ namespace NDesk.DBus
 
 			ILGenerator ilg = hookupMethod.GetILGenerator ();
 
-			GenHookupMethod (ilg, declMethod, invokeMethod, @interface, member, hookupParms);
+			GenHookupMethod (ilg, declMethod, invokeMethod, @interface, member);
 
 			return hookupMethod;
 		}
@@ -217,8 +217,9 @@ namespace NDesk.DBus
 			}
 		}
 
-		public static void GenHookupMethod (ILGenerator ilg, MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member, Type[] hookupParms)
+		public static void GenHookupMethod (ILGenerator ilg, MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member)
 		{
+			ParameterInfo[] parms = declMethod.GetParameters ();
 			Type retType = declMethod.ReturnType;
 
 			//the BusObject instance
@@ -265,10 +266,15 @@ namespace NDesk.DBus
 
 			//signature
 			Signature inSig = Signature.Empty;
+			Signature outSig = Signature.Empty;
+
 			if (!declMethod.IsSpecialName)
-			for (int i = 1 ; i < hookupParms.Length ; i++)
+			foreach (ParameterInfo parm in parms)
 			{
-				inSig += Signature.GetSig (hookupParms[i]);
+				if (parm.IsOut)
+					outSig += Signature.GetSig (parm.ParameterType.GetElementType ());
+				else
+					inSig += Signature.GetSig (parm.ParameterType);
 			}
 
 			ilg.Emit (OpCodes.Ldstr, inSig.Value);
@@ -277,10 +283,14 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Newobj, messageWriterConstructor);
 			ilg.Emit (OpCodes.Stloc, writer);
 
-			//offset by one because arg0 is the instance of the delegate
-			for (int i = 1 ; i < hookupParms.Length ; i++)
+			foreach (ParameterInfo parm in parms)
 			{
-				Type t = hookupParms[i];
+				if (parm.IsOut)
+					continue;
+
+				Type t = parm.ParameterType;
+				//offset by one to account for "this"
+				int i = parm.Position + 1;
 
 				//null checking of parameters (but not their recursive contents)
 				if (!t.IsValueType) {
@@ -291,8 +301,7 @@ namespace NDesk.DBus
 					ilg.Emit (OpCodes.Brtrue_S, notNull);
 
 					//...throw Exception
-					//TODO: use proper parameter names
-					string paramName = "arg" + (i-1);
+					string paramName = parm.Name;
 					ilg.Emit (OpCodes.Ldstr, paramName);
 					ilg.Emit (OpCodes.Newobj, argumentNullExceptionConstructor);
 					ilg.Emit (OpCodes.Throw);

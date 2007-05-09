@@ -411,8 +411,7 @@ namespace NDesk.DBus
 
 			//FIXME: these special cases are slightly broken for the case where the member but not the interface is specified in the message
 			if (method_call.Interface == "org.freedesktop.DBus.Peer" && method_call.Member == "Ping") {
-				object[] pingRet = new object[0];
-				Message reply = MessageHelper.ConstructReplyFor (method_call, pingRet);
+				Message reply = MessageHelper.ConstructReply (method_call);
 				Send (reply);
 				return;
 			}
@@ -445,9 +444,7 @@ namespace NDesk.DBus
 
 				intro.WriteEnd ();
 
-				object[] introRet = new object[1];
-				introRet[0] = intro.xml;
-				Message reply = MessageHelper.ConstructReplyFor (method_call, introRet);
+				Message reply = MessageHelper.ConstructReply (method_call, intro.xml);
 				Send (reply);
 				return;
 			}

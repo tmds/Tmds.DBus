@@ -56,9 +56,10 @@ namespace NDesk.DBus
 			}
 
 			object retObj = null;
+			object[] parmValues = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
+
 			try {
-				object[] inArgs = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
-				retObj = mi.Invoke (obj, inArgs);
+				retObj = mi.Invoke (obj, parmValues);
 			} catch (TargetInvocationException e) {
 				if (!method_call.message.ReplyExpected)
 					return;
@@ -83,19 +84,7 @@ namespace NDesk.DBus
 			}
 
 			if (method_call.message.ReplyExpected) {
-				/*
-				object[] retObjs;
-
-				if (retObj == null) {
-					retObjs = new object[0];
-				} else {
-					retObjs = new object[1];
-					retObjs[0] = retObj;
-				}
-
-				Message reply = ConstructReplyFor (method_call, retObjs);
-				*/
-				Message reply = MessageHelper.ConstructReplyFor (method_call, mi.ReturnType, retObj);
+				Message reply = MessageHelper.ConstructDynamicReply (method_call, mi, retObj, parmValues);
 				conn.Send (reply);
 			}
 		}

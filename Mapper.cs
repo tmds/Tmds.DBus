@@ -232,17 +232,42 @@ namespace NDesk.DBus
 			return error.message;
 		}
 
-		//GetDynamicValues() should probably use yield eventually
+		public static void WriteDynamicValues (MessageWriter mw, ParameterInfo[] parms, object[] vals)
+		{
+			foreach (ParameterInfo parm in parms) {
+				if (!parm.IsOut)
+					continue;
+
+				Type actualType = parm.ParameterType.GetElementType ();
+				mw.Write (actualType, vals[parm.Position]);
+			}
+		}
 
 		public static object[] GetDynamicValues (Message msg, ParameterInfo[] parms)
 		{
-			//TODO: consider out parameters
+			//TODO: this validation check should provide better information, eg. message dump or a stack trace, or at least the interface/member
+			/*
+			if (Protocol.Verbose) {
+				Signature expected = Signature.GetSig (types);
+				Signature actual = msg.Signature;
+				if (actual != expected)
+					Console.Error.WriteLine ("Warning: The signature of the message does not match that of the handler: " + "Expected '" + expected + "', got '" + actual + "'");
+			}
+			*/
 
-			Type[] types = new Type[parms.Length];
-			for (int i = 0 ; i != parms.Length ; i++)
-				types[i] = parms[i].ParameterType;
+			object[] vals = new object[parms.Length];
 
-			return MessageHelper.GetDynamicValues (msg, types);
+			if (msg.Body != null) {
+				MessageReader reader = new MessageReader (msg);
+				foreach (ParameterInfo parm in parms) {
+					if (parm.IsOut)
+						continue;
+
+					vals[parm.Position] = reader.ReadValue (parm.ParameterType);
+				}
+			}
+
+			return vals;
 		}
 
 		public static object[] GetDynamicValues (Message msg, Type[] types)
@@ -267,9 +292,7 @@ namespace NDesk.DBus
 			return vals;
 		}
 
-		//should generalize this method
-		//it is duplicated in DProxy
-		public static Message ConstructReplyFor (MethodCall method_call, object[] vals)
+		public static Message ConstructReply (MethodCall method_call, params object[] vals)
 		{
 			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
 			Message replyMsg = method_return.message;
@@ -296,17 +319,26 @@ namespace NDesk.DBus
 			return replyMsg;
 		}
 
-		//TODO: merge this with the above method
-		public static Message ConstructReplyFor (MethodCall method_call, Type retType, object retVal)
+		public static Message ConstructDynamicReply (MethodCall method_call, MethodInfo mi, object retVal, object[] vals)
 		{
+			Type retType = mi.ReturnType;
+
 			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
 			Message replyMsg = method_return.message;
 
-			Signature inSig = Signature.GetSig (retType);
+			Signature outSig = Signature.GetSig (retType);
+			outSig += Signature.GetSig (Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ()));
 
-			if (inSig != Signature.Empty) {
+			if (outSig != Signature.Empty) {
 				MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-				writer.Write (retType, retVal);
+
+				//first write the return value, if any
+				if (retType != null && retType != typeof (void))
+					writer.Write (retType, retVal);
+
+				//then write the out args
+				WriteDynamicValues (writer, mi.GetParameters (), vals);
+
 				replyMsg.Body = writer.ToArray ();
 			}
 
@@ -314,9 +346,7 @@ namespace NDesk.DBus
 			if (method_call.Sender != null)
 				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
 
-			replyMsg.Signature = inSig;
-
-			//replyMsg.WriteHeader ();
+			replyMsg.Signature = outSig;
 
 			return replyMsg;
 		}

@@ -58,7 +58,8 @@ namespace NDesk.DBus
 				for (int i = 0 ; i < parms.Length ; i++)
 					parmTypes[i] = parms[i].ParameterType;
 
-				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual, declMethod.ReturnType, parmTypes);
+				MethodAttributes attrs = declMethod.Attributes ^ MethodAttributes.Abstract;
+				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, attrs, declMethod.ReturnType, parmTypes);
 				typeB.DefineMethodOverride (method_builder, declMethod);
 
 				//define in/out/ref/name for each of the parameters

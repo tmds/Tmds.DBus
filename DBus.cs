@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Collections.Generic;
 using NDesk.DBus;
 
 namespace org.freedesktop.DBus
@@ -64,6 +65,8 @@ namespace org.freedesktop.DBus
 		[return: Argument ("value")]
 		object Get (string @interface, string propname);
 		void Set (string @interface, string propname, object value);
+		[return: Argument ("props")]
+		IDictionary<string,object> GetAll(string @interface);
 	}
 
 	[Interface ("org.freedesktop.DBus")]

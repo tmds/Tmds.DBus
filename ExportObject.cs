@@ -10,11 +10,12 @@ using org.freedesktop.DBus;
 
 namespace NDesk.DBus
 {
+	//TODO: perhaps ExportObject should not derive from BusObject
 	internal class ExportObject : BusObject //, Peer
 	{
 		public readonly object obj;
 
-		public ExportObject (Connection conn, string bus_name, ObjectPath object_path, object obj) : base (conn, bus_name, object_path)
+		public ExportObject (Connection conn, ObjectPath object_path, object obj) : base (conn, null, object_path)
 		{
 			this.obj = obj;
 		}

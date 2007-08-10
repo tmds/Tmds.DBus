@@ -487,19 +487,29 @@ namespace NDesk.DBus
 			return (T)GetObject (typeof (T), bus_name, path);
 		}
 
+		[Obsolete ("Use the overload of Register() which does not take a bus_name parameter")]
 		public void Register (string bus_name, ObjectPath path, object obj)
 		{
-			ExportObject eo = new ExportObject (this, bus_name, path, obj);
+			Register (path, obj);
+		}
+
+		[Obsolete ("Use the overload of Unregister() which does not take a bus_name parameter")]
+		public object Unregister (string bus_name, ObjectPath path)
+		{
+			return Unregister (path);
+		}
+
+		public void Register (ObjectPath path, object obj)
+		{
+			ExportObject eo = new ExportObject (this, path, obj);
 			eo.Registered = true;
 
 			//TODO: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
 			RegisteredObjects[path] = eo;
 		}
 
-		public object Unregister (string bus_name, ObjectPath path)
+		public object Unregister (ObjectPath path)
 		{
-			//TODO: make use of bus_name
-
 			BusObject bo;
 
 			if (!RegisteredObjects.TryGetValue (path, out bo))

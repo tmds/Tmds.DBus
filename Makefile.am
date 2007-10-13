@@ -9,7 +9,6 @@ LIBFLAGS = \
 
 CSFILES = \
 	$(srcdir)/Address.cs \
-	$(srcdir)/AssemblyInfo.cs \
 	$(srcdir)/Authentication.cs \
 	$(srcdir)/Bus.cs \
 	$(srcdir)/BusObject.cs \
@@ -36,8 +35,7 @@ CSFILES = \
 
 all: $(TARGET)
 
-#$(TARGET): $(CSFILES) AssemblyInfo.cs
-$(TARGET): $(CSFILES)
+$(TARGET): $(CSFILES) AssemblyInfo.cs
 	$(GMCS) -out:$@ $(CSFLAGS) $(LIBFLAGS) $^
 
 install-data-local:
@@ -54,14 +52,14 @@ uninstall-local:
 
 EXTRA_DIST = \
 	$(CSFILES)
-#	$(srcdir)/AssemblyInfo.cs.in
+	$(srcdir)/AssemblyInfo.cs.in
 
 CLEANFILES = \
 	$(TARGET) \
 	$(TARGET).mdb
 
-#DISTCLEANFILES = \
-#	AssemblyInfo.cs
+DISTCLEANFILES = \
+	AssemblyInfo.cs
 
 MAINTAINERCLEANFILES = \
 	Makefile.in

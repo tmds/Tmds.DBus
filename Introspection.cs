@@ -36,12 +36,28 @@ namespace NDesk.DBus
 			writer = XmlWriter.Create (sb, settings);
 		}
 
+		static string GetProductDescription ()
+		{
+			String version;
+
+			Assembly assembly = Assembly.GetExecutingAssembly ();
+			AssemblyName aname = assembly.GetName ();
+
+			AssemblyInformationalVersionAttribute iversion = Attribute.GetCustomAttribute (assembly, typeof (AssemblyInformationalVersionAttribute)) as AssemblyInformationalVersionAttribute;
+
+			if (iversion != null)
+				version = iversion.InformationalVersion;
+			else
+				version = aname.Version.ToString ();
+
+			return aname.Name + " " + version;
+		}
+
 		public void WriteStart ()
 		{
 			writer.WriteDocType ("node", PUBLIC_IDENTIFIER, SYSTEM_IDENTIFIER, null);
 
-			AssemblyName aname = Assembly.GetExecutingAssembly().GetName ();
-			writer.WriteComment (" " + aname.Name + " " + aname.Version.ToString (3) + " ");
+			writer.WriteComment (" " + GetProductDescription () + " ");
 
 			//the root node element
 			writer.WriteStartElement ("node");

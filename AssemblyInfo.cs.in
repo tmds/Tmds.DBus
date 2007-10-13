@@ -5,7 +5,9 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-[assembly: AssemblyVersion("1.0.0")]
+[assembly: AssemblyFileVersion("@VERSION@")]
+[assembly: AssemblyInformationalVersion("@VERSION@")]
+[assembly: AssemblyVersion("@API_VERSION@")]
 [assembly: AssemblyTitle ("NDesk.DBus")]
 [assembly: AssemblyDescription ("D-Bus IPC protocol library and CLR binding")]
 [assembly: AssemblyCopyright ("Copyright (C) Alp Toker")]

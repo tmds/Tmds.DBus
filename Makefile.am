@@ -43,13 +43,13 @@ $(TARGET): $(CSFILES)
 install-data-local:
 	@if test -n '$(TARGET)'; then                       \
           echo "$(GACUTIL) /i $(TARGET) /f /gacdir $(DESTDIR)$(libdir)";    \
-          $(GACUTIL) /i $(TARGET) /package $(ASSEMBLY) /f /gacdir $(libdir) /root $(DESTDIR)$(libdir) || exit 1; \
+          $(GACUTIL) /i $(TARGET) /package $(PACKAGE)-$(API_VERSION) /f /gacdir $(libdir) /root $(DESTDIR)$(libdir) || exit 1; \
         fi
 
 uninstall-local:
 	@if test -n '$(TARGET)'; then                       \
           echo "$(GACUTIL) /u $(ASSEMBLY) /gacdir $(DESTDIR)$(libdir)";  \
-          $(GACUTIL) /u $(ASSEMBLY) /package $(ASSEMBLY) /gacdir $(libdir) /root $(DESTDIR)$(libdir) || exit 1;   \
+          $(GACUTIL) /u $(ASSEMBLY) /package $(PACKAGE)-$(API_VERSION) /gacdir $(libdir) /root $(DESTDIR)$(libdir) || exit 1;   \
         fi
 
 EXTRA_DIST = \

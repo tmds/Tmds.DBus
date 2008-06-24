@@ -34,9 +34,7 @@ namespace NDesk.DBus
 
 		public void CloseWrite ()
 		{
-			int needed = Protocol.PadNeeded ((int)stream.Position, 8);
-			for (int i = 0 ; i != needed ; i++)
-				stream.WriteByte (0);
+			WritePad (8);
 		}
 
 		public void Write (byte val)
@@ -448,7 +446,9 @@ namespace NDesk.DBus
 
 		public void WritePad (int alignment)
 		{
-			stream.Position = Protocol.Padded ((int)stream.Position, alignment);
+			int needed = Protocol.PadNeeded ((int)stream.Position, alignment);
+			for (int i = 0 ; i != needed ; i++)
+				stream.WriteByte (0);
 		}
 	}
 }

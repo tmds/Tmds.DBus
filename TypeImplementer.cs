@@ -269,7 +269,6 @@ namespace NDesk.DBus
 			Signature inSig = Signature.Empty;
 			Signature outSig = Signature.Empty;
 
-			if (!declMethod.IsSpecialName)
 			foreach (ParameterInfo parm in parms)
 			{
 				if (parm.IsOut)

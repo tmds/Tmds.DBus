@@ -197,6 +197,8 @@ namespace NDesk.DBus
 		{
 			MatchRule r = new MatchRule ();
 
+			// FIXME: Using Split is incorrect and will fail due to inescaped content
+
 			foreach (string propStr in text.Split (',')) {
 				string[] parts = propStr.Split ('=');
 

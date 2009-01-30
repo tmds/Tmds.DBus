@@ -77,10 +77,11 @@ namespace NDesk.DBus
 			if (address == null)
 				throw new ArgumentNullException ("address");
 
-			if (buses.ContainsKey (address))
-				return buses[address];
+			Bus bus;
+			if (buses.TryGetValue (address, out bus))
+				return bus;
 
-			Bus bus = new Bus (address);
+			bus = new Bus (address);
 			buses[address] = bus;
 
 			return bus;

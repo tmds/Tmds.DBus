@@ -203,7 +203,7 @@ namespace NDesk.DBus
 		//protocol versions that we support
 		public const byte MinVersion = 0;
 		public const byte Version = 1;
-		public const byte MaxVersion = Version;
+		public const byte MaxVersion = Version + 1;
 
 		public const uint MaxMessageLength = 134217728; //2 to the 27th power
 		public const uint MaxArrayLength = 67108864; //2 to the 26th power

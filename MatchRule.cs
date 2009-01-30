@@ -27,11 +27,12 @@ namespace NDesk.DBus
 		void Append (StringBuilder sb, string key, string value)
 		{
 			if (sb.Length != 0)
-				sb.Append (",");
+				sb.Append (',');
 
-			sb.Append (key + "='");
+			sb.Append (key);
+			sb.Append ("='");
 			sb.Append (value);
-			sb.Append ("'");
+			sb.Append ('\'');
 		}
 
 		void AppendArg (StringBuilder sb, int index, string value)

@@ -18,7 +18,7 @@ namespace NDesk.DBus
 		public ObjectPath Path;
 		public string Sender;
 		public string Destination;
-		public readonly SortedDictionary<int,string> Args = new SortedDictionary<int,string> ();
+		public readonly SortedList<int,string> Args = new SortedList<int,string> ();
 
 		public MatchRule ()
 		{
@@ -68,6 +68,8 @@ namespace NDesk.DBus
 				return false;
 
 			//FIXME: do args
+			if (r.Args.Count > 0 || Args.Count > 0)
+				return false;
 
 			return true;
 		}
@@ -144,7 +146,48 @@ namespace NDesk.DBus
 					if ((string)value != Destination)
 						return false;
 
-			//FIXME: do args
+			if (Args != null && Args.Count > 0) {
+				if (msg.Signature == Signature.Empty || msg.Body == null)
+					return false;
+
+				int topArgNum = Args.Keys[Args.Count - 1];
+				if (topArgNum >= Protocol.MaxMatchRuleArgs)
+					return false;
+
+				List<Signature> sigs = new List<Signature> ();
+				sigs.AddRange (msg.Signature.GetParts ());
+				if (topArgNum >= sigs.Count)
+					return false;
+
+				// Spec (0.12) says that only strings can be matched
+				Signature stringSig = new Signature (DType.String);
+				foreach (KeyValuePair<int,string> arg in Args)
+					if (sigs[arg.Key] != stringSig)
+						return false;
+
+				MessageReader reader = new MessageReader (msg);
+
+				for (int argNum = 0 ; argNum <= topArgNum ; argNum++) {
+					string testString;
+					Signature sig = sigs[argNum];
+
+					if (Args.TryGetValue (argNum, out testString)) {
+						if (sig != stringSig)
+							return false;
+						string val = reader.ReadString ();
+						if (val != testString)
+							return false;
+						continue;
+					}
+
+					// FIXME: Need to support skipping complex message parts
+					if (!sig.IsPrimitive)
+						return false;
+
+					// Read and discard primitive values to skip over them
+					reader.ReadValue (sig[0]);
+				}
+			}
 
 			return true;
 		}
@@ -173,8 +216,8 @@ namespace NDesk.DBus
 				if (key.StartsWith ("arg")) {
 					int argnum = Int32.Parse (key.Remove (0, "arg".Length));
 
-					if (argnum < 0 || argnum > 63)
-						throw new Exception ("arg match must be between 0 and 63 inclusive");
+					if (argnum < 0 || argnum >= Protocol.MaxMatchRuleArgs)
+						throw new Exception ("arg match must be between 0 and " + (Protocol.MaxMatchRuleArgs - 1) + " inclusive");
 
 					if (r.Args.ContainsKey (argnum))
 						return null;

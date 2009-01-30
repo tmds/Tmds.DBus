@@ -213,6 +213,7 @@ namespace NDesk.DBus
 
 		//this is not strictly related to Protocol since names are passed around as strings
 		internal const uint MaxNameLength = 255;
+		internal const uint MaxMatchRuleLength = 1024;
 		internal const uint MaxMatchRuleArgs = 64;
 
 		public static int PadNeeded (int pos, int alignment)

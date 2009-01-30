@@ -195,6 +195,9 @@ namespace NDesk.DBus
 		//this could be made more efficient
 		public static MatchRule Parse (string text)
 		{
+			if (text.Length > Protocol.MaxMatchRuleLength)
+				throw new Exception ("Match rule length exceeds maximum " + Protocol.MaxMatchRuleLength + " characters");
+
 			MatchRule r = new MatchRule ();
 
 			// FIXME: Using Split is incorrect and will fail due to inescaped content

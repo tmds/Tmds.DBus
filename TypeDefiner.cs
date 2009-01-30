@@ -66,7 +66,7 @@ namespace NDesk.DBus
 			//This is a bit ugly
 			string ifaceName = "Aggregate" + (ifaceId++);
 
-			TypeBuilder typeB = modBdef.DefineType (ifaceName, TypeAttributes.Public | TypeAttributes.Interface);
+			TypeBuilder typeB = modBdef.DefineType (ifaceName, TypeAttributes.Public | TypeAttributes.Interface | TypeAttributes.Abstract);
 			foreach (Interface iface in ifaces)
 				typeB.AddInterfaceImplementation (Define (iface));
 
@@ -84,7 +84,7 @@ namespace NDesk.DBus
 			nsName = nsName.Replace ('.', Type.Delimiter);
 
 			//using the full interface name is ok, but makes consuming the type from C# difficult since namespaces/Type names may overlap
-			TypeBuilder typeB = modBdef.DefineType (nsName + Type.Delimiter + "I" + ifaceName, TypeAttributes.Public | TypeAttributes.Interface);
+			TypeBuilder typeB = modBdef.DefineType (nsName + Type.Delimiter + "I" + ifaceName, TypeAttributes.Public | TypeAttributes.Interface | TypeAttributes.Abstract);
 			Define (typeB, iface);
 
 			return typeB.CreateType ();

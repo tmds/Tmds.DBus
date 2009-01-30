@@ -86,6 +86,7 @@ namespace org.freedesktop.DBus
 		uint GetConnectionUnixUser (string connection_name);
 		void AddMatch (string rule);
 		void RemoveMatch (string rule);
+		string GetId ();
 
 		//undocumented in spec
 		string[] ListQueuedOwners (string name);

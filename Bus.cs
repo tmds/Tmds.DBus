@@ -159,6 +159,11 @@ namespace NDesk.DBus
 			bus.RemoveMatch (rule);
 		}
 
+		public string GetId ()
+		{
+			return bus.GetId ();
+		}
+
 		string unique_name = null;
 		public string UniqueName
 		{

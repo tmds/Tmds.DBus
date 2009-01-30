@@ -214,18 +214,57 @@ namespace NDesk.DBus
 			return MakeDictEntry (keyType, valueType).MakeArraySignature ();
 		}
 
-		/*
 		//TODO: complete this
 		public bool IsPrimitive
 		{
 			get {
-				if (this == Signature.Empty)
-					return true;
+				if (data.Length != 1)
+					return false;
 
-				return false;
+				if (this[0] == DType.Variant)
+					return false;
+
+				if (this[0] == '\0')
+					return false;
+
+				return true;
 			}
 		}
-		*/
+
+		public bool IsStruct
+		{
+			get {
+				if (Length < 2)
+					return false;
+
+				if (this[0] != DType.StructBegin)
+					return false;
+
+				if (this[Length - 1] != DType.StructEnd)
+					return false;
+
+				return true;
+			}
+		}
+
+		public bool IsStructlike
+		{
+			get {
+				if (Length < 2)
+					return false;
+
+				if (IsArray)
+					return false;
+
+				if (IsDict)
+					return false;
+
+				if (IsStruct)
+					return false;
+
+				return true;
+			}
+		}
 
 		public bool IsDict
 		{
@@ -236,7 +275,8 @@ namespace NDesk.DBus
 				if (!IsArray)
 					return false;
 
-				if (this[2] != DType.DictEntryBegin)
+				// 0 is 'a'
+				if (this[1] != DType.DictEntryBegin)
 					return false;
 
 				return true;
@@ -262,10 +302,12 @@ namespace NDesk.DBus
 				throw new Exception ("Cannot get the element signature of a non-array (signature was '" + this + "')");
 
 			//TODO: improve this
-			if (Length != 2)
-				throw new NotSupportedException ("Parsing signatures with more than one primitive value is not supported (signature was '" + this + "')");
+			if (IsDict)
+				throw new NotSupportedException ("Parsing dict signature is not supported (signature was '" + this + "')");
 
-			return new Signature (this[1]);
+			// Skip over 'a'
+			int pos = 1;
+			return GetNextSignature (ref pos);
 		}
 
 		public Type[] ToTypes ()
@@ -404,6 +446,49 @@ namespace NDesk.DBus
 				return DType.Invalid;
 		}
 		*/
+
+		public IEnumerable<Signature> GetParts ()
+		{
+			//for (int pos = 0 ; pos != data.Length ; pos++) {
+			for (int pos = 0 ; pos != data.Length ;) {
+				yield return GetNextSignature (ref pos);
+			}
+		}
+
+		public Signature GetNextSignature (ref int pos)
+		{
+			DType dtype = (DType)data[pos++];
+
+			switch (dtype) {
+				//case DType.Invalid:
+				//	return typeof (void);
+				case DType.Array:
+					//peek to see if this is in fact a dictionary
+					if ((DType)data[pos] == DType.DictEntryBegin) {
+						//skip over the {
+						pos++;
+						Signature keyType = GetNextSignature (ref pos);
+						Signature valueType = GetNextSignature (ref pos);
+						//skip over the }
+						pos++;
+						return Signature.MakeDict (keyType, valueType);
+					} else {
+						Signature elementType = GetNextSignature (ref pos);
+						return elementType.MakeArraySignature ();
+					}
+				case DType.StructBegin:
+					//List<Signature> fieldTypes = new List<Signature> ();
+					Signature fieldsSig = Signature.Empty;
+					while ((DType)data[pos] != DType.StructEnd)
+						fieldsSig += GetNextSignature (ref pos);
+					//skip over the )
+					pos++;
+					//return Signature.MakeStruct (fieldsSig);
+					return fieldsSig;
+				default:
+					return new Signature (dtype);
+			}
+		}
 
 		public Type ToType (ref int pos)
 		{

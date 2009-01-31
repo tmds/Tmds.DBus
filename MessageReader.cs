@@ -158,6 +158,9 @@ namespace NDesk.DBus
 		{
 			ReadPad (2);
 
+			if (data.Length < pos + 2)
+				throw new Exception ("Cannot read beyond end of data");
+
 			if (endianness == Connection.NativeEndianness) {
 				fixed (byte* p = &data[pos])
 					*((ushort*)dstPtr) = *((ushort*)p);
@@ -191,6 +194,9 @@ namespace NDesk.DBus
 		unsafe protected void MarshalUInt (void* dstPtr)
 		{
 			ReadPad (4);
+
+			if (data.Length < pos + 4)
+				throw new Exception ("Cannot read beyond end of data");
 
 			if (endianness == Connection.NativeEndianness) {
 				fixed (byte* p = &data[pos])
@@ -227,6 +233,9 @@ namespace NDesk.DBus
 		unsafe protected void MarshalULong (void* dstPtr)
 		{
 			ReadPad (8);
+
+			if (data.Length < pos + 8)
+				throw new Exception ("Cannot read beyond end of data");
 
 			if (endianness == Connection.NativeEndianness) {
 				fixed (byte* p = &data[pos])

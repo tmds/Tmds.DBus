@@ -4,6 +4,7 @@
 
 using System;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
 namespace NDesk.DBus
@@ -31,7 +32,7 @@ namespace NDesk.DBus
 
 			sb.Append (key);
 			sb.Append ("='");
-			sb.Append (value);
+			sb.Append (value.Replace (@"\", @"\\").Replace (@"'", @"\'"));
 			sb.Append ('\'');
 		}
 
@@ -192,7 +193,7 @@ namespace NDesk.DBus
 			return true;
 		}
 
-		//this could be made more efficient
+		static Regex matchRuleRegex = new Regex (@"(\w+)\s*=\s*'((\\\\|\\'|[^'\\])*)'", RegexOptions.Compiled);
 		public static MatchRule Parse (string text)
 		{
 			if (text.Length > Protocol.MaxMatchRuleLength)
@@ -200,23 +201,15 @@ namespace NDesk.DBus
 
 			MatchRule r = new MatchRule ();
 
-			// FIXME: Using Split is incorrect and will fail due to inescaped content
+			// TODO: Stricter validation. Tighten up the regex.
+			// It currently succeeds and silently drops malformed test parts.
 
-			foreach (string propStr in text.Split (',')) {
-				string[] parts = propStr.Split ('=');
-
-				if (parts.Length < 2)
-					throw new Exception ("No equals sign found");
-				if (parts.Length > 2)
-					throw new Exception ("Too many equals signs found");
-
-				string key = parts[0].Trim ();
-				string value = parts[1].Trim ();
-
-				if (!value.StartsWith ("'") || !value.EndsWith ("'"))
-					throw new Exception ("Too many equals signs found");
-
-				value = value.Substring (1, value.Length - 2);
+			for (Match m = matchRuleRegex.Match (text) ; m.Success ; m = m.NextMatch ()) {
+				string key = m.Groups[1].Value;
+				string value = m.Groups[2].Value;
+				// This unescaping may not be perfect..
+				value = value.Replace (@"\\", @"\");
+				value = value.Replace (@"\'", @"'");
 
 				if (key.StartsWith ("arg")) {
 					int argnum = Int32.Parse (key.Remove (0, "arg".Length));

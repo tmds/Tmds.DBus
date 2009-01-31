@@ -47,15 +47,17 @@ namespace NDesk.DBus
 			Write ((uint) (val ? 1 : 0));
 		}
 
-		unsafe protected void MarshalUShort (byte *data)
+		// Buffer for integer marshaling
+		byte[] dst = new byte[8];
+		unsafe protected void MarshalUShort (void* dataPtr)
 		{
 			WritePad (2);
-			byte[] dst = new byte[2];
 
 			if (endianness == Connection.NativeEndianness) {
-				dst[0] = data[0];
-				dst[1] = data[1];
+				fixed (byte* p = &dst[0])
+					*((ushort*)p) = *((ushort*)dataPtr);
 			} else {
+				byte* data = (byte*)dataPtr;
 				dst[0] = data[1];
 				dst[1] = data[0];
 			}
@@ -65,25 +67,23 @@ namespace NDesk.DBus
 
 		unsafe public void Write (short val)
 		{
-			MarshalUShort ((byte*)&val);
+			MarshalUShort (&val);
 		}
 
 		unsafe public void Write (ushort val)
 		{
-			MarshalUShort ((byte*)&val);
+			MarshalUShort (&val);
 		}
 
-		unsafe protected void MarshalUInt (byte *data)
+		unsafe protected void MarshalUInt (void* dataPtr)
 		{
 			WritePad (4);
-			byte[] dst = new byte[4];
 
 			if (endianness == Connection.NativeEndianness) {
-				dst[0] = data[0];
-				dst[1] = data[1];
-				dst[2] = data[2];
-				dst[3] = data[3];
+				fixed (byte* p = &dst[0])
+					*((uint*)p) = *((uint*)dataPtr);
 			} else {
+				byte* data = (byte*)dataPtr;
 				dst[0] = data[3];
 				dst[1] = data[2];
 				dst[2] = data[1];
@@ -95,23 +95,23 @@ namespace NDesk.DBus
 
 		unsafe public void Write (int val)
 		{
-			MarshalUInt ((byte*)&val);
+			MarshalUInt (&val);
 		}
 
 		unsafe public void Write (uint val)
 		{
-			MarshalUInt ((byte*)&val);
+			MarshalUInt (&val);
 		}
 
-		unsafe protected void MarshalULong (byte *data)
+		unsafe protected void MarshalULong (void* dataPtr)
 		{
 			WritePad (8);
-			byte[] dst = new byte[8];
 
 			if (endianness == Connection.NativeEndianness) {
-				for (int i = 0; i < 8; ++i)
-					dst[i] = data[i];
+				fixed (byte* p = &dst[0])
+					*((ulong*)p) = *((ulong*)dataPtr);
 			} else {
+				byte* data = (byte*)dataPtr;
 				for (int i = 0; i < 8; ++i)
 					dst[i] = data[7 - i];
 			}
@@ -121,24 +121,24 @@ namespace NDesk.DBus
 
 		unsafe public void Write (long val)
 		{
-			MarshalULong ((byte*)&val);
+			MarshalULong (&val);
 		}
 
 		unsafe public void Write (ulong val)
 		{
-			MarshalULong ((byte*)&val);
+			MarshalULong (&val);
 		}
 
 #if !DISABLE_SINGLE
 		unsafe public void Write (float val)
 		{
-			MarshalUInt ((byte*)&val);
+			MarshalUInt (&val);
 		}
 #endif
 
 		unsafe public void Write (double val)
 		{
-			MarshalULong ((byte*)&val);
+			MarshalULong (&val);
 		}
 
 		public void Write (string val)
@@ -444,11 +444,12 @@ namespace NDesk.DBus
 			stream.WriteByte (0);
 		}
 
+		// Source buffer for zero-padding
+		byte[] nullBytes = new byte[8];
 		public void WritePad (int alignment)
 		{
 			int needed = Protocol.PadNeeded ((int)stream.Position, alignment);
-			for (int i = 0 ; i != needed ; i++)
-				stream.WriteByte (0);
+			stream.Write (nullBytes, 0, needed);
 		}
 	}
 }

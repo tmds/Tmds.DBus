@@ -154,14 +154,15 @@ namespace NDesk.DBus
 			}
 		}
 
-		unsafe protected void MarshalUShort (byte *dst)
+		unsafe protected void MarshalUShort (void* dstPtr)
 		{
 			ReadPad (2);
 
 			if (endianness == Connection.NativeEndianness) {
-				dst[0] = data[pos + 0];
-				dst[1] = data[pos + 1];
+				fixed (byte* p = &data[pos])
+					*((ushort*)dstPtr) = *((ushort*)p);
 			} else {
+				byte* dst = (byte*)dstPtr;
 				dst[0] = data[pos + 1];
 				dst[1] = data[pos + 0];
 			}
@@ -173,7 +174,7 @@ namespace NDesk.DBus
 		{
 			short val;
 
-			MarshalUShort ((byte*)&val);
+			MarshalUShort (&val);
 
 			return val;
 		}
@@ -182,21 +183,20 @@ namespace NDesk.DBus
 		{
 			ushort val;
 
-			MarshalUShort ((byte*)&val);
+			MarshalUShort (&val);
 
 			return val;
 		}
 
-		unsafe protected void MarshalUInt (byte *dst)
+		unsafe protected void MarshalUInt (void* dstPtr)
 		{
 			ReadPad (4);
 
 			if (endianness == Connection.NativeEndianness) {
-				dst[0] = data[pos + 0];
-				dst[1] = data[pos + 1];
-				dst[2] = data[pos + 2];
-				dst[3] = data[pos + 3];
+				fixed (byte* p = &data[pos])
+					*((uint*)dstPtr) = *((uint*)p);
 			} else {
+				byte* dst = (byte*)dstPtr;
 				dst[0] = data[pos + 3];
 				dst[1] = data[pos + 2];
 				dst[2] = data[pos + 1];
@@ -210,7 +210,7 @@ namespace NDesk.DBus
 		{
 			int val;
 
-			MarshalUInt ((byte*)&val);
+			MarshalUInt (&val);
 
 			return val;
 		}
@@ -219,19 +219,20 @@ namespace NDesk.DBus
 		{
 			uint val;
 
-			MarshalUInt ((byte*)&val);
+			MarshalUInt (&val);
 
 			return val;
 		}
 
-		unsafe protected void MarshalULong (byte *dst)
+		unsafe protected void MarshalULong (void* dstPtr)
 		{
 			ReadPad (8);
 
 			if (endianness == Connection.NativeEndianness) {
-				for (int i = 0; i < 8; ++i)
-					dst[i] = data[pos + i];
+				fixed (byte* p = &data[pos])
+					*((ulong*)dstPtr) = *((ulong*)p);
 			} else {
+				byte* dst = (byte*)dstPtr;
 				for (int i = 0; i < 8; ++i)
 					dst[i] = data[pos + (7 - i)];
 			}
@@ -243,7 +244,7 @@ namespace NDesk.DBus
 		{
 			long val;
 
-			MarshalULong ((byte*)&val);
+			MarshalULong (&val);
 
 			return val;
 		}
@@ -252,7 +253,7 @@ namespace NDesk.DBus
 		{
 			ulong val;
 
-			MarshalULong ((byte*)&val);
+			MarshalULong (&val);
 
 			return val;
 		}
@@ -262,7 +263,7 @@ namespace NDesk.DBus
 		{
 			float val;
 
-			MarshalUInt ((byte*)&val);
+			MarshalUInt (&val);
 
 			return val;
 		}
@@ -272,7 +273,7 @@ namespace NDesk.DBus
 		{
 			double val;
 
-			MarshalULong ((byte*)&val);
+			MarshalULong (&val);
 
 			return val;
 		}

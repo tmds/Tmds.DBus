@@ -98,6 +98,9 @@ namespace NDesk.DBus
 				if (auth.ActualId != Id)
 					throw new Exception ("Authentication failure: Unexpected GUID");
 
+			if (Id == UUID.Zero)
+				Id = auth.ActualId;
+
 			isAuthenticated = true;
 		}
 
@@ -554,7 +557,7 @@ namespace NDesk.DBus
 		const string machineUuidFilename = @"/var/lib/dbus/machine-id";
 		static UUID? machineId = null;
 		private static object idReadLock = new object ();
-		static UUID MachineId
+		internal static UUID MachineId
 		{
 			get {
 				lock (idReadLock) {

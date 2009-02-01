@@ -64,18 +64,16 @@ namespace NDesk.DBus
 
 		public static UUID Parse (string hex)
 		{
-			byte[] guidData = SaslClient.FromHex (hex);
-			if (guidData.Length != ByteLength)
+			if (hex.Length != ByteLength * 2)
 				throw new Exception ("Cannot parse UUID/GUID of invalid length");
 
 			UUID id = new UUID ();
-			//fixed (byte* bp = &guidData[0]) {
-			fixed (byte* bp = guidData) {
-				int* p = (int*)bp;
-				id.a = p[0];
-				id.b = p[1];
-				id.c = p[2];
-				id.d = p[3];
+
+			byte* result = (byte*)&id.a;
+			int n = 0, i = 0;
+			while (n < ByteLength) {
+				result[n] = (byte)(SaslClient.FromHexChar (hex[i++]) << 4);
+				result[n++] += SaslClient.FromHexChar (hex[i++]);
 			}
 
 			return id;
@@ -245,7 +243,7 @@ namespace NDesk.DBus.Authentication
 		}
 
 		//From Mono.Security.Cryptography
-		static private byte FromHexChar (char c)
+		static public byte FromHexChar (char c)
 		{
 			if ((c >= 'a') && (c <= 'f'))
 				return (byte) (c - 'a' + 10);

@@ -418,10 +418,20 @@ namespace NDesk.DBus
 			//TODO: Ping and Introspect need to be abstracted and moved somewhere more appropriate once message filter infrastructure is complete
 
 			//FIXME: these special cases are slightly broken for the case where the member but not the interface is specified in the message
-			if (method_call.Interface == "org.freedesktop.DBus.Peer" && method_call.Member == "Ping") {
-				Message reply = MessageHelper.ConstructReply (method_call);
-				Send (reply);
-				return;
+			if (method_call.Interface == "org.freedesktop.DBus.Peer") {
+				switch (method_call.Member) {
+					case "Ping":
+						Send (MessageHelper.ConstructReply (method_call));
+						return;
+					case "GetMachineId":
+						if (MachineId != UUID.Zero) {
+							Send (MessageHelper.ConstructReply (method_call, MachineId.ToString ()));
+							return;
+						} else {
+							// Might want to send back an error here?
+						}
+						break;
+				}
 			}
 
 			if (method_call.Interface == "org.freedesktop.DBus.Introspectable" && method_call.Member == "Introspect") {
@@ -538,6 +548,51 @@ namespace NDesk.DBus
 
 		internal protected virtual void RemoveMatch (string rule)
 		{
+		}
+
+		// Maybe we should use XDG/basedir or check an env var for this?
+		const string machineUuidFilename = @"/var/lib/dbus/machine-id";
+		static UUID? machineId = null;
+		private static object idReadLock = new object ();
+		static UUID MachineId
+		{
+			get {
+				lock (idReadLock) {
+					if (machineId != null)
+						return (UUID)machineId;
+					try {
+						machineId = ReadMachineId (machineUuidFilename);
+					} catch {
+						machineId = UUID.Zero;
+					}
+					return (UUID)machineId;
+				}
+			}
+		}
+
+		static UUID ReadMachineId (string fname)
+		{
+			using (FileStream fs = File.OpenRead (fname)) {
+				// Length is typically 33 (32 for the UUID, plus a linefeed)
+				//if (fs.Length < 32)
+				//	return UUID.Zero;
+
+				byte[] data = new byte[32];
+
+				int pos = 0;
+				while (pos < data.Length) {
+					int read = fs.Read (data, pos, data.Length - pos);
+					if (read == 0)
+						break;
+					pos += read;
+				}
+
+				if (pos != data.Length)
+					//return UUID.Zero;
+					throw new Exception ("Insufficient data while reading GUID string");
+
+				return UUID.Parse (System.Text.Encoding.ASCII.GetString (data));
+			}
 		}
 
 		static Connection ()

@@ -200,6 +200,7 @@ namespace NDesk.DBus
 			return true;
 		}
 
+		static Regex argNRegex = new Regex (@"^arg(\d+)(path)?$");
 		static Regex matchRuleRegex = new Regex (@"(\w+)\s*=\s*'((\\\\|\\'|[^'\\])*)'", RegexOptions.Compiled);
 		public static MatchRule Parse (string text)
 		{
@@ -218,12 +219,18 @@ namespace NDesk.DBus
 				value = value.Replace (@"\\", @"\");
 				value = value.Replace (@"\'", @"'");
 
-				// TODO: Handle argNpath
 				if (key.StartsWith ("arg")) {
-					int argnum = Int32.Parse (key.Remove (0, "arg".Length));
+					Match mArg = argNRegex.Match (key);
+					if (!mArg.Success)
+						return null;
+					int argnum = (int)UInt32.Parse (mArg.Groups[1].Value);
 
 					if (argnum < 0 || argnum >= Protocol.MaxMatchRuleArgs)
 						throw new Exception ("arg match must be between 0 and " + (Protocol.MaxMatchRuleArgs - 1) + " inclusive");
+
+					// TODO: Handle argNpath
+					if (mArg.Groups[2].Length != 0)
+						continue;
 
 					if (r.Args.ContainsKey (argnum))
 						return null;

@@ -25,7 +25,7 @@ namespace NDesk.DBus
 		{
 		}
 
-		void Append (StringBuilder sb, string key, string value)
+		static void Append (StringBuilder sb, string key, string value)
 		{
 			if (sb.Length != 0)
 				sb.Append (',');
@@ -36,10 +36,17 @@ namespace NDesk.DBus
 			sb.Append ('\'');
 		}
 
-		void AppendArg (StringBuilder sb, int index, string value)
+		static void AppendArg (StringBuilder sb, int index, string value)
 		{
 			Append (sb, "arg" + index, value);
 		}
+
+		/*
+		static void AppendPathArg (StringBuilder sb, int index, string value)
+		{
+			Append (sb, "arg" + index + "path", value);
+		}
+		*/
 
 		public override bool Equals (object o)
 		{
@@ -211,6 +218,7 @@ namespace NDesk.DBus
 				value = value.Replace (@"\\", @"\");
 				value = value.Replace (@"\'", @"'");
 
+				// TODO: Handle argNpath
 				if (key.StartsWith ("arg")) {
 					int argnum = Int32.Parse (key.Remove (0, "arg".Length));
 

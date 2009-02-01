@@ -12,27 +12,20 @@ namespace NDesk.DBus
 {
 	using Authentication;
 
+	//[StructLayout (LayoutKind.Sequential)]
 	unsafe struct UUID
 	{
-		// public to avoid a bizarre CS0649 warning
-		//private fixed int data[4];
-		public fixed int data[4];
-		//private int a, b, c, d;
+		private int a, b, c, d;
+		const int ByteLength = 16;
 
 		public static readonly UUID Zero = new UUID ();
 
 		public static bool operator == (UUID a, UUID b)
 		{
-			if (a.data[0] != b.data[0])
+			if (a.a == b.a && a.b == b.b && a.c == b.c && a.d == b.d)
+				return true;
+			else
 				return false;
-			if (a.data[1] != b.data[1])
-				return false;
-			if (a.data[2] != b.data[2])
-				return false;
-			if (a.data[3] != b.data[3])
-				return false;
-
-			return true;
 		}
 
 		public static bool operator != (UUID a, UUID b)
@@ -53,17 +46,16 @@ namespace NDesk.DBus
 
 		public override int GetHashCode ()
 		{
-			fixed (int* p = &data[0])
-				return p[0] ^ p[1] ^ p[2] ^ p[3];
+			return a ^ b ^ c ^ d;
 		}
 
 		public override string ToString ()
 		{
-			StringBuilder sb = new StringBuilder (16 * 2);
+			StringBuilder sb = new StringBuilder (ByteLength * 2);
 
-			fixed (int* p = &data[0]) {
+			fixed (int* p = &a) {
 					byte* bp = (byte*)p;
-					for (int i = 0 ; i != 16 ; i++)
+					for (int i = 0 ; i != ByteLength ; i++)
 						sb.Append (bp[i].ToString ("x2", CultureInfo.InvariantCulture));
 			}
 
@@ -73,14 +65,17 @@ namespace NDesk.DBus
 		public static UUID Parse (string hex)
 		{
 			byte[] guidData = SaslClient.FromHex (hex);
-			if (guidData.Length != 16)
+			if (guidData.Length != ByteLength)
 				throw new Exception ("Cannot parse UUID/GUID of invalid length");
 
 			UUID id = new UUID ();
-			fixed (byte* bp = &guidData[0]) {
+			//fixed (byte* bp = &guidData[0]) {
+			fixed (byte* bp = guidData) {
 				int* p = (int*)bp;
-				for (int i = 0 ; i != 4 ; i++)
-					id.data[i] = p[i];
+				id.a = p[0];
+				id.b = p[1];
+				id.c = p[2];
+				id.d = p[3];
 			}
 
 			return id;
@@ -91,13 +86,11 @@ namespace NDesk.DBus
 		{
 			UUID id = new UUID ();
 
-			fixed (int* p = &id.data[0]) {
-				p[0] = rand.Next ();
-				p[1] = rand.Next ();
-				p[2] = rand.Next ();
-			}
+			id.a = rand.Next ();
+			id.b = rand.Next ();
+			id.c = rand.Next ();
 
-			//p[3] is assigned to by Timestamp
+			//id.d is assigned to by Timestamp
 			id.Timestamp = timestamp;
 
 			return id;
@@ -113,7 +106,7 @@ namespace NDesk.DBus
 			get {
 				uint unixTime;
 
-				fixed (int* ip = &data[3]) {
+				fixed (int* ip = &d) {
 					if (BitConverter.IsLittleEndian) {
 						byte* p = (byte*)ip;
 						byte* bp = (byte*)&unixTime;
@@ -130,7 +123,7 @@ namespace NDesk.DBus
 			} set {
 				uint unixTime = value;
 
-				fixed (int* ip = &data[3]) {
+				fixed (int* ip = &d) {
 					if (BitConverter.IsLittleEndian) {
 						byte* p = (byte*)&unixTime;
 						byte* bp = (byte*)ip;

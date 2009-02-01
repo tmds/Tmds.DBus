@@ -77,11 +77,14 @@ namespace NDesk.DBus
 			//TODO: try alternative addresses if needed
 			AddressEntry entry = entries[0];
 
+			Id = entry.GUID;
 			transport = Transport.Create (entry);
 
 			//TODO: clean this bit up
 			ns = transport.Stream;
 		}
+
+		internal UUID Id = UUID.Zero;
 
 		void Authenticate ()
 		{
@@ -90,6 +93,11 @@ namespace NDesk.DBus
 
 			SaslClient auth = new SaslClient (this);
 			auth.Run ();
+
+			if (Id != UUID.Zero)
+				if (auth.ActualId != Id)
+					throw new Exception ("Authentication failure: Unexpected GUID");
+
 			isAuthenticated = true;
 		}
 

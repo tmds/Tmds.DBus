@@ -8,6 +8,16 @@ using System.Collections.Generic;
 
 namespace NDesk.DBus
 {
+	// Subclass obsolete BadAddressException to avoid ABI break
+#pragma warning disable 0618
+	//public class InvalidAddressException : Exception
+	public class InvalidAddressException : BadAddressException
+	{
+		public InvalidAddressException (string reason) : base (reason) {}
+	}
+#pragma warning restore 0618
+
+	[Obsolete ("Use InvalidAddressException")]
 	public class BadAddressException : Exception
 	{
 		public BadAddressException (string reason) : base (reason) {}
@@ -16,7 +26,8 @@ namespace NDesk.DBus
 	class AddressEntry
 	{
 		public string Method;
-		public IDictionary<string,string> Properties = new Dictionary<string,string> ();
+		public readonly IDictionary<string,string> Properties = new Dictionary<string,string> ();
+		public UUID GUID = UUID.Zero;
 
 		public override string ToString ()
 		{
@@ -34,6 +45,14 @@ namespace NDesk.DBus
 				sb.Append (prop.Key);
 				sb.Append ('=');
 				sb.Append (Escape (prop.Value));
+			}
+
+			if (GUID != UUID.Zero) {
+				if (Properties.Count != 0)
+					sb.Append (',');
+				sb.Append ("guid");
+				sb.Append ('=');
+				sb.Append (GUID.ToString ());
 			}
 
 			return sb.ToString ();
@@ -86,9 +105,9 @@ namespace NDesk.DBus
 			string[] parts = s.Split (':');
 
 			if (parts.Length < 2)
-				throw new BadAddressException ("No colon found");
+				throw new InvalidAddressException ("No colon found");
 			if (parts.Length > 2)
-				throw new BadAddressException ("Too many colons found");
+				throw new InvalidAddressException ("Too many colons found");
 
 			entry.Method = parts[0];
 
@@ -96,9 +115,18 @@ namespace NDesk.DBus
 				parts = propStr.Split ('=');
 
 				if (parts.Length < 2)
-					throw new BadAddressException ("No equals sign found");
+					throw new InvalidAddressException ("No equals sign found");
 				if (parts.Length > 2)
-					throw new BadAddressException ("Too many equals signs found");
+					throw new InvalidAddressException ("Too many equals signs found");
+
+				if (parts[0] == "guid") {
+					try {
+						entry.GUID = UUID.Parse (parts[1]);
+					} catch {
+						throw new InvalidAddressException ("Invalid guid specified");
+					}
+					continue;
+				}
 
 				entry.Properties[parts[0]] = Unescape (parts[1]);
 			}

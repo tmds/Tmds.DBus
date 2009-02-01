@@ -12,6 +12,7 @@ namespace NDesk.DBus
 {
 	using Authentication;
 
+	//using System.Runtime.InteropServices;
 	//[StructLayout (LayoutKind.Sequential)]
 	unsafe struct UUID
 	{
@@ -80,13 +81,20 @@ namespace NDesk.DBus
 		}
 
 		static Random rand = new Random ();
+		static byte[] buf = new byte[12];
 		public static UUID Generate (DateTime timestamp)
 		{
 			UUID id = new UUID ();
 
-			id.a = rand.Next ();
-			id.b = rand.Next ();
-			id.c = rand.Next ();
+			lock (buf)
+				rand.NextBytes (buf);
+
+			fixed (byte* bp = &buf[0]) {
+				int* p = (int*)bp;
+				id.a = p[0];
+				id.b = p[1];
+				id.c = p[2];
+			}
 
 			//id.d is assigned to by Timestamp
 			id.Timestamp = timestamp;

@@ -595,6 +595,40 @@ namespace NDesk.DBus
 			}
 		}
 
+
+		/*
+		[DllImport ("advapi32.dll", SetLastError = true)]
+		static extern bool GetCurrentHwProfile (IntPtr fProfile);
+
+		[StructLayout (LayoutKind.Sequential)]
+		private class HWProfile
+		{
+			public Int32 dwDockInfo;
+			[MarshalAs (UnmanagedType.ByValTStr, SizeConst = 39)]
+			public string szHwProfileGuid;
+			[MarshalAs (UnmanagedType.ByValTStr, SizeConst = 80)]
+			public string szHwProfileName;
+		}
+
+		static UUID ReadMachineIdWin32 ()
+		{
+			// Completely untested
+			string lText = null;
+
+			IntPtr lHWInfoPtr = Marshal.AllocHGlobal (123);
+			HWProfile lProfile = new HWProfile ();
+			Marshal.StructureToPtr (lProfile, lHWInfoPtr, false);
+			if (GetCurrentHwProfile (lHWInfoPtr)) {
+				Marshal.PtrToStructure (lHWInfoPtr, lProfile);
+				lText = lProfile.szHwProfileGuid.ToString ();
+			}
+			Marshal.FreeHGlobal (lHWInfoPtr);
+
+			string uuidString = lText.Replace ("-", String.Empty).Substring (1, 32);
+			return UUID.Parse (uuidString);
+		}
+		*/
+
 		static Connection ()
 		{
 			if (BitConverter.IsLittleEndian)

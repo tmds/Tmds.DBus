@@ -86,14 +86,14 @@ namespace NDesk.DBus
 		{
 			UUID id = new UUID ();
 
-			lock (buf)
+			lock (buf) {
 				rand.NextBytes (buf);
-
-			fixed (byte* bp = &buf[0]) {
-				int* p = (int*)bp;
-				id.a = p[0];
-				id.b = p[1];
-				id.c = p[2];
+				fixed (byte* bp = &buf[0]) {
+					int* p = (int*)bp;
+					id.a = p[0];
+					id.b = p[1];
+					id.c = p[2];
+				}
 			}
 
 			//id.d is assigned to by Timestamp

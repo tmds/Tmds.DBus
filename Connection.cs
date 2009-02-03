@@ -45,15 +45,14 @@ namespace NDesk.DBus
 			Authenticate ();
 		}
 
-		/*
-		bool isConnected = false;
-		public bool IsConnected
+		protected bool isConnected = true;
+		//should this be public?
+		internal bool IsConnected
 		{
 			get {
 				return isConnected;
 			}
 		}
-		*/
 
 		//should we do connection sharing here?
 		public static Connection Open (string address)

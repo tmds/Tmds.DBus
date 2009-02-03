@@ -20,6 +20,7 @@ namespace NDesk.DBus
 		public string Sender;
 		public string Destination;
 		public readonly SortedList<int,string> Args = new SortedList<int,string> ();
+		public readonly SortedList<int,ObjectPath> PathArgs = new SortedList<int,ObjectPath> ();
 
 		public MatchRule ()
 		{
@@ -41,15 +42,20 @@ namespace NDesk.DBus
 			Append (sb, "arg" + index, value);
 		}
 
-		/*
-		static void AppendPathArg (StringBuilder sb, int index, string value)
+		static void AppendPathArg (StringBuilder sb, int index, ObjectPath value)
 		{
-			Append (sb, "arg" + index + "path", value);
+			Append (sb, "arg" + index + "path", value.ToString ());
 		}
-		*/
 
 		public override bool Equals (object o)
 		{
+			MatchRule r = o as MatchRule;
+			if (o == null)
+				return false;
+
+			return ToString () == r.ToString ();
+
+			/*
 			MatchRule r = o as MatchRule;
 
 			if (r == null)
@@ -78,6 +84,7 @@ namespace NDesk.DBus
 				return false;
 
 			return true;
+			*/
 		}
 
 		public override int GetHashCode ()
@@ -109,10 +116,13 @@ namespace NDesk.DBus
 			if (Destination != null)
 				Append (sb, "destination", Destination);
 
-			if (Args != null) {
+			if (Args != null)
 				foreach (KeyValuePair<int,string> pair in Args)
 					AppendArg (sb, pair.Key, pair.Value);
-			}
+
+			if (PathArgs != null)
+				foreach (KeyValuePair<int,ObjectPath> pair in PathArgs)
+					AppendPathArg (sb, pair.Key, pair.Value);
 
 			return sb.ToString ();
 		}
@@ -149,6 +159,8 @@ namespace NDesk.DBus
 			if (Args != null && Args.Count > 0) {
 				if (msg.Signature == Signature.Empty || msg.Body == null)
 					return false;
+
+				// TODO: argNpath matching
 
 				int topArgNum = Args.Keys[Args.Count - 1];
 				if (topArgNum >= Protocol.MaxMatchRuleArgs)
@@ -215,19 +227,25 @@ namespace NDesk.DBus
 					Match mArg = argNRegex.Match (key);
 					if (!mArg.Success)
 						return null;
-					int argnum = (int)UInt32.Parse (mArg.Groups[1].Value);
+					int argNum = (int)UInt32.Parse (mArg.Groups[1].Value);
 
-					if (argnum < 0 || argnum >= Protocol.MaxMatchRuleArgs)
+					if (argNum < 0 || argNum >= Protocol.MaxMatchRuleArgs)
 						throw new Exception ("arg match must be between 0 and " + (Protocol.MaxMatchRuleArgs - 1) + " inclusive");
 
-					// TODO: Handle argNpath
-					if (mArg.Groups[2].Length != 0)
-						continue;
-
-					if (r.Args.ContainsKey (argnum))
-						return null;
-
-					r.Args[argnum] = value;
+					string argType = mArg.Groups[2].Value;
+					switch (argType) {
+						case "path":
+							if (r.PathArgs.ContainsKey (argNum))
+								return null;
+							r.PathArgs[argNum] = new ObjectPath (value);
+							break;
+						default:
+						case "":
+							if (r.Args.ContainsKey (argNum))
+								return null;
+							r.Args[argNum] = value;
+							break;
+					}
 
 					continue;
 				}

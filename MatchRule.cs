@@ -160,9 +160,7 @@ namespace NDesk.DBus
 				if (msg.Signature == Signature.Empty || msg.Body == null)
 					return false;
 
-				// TODO: argNpath matching
-
-				int topArgNum = Args.Keys[Args.Count - 1];
+				int topArgNum = Math.Max (Args.Keys[Args.Count - 1], PathArgs.Keys[PathArgs.Count - 1]);
 				if (topArgNum >= Protocol.MaxMatchRuleArgs)
 					return false;
 
@@ -177,17 +175,34 @@ namespace NDesk.DBus
 					if (sigs[arg.Key] != stringSig)
 						return false;
 
+				// But later, path matching was added
+				Signature pathSig = new Signature (DType.ObjectPath);
+				foreach (KeyValuePair<int,ObjectPath> arg in PathArgs)
+					if (sigs[arg.Key] != pathSig)
+						return false;
+
 				MessageReader reader = new MessageReader (msg);
 
 				for (int argNum = 0 ; argNum <= topArgNum ; argNum++) {
-					string testString;
 					Signature sig = sigs[argNum];
 
+					string testString;
 					if (Args.TryGetValue (argNum, out testString)) {
 						if (sig != stringSig)
 							return false;
 						string val = reader.ReadString ();
 						if (val != testString)
+							return false;
+						continue;
+					}
+
+					ObjectPath testPath;
+					if (PathArgs.TryGetValue (argNum, out testPath)) {
+						if (sig != pathSig)
+							return false;
+						ObjectPath val = reader.ReadObjectPath ();
+						// TODO: Implement ObjectPath 'wildcard' matching
+						if (val != testPath)
 							return false;
 						continue;
 					}

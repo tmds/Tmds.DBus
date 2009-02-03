@@ -19,6 +19,9 @@ namespace NDesk.DBus
 
 		public static readonly Signature Empty = new Signature (String.Empty);
 
+		public static readonly Signature StringSig = new Signature (DType.String);
+		public static readonly Signature ObjectPathSig = new Signature (DType.ObjectPath);
+
 		public static bool operator == (Signature a, Signature b)
 		{
 			/*

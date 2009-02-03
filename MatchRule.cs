@@ -9,8 +9,6 @@ using System.Collections.Generic;
 
 namespace NDesk.DBus
 {
-	//delegate void MessageHandler (Message msg);
-
 	class MatchRule
 	{
 		public MessageType? MessageType;
@@ -19,8 +17,7 @@ namespace NDesk.DBus
 		public ObjectPath Path;
 		public string Sender;
 		public string Destination;
-		public readonly SortedList<int,string> Args = new SortedList<int,string> ();
-		public readonly SortedList<int,ObjectPath> PathArgs = new SortedList<int,ObjectPath> ();
+		public readonly SortedList<int,MatchTest> Args = new SortedList<int,MatchTest> ();
 
 		public MatchRule ()
 		{
@@ -117,12 +114,11 @@ namespace NDesk.DBus
 				Append (sb, "destination", Destination);
 
 			if (Args != null)
-				foreach (KeyValuePair<int,string> pair in Args)
-					AppendArg (sb, pair.Key, pair.Value);
-
-			if (PathArgs != null)
-				foreach (KeyValuePair<int,ObjectPath> pair in PathArgs)
-					AppendPathArg (sb, pair.Key, pair.Value);
+				foreach (KeyValuePair<int,MatchTest> pair in Args)
+					if (pair.Value.Signature == Signature.StringSig)
+						AppendArg (sb, pair.Key, (string)pair.Value.Value);
+					else if (pair.Value.Signature == Signature.ObjectPathSig)
+						AppendPathArg (sb, pair.Key, (ObjectPath)pair.Value.Value);
 
 			return sb.ToString ();
 		}
@@ -160,7 +156,7 @@ namespace NDesk.DBus
 				if (msg.Signature == Signature.Empty || msg.Body == null)
 					return false;
 
-				int topArgNum = Math.Max (Args.Keys[Args.Count - 1], PathArgs.Keys[PathArgs.Count - 1]);
+				int topArgNum = Args.Keys[Args.Count - 1];
 				if (topArgNum >= Protocol.MaxMatchRuleArgs)
 					return false;
 
@@ -170,15 +166,9 @@ namespace NDesk.DBus
 					return false;
 
 				// Spec (0.12) says that only strings can be matched
-				Signature stringSig = new Signature (DType.String);
-				foreach (KeyValuePair<int,string> arg in Args)
-					if (sigs[arg.Key] != stringSig)
-						return false;
-
 				// But later, path matching was added
-				Signature pathSig = new Signature (DType.ObjectPath);
-				foreach (KeyValuePair<int,ObjectPath> arg in PathArgs)
-					if (sigs[arg.Key] != pathSig)
+				foreach (KeyValuePair<int,MatchTest> arg in Args)
+					if (sigs[arg.Key] != arg.Value.Signature)
 						return false;
 
 				MessageReader reader = new MessageReader (msg);
@@ -186,24 +176,16 @@ namespace NDesk.DBus
 				for (int argNum = 0 ; argNum <= topArgNum ; argNum++) {
 					Signature sig = sigs[argNum];
 
-					string testString;
-					if (Args.TryGetValue (argNum, out testString)) {
-						if (sig != stringSig)
+					MatchTest test;
+					if (Args.TryGetValue (argNum, out test)) {
+						if (sig != test.Signature)
 							return false;
-						string val = reader.ReadString ();
-						if (val != testString)
-							return false;
-						continue;
-					}
-
-					ObjectPath testPath;
-					if (PathArgs.TryGetValue (argNum, out testPath)) {
-						if (sig != pathSig)
-							return false;
-						ObjectPath val = reader.ReadObjectPath ();
-						// TODO: Implement ObjectPath 'wildcard' matching
-						if (val != testPath)
-							return false;
+						if (test.Signature == Signature.StringSig)
+							if (reader.ReadString () != (string)test.Value)
+								return false;
+						if (test.Signature == Signature.ObjectPathSig)
+							if (reader.ReadObjectPath () != (ObjectPath)test.Value)
+								return false;
 						continue;
 					}
 
@@ -247,20 +229,15 @@ namespace NDesk.DBus
 					if (argNum < 0 || argNum >= Protocol.MaxMatchRuleArgs)
 						throw new Exception ("arg match must be between 0 and " + (Protocol.MaxMatchRuleArgs - 1) + " inclusive");
 
+					if (r.Args.ContainsKey (argNum))
+						return null;
+
 					string argType = mArg.Groups[2].Value;
-					switch (argType) {
-						case "path":
-							if (r.PathArgs.ContainsKey (argNum))
-								return null;
-							r.PathArgs[argNum] = new ObjectPath (value);
-							break;
-						default:
-						case "":
-							if (r.Args.ContainsKey (argNum))
-								return null;
-							r.Args[argNum] = value;
-							break;
-					}
+
+					if (argType == "path")
+						r.Args[argNum] = new MatchTest (new ObjectPath (value));
+					else
+						r.Args[argNum] = new MatchTest (value);
 
 					continue;
 				}
@@ -305,6 +282,24 @@ namespace NDesk.DBus
 			}
 
 			return r;
+		}
+	}
+
+	struct MatchTest
+	{
+		public Signature Signature;
+		public object Value;
+
+		public MatchTest (string value)
+		{
+			Signature = Signature.StringSig;
+			Value = value;
+		}
+
+		public MatchTest (ObjectPath value)
+		{
+			Signature = Signature.ObjectPathSig;
+			Value = value;
 		}
 	}
 }

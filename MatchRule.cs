@@ -64,9 +64,7 @@ namespace NDesk.DBus
 			if (r.Member != Member)
 				return false;
 
-			//TODO: see why path comparison doesn't work
-			if (r.Path.Value != Path.Value)
-			//if (r.Path != Path)
+			if (r.Path != Path)
 				return false;
 
 			if (r.Sender != Sender)
@@ -128,6 +126,8 @@ namespace NDesk.DBus
 
 			object value;
 
+			// FIXME: These rules will succeed if the field isn't in the header!
+
 			if (Interface != null)
 				if (msg.Header.Fields.TryGetValue (FieldCode.Interface, out value))
 					if ((string)value != Interface)
@@ -140,8 +140,7 @@ namespace NDesk.DBus
 
 			if (Path != null)
 				if (msg.Header.Fields.TryGetValue (FieldCode.Path, out value))
-					//if ((ObjectPath)value != Path)
-					if (((ObjectPath)value).Value != Path.Value)
+					if ((ObjectPath)value != Path)
 						return false;
 
 			if (Sender != null)

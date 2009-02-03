@@ -120,7 +120,7 @@ namespace NDesk.DBus
 		NoAutoStart = 0x2,
 	}
 
-	public sealed class ObjectPath //: IComparable, IComparable<ObjectPath>, IEquatable<ObjectPath>
+	public sealed class ObjectPath : IComparable, IComparable<ObjectPath>, IEquatable<ObjectPath>
 	{
 		public static readonly ObjectPath Root = new ObjectPath ("/");
 
@@ -134,6 +134,32 @@ namespace NDesk.DBus
 			this.Value = value;
 		}
 
+		public int CompareTo (ObjectPath other)
+		{
+			if (other == null)
+				return 1;
+
+			return Value.CompareTo (other.Value);
+		}
+
+		public int CompareTo (object otherObject)
+		{
+			ObjectPath other = otherObject as ObjectPath;
+
+			if (other == null)
+				return 1;
+
+			return Value.CompareTo (other.Value);
+		}
+
+		public bool Equals (ObjectPath other)
+		{
+			if (other == null)
+				return false;
+
+			return Value == other.Value;
+		}
+
 		public override bool Equals (object o)
 		{
 			ObjectPath b = o as ObjectPath;
@@ -142,6 +168,23 @@ namespace NDesk.DBus
 				return false;
 
 			return Value.Equals (b.Value);
+		}
+
+		public static bool operator == (ObjectPath a, ObjectPath b)
+		{
+			object aa = a, bb = b;
+			if (aa == null && bb == null)
+				return true;
+
+			if (aa == null || bb == null)
+				return false;
+
+			return a.Value == b.Value;
+		}
+
+		public static bool operator != (ObjectPath a, ObjectPath b)
+		{
+			return !(a == b);
 		}
 
 		public override int GetHashCode ()

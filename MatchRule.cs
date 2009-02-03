@@ -126,32 +126,25 @@ namespace NDesk.DBus
 
 			object value;
 
-			// FIXME: These rules will succeed if the field isn't in the header!
-
 			if (Interface != null)
-				if (msg.Header.Fields.TryGetValue (FieldCode.Interface, out value))
-					if ((string)value != Interface)
-						return false;
+				if (!msg.Header.Fields.TryGetValue (FieldCode.Interface, out value) || ((string)value != Interface))
+					return false;
 
 			if (Member != null)
-				if (msg.Header.Fields.TryGetValue (FieldCode.Member, out value))
-					if ((string)value != Member)
-						return false;
+				if (!msg.Header.Fields.TryGetValue (FieldCode.Member, out value) || (string)value != Member)
+					return false;
 
 			if (Path != null)
-				if (msg.Header.Fields.TryGetValue (FieldCode.Path, out value))
-					if ((ObjectPath)value != Path)
-						return false;
+				if (!msg.Header.Fields.TryGetValue (FieldCode.Path, out value) || (ObjectPath)value != Path)
+					return false;
 
 			if (Sender != null)
-				if (msg.Header.Fields.TryGetValue (FieldCode.Sender, out value))
-					if ((string)value != Sender)
-						return false;
+				if (!msg.Header.Fields.TryGetValue (FieldCode.Sender, out value) || (string)value != Sender)
+					return false;
 
 			if (Destination != null)
-				if (msg.Header.Fields.TryGetValue (FieldCode.Destination, out value))
-					if ((string)value != Destination)
-						return false;
+				if (!msg.Header.Fields.TryGetValue (FieldCode.Destination, out value) || (string)value != Destination)
+					return false;
 
 			if (Args != null && Args.Count > 0) {
 				if (msg.Signature == Signature.Empty || msg.Body == null)

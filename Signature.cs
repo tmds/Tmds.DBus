@@ -643,8 +643,9 @@ namespace NDesk.DBus
 		Signature = (byte)'g',
 
 		Array = (byte)'a',
-		//TODO: remove Struct and DictEntry -- they are not relevant to wire protocol
+		[Obsolete ("Not in protocol")]
 		Struct = (byte)'r',
+		[Obsolete ("Not in protocol")]
 		DictEntry = (byte)'e',
 		Variant = (byte)'v',
 

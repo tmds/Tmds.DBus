@@ -70,7 +70,7 @@ namespace org.freedesktop.DBus
 	}
 
 	[Interface ("org.freedesktop.DBus")]
-	public interface IBus : Introspectable
+	public interface IBus
 	{
 		RequestNameReply RequestName (string name, NameFlag flags);
 		ReleaseNameReply ReleaseName (string name);

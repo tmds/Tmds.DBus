@@ -136,6 +136,17 @@ namespace NDesk.DBus
 			w.Flush ();
 		}
 
+		public static void WriteMessage (Message msg, TextWriter w)
+		{
+			w.WriteLine ("# Message");
+			w.WriteLine ("# Header");
+			MessageDumper.WriteBlock (msg.GetHeaderData (), w);
+			w.WriteLine ("# Body");
+			MessageDumper.WriteBlock (msg.Body, w);
+			w.WriteLine ();
+			w.Flush ();
+		}
+
 		public static Message ReadMessage (TextReader r)
 		{
 			byte[] header = MessageDumper.ReadBlock (r);

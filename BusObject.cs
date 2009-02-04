@@ -52,9 +52,9 @@ namespace NDesk.DBus
 		{
 			MatchRule rule = new MatchRule ();
 			rule.MessageType = MessageType.Signal;
-			rule.Interface = iface;
-			rule.Member = member;
-			rule.Path = object_path;
+			rule.Fields.Add (FieldCode.Interface, new MatchTest (iface));
+			rule.Fields.Add (FieldCode.Member, new MatchTest (member));
+			rule.Fields.Add (FieldCode.Path, new MatchTest (object_path));
 
 			if (adding) {
 				if (conn.Handlers.ContainsKey (rule))

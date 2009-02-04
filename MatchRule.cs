@@ -12,15 +12,17 @@ namespace NDesk.DBus
 	class MatchRule
 	{
 		public MessageType? MessageType;
-		public string Interface;
-		public string Member;
-		public ObjectPath Path;
-		public string Sender;
-		public string Destination;
-		public readonly SortedList<int,MatchTest> Args = new SortedList<int,MatchTest> ();
+		public readonly SortedList<FieldCode,MatchTest> Fields = new SortedList<FieldCode,MatchTest> ();
+		//public readonly SortedList<int,MatchTest> Args = new SortedList<int,MatchTest> ();
+		public readonly HashSet<ArgMatchTest> Args = new HashSet<ArgMatchTest> ();
 
 		public MatchRule ()
 		{
+		}
+
+		static void Append (StringBuilder sb, string key, object value)
+		{
+			Append (sb, key, value.ToString ());
 		}
 
 		static void Append (StringBuilder sb, string key, string value)
@@ -51,37 +53,6 @@ namespace NDesk.DBus
 				return false;
 
 			return ToString () == r.ToString ();
-
-			/*
-			MatchRule r = o as MatchRule;
-
-			if (r == null)
-				return false;
-
-			if (r.MessageType != MessageType)
-				return false;
-
-			if (r.Interface != Interface)
-				return false;
-
-			if (r.Member != Member)
-				return false;
-
-			if (r.Path != Path)
-				return false;
-
-			if (r.Sender != Sender)
-				return false;
-
-			if (r.Destination != Destination)
-				return false;
-
-			//FIXME: do args
-			if (r.Args.Count > 0 || Args.Count > 0)
-				return false;
-
-			return true;
-			*/
 		}
 
 		public override int GetHashCode ()
@@ -97,105 +68,83 @@ namespace NDesk.DBus
 			if (MessageType != null)
 				Append (sb, "type", MessageFilter.MessageTypeToString ((MessageType)MessageType));
 
-			if (Interface != null)
-				Append (sb, "interface", Interface);
+			// Note that fdo D-Bus daemon sorts in a different order.
+			// It shouldn't matter though as long as we're consistent.
+			foreach (KeyValuePair<FieldCode,MatchTest> pair in Fields) {
+				Append (sb, pair.Key.ToString ().ToLower (), pair.Value.Value);
+			}
 
-			if (Member != null)
-				Append (sb, "member", Member);
-
-			if (Path != null)
-				//Append (sb, "path", Path.ToString ());
-				Append (sb, "path", Path.Value);
-
-			if (Sender != null)
-				Append (sb, "sender", Sender);
-
-			if (Destination != null)
-				Append (sb, "destination", Destination);
+			// Sorting the list here is not ideal
+			List<ArgMatchTest> tests = new List<ArgMatchTest> (Args);
+			tests.Sort ( delegate (ArgMatchTest aa, ArgMatchTest bb) { return aa.ArgNum - bb.ArgNum; } );
 
 			if (Args != null)
-				foreach (KeyValuePair<int,MatchTest> pair in Args)
-					if (pair.Value.Signature == Signature.StringSig)
-						AppendArg (sb, pair.Key, (string)pair.Value.Value);
-					else if (pair.Value.Signature == Signature.ObjectPathSig)
-						AppendPathArg (sb, pair.Key, (ObjectPath)pair.Value.Value);
+				foreach (ArgMatchTest test in tests)
+					if (test.Signature == Signature.StringSig)
+						AppendArg (sb, test.ArgNum, (string)test.Value);
+					else if (test.Signature == Signature.ObjectPathSig)
+						AppendPathArg (sb, test.ArgNum, (ObjectPath)test.Value);
 
 			return sb.ToString ();
 		}
 
-		//this is useful as a Predicate<Message> delegate
-		public bool Matches (Message msg)
+		public static void Test (HashSet<ArgMatchTest> a, Message msg)
+		{
+			List<Signature> sigs = new List<Signature> ();
+			sigs.AddRange (msg.Signature.GetParts ());
+
+			if (sigs.Count == 0) {
+				a.Clear ();
+				return;
+			}
+
+			a.RemoveWhere ( delegate (ArgMatchTest t) { return t.ArgNum >= sigs.Count || t.Signature != sigs[t.ArgNum]; } );
+
+			// Sorting the list here is not ideal
+			List<ArgMatchTest> tests = new List<ArgMatchTest> (a);
+			tests.Sort ( delegate (ArgMatchTest aa, ArgMatchTest bb) { return aa.ArgNum - bb.ArgNum; } );
+
+			if (tests.Count == 0) {
+				a.Clear ();
+				return;
+			}
+
+			MessageReader reader = new MessageReader (msg);
+
+			int argNum = 0;
+			foreach (ArgMatchTest test in tests) {
+				Console.WriteLine ("test: " + test.ArgNum + " " + test.Value.ToString ());
+				while (argNum != test.ArgNum) {
+					Console.WriteLine ("argNum {0} != test.ArgNum");
+					Signature sig = sigs[argNum];
+					// FIXME: Need to support skipping complex message parts
+					if (!sig.IsPrimitive) {
+						a.Clear ();
+						return;
+					}
+					// Read and discard primitive values to skip over them
+					reader.ReadValue (sig[0]);
+					argNum++;
+				}
+
+				if (!reader.ReadValue (test.Signature[0]).Equals (test.Value))
+					a.Remove (test);
+				argNum++;
+			}
+		}
+
+		public bool MatchesHeader (Message msg)
 		{
 			if (MessageType != null)
 				if (msg.Header.MessageType != MessageType)
 					return false;
 
-			object value;
-
-			if (Interface != null)
-				if (!msg.Header.Fields.TryGetValue (FieldCode.Interface, out value) || ((string)value != Interface))
+			foreach (KeyValuePair<FieldCode,MatchTest> pair in Fields) {
+				object value;
+				if (!msg.Header.Fields.TryGetValue (pair.Key, out value))
 					return false;
-
-			if (Member != null)
-				if (!msg.Header.Fields.TryGetValue (FieldCode.Member, out value) || (string)value != Member)
+				if (!pair.Value.Value.Equals (value))
 					return false;
-
-			if (Path != null)
-				if (!msg.Header.Fields.TryGetValue (FieldCode.Path, out value) || (ObjectPath)value != Path)
-					return false;
-
-			if (Sender != null)
-				if (!msg.Header.Fields.TryGetValue (FieldCode.Sender, out value) || (string)value != Sender)
-					return false;
-
-			if (Destination != null)
-				if (!msg.Header.Fields.TryGetValue (FieldCode.Destination, out value) || (string)value != Destination)
-					return false;
-
-			if (Args != null && Args.Count > 0) {
-				if (msg.Signature == Signature.Empty || msg.Body == null)
-					return false;
-
-				int topArgNum = Args.Keys[Args.Count - 1];
-				if (topArgNum >= Protocol.MaxMatchRuleArgs)
-					return false;
-
-				List<Signature> sigs = new List<Signature> ();
-				sigs.AddRange (msg.Signature.GetParts ());
-				if (topArgNum >= sigs.Count)
-					return false;
-
-				// Spec (0.12) says that only strings can be matched
-				// But later, path matching was added
-				foreach (KeyValuePair<int,MatchTest> arg in Args)
-					if (sigs[arg.Key] != arg.Value.Signature)
-						return false;
-
-				MessageReader reader = new MessageReader (msg);
-
-				for (int argNum = 0 ; argNum <= topArgNum ; argNum++) {
-					Signature sig = sigs[argNum];
-
-					MatchTest test;
-					if (Args.TryGetValue (argNum, out test)) {
-						if (sig != test.Signature)
-							return false;
-						if (test.Signature == Signature.StringSig)
-							if (reader.ReadString () != (string)test.Value)
-								return false;
-						if (test.Signature == Signature.ObjectPathSig)
-							if (reader.ReadObjectPath () != (ObjectPath)test.Value)
-								return false;
-						continue;
-					}
-
-					// FIXME: Need to support skipping complex message parts
-					if (!sig.IsPrimitive)
-						return false;
-
-					// Read and discard primitive values to skip over them
-					reader.ReadValue (sig[0]);
-				}
 			}
 
 			return true;
@@ -229,15 +178,15 @@ namespace NDesk.DBus
 					if (argNum < 0 || argNum >= Protocol.MaxMatchRuleArgs)
 						throw new Exception ("arg match must be between 0 and " + (Protocol.MaxMatchRuleArgs - 1) + " inclusive");
 
-					if (r.Args.ContainsKey (argNum))
-						return null;
+					//if (r.Args.ContainsKey (argNum))
+					//	return null;
 
 					string argType = mArg.Groups[2].Value;
 
 					if (argType == "path")
-						r.Args[argNum] = new MatchTest (new ObjectPath (value));
+						r.Args.Add (new ArgMatchTest (argNum, new ObjectPath (value)));
 					else
-						r.Args[argNum] = new MatchTest (value);
+						r.Args.Add (new ArgMatchTest (argNum, value));
 
 					continue;
 				}
@@ -250,29 +199,19 @@ namespace NDesk.DBus
 						r.MessageType = MessageFilter.StringToMessageType (value);
 						break;
 					case "interface":
-						if (r.Interface != null)
-							return null;
-						r.Interface = value;
+						r.Fields[FieldCode.Interface] = new MatchTest (value);
 						break;
 					case "member":
-						if (r.Member != null)
-							return null;
-						r.Member = value;
+						r.Fields[FieldCode.Member] = new MatchTest (value);
 						break;
 					case "path":
-						if (r.Path != null)
-							return null;
-						r.Path = new ObjectPath (value);
+						r.Fields[FieldCode.Path] = new MatchTest (new ObjectPath (value));
 						break;
 					case "sender":
-						if (r.Sender != null)
-							return null;
-						r.Sender = value;
+						r.Fields[FieldCode.Sender] = new MatchTest (value);
 						break;
 					case "destination":
-						if (r.Destination != null)
-							return null;
-						r.Destination = value;
+						r.Fields[FieldCode.Destination] = new MatchTest (value);
 						break;
 					default:
 						if (Protocol.Verbose)
@@ -285,10 +224,78 @@ namespace NDesk.DBus
 		}
 	}
 
-	struct MatchTest
+	class HeaderTest : MatchTest
+	{
+		public FieldCode Field;
+		public HeaderTest (FieldCode field, object value)
+		{
+			Field = field;
+			Signature = Signature.GetSig (value.GetType ());
+			Value = value;
+		}
+	}
+
+	struct ArgMatchTest
+	{
+		public int ArgNum;
+		public Signature Signature;
+		public object Value;
+
+		public ArgMatchTest (int argNum, string value)
+		{
+			ArgNum = argNum;
+			Signature = Signature.StringSig;
+			Value = value;
+		}
+
+		public ArgMatchTest (int argNum, ObjectPath value)
+		{
+			ArgNum = argNum;
+			Signature = Signature.ObjectPathSig;
+			Value = value;
+		}
+
+		public override int GetHashCode ()
+		{
+			return Signature.GetHashCode () ^ Value.GetHashCode () ^ ArgNum;
+		}
+	}
+
+	/*
+	class ArgMatchTest : MatchTest
+	{
+		public int ArgNum;
+
+		public ArgMatchTest (int argNum, string value) : base (value)
+		{
+			ArgNum = argNum;
+		}
+
+		public ArgMatchTest (int argNum, ObjectPath value) : base (value)
+		{
+			ArgNum = argNum;
+		}
+
+		public override int GetHashCode ()
+		{
+			return base.GetHashCode () ^ ArgNum;
+		}
+	}
+	*/
+
+	class MatchTest
 	{
 		public Signature Signature;
 		public object Value;
+
+		public override int GetHashCode ()
+		{
+			return Signature.GetHashCode () ^ Value.GetHashCode ();
+		}
+
+		protected MatchTest ()
+		{
+		}
 
 		public MatchTest (string value)
 		{

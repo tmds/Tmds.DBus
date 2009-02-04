@@ -392,9 +392,9 @@ namespace NDesk.DBus
 			//TODO: this is a hack, not necessary when MatchRule is complete
 			MatchRule rule = new MatchRule ();
 			rule.MessageType = MessageType.Signal;
-			rule.Interface = signal.Interface;
-			rule.Member = signal.Member;
-			rule.Path = signal.Path;
+			rule.Fields.Add (FieldCode.Interface, new MatchTest (signal.Interface));
+			rule.Fields.Add (FieldCode.Member, new MatchTest (signal.Member));
+			rule.Fields.Add (FieldCode.Path, new MatchTest (signal.Path));
 
 			Delegate dlg;
 			if (Handlers.TryGetValue (rule, out dlg)) {

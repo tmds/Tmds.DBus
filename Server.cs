@@ -10,31 +10,51 @@ using System.Net.Sockets;
 namespace NDesk.DBus
 {
 	//TODO: complete this class
-	class Server
+	abstract class Server
 	{
-		public void Listen (string address)
+		public static void Listen (string address)
 		{
-			this.address = address;
+			AddressEntry[] entries = Address.Parse (address);
+			AddressEntry entry = entries[0];
+
+			Server server;
+			if (entry.Method == "tcp")
+				//server = new TcpServer ();
+				server = new TcpServer (entry.ToString ());
+			else
+				throw new Exception ("");
+
+			/*
+			server.address = address;
+
+			server.Id = entry.GUID;
+			if (server.Id == UUID.Zero)
+				server.Id = UUID.Generate ();
+			*/
 		}
 
-		public void Disconnect ()
-		{
-		}
+		public abstract void Disconnect ();
 
-		public bool IsConnected
+		public virtual bool IsConnected
 		{
 			get {
 				return true;
 			}
 		}
 
-		protected string address;
+		internal string address;
+		/*
 		public string Address
 		{
 			get {
 				return address;
 			}
 		}
+		*/
+
+		public UUID Id = UUID.Zero;
+
+		public abstract event Action<Connection> NewConnection;
 
 		//TODO: new connection event/virtual method
 	}

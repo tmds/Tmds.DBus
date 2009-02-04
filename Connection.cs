@@ -120,7 +120,7 @@ namespace NDesk.DBus
 
 		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint
 		int serial = 0;
-		uint GenerateSerial ()
+		internal uint GenerateSerial ()
 		{
 			//return ++serial;
 			return (uint)Interlocked.Increment (ref serial);
@@ -160,7 +160,7 @@ namespace NDesk.DBus
 		}
 
 		object writeLock = new object ();
-		internal void WriteMessage (Message msg)
+		internal virtual void WriteMessage (Message msg)
 		{
 			byte[] HeaderData = msg.GetHeaderData ();
 
@@ -327,7 +327,7 @@ namespace NDesk.DBus
 			DispatchSignals ();
 		}
 
-		internal void HandleMessage (Message msg)
+		internal virtual void HandleMessage (Message msg)
 		{
 			//TODO: support disconnection situations properly and move this check elsewhere
 			if (msg == null)

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Globalization;
 
 namespace NDesk.DBus
@@ -73,8 +74,8 @@ namespace NDesk.DBus
 			byte* result = (byte*)&id.a;
 			int n = 0, i = 0;
 			while (n < ByteLength) {
-				result[n] = (byte)(SaslClient.FromHexChar (hex[i++]) << 4);
-				result[n++] += SaslClient.FromHexChar (hex[i++]);
+				result[n] = (byte)(Sasl.FromHexChar (hex[i++]) << 4);
+				result[n++] += Sasl.FromHexChar (hex[i++]);
 			}
 
 			return id;
@@ -147,9 +148,9 @@ namespace NDesk.DBus
 		public DateTime Timestamp
 		{
 			get {
-				return SaslClient.UnixToDateTime (UnixTimestamp);
+				return Sasl.UnixToDateTime (UnixTimestamp);
 			} set {
-				UnixTimestamp = (uint)SaslClient.DateTimeToUnix (value);
+				UnixTimestamp = (uint)Sasl.DateTimeToUnix (value);
 			}
 		}
 	}
@@ -171,53 +172,249 @@ namespace NDesk.DBus.Authentication
 		WaitingForBegin,
 	}
 
-	class SaslClient
+	class AuthCommand
 	{
-		protected Connection conn;
-
-		protected SaslClient ()
+		/*
+		public AuthCommand (string value)
 		{
+			//this.Value = value;
+			this.Value = value.Trim ();
+		}
+		*/
+
+
+		public AuthCommand (string value)
+		{
+			//this.Value = value;
+			this.Value = value.Trim ();
+			Args.AddRange (Value.Split (' '));
 		}
 
-		public SaslClient (Connection conn)
+		readonly List<string> Args = new List<string> ();
+
+		public string this[int index]
 		{
-			this.conn = conn;
+			get {
+				if (index >= Args.Count)
+					return String.Empty;
+				return Args[index];
+			}
 		}
 
-		public void Run ()
+		/*
+		public AuthCommand (string value, params string[] args)
 		{
-			ActualId = UUID.Zero;
+			if (args.Length == 0)
+				this.Value = value;
+			else
+				this.Value = value + " " + String.Join (" ", args);
+		}
+		*/
 
-			StreamReader sr = new StreamReader (conn.Transport.Stream, Encoding.ASCII);
-			StreamWriter sw = new StreamWriter (conn.Transport.Stream, Encoding.ASCII);
+		public readonly string Value;
+	}
 
-			sw.NewLine = "\r\n";
+	class SaslPeer : IEnumerable<AuthCommand>
+	{
+		//public Connection conn;
+		public SaslPeer Peer;
 
-			string str = conn.Transport.AuthString ();
-			byte[] bs = Encoding.ASCII.GetBytes (str);
+		public Stream stream = null;
+		public bool UseConsole = false;
 
-			string authStr = ToHex (bs);
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator ()
+		{
+			return GetEnumerator ();
+		}
 
-			sw.WriteLine ("AUTH EXTERNAL {0}", authStr);
-			sw.Flush ();
+		public virtual IEnumerator<AuthCommand> GetEnumerator ()
+		{
+			// Read the mandatory null credentials byte
+			/*
+			if (!UseConsole)
+				if (conn.Transport.Stream.ReadByte () != 0)
+					yield break;
+			*/
 
-			string ok_rep = sr.ReadLine ();
+			TextReader sr;
+			sr = UseConsole ? Console.In : new StreamReader (stream, Encoding.ASCII);
 
-			string[] parts;
-			parts = ok_rep.Split (' ');
+			while (true) {
+				string ln = sr.ReadLine ();
+				if (ln == null)
+					yield break;
+				yield return new AuthCommand (ln);
+			}
+		}
 
-			if (parts.Length < 1 || parts[0] != "OK")
-				throw new Exception ("Authentication error: AUTH EXTERNAL was not OK: \"" + ok_rep + "\"");
+		public bool Authenticate ()
+		{
+			return Run (this);
+		}
 
-			if (parts.Length > 1)
-				ActualId = UUID.Parse (parts[1]);
+		public bool AuthenticateSelf ()
+		{
+			//IEnumerator<AuthCommand> a = Peer.GetEnumerator ();
+			IEnumerator<AuthCommand> b = GetEnumerator ();
+			//bool ret = b.MoveNext ();
+			while (b.MoveNext ()) {
+				if (b.Current.Value == "BEGIN")
+					return true;
+			}
+			return false;
+		}
 
-			sw.WriteLine ("BEGIN");
-			sw.Flush ();
+		public virtual bool Run (IEnumerable<AuthCommand> commands)
+		{
+			TextWriter sw;
+			sw = UseConsole ? Console.Out : new StreamWriter (stream, Encoding.ASCII);
+			if (!UseConsole)
+				sw.NewLine = "\r\n";
+
+			foreach (AuthCommand command in commands) {
+				if (command == null) {
+					// Disconnect here?
+					return false;
+				}
+				sw.WriteLine (command.Value);
+				sw.Flush ();
+			}
+
+			return true;
+		}
+	}
+
+	class SaslClient : SaslPeer
+	{
+		public string Identity = String.Empty;
+
+		//static Regex rejectedRegex = new Regex (@"^REJECTED(\s+(\w+))*$");
+
+		public override IEnumerator<AuthCommand> GetEnumerator ()
+		{
+			IEnumerator<AuthCommand> replies = Peer.GetEnumerator ();
+
+			while (true) {
+				string str = Identity;
+				byte[] bs = Encoding.ASCII.GetBytes (str);
+				string initialData = Sasl.ToHex (bs);
+				yield return new AuthCommand ("AUTH EXTERNAL " + initialData);
+
+				/*
+				yield return new AuthCommand ("AUTH X");
+				yield return new AuthCommand ("DATA " + initialData);
+				*/
+
+				AuthCommand reply;
+				if (!replies.MoveNext ())
+					yield break;
+				reply = replies.Current;
+
+				if (reply[0] == "REJECTED") {
+					continue;
+				}
+
+				/*
+				Match m = rejectedRegex.Match (reply.Value);
+				if (m.Success) {
+					string[] mechanisms = m.Groups[1].Value.Split (' ');
+					//yield return new AuthCommand ("CANCEL");
+					continue;
+				}
+				*/
+
+				if (reply[0] != "OK") {
+					yield return new AuthCommand ("ERROR");
+					continue;
+				}
+
+				if (reply[1] == String.Empty)
+					ActualId = UUID.Zero;
+				else
+					ActualId = UUID.Parse (reply[1]);
+
+				yield return new AuthCommand ("BEGIN");
+				yield break;
+			}
+
 		}
 
 		public UUID ActualId = UUID.Zero;
+	}
 
+	class SaslServer : SaslPeer
+	{
+		//public int MaxFailures = 10;
+		public UUID Guid = UUID.Zero;
+
+		public long uid = 0;
+
+		static Regex authRegex = new Regex (@"^AUTH\s+(\w+)(?:\s+(.*))?$");
+		static string[] supportedMechanisms = {"EXTERNAL"};
+
+		public override IEnumerator<AuthCommand> GetEnumerator ()
+		{
+			IEnumerator<AuthCommand> replies = Peer.GetEnumerator ();
+
+			while (true) {
+				AuthCommand reply;
+				if (!replies.MoveNext ()) {
+					yield return null;
+					yield break;
+					//continue;
+				}
+				reply = replies.Current;
+
+				Match m = authRegex.Match (reply.Value);
+				if (!m.Success) {
+					yield return new AuthCommand ("ERROR");
+					continue;
+				}
+
+				string mechanism = m.Groups[1].Value;
+				string initialResponse = m.Groups[2].Value;
+
+				if (mechanism == "EXTERNAL") {
+					try {
+						byte[] bs = Sasl.FromHex (initialResponse);
+						string authStr = Encoding.ASCII.GetString (bs);
+						uid = UInt32.Parse (authStr);
+					} catch {
+						uid = 0;
+					}
+					//return RunExternal (Run (), initialResponse);
+				} else {
+					yield return new AuthCommand ("REJECTED " + String.Join (" ", supportedMechanisms));
+					continue;
+				}
+
+				if (Guid == UUID.Zero)
+					yield return new AuthCommand ("OK");
+				else
+					yield return new AuthCommand ("OK " + Guid.ToString ());
+
+				if (!replies.MoveNext ()) {
+					/*
+					yield break;
+					continue;
+					*/
+					yield return null;
+					yield break;
+				}
+
+				reply = replies.Current;
+				if (reply.Value != "BEGIN") {
+					yield return new AuthCommand ("ERROR");
+					continue;
+				}
+
+				yield break;
+			}
+		}
+	}
+
+	static class Sasl
+	{
 		//From Mono.Unix.Native.NativeConvert
 		//should these methods use long or (u)int?
 		public static DateTime UnixToDateTime (long time)

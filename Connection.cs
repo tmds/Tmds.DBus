@@ -90,8 +90,15 @@ namespace NDesk.DBus
 			if (transport != null)
 				transport.WriteCred ();
 
-			SaslClient auth = new SaslClient (this);
-			auth.Run ();
+			SaslClient auth = new SaslClient ();
+			auth.Identity = transport.AuthString ();
+			auth.stream = transport.Stream;
+			auth.Peer = new SaslPeer ();
+			auth.Peer.Peer = auth;
+			auth.Peer.stream = transport.Stream;
+
+			if (!auth.Authenticate ())
+				throw new Exception ("Authentication failure");
 
 			if (Id != UUID.Zero)
 				if (auth.ActualId != Id)

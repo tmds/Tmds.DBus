@@ -66,7 +66,7 @@ namespace org.freedesktop.DBus
 		object Get (string @interface, string propname);
 		void Set (string @interface, string propname, object value);
 		[return: Argument ("props")]
-		IDictionary<string,object> GetAll(string @interface);
+		IDictionary<string,object> GetAll (string @interface);
 	}
 
 	[Interface ("org.freedesktop.DBus")]

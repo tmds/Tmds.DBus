@@ -217,6 +217,17 @@ namespace NDesk.DBus
 			return MakeDictEntry (keyType, valueType).MakeArraySignature ();
 		}
 
+		public int Alignment
+		{
+			get {
+				if (data.Length == 0)
+					//throw new Exception ();
+					return 0;
+
+				return Protocol.GetAlignment (this[0]);
+			}
+		}
+
 		//TODO: complete this
 		public bool IsPrimitive
 		{

@@ -38,7 +38,7 @@ all: $(TARGET)
 $(TARGET): $(CSFILES) AssemblyInfo.cs
 	$(GMCS) -out:$@ $(CSFLAGS) $(LIBFLAGS) $^
 
-install-data-local:
+install-data-local: $(TARGET)
 	@if test -n '$(TARGET)'; then                       \
           echo "$(GACUTIL) /i $(TARGET) /f /gacdir $(DESTDIR)$(libdir)";    \
           $(GACUTIL) /i $(TARGET) /package $(PACKAGE)-$(API_VERSION) /f /gacdir $(libdir) /root $(DESTDIR)$(libdir) || exit 1; \

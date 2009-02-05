@@ -113,17 +113,30 @@ namespace NDesk.DBus
 
 			int argNum = 0;
 			foreach (ArgMatchTest test in tests) {
+				if (argNum > test.ArgNum) {
+					// This test cannot pass because a previous test already did.
+					// So we already know it will fail without even trying.
+					// This logic will need to be changed to support wildcards.
+					a.Remove (test);
+					continue;
+				}
+
 				while (argNum != test.ArgNum) {
 					Signature sig = sigs[argNum];
 					if (!reader.StepOver (sig))
 						throw new Exception ();
 					argNum++;
 				}
+
 				// TODO: Avoid re-reading values
 				int savedPos = reader.pos;
-				if (!reader.ReadValue (test.Signature[0]).Equals (test.Value))
+				if (!reader.ReadValue (test.Signature[0]).Equals (test.Value)) {
 					a.Remove (test);
-				reader.pos = savedPos;
+					reader.pos = savedPos;
+					continue;
+				}
+
+				argNum++;
 			}
 		}
 

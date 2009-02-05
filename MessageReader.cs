@@ -316,7 +316,7 @@ namespace NDesk.DBus
 			pos += (int)ln;
 			ReadNull ();
 
-			return new Signature (sigData);
+			return Signature.Take (sigData);
 		}
 
 		public object ReadVariant ()

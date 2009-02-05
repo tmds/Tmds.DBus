@@ -18,25 +18,24 @@ namespace NDesk.DBus
 		//Data should probably include the null terminator
 
 		public static readonly Signature Empty = new Signature (String.Empty);
-
-		public static readonly Signature StringSig = new Signature (DType.String);
-		public static readonly Signature ObjectPathSig = new Signature (DType.ObjectPath);
+		public static readonly Signature ByteSig = Allocate (DType.Byte);
+		public static readonly Signature UInt16Sig = Allocate (DType.UInt16);
+		public static readonly Signature UInt32Sig = Allocate (DType.UInt32);
+		public static readonly Signature StringSig = Allocate (DType.String);
+		public static readonly Signature ObjectPathSig = Allocate (DType.ObjectPath);
+		public static readonly Signature SignatureSig = Allocate (DType.Signature);
+		public static readonly Signature VariantSig = Allocate (DType.Variant);
 
 		public static bool operator == (Signature a, Signature b)
 		{
-			/*
-			//TODO: remove this hack to handle bad case when Data is null
-			if (a.data == null || b.data == null)
-				throw new Exception ("Encountered Signature with null buffer");
-			*/
-
-			/*
-			if (a.data == null && b.data == null)
+			if (a.data == b.data)
 				return true;
 
-			if (a.data == null || b.data == null)
+			if (a.data == null)
 				return false;
-			*/
+
+			if (b.data == null)
+				return false;
 
 			if (a.data.Length != b.data.Length)
 				return false;
@@ -66,7 +65,8 @@ namespace NDesk.DBus
 
 		public override int GetHashCode ()
 		{
-			return data.GetHashCode ();
+			// TODO: Avoid string conversion
+			return Value.GetHashCode ();
 		}
 
 		public static Signature operator + (Signature s1, Signature s2)
@@ -74,43 +74,106 @@ namespace NDesk.DBus
 			return Concat (s1, s2);
 		}
 
-		//these need to be optimized
 		public static Signature Concat (Signature s1, Signature s2)
 		{
-			return new Signature (s1.Value + s2.Value);
-		}
+			if (s1.data == null && s2.data == null)
+				return Signature.Empty;
 
-		public static Signature Copy (Signature sig)
-		{
-			return new Signature (sig.data);
+			if (s1.data == null)
+				return s2;
+
+			if (s2.data == null)
+				return s1;
+
+			if (s1.Length + s2.Length == 0)
+				return Signature.Empty;
+
+			// TODO: Avoid string conversion
+			return new Signature (s1.Value + s2.Value);
 		}
 
 		public Signature (string value)
 		{
+			if (value.Length == 0) {
+				this.data = Empty.data;
+				return;
+			}
+
+			if (value.Length == 1) {
+				this.data = DataForDType ((DType)value[0]);
+				return;
+			}
+
 			this.data = Encoding.ASCII.GetBytes (value);
 		}
 
-		public Signature (byte[] value)
+		internal static Signature Take (byte[] value)
 		{
-			this.data = (byte[])value.Clone ();
+			Signature sig;
+
+			if (value.Length == 0) {
+				sig.data = Empty.data;
+				return sig;
+			}
+
+			if (value.Length == 1) {
+				sig.data = DataForDType ((DType)value[0]);
+				return sig;
+			}
+
+			sig.data = value;
+			return sig;
 		}
 
-		//this will become obsolete soon
+		static byte[] DataForDType (DType value)
+		{
+			// Reduce heap allocations.
+			// For now, we only cache the most common protocol signatures.
+			switch (value) {
+				case DType.Byte:
+					return ByteSig.data;
+				case DType.UInt16:
+					return UInt16Sig.data;
+				case DType.UInt32:
+					return UInt32Sig.data;
+				case DType.String:
+					return StringSig.data;
+				case DType.ObjectPath:
+					return ObjectPathSig.data;
+				case DType.Signature:
+					return SignatureSig.data;
+				case DType.Variant:
+					return VariantSig.data;
+				default:
+					return new byte[] {(byte)value};
+			}
+		}
+
+		private static Signature Allocate (DType value)
+		{
+			Signature sig;
+			sig.data = new byte[] {(byte)value};
+			return sig;
+		}
+
 		internal Signature (DType value)
 		{
-			this.data = new byte[] {(byte)value};
+			this.data = DataForDType (value);
 		}
 
 		internal Signature (DType[] value)
 		{
+			if (value.Length == 0) {
+				this.data = Empty.data;
+				return;
+			}
+
+			if (value.Length == 1) {
+				this.data = DataForDType (value[0]);
+				return;
+			}
+
 			this.data = new byte[value.Length];
-
-			/*
-			MemoryStream ms = new MemoryStream (this.data);
-
-			foreach (DType t in value)
-				ms.WriteByte ((byte)t);
-			*/
 
 			for (int i = 0 ; i != value.Length ; i++)
 				this.data[i] = (byte)value[i];
@@ -254,6 +317,7 @@ namespace NDesk.DBus
 				if (this[0] != DType.StructBegin)
 					return false;
 
+				// FIXME: Incorrect! What if this is in fact a Structlike starting and finishing with structs?
 				if (this[Length - 1] != DType.StructEnd)
 					return false;
 
@@ -463,14 +527,18 @@ namespace NDesk.DBus
 
 		public IEnumerable<Signature> GetParts ()
 		{
-			//for (int pos = 0 ; pos != data.Length ; pos++) {
-			for (int pos = 0 ; pos != data.Length ;) {
+			if (data == null)
+				yield break;
+			for (int pos = 0 ; pos < data.Length ;) {
 				yield return GetNextSignature (ref pos);
 			}
 		}
 
 		public Signature GetNextSignature (ref int pos)
 		{
+			if (data == null)
+				return Signature.Empty;
+
 			DType dtype = (DType)data[pos++];
 
 			switch (dtype) {

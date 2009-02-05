@@ -88,8 +88,10 @@ namespace NDesk.DBus
 			if (s1.Length + s2.Length == 0)
 				return Signature.Empty;
 
-			// TODO: Avoid string conversion
-			return new Signature (s1.Value + s2.Value);
+			byte[] data = new byte[s1.data.Length + s2.data.Length];
+			s1.data.CopyTo (data, 0);
+			s2.data.CopyTo (data, s1.data.Length);
+			return Signature.Take (data);
 		}
 
 		public Signature (string value)

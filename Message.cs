@@ -19,7 +19,7 @@ namespace NDesk.DBus
 			Header.Fields = new Dictionary<FieldCode,object> ();
 		}
 
-		public Header Header;
+		public Header Header = new Header ();
 
 		public Connection Connection;
 
@@ -67,6 +67,24 @@ namespace NDesk.DBus
 		}
 		*/
 
+		public void HandleHeader (Header headerIn)
+		{
+			Header = headerIn;
+		}
+
+		static System.Reflection.MethodInfo hHandler = typeof (Message).GetMethod ("HandleHeader");
+		public void SetHeaderData (byte[] data)
+		{
+			EndianFlag endianness = (EndianFlag)data[0];
+			MessageReader reader = new MessageReader (endianness, data);
+
+			MethodCaller2 mCaller = ExportObject.GetMCaller (hHandler);
+			mCaller (this, reader, null, new MessageWriter ());
+		}
+
+		//public HeaderField[] Fields;
+
+		/*
 		public void SetHeaderData (byte[] data)
 		{
 			EndianFlag endianness = (EndianFlag)data[0];
@@ -74,6 +92,7 @@ namespace NDesk.DBus
 
 			Header = (Header)reader.ReadStruct (typeof (Header));
 		}
+		*/
 
 		public byte[] GetHeaderData ()
 		{

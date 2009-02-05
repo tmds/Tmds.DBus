@@ -15,13 +15,16 @@ namespace NDesk.DBus
 		protected EndianFlag endianness;
 		protected byte[] data;
 		//TODO: this should be uint or long to handle long messages
-		internal int pos = 0;
+		//internal int pos = 0;
+		public int pos = 0;
 		protected Message message;
 
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
+			//if (data == null)
+			//	throw new ArgumentNullException ("data");
 			if (data == null)
-				throw new ArgumentNullException ("data");
+				data = new byte[0];
 
 			this.endianness = endianness;
 			this.data = data;

@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -43,12 +44,26 @@ namespace NDesk.DBus
 			}
 		}
 
+		internal static MethodCaller2 GetMCaller (MethodInfo mi)
+		{
+			MethodCaller2 mCaller;
+			if (!mCallers.TryGetValue (mi, out mCaller)) {
+				//mCaller = TypeImplementer.GenCaller (mi, obj);
+				mCaller = TypeImplementer.GenCaller2 (mi);
+				mCallers[mi] = mCaller;
+			}
+			return mCaller;
+		}
+
+		static internal readonly Dictionary<MethodInfo,MethodCaller2> mCallers = new Dictionary<MethodInfo,MethodCaller2> ();
 		public void HandleMethodCall (MethodCall method_call)
 		{
 			Type type = obj.GetType ();
 			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
 
 			//TODO: there is no member name mapping for properties etc. yet
+
+			// FIXME: Inefficient to do this on every call
 			MethodInfo mi = Mapper.GetMethod (type, method_call);
 
 			if (mi == null) {
@@ -56,38 +71,54 @@ namespace NDesk.DBus
 				return;
 			}
 
-			object retObj = null;
-			object[] parmValues = MessageHelper.GetDynamicValues (method_call.message, mi.GetParameters ());
+			MethodCaller2 mCaller;
+			if (!mCallers.TryGetValue (mi, out mCaller)) {
+				//mCaller = TypeImplementer.GenCaller (mi, obj);
+				mCaller = TypeImplementer.GenCaller2 (mi);
+				mCallers[mi] = mCaller;
+			}
 
+			Signature inSig, outSig;
+			TypeImplementer.SigsForMethod (mi, out inSig, out outSig);
+
+			Message msg = method_call.message;
+			MessageReader msgReader = new MessageReader (method_call.message);
+			MessageWriter retWriter = new MessageWriter ();
+
+			/*
+			MessageWriter retWriter = null;
+			if (msg.ReplyExpected)
+				retWriter = new MessageWriter ();
+			*/
+
+			Exception raisedException = null;
 			try {
-				retObj = mi.Invoke (obj, parmValues);
-			} catch (TargetInvocationException e) {
-				if (!method_call.message.ReplyExpected)
-					return;
+				//mCaller (msgReader, method_call.message, retWriter);
+				mCaller (obj, msgReader, method_call.message, retWriter);
+			} catch (Exception e) {
+				raisedException = e;
+			}
 
-				Exception ie = e.InnerException;
-				//TODO: complete exception sending support
-
-				Error error = new Error (Mapper.GetInterfaceName (ie.GetType ()), method_call.message.Header.Serial);
-				error.message.Signature = new Signature (DType.String);
-
-				MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-				writer.connection = conn;
-				writer.Write (ie.Message);
-				error.message.Body = writer.ToArray ();
-
-				//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
-				if (method_call.Sender != null)
-					error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
-
-				conn.Send (error.message);
+			if (!msg.ReplyExpected)
 				return;
+
+			Message replyMsg;
+
+			if (raisedException == null) {
+				MethodReturn method_return = new MethodReturn (msg.Header.Serial);
+				replyMsg = method_return.message;
+				replyMsg.Body = retWriter.ToArray ();
+				replyMsg.Signature = outSig;
+			} else {
+				// TODO: send an error!
+				Error error = method_call.CreateError (Mapper.GetInterfaceName (raisedException.GetType ()), raisedException.Message);
+				replyMsg = error.message;
 			}
 
-			if (method_call.message.ReplyExpected) {
-				Message reply = MessageHelper.ConstructDynamicReply (method_call, mi, retObj, parmValues);
-				conn.Send (reply);
-			}
+			if (method_call.Sender != null)
+				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+			conn.Send (replyMsg);
 		}
 
 		/*

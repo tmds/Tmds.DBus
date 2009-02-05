@@ -69,6 +69,22 @@ namespace NDesk.DBus
 		public Signature ReplySignature;
 #endif
 		public Signature Signature;
+
+		public Error CreateError (string errorName, string errorMessage)
+		{
+			Error error = new Error (errorName, message.Header.Serial);
+			error.message.Signature = Signature.StringSig;
+
+			MessageWriter writer = new MessageWriter (message.Header.Endianness);
+			//writer.connection = conn;
+			writer.Write (errorMessage);
+			error.message.Body = writer.ToArray ();
+
+			//if (method_call.Sender != null)
+			//	replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+
+			return error;
+		}
 	}
 
 	class MethodReturn

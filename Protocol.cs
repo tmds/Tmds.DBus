@@ -8,7 +8,8 @@ using System.Collections.Generic;
 namespace NDesk.DBus
 {
 	//yyyyuua{yv}
-	struct Header
+	//struct Header
+	class Header
 	{
 		public EndianFlag Endianness;
 		public MessageType MessageType;

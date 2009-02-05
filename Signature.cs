@@ -284,10 +284,78 @@ namespace NDesk.DBus
 		{
 			get {
 				if (data.Length == 0)
-					//throw new Exception ();
 					return 0;
 
 				return Protocol.GetAlignment (this[0]);
+			}
+		}
+
+		static int GetSize (DType dtype)
+		{
+			switch (dtype) {
+				case DType.Byte:
+					return 1;
+				case DType.Boolean:
+					return 4;
+				case DType.Int16:
+				case DType.UInt16:
+					return 2;
+				case DType.Int32:
+				case DType.UInt32:
+					return 4;
+				case DType.Int64:
+				case DType.UInt64:
+					return 8;
+#if !DISABLE_SINGLE
+				case DType.Single: //Not yet supported!
+					return 4;
+#endif
+				case DType.Double:
+					return 8;
+				case DType.String:
+				case DType.ObjectPath:
+				case DType.Signature:
+				case DType.Array:
+				case DType.StructBegin:
+				case DType.Variant:
+				case DType.DictEntryBegin:
+					return -1;
+				case DType.Invalid:
+				default:
+					throw new Exception ("Cannot determine size of " + dtype);
+			}
+		}
+
+		public bool IsFixedSize
+		{
+			get {
+				if (data.Length == 0)
+					return true;
+
+				if (data.Length == 1) {
+					int size = GetSize (this[0]);
+					return size != -1;
+				}
+
+				if (IsStructlike) {
+					foreach (Signature sig in GetParts ())
+						if (!sig.IsFixedSize)
+							return false;
+					return true;
+				}
+
+				if (IsArray || IsDict)
+					return false;
+
+				if (IsStruct) {
+					foreach (Signature sig in GetFieldSignatures ())
+						if (!sig.IsFixedSize)
+							return false;
+					return true;
+				}
+
+				// Any other cases?
+				throw new Exception ();
 			}
 		}
 
@@ -524,6 +592,15 @@ namespace NDesk.DBus
 				return DType.Invalid;
 		}
 		*/
+
+		public IEnumerable<Signature> GetFieldSignatures ()
+		{
+			if (this == Signature.Empty || this[0] != DType.StructBegin)
+				throw new Exception ("Not a struct");
+
+			for (int pos = 1 ; pos < data.Length - 1 ;)
+				yield return GetNextSignature (ref pos);
+		}
 
 		public IEnumerable<Signature> GetParts ()
 		{

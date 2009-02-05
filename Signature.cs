@@ -208,11 +208,9 @@ namespace NDesk.DBus
 		public string Value
 		{
 			get {
-				/*
 				//FIXME: hack to handle bad case when Data is null
 				if (data == null)
 					return String.Empty;
-				*/
 
 				return Encoding.ASCII.GetString (data);
 			}
@@ -326,6 +324,48 @@ namespace NDesk.DBus
 				default:
 					throw new Exception ("Cannot determine size of " + dtype);
 			}
+		}
+
+		public bool GetFixedSize (ref int size)
+		{
+			if (size < 0)
+				return false;
+
+			if (data.Length == 0)
+				return true;
+
+			// Sensible?
+			size = Protocol.Padded (size, Alignment);
+
+			if (data.Length == 1) {
+				int valueSize = GetSize (this[0]);
+
+				if (valueSize == -1)
+					return false;
+
+				size += valueSize;
+				return true;
+			}
+
+			if (IsStructlike) {
+				foreach (Signature sig in GetParts ())
+						if (!sig.GetFixedSize (ref size))
+							return false;
+				return true;
+			}
+
+			if (IsArray || IsDict)
+				return false;
+
+			if (IsStruct) {
+				foreach (Signature sig in GetFieldSignatures ())
+						if (!sig.GetFixedSize (ref size))
+							return false;
+				return true;
+			}
+
+			// Any other cases?
+			throw new Exception ();
 		}
 
 		public bool IsFixedSize
@@ -644,8 +684,8 @@ namespace NDesk.DBus
 						fieldsSig += GetNextSignature (ref pos);
 					//skip over the )
 					pos++;
-					//return Signature.MakeStruct (fieldsSig);
-					return fieldsSig;
+					return Signature.MakeStruct (fieldsSig);
+					//return fieldsSig;
 				default:
 					return new Signature (dtype);
 			}

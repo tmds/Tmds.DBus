@@ -113,23 +113,17 @@ namespace NDesk.DBus
 
 			int argNum = 0;
 			foreach (ArgMatchTest test in tests) {
-				Console.WriteLine ("test: " + test.ArgNum + " " + test.Value.ToString ());
 				while (argNum != test.ArgNum) {
-					Console.WriteLine ("argNum {0} != test.ArgNum");
 					Signature sig = sigs[argNum];
-					// FIXME: Need to support skipping complex message parts
-					if (!sig.IsPrimitive) {
-						a.Clear ();
-						return;
-					}
-					// Read and discard primitive values to skip over them
-					reader.ReadValue (sig[0]);
+					if (!reader.StepOver (sig))
+						throw new Exception ();
 					argNum++;
 				}
-
+				// TODO: Avoid re-reading values
+				int savedPos = reader.pos;
 				if (!reader.ReadValue (test.Signature[0]).Equals (test.Value))
 					a.Remove (test);
-				argNum++;
+				reader.pos = savedPos;
 			}
 		}
 

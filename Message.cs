@@ -88,6 +88,57 @@ namespace NDesk.DBus
 		}
 	}
 
+	partial class MessageReader
+	{
+		// Note: This method doesn't support aggregate signatures
+		public bool StepOver (Signature sig)
+		{
+			int endPos = pos;
+			if (sig.GetFixedSize (ref endPos)) {
+				pos = endPos;
+				return true;
+			}
+
+			pos = Protocol.Padded (pos, sig.Alignment);
+
+			if (sig == Signature.VariantSig) {
+				Signature valueSig = ReadSignature ();
+				return StepOver (valueSig);
+			}
+
+			if (sig == Signature.StringSig) {
+				uint valueLength = ReadUInt32 ();
+				pos += (int)valueLength;
+				pos++;
+				return true;
+			}
+
+			if (sig == Signature.SignatureSig) {
+				byte valueLength = ReadByte ();
+				pos += valueLength;
+				pos++;
+				return true;
+			}
+
+			// No need to handle dicts specially. IsArray does the job
+			if (sig.IsArray) {
+				uint valueLength = ReadUInt32 ();
+				pos += (int)valueLength;
+				return true;
+			}
+
+			if (sig.IsStruct) {
+				foreach (Signature fieldSig in sig.GetFieldSignatures ())
+					if (!StepOver (fieldSig))
+						return false;
+				return true;
+			}
+
+			throw new Exception ("Can't step over '" + sig + "'");
+			//return false;
+		}
+	}
+
 	class MessageDumper
 	{
 		public static byte[] ReadBlock (TextReader r)

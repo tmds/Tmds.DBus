@@ -315,14 +315,7 @@ namespace NDesk.DBus
 			//signature
 			Signature inSig = Signature.Empty;
 			Signature outSig = Signature.Empty;
-
-			foreach (ParameterInfo parm in parms)
-			{
-				if (parm.IsOut)
-					outSig += Signature.GetSig (parm.ParameterType.GetElementType ());
-				else
-					inSig += Signature.GetSig (parm.ParameterType);
-			}
+			SigsForMethod (declMethod, out inSig, out outSig);
 
 			ilg.Emit (OpCodes.Ldstr, inSig.Value);
 

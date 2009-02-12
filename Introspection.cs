@@ -21,6 +21,7 @@ namespace NDesk.DBus
 		public StringBuilder sb;
 		public string xml;
 		public ObjectPath root_path = ObjectPath.Root;
+		public bool ExtendedAnnotations = false;
 
 		protected XmlWriter writer;
 
@@ -208,6 +209,11 @@ namespace NDesk.DBus
 
 			foreach (ParameterInfo pi in ei.EventHandlerType.GetMethod ("Invoke").GetParameters ())
 				WriteArgReverse (pi);
+
+			if (ExtendedAnnotations) {
+				string handlerName = Mapper.GetInterfaceName (ei.EventHandlerType);
+				WriteAnnotation ("org.ndesk.DBus.SignalHandler", handlerName);
+			}
 
 			WriteAnnotations (ei);
 

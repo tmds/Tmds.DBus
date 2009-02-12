@@ -66,12 +66,18 @@ namespace NDesk.DBus
 				for (int i = 0; i < parms.Length ; i++)
 					method_builder.DefineParameter (i, parms[i].Attributes, parms[i].Name);
 
+				//Console.WriteLine ("retType: " + declMethod.ReturnType);
 				ILGenerator ilg = method_builder.GetILGenerator ();
-				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
+				//GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
+				if (declMethod.ReturnType != typeof (void) && !declMethod.ReturnType.IsPrimitive && declMethod.ReturnType.IsValueType)
+					GenHookupMethod (ilg, declMethod, sendMethodCallOldMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
+				else
+					GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
 			}
 		}
 
 		static MethodInfo sendMethodCallMethod = typeof (BusObject).GetMethod ("SendMethodCall");
+		static MethodInfo sendMethodCallOldMethod = typeof (BusObject).GetMethod ("SendMethodCallOld");
 		static MethodInfo sendSignalMethod = typeof (BusObject).GetMethod ("SendSignal");
 		static MethodInfo toggleSignalMethod = typeof (BusObject).GetMethod ("ToggleSignal");
 
@@ -192,9 +198,29 @@ namespace NDesk.DBus
 
 		public static IEnumerable<FieldInfo> GetMarshalFields (Type type)
 		{
-			// TODO: Field order!
+			// FIXME: Field order!
 			return type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 		}
+
+		/*
+		public static void GetBlittableSegments (IEnumerable<FieldInfo> fields)
+		{
+			int totalSize = 0;
+			//List<FieldInfo>
+			//foreach (FieldInfo fi in GetMarshalFields (type))
+			foreach (FieldInfo fi in fields) {
+				Type t = fi.FieldType;
+				Signature sig = Signature.GetSig (t);
+				int fixedSize = totalSize;
+				if (sig.GetFixedSize (ref fixedSize)) {
+					totalSize = fixedSize;
+					continue;
+				}
+
+				//ilg.Emit (OpCodes.Ldflda, fiStart);
+			}
+		}
+		*/
 
 		//takes a writer and a reference to an object off the stack
 		public static void GenMarshalWrite (ILGenerator ilg, Type type)
@@ -208,10 +234,32 @@ namespace NDesk.DBus
 			//align to 8 for structs
 			ilg.Emit (OpCodes.Ldloc, writer);
 			ilg.Emit (OpCodes.Ldc_I4, 8);
-			ilg.Emit (messageWriterWritePad.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageWriterWritePad);
+			ilg.Emit (OpCodes.Call, messageWriterWritePad);
 
 			foreach (FieldInfo fi in GetMarshalFields (type)) {
 				Type t = fi.FieldType;
+
+				// null checking of fields
+				if (!t.IsValueType) {
+					Label notNull = ilg.DefineLabel ();
+
+					//if the value is null...
+					//ilg.Emit (OpCodes.Ldarg, i);
+					ilg.Emit (OpCodes.Ldloc, val);
+					ilg.Emit (OpCodes.Ldfld, fi);
+
+					ilg.Emit (OpCodes.Brtrue_S, notNull);
+
+					//...throw Exception
+					string paramName = fi.Name;
+					ilg.Emit (OpCodes.Ldstr, paramName);
+					// TODO: Should not really be argumentNullException
+					ilg.Emit (OpCodes.Newobj, argumentNullExceptionConstructor);
+					ilg.Emit (OpCodes.Throw);
+
+					//was not null, so all is well
+					ilg.MarkLabel (notNull);
+				}
 
 				//the Writer to write to
 				ilg.Emit (OpCodes.Ldloc, writer);
@@ -227,9 +275,19 @@ namespace NDesk.DBus
 		//takes a reader and a reference to an object off the stack
 		public static void GenMarshalRead (ILGenerator ilg, Type type)
 		{
+			/*
+			int fixedSize = 0;
+			if (Signature.GetSig (type).GetFixedSize (ref fixedSize)) {
+				Console.Error.WriteLine ("Type " + type + " is blittable.");
+			}
+			*/
+
+			// FIXME: Newobj fails if type has no default ctor!
+
 			//Console.WriteLine ("GenMarshalRead " + type);
 			LocalBuilder val = ilg.DeclareLocal (type);
 			ConstructorInfo ctor = type.GetConstructor (Type.EmptyTypes);
+			//ConstructorInfo ctor = type.TypeInitializer;
 			//Console.WriteLine ("ctor: " + ctor);
 			//if (ctor != null)
 			ilg.Emit (OpCodes.Newobj, ctor);
@@ -244,7 +302,7 @@ namespace NDesk.DBus
 			//align to 8 for structs
 			ilg.Emit (OpCodes.Ldloc, reader);
 			ilg.Emit (OpCodes.Ldc_I4, 8);
-			ilg.Emit (messageReaderReadPad.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageReaderReadPad);
+			ilg.Emit (OpCodes.Call, messageReaderReadPad);
 
 			foreach (FieldInfo fi in GetMarshalFields (type)) {
 				Type t = fi.FieldType;
@@ -384,6 +442,47 @@ namespace NDesk.DBus
 			//Exception was null, so all is well
 			ilg.MarkLabel (noErr);
 
+			if (invokeMethod.ReturnType == typeof (MessageReader)) {
+				/*
+				Label notNull = ilg.DefineLabel ();
+				//if the value is null...
+				ilg.Emit (OpCodes.Ldarg, i);
+				ilg.Emit (OpCodes.Brtrue_S, notNull);
+				//was not null, so all is well
+				ilg.MarkLabel (notNull);
+				*/
+
+				LocalBuilder reader = ilg.DeclareLocal (typeof (MessageReader));
+				ilg.Emit (OpCodes.Stloc, reader);
+
+				foreach (ParameterInfo parm in parms)
+				{
+					//t.IsByRef
+					if (!parm.IsOut)
+						continue;
+
+					Console.WriteLine ("parm.ParameterType: " + parm.ParameterType);
+					Console.WriteLine ("parm.ParameterType.GetElementType (): " + parm.ParameterType.GetElementType ());
+					//Type t = parm.ParameterType;
+					Type t = parm.ParameterType.GetElementType ();
+					//offset by one to account for "this"
+					int i = parm.Position + 1;
+
+					ilg.Emit (OpCodes.Ldarg, i);
+					ilg.Emit (OpCodes.Ldloc, reader);
+					GenReader (ilg, t);
+					ilg.Emit (OpCodes.Stobj, t);
+				}
+
+				if (retType != typeof (void)) {
+					ilg.Emit (OpCodes.Ldloc, reader);
+					GenReader (ilg, retType);
+				}
+
+				ilg.Emit (OpCodes.Ret);
+				return;
+			}
+
 			if (retType == typeof (void)) {
 				//we aren't expecting a return value, so throw away the (hopefully) null return
 				if (invokeMethod.ReturnType != typeof (void))
@@ -500,13 +599,22 @@ namespace NDesk.DBus
 			// The target instance
 			ilg.Emit (OpCodes.Ldarg_0);
 
+			Dictionary<ParameterInfo,LocalBuilder> locals = new Dictionary<ParameterInfo,LocalBuilder> ();
+
 			foreach (ParameterInfo parm in parms) {
-				//if (parm.Position == 0)
-				//	continue;
+				/*
 				if (parm.IsOut)
 					continue;
+					*/
 
 				Type parmType = parm.ParameterType;
+
+				if (parm.IsOut) {
+					LocalBuilder parmLocal = ilg.DeclareLocal (parmType.GetElementType ());
+					locals[parm] = parmLocal;
+					ilg.Emit (OpCodes.Ldloca, parmLocal);
+					continue;
+				}
 
 				/*
 				MethodInfo exactMethod = GetReadMethod (parmType);
@@ -521,6 +629,18 @@ namespace NDesk.DBus
 
 			//ilg.Emit (OpCodes.Ldc_I4, 8);
 			ilg.Emit (declMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, declMethod);
+
+			foreach (ParameterInfo parm in parms) {
+				if (!parm.IsOut)
+					continue;
+
+				Type parmType = parm.ParameterType.GetElementType ();
+
+				LocalBuilder parmLocal = locals[parm];
+				ilg.Emit (OpCodes.Ldarg_3); // writer
+				ilg.Emit (OpCodes.Ldloc, parmLocal);
+				GenWriter (ilg, parmType);
+			}
 
 			if (retType != typeof (void)) {
 				// Skip reply message construction if MessageWriter is null
@@ -579,6 +699,8 @@ namespace NDesk.DBus
 				GenReadCollection (ilg, t);
 			else if (t.IsGenericType && (t.GetGenericTypeDefinition () == typeof (IDictionary<,>)))
 				GenReadCollection (ilg, t);
+			else if (t.IsInterface)
+				GenReadFallback (ilg, tUnder);
 			else if (!tUnder.IsValueType) {
 				//Console.Error.WriteLine ("Gen struct reader for " + t);
 				//ilg.Emit (OpCodes.Newobj, messageWriterConstructor);
@@ -622,60 +744,155 @@ namespace NDesk.DBus
 			LocalBuilder readerLocal = ilg.DeclareLocal (typeof (MessageReader));
 			ilg.Emit (OpCodes.Stloc, readerLocal);
 
-			MethodInfo exactMethod;
+			Type tElem = t.GetElementType ();
+			Signature sigElem = Signature.GetSig (tElem);
+			int alignElem = sigElem.Alignment;
+			int knownElemSizePadded = Protocol.Padded (knownElemSize, sigElem.Alignment);
+			int managedElemSize = System.Runtime.InteropServices.Marshal.SizeOf (tElem);
 
-			// TODO: Need to do an early align somewhere here?
-
-			// TODO: Blit where possible
+			/*
+			Console.WriteLine ("managedElemSize: " + managedElemSize);
+			Console.WriteLine ("elemSize: " + knownElemSize);
+			Console.WriteLine ("elemSizePadded: " + knownElemSizePadded);
+			*/
 
 			// Read the array's byte length
 			ilg.Emit (OpCodes.Ldloc, readerLocal);
-			exactMethod = GetReadMethod (typeof (uint));
+			MethodInfo exactMethod = GetReadMethod (typeof (uint));
 			ilg.Emit (exactMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactMethod);
+			LocalBuilder sizeLocal = ilg.DeclareLocal (typeof (uint));
+			ilg.Emit (OpCodes.Stloc, sizeLocal);
 
-			// Divide by the known element size
-			ilg.Emit (OpCodes.Ldc_I4, knownElemSize);
-			ilg.Emit (OpCodes.Div_Un);
-
-			ilg.Emit (OpCodes.Newarr, t);
-
-			// for (int i = 0 ; i < ary.Length ; i++)
-			LocalBuilder aryLocal = ilg.DeclareLocal (t.MakeArrayType ());
-			ilg.Emit (OpCodes.Stloc, aryLocal);
-
-			LocalBuilder indexLocal = ilg.DeclareLocal (typeof (int));
-			ilg.Emit (OpCodes.Ldc_I4, 0);
-			ilg.Emit (OpCodes.Stloc, indexLocal);
-
-			Label loopStartLabel = ilg.DefineLabel ();
-			Label loopEndLabel = ilg.DefineLabel ();
-
-			ilg.Emit (OpCodes.Br, loopEndLabel);
-
-			ilg.MarkLabel (loopStartLabel);
-
-			{
-				// Read and store an element to the array
-				ilg.Emit (OpCodes.Ldloc, aryLocal);
-				ilg.Emit (OpCodes.Ldloc, indexLocal);
-
+			// WARNING: This may skew pos when we later increment it!
+			if (alignElem > 4) {
+				// Align to element if alignment requirement is higher than 4 (since we just read a uint)
 				ilg.Emit (OpCodes.Ldloc, readerLocal);
-				GenReader (ilg, t);
-
-				ilg.Emit (OpCodes.Stelem, t);
+				ilg.Emit (OpCodes.Ldc_I4, alignElem);
+				ilg.Emit (OpCodes.Call, messageReaderReadPad);
 			}
 
-			// i++
-			ilg.Emit (OpCodes.Ldloc, indexLocal);
-			ilg.Emit (OpCodes.Ldc_I4, 1);
-			ilg.Emit (OpCodes.Add);
-			ilg.Emit (OpCodes.Stloc, indexLocal);
+			//ilg.EmitWriteLine (sizeLocal);
 
-			ilg.MarkLabel (loopEndLabel);
-			ilg.Emit (OpCodes.Ldloc, indexLocal);
-			ilg.Emit (OpCodes.Ldloc, aryLocal);
-			ilg.Emit (OpCodes.Ldlen);
-			ilg.Emit (OpCodes.Blt, loopStartLabel);
+			/*
+			// Take the array's byte length
+			ilg.Emit (OpCodes.Ldloc, sizeLocal);
+			// Divide by the known element size
+			//ilg.Emit (OpCodes.Ldc_I4, knownElemSizePadded);
+			ilg.Emit (OpCodes.Ldc_I4, knownElemSize);
+			ilg.Emit (OpCodes.Div_Un);
+			*/
+
+			// Create a new array of the correct element length
+			ilg.Emit (OpCodes.Ldloc, sizeLocal);
+			if (knownElemSizePadded > 1) {
+				ilg.Emit (OpCodes.Ldc_I4, alignElem);
+				MethodInfo paddedMethod = typeof (Protocol).GetMethod ("Padded");
+				ilg.Emit (OpCodes.Call, paddedMethod);
+				// Divide by the known element size
+				ilg.Emit (OpCodes.Ldc_I4, knownElemSizePadded);
+				ilg.Emit (OpCodes.Div_Un);
+			}
+			ilg.Emit (OpCodes.Newarr, tElem);
+			LocalBuilder aryLocal = ilg.DeclareLocal (t);
+			ilg.Emit (OpCodes.Stloc, aryLocal);
+
+			Label nonBlitLabel = ilg.DefineLabel ();
+			Label endLabel = ilg.DefineLabel ();
+
+			// TODO: Ensure enough bytes available!
+
+			// Blit where possible
+
+			// shouldBlit: Blit if endian is native
+			// mustBlit: Blit regardless of endian (ie. byte or structs containing only bytes)
+			bool shouldBlit = tElem.IsValueType && knownElemSizePadded == managedElemSize && !sigElem.IsStruct;
+			//bool shouldBlit = tElem.IsValueType && knownElemSizePadded == managedElemSize;
+			bool mustBlit = shouldBlit && knownElemSizePadded == 1;
+
+			if (shouldBlit) {
+				//Console.Error.WriteLine ("Blit read array " + tElem);
+
+				if (!mustBlit) {
+					// Check to see if we can blit the data structures
+					FieldInfo nativeEndianField = typeof (MessageReader).GetField ("IsNativeEndian");
+					ilg.Emit (OpCodes.Ldloc, readerLocal);
+					ilg.Emit (OpCodes.Ldfld, nativeEndianField);
+					ilg.Emit (OpCodes.Brfalse_S, nonBlitLabel);
+				}
+
+				// Get the destination address
+				ilg.Emit (OpCodes.Ldloc, aryLocal);
+				ilg.Emit (OpCodes.Ldc_I4, 0);
+				ilg.Emit (OpCodes.Ldelema, tElem);
+
+				// Get the source address
+				FieldInfo dataField = typeof (MessageReader).GetField ("data");
+				FieldInfo posField = typeof (MessageReader).GetField ("pos");
+				ilg.Emit (OpCodes.Ldloc, readerLocal);
+				ilg.Emit (OpCodes.Ldfld, dataField);
+				{
+					ilg.Emit (OpCodes.Ldloc, readerLocal);
+					ilg.Emit (OpCodes.Ldfld, posField);
+				}
+				ilg.Emit (OpCodes.Ldelema, typeof (byte));
+
+				// The number of bytes to copy
+				ilg.Emit (OpCodes.Ldloc, sizeLocal);
+
+				// Blit the array
+				ilg.Emit (OpCodes.Cpblk);
+
+				// pos += bytesRead
+				ilg.Emit (OpCodes.Ldloc, readerLocal);
+				ilg.Emit (OpCodes.Ldloc, readerLocal);
+				ilg.Emit (OpCodes.Ldfld, posField);
+				ilg.Emit (OpCodes.Ldloc, sizeLocal);
+				ilg.Emit (OpCodes.Add);
+				ilg.Emit (OpCodes.Stfld, posField);
+
+				ilg.Emit (OpCodes.Br, endLabel);
+			}
+
+			if (!mustBlit) {
+				ilg.MarkLabel (nonBlitLabel);
+
+				// for (int i = 0 ; i < ary.Length ; i++)
+				LocalBuilder indexLocal = ilg.DeclareLocal (typeof (int));
+				ilg.Emit (OpCodes.Ldc_I4, 0);
+				ilg.Emit (OpCodes.Stloc, indexLocal);
+
+				Label loopStartLabel = ilg.DefineLabel ();
+				Label loopEndLabel = ilg.DefineLabel ();
+
+				ilg.Emit (OpCodes.Br, loopEndLabel);
+
+				ilg.MarkLabel (loopStartLabel);
+
+				{
+					// Read and store an element to the array
+					ilg.Emit (OpCodes.Ldloc, aryLocal);
+					ilg.Emit (OpCodes.Ldloc, indexLocal);
+
+					ilg.Emit (OpCodes.Ldloc, readerLocal);
+					GenReader (ilg, tElem);
+
+					ilg.Emit (OpCodes.Stelem, tElem);
+				}
+
+				// i++
+				ilg.Emit (OpCodes.Ldloc, indexLocal);
+				ilg.Emit (OpCodes.Ldc_I4, 1);
+				ilg.Emit (OpCodes.Add);
+				ilg.Emit (OpCodes.Stloc, indexLocal);
+
+				ilg.MarkLabel (loopEndLabel);
+				ilg.Emit (OpCodes.Ldloc, indexLocal);
+				ilg.Emit (OpCodes.Ldloc, aryLocal);
+				ilg.Emit (OpCodes.Ldlen);
+				ilg.Emit (OpCodes.Blt, loopStartLabel);
+			}
+
+			ilg.MarkLabel (endLabel);
 
 			// Return the new array
 			ilg.Emit (OpCodes.Ldloc, aryLocal);
@@ -683,8 +900,10 @@ namespace NDesk.DBus
 
 		public static void GenReadCollection (ILGenerator ilg, Type type)
 		{
+			//Console.WriteLine ("GenReadCollection " + type);
+			//Console.WriteLine ("Sig: " + Signature.GetSig (type));
 			int fixedSize = 0;
-			if (type.IsArray && Signature.GetSig (type).GetFixedSize (ref fixedSize)) {
+			if (type.IsArray && Signature.GetSig (type.GetElementType ()).GetFixedSize (ref fixedSize)) {
 				GenReadArrayFixed (ilg, type, fixedSize);
 				return;
 			}
@@ -721,7 +940,7 @@ namespace NDesk.DBus
 				//ilg.Emit (OpCodes.Ldc_I4, 8);
 				// TODO: This padding logic is sketchy
 				ilg.Emit (OpCodes.Ldc_I4, genArgs.Length > 1 ? 8 : Signature.GetSig (genArgs[0]).Alignment);
-				ilg.Emit (messageReaderReadPad.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageReaderReadPad);
+				ilg.Emit (OpCodes.Call, messageReaderReadPad);
 			}
 
 			// Similar to the fixed array loop code
@@ -749,7 +968,7 @@ namespace NDesk.DBus
 						// Align to 8 for structs
 						ilg.Emit (OpCodes.Ldloc, readerLocal);
 						ilg.Emit (OpCodes.Ldc_I4, 8);
-						ilg.Emit (messageReaderReadPad.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageReaderReadPad);
+						ilg.Emit (OpCodes.Call, messageReaderReadPad);
 					}
 
 					// Read and store an element to the array

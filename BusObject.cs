@@ -89,7 +89,7 @@ namespace NDesk.DBus
 			conn.Send (signalMsg);
 		}
 
-		public object SendMethodCall (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
+		public object SendMethodCallOld (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
 		{
 			exception = null;
 
@@ -149,6 +149,82 @@ namespace NDesk.DBus
 				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
 				if (retVals.Length != 0)
 					retVal = retVals[retVals.Length - 1];
+				break;
+				case MessageType.Error:
+				//TODO: typed exceptions
+				Error error = new Error (retMsg);
+				string errMsg = String.Empty;
+				if (retMsg.Signature.Value.StartsWith ("s")) {
+					MessageReader reader = new MessageReader (retMsg);
+					errMsg = reader.ReadString ();
+				}
+				exception = new Exception (error.ErrorName + ": " + errMsg);
+				break;
+				default:
+				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
+			}
+
+			return retVal;
+		}
+
+		public MessageReader SendMethodCall (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
+		{
+			exception = null;
+
+			//TODO: don't ignore retVal, exception etc.
+
+			Signature inSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
+
+			MethodCall method_call = new MethodCall (object_path, iface, member, bus_name, inSig);
+
+			Message callMsg = method_call.message;
+			callMsg.Body = writer.ToArray ();
+
+			//Invoke Code::
+
+			//TODO: complete out parameter support
+			/*
+			Type[] outParmTypes = Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ());
+			Signature outParmSig = Signature.GetSig (outParmTypes);
+
+			if (outParmSig != Signature.Empty)
+				throw new Exception ("Out parameters not yet supported: out_signature='" + outParmSig.Value + "'");
+			*/
+
+			Type[] outTypes = new Type[1];
+			outTypes[0] = retType;
+
+			//we default to always requiring replies for now, even though unnecessary
+			//this is to make sure errors are handled synchronously
+			//TODO: don't hard code this
+			bool needsReply = true;
+
+			//if (mi.ReturnType == typeof (void))
+			//	needsReply = false;
+
+			callMsg.ReplyExpected = needsReply;
+			callMsg.Signature = inSig;
+
+			if (!needsReply) {
+				conn.Send (callMsg);
+				return null;
+			}
+
+#if PROTO_REPLY_SIGNATURE
+			if (needsReply) {
+				Signature outSig = Signature.GetSig (outTypes);
+				callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
+			}
+#endif
+
+			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
+
+			MessageReader retVal = null;
+
+			//handle the reply message
+			switch (retMsg.Header.MessageType) {
+				case MessageType.MethodReturn:
+					retVal = new MessageReader (retMsg);
 				break;
 				case MessageType.Error:
 				//TODO: typed exceptions

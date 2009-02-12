@@ -13,7 +13,8 @@ namespace NDesk.DBus
 	partial class MessageReader
 	{
 		protected EndianFlag endianness;
-		protected byte[] data;
+		//protected byte[] data;
+		public byte[] data;
 		//TODO: this should be uint or long to handle long messages
 		//internal int pos = 0;
 		public int pos = 0;
@@ -27,6 +28,7 @@ namespace NDesk.DBus
 				data = new byte[0];
 
 			this.endianness = endianness;
+			this.IsNativeEndian = endianness == Connection.NativeEndianness;
 			this.data = data;
 		}
 
@@ -37,6 +39,8 @@ namespace NDesk.DBus
 
 			this.message = message;
 		}
+
+		public readonly bool IsNativeEndian;
 
 		public object ReadValue (Type type)
 		{

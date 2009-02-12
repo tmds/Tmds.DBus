@@ -804,7 +804,8 @@ namespace NDesk.DBus
 			Signature sigElem = Signature.GetSig (tElem);
 			int alignElem = sigElem.Alignment;
 			int knownElemSizePadded = Protocol.Padded (knownElemSize, sigElem.Alignment);
-			int managedElemSize = System.Runtime.InteropServices.Marshal.SizeOf (tElem);
+			Type tUnder = tElem.IsEnum ? Enum.GetUnderlyingType (tElem) : tElem;
+			int managedElemSize = System.Runtime.InteropServices.Marshal.SizeOf (tUnder);
 
 			/*
 			Console.WriteLine ("managedElemSize: " + managedElemSize);

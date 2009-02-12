@@ -354,8 +354,6 @@ namespace NDesk.DBus
 		public unsafe void WriteArray<T> (T[] val)
 		{
 			Type elemType = typeof (T);
-			if (elemType.IsEnum)
-				elemType = Enum.GetUnderlyingType (elemType);
 
 			if (elemType == typeof (byte)) {
 				if (val.Length > Protocol.MaxArrayLength)
@@ -365,6 +363,9 @@ namespace NDesk.DBus
 				stream.Write ((byte[])(object)val, 0, val.Length);
 				return;
 			}
+
+			if (elemType.IsEnum)
+				elemType = Enum.GetUnderlyingType (elemType);
 
 			Signature sigElem = Signature.GetSig (elemType);
 			int fixedSize = 0;
@@ -378,7 +379,9 @@ namespace NDesk.DBus
 				GCHandle valHandle = GCHandle.Alloc (val, GCHandleType.Pinned);
 				IntPtr p = valHandle.AddrOfPinnedObject ();
 				byte[] data = new byte[byteLength];
-				System.Runtime.InteropServices.Marshal.Copy (p, data, 0, byteLength);
+				byte* bp = (byte*)p;
+				for (int i = 0 ; i != byteLength ; i++)
+					data[i] = bp[i];
 				stream.Write (data, 0, data.Length);
 				valHandle.Free ();
 				return;

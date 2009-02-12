@@ -11,22 +11,36 @@ namespace NDesk.DBus
 {
 	class TypeImplementer
 	{
-		public static TypeImplementer Root = new TypeImplementer ("NDesk.DBus.Proxies");
+		public static TypeImplementer Root = new TypeImplementer ("NDesk.DBus.Proxies", false);
 		AssemblyBuilder asmB;
 		ModuleBuilder modB;
+		//List<Assembly> cacheAs = new List<Assembly> ();
 
-		public TypeImplementer (string name)
+		public TypeImplementer (string name, bool canSave)
 		{
-			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("NDesk.DBus.Proxies"), AssemblyBuilderAccess.Run);
-			//asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("NDesk.DBus.Proxies"), AssemblyBuilderAccess.RunAndSave);
-			modB = asmB.DefineDynamicModule ("ProxyModule");
+			//asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("NDesk.DBus.Proxies"), AssemblyBuilderAccess.Run);
+			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("NDesk.DBus.Proxies"), canSave ? AssemblyBuilderAccess.RunAndSave : AssemblyBuilderAccess.Run);
+			modB = asmB.DefineDynamicModule ("NDesk.DBus.Proxies");
 			//modB = asmB.DefineDynamicModule ("NDesk.DBus.Proxies.dll", "NDesk.DBus.Proxies.dll");
+			//Load ("NDesk.DBus.Proxies");
+		}
+
+		/*
+		public void Load (string fname)
+		{
+			try {
+				cacheAs.Add (AppDomain.CurrentDomain.Load (fname));
+			} catch {
+			}
 		}
 
 		public void Save ()
 		{
-			asmB.Save ("NDesk.DBus.Proxies.dll");
+			string fname = "NDesk.DBus.Proxies.dll";
+			System.IO.File.Delete (fname);
+			asmB.Save (fname);
 		}
+		*/
 
 		Dictionary<Type,Type> map = new Dictionary<Type,Type> ();
 
@@ -37,7 +51,20 @@ namespace NDesk.DBus
 			if (map.TryGetValue (declType, out retT))
 				return retT;
 
-			TypeBuilder typeB = modB.DefineType (declType.Name + "Proxy", TypeAttributes.Class | TypeAttributes.Public, typeof (BusObject));
+			string proxyName = declType.Name + "Proxy";
+
+			/*
+			foreach (Assembly cacheA in cacheAs) {
+				Type rt = cacheA.GetType (proxyName, false);
+				if (rt != null) {
+					Console.WriteLine ("HIT " + rt);
+					map[declType] = rt;
+					return rt;
+				}
+			}
+			*/
+
+			TypeBuilder typeB = modB.DefineType (proxyName, TypeAttributes.Class | TypeAttributes.Public, typeof (BusObject));
 
 			Implement (typeB, declType);
 

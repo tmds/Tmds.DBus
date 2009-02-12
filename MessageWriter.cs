@@ -7,6 +7,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace NDesk.DBus
 {
@@ -166,17 +167,21 @@ namespace NDesk.DBus
 			WriteNull ();
 		}
 
+		[Obsolete]
 		public void WriteComplex (object val, Type type)
 		{
 			if (type == typeof (void))
 				return;
 
 			if (type.IsArray) {
-				WriteArray (val, type.GetElementType ());
+				MethodInfo miDict = typeof (MessageWriter).GetMethod ("WriteArray");
+				MethodInfo mi = miDict.MakeGenericMethod (type.GetElementType ());
+				mi.Invoke (this, new object[] {val});
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
-				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
-				WriteFromDict (genArgs[0], genArgs[1], idict);
+				MethodInfo miDict = typeof (MessageWriter).GetMethod ("WriteFromDict");
+				MethodInfo mi = miDict.MakeGenericMethod (genArgs);
+				mi.Invoke (this, new object[] {val});
 			} else if (Mapper.IsPublic (type)) {
 				WriteObject (type, val);
 			} else if (!type.IsPrimitive && !type.IsEnum) {
@@ -192,13 +197,16 @@ namespace NDesk.DBus
 			}
 		}
 
+		[Obsolete]
 		public void Write (Type type, object val)
 		{
 			if (type == typeof (void))
 				return;
 
 			if (type.IsArray) {
-				WriteArray (val, type.GetElementType ());
+				MethodInfo miDict = typeof (MessageWriter).GetMethod ("WriteArray");
+				MethodInfo mi = miDict.MakeGenericMethod (type.GetElementType ());
+				mi.Invoke (this, new object[] {val});
 			} else if (type == typeof (ObjectPath)) {
 				Write ((ObjectPath)val);
 			} else if (type == typeof (Signature)) {
@@ -209,8 +217,9 @@ namespace NDesk.DBus
 				Write ((string)val);
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
-				System.Collections.IDictionary idict = (System.Collections.IDictionary)val;
-				WriteFromDict (genArgs[0], genArgs[1], idict);
+				MethodInfo miDict = typeof (MessageWriter).GetMethod ("WriteFromDict");
+				MethodInfo mi = miDict.MakeGenericMethod (genArgs);
+				mi.Invoke (this, new object[] {val});
 			} else if (Mapper.IsPublic (type)) {
 				WriteObject (type, val);
 			} else if (!type.IsPrimitive && !type.IsEnum) {
@@ -342,17 +351,36 @@ namespace NDesk.DBus
 		}
 
 		//this requires a seekable stream for now
-		public void WriteArray (object obj, Type elemType)
+		public unsafe void WriteArray<T> (T[] val)
 		{
-			Array val = (Array)obj;
+			Type elemType = typeof (T);
+			if (elemType.IsEnum)
+				elemType = Enum.GetUnderlyingType (elemType);
 
-			//TODO: more fast paths for primitive arrays
 			if (elemType == typeof (byte)) {
 				if (val.Length > Protocol.MaxArrayLength)
 					throw new Exception ("Array length " + val.Length + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
 
 				Write ((uint)val.Length);
-				stream.Write ((byte[])val, 0, val.Length);
+				stream.Write ((byte[])(object)val, 0, val.Length);
+				return;
+			}
+
+			Signature sigElem = Signature.GetSig (elemType);
+			int fixedSize = 0;
+			if (endianness == Connection.NativeEndianness && elemType.IsValueType && !sigElem.IsStruct && sigElem.GetFixedSize (ref fixedSize)) {
+				int byteLength = fixedSize * val.Length;
+				if (byteLength > Protocol.MaxArrayLength)
+					throw new Exception ("Array length " + byteLength + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+				Write ((uint)byteLength);
+				WritePad (sigElem.Alignment);
+
+				GCHandle valHandle = GCHandle.Alloc (val, GCHandleType.Pinned);
+				IntPtr p = valHandle.AddrOfPinnedObject ();
+				byte[] data = new byte[byteLength];
+				System.Runtime.InteropServices.Marshal.Copy (p, data, 0, byteLength);
+				stream.Write (data, 0, data.Length);
+				valHandle.Free ();
 				return;
 			}
 
@@ -360,12 +388,14 @@ namespace NDesk.DBus
 			Write ((uint)0);
 
 			//advance to the alignment of the element
-			WritePad (Protocol.GetAlignment (Signature.TypeToDType (elemType)));
+			WritePad (sigElem.Alignment);
 
 			long startPos = stream.Position;
 
-			foreach (object elem in val)
-				Write (elemType, elem);
+			TypeWriter<T> tWriter = TypeImplementer.GetTypeWriter<T> ();
+
+			foreach (T elem in val)
+				tWriter (this, elem);
 
 			long endPos = stream.Position;
 			uint ln = (uint)(endPos - startPos);
@@ -378,23 +408,35 @@ namespace NDesk.DBus
 			stream.Position = endPos;
 		}
 
-		public void WriteFromDict (Type keyType, Type valType, System.Collections.IDictionary val)
+		public void WriteValueType (object val, Type type)
+		{
+			MethodInfo mi = TypeImplementer.GetWriteMethod (type);
+			mi.Invoke (null, new object[] {this, val});
+		}
+
+		public void WriteStructure<T> (T value)
+		{
+			TypeWriter<T> tWriter = TypeImplementer.GetTypeWriter<T> ();
+			tWriter (this, value);
+		}
+
+		public void WriteFromDict<TKey,TValue> (IDictionary<TKey,TValue> val)
 		{
 			long origPos = stream.Position;
 			Write ((uint)0);
 
-			//advance to the alignment of the element
-			//WritePad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 			WritePad (8);
 
 			long startPos = stream.Position;
 
-			foreach (System.Collections.DictionaryEntry entry in val)
+			TypeWriter<TKey> keyWriter = TypeImplementer.GetTypeWriter<TKey> ();
+			TypeWriter<TValue> valueWriter = TypeImplementer.GetTypeWriter<TValue> ();
+
+			foreach (KeyValuePair<TKey,TValue> entry in val)
 			{
 				WritePad (8);
-
-				Write (keyType, entry.Key);
-				Write (valType, entry.Value);
+				keyWriter (this, entry.Key);
+				valueWriter (this, entry.Value);
 			}
 
 			long endPos = stream.Position;
@@ -407,37 +449,6 @@ namespace NDesk.DBus
 			Write (ln);
 			stream.Position = endPos;
 		}
-
-		public void WriteValueType (object val, Type type)
-		{
-			MethodInfo mi = TypeImplementer.GetWriteMethod (type);
-			mi.Invoke (null, new object[] {this, val});
-		}
-
-		/*
-		public void WriteValueTypeOld (object val, Type type)
-		{
-			WritePad (8);
-
-			if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>)) {
-				System.Reflection.PropertyInfo key_prop = type.GetProperty ("Key");
-				Write (key_prop.PropertyType, key_prop.GetValue (val, null));
-
-				System.Reflection.PropertyInfo val_prop = type.GetProperty ("Value");
-				Write (val_prop.PropertyType, val_prop.GetValue (val, null));
-
-				return;
-			}
-
-			FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-
-			foreach (System.Reflection.FieldInfo fi in fis) {
-				object elem;
-				elem = fi.GetValue (val);
-				Write (fi.FieldType, elem);
-			}
-		}
-		*/
 
 		public void WriteNull ()
 		{

@@ -94,13 +94,14 @@ namespace NDesk.DBus
 		}
 		*/
 
+		TypeWriter<Header> headerWriter = TypeImplementer.GetTypeWriter<Header> ();
 		public byte[] GetHeaderData ()
 		{
 			if (Body != null)
 				Header.Length = (uint)Body.Length;
 
 			MessageWriter writer = new MessageWriter (Header.Endianness);
-			writer.WriteValueType (Header, typeof (Header));
+			headerWriter (writer, Header);
 			writer.CloseWrite ();
 
 			return writer.ToArray ();

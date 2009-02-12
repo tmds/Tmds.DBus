@@ -153,7 +153,7 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Ldarg_0);
 			ilg.Emit (OpCodes.Ldarg_1);
 
-			GenMarshalWrite (ilg, t);
+			GenWriter (ilg, t);
 
 			ilg.Emit (OpCodes.Ret);
 
@@ -161,6 +161,25 @@ namespace NDesk.DBus
 
 			writeMethods[t] = meth;
 			return meth;
+		}
+
+		static Dictionary<Type,object> typeWriters = new Dictionary<Type,object> ();
+		public static TypeWriter<T> GetTypeWriter<T> ()
+		{
+			Type t = typeof (T);
+
+			object value;
+			if (typeWriters.TryGetValue (t, out value))
+				return (TypeWriter<T>)value;
+
+			MethodInfo mi = GetWriteMethod (t);
+			DynamicMethod dm = mi as DynamicMethod;
+			if (dm == null)
+				return null;
+
+			TypeWriter<T> tWriter = dm.CreateDelegate (typeof (TypeWriter<T>)) as TypeWriter<T>;
+			typeWriters[t] = tWriter;
+			return tWriter;
 		}
 
 		//takes the Writer instance and the value of Type t off the stack, writes it
@@ -174,6 +193,8 @@ namespace NDesk.DBus
 				//imprecise = true;
 			}
 
+			Type type = t;
+
 			//MethodInfo exactWriteMethod = typeof (MessageWriter).GetMethod ("Write", new Type[] {tUnder});
 			MethodInfo exactWriteMethod = typeof (MessageWriter).GetMethod ("Write", BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public, null, new Type[] {tUnder}, null);
 			//ExactBinding InvokeMethod
@@ -183,7 +204,16 @@ namespace NDesk.DBus
 				//	ilg.Emit (OpCodes.Castclass, tUnder);
 
 				ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
-			} else {
+			} else if (t.IsArray) {
+				MethodInfo mi = typeof (MessageWriter).GetMethod ("WriteArray");
+				exactWriteMethod = mi.MakeGenericMethod (type.GetElementType ());
+				ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
+			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
+				Type[] genArgs = type.GetGenericArguments ();
+				MethodInfo mi = typeof (MessageWriter).GetMethod ("WriteFromDict");
+				exactWriteMethod = mi.MakeGenericMethod (genArgs);
+				ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
+			} else if (false) {
 				//..boxed if necessary
 				if (t.IsValueType)
 					ilg.Emit (OpCodes.Box, t);
@@ -193,6 +223,8 @@ namespace NDesk.DBus
 				ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
 
 				ilg.Emit (messageWriterWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageWriterWriteMethod);
+			} else {
+				GenStructWriter (ilg, t);
 			}
 		}
 
@@ -223,7 +255,7 @@ namespace NDesk.DBus
 		*/
 
 		//takes a writer and a reference to an object off the stack
-		public static void GenMarshalWrite (ILGenerator ilg, Type type)
+		public static void GenStructWriter (ILGenerator ilg, Type type)
 		{
 			LocalBuilder val = ilg.DeclareLocal (type);
 			ilg.Emit (OpCodes.Stloc, val);
@@ -273,7 +305,7 @@ namespace NDesk.DBus
 		}
 
 		//takes a reader and a reference to an object off the stack
-		public static void GenMarshalRead (ILGenerator ilg, Type type)
+		public static void GenStructReader (ILGenerator ilg, Type type)
 		{
 			/*
 			int fixedSize = 0;
@@ -284,7 +316,7 @@ namespace NDesk.DBus
 
 			// FIXME: Newobj fails if type has no default ctor!
 
-			//Console.WriteLine ("GenMarshalRead " + type);
+			//Console.WriteLine ("GenStructReader " + type);
 			LocalBuilder val = ilg.DeclareLocal (type);
 			ConstructorInfo ctor = type.GetConstructor (Type.EmptyTypes);
 			//ConstructorInfo ctor = type.TypeInitializer;
@@ -551,7 +583,7 @@ namespace NDesk.DBus
 			ilg.Emit (OpCodes.Ldarg_0);
 			ilg.Emit (OpCodes.Ldarg_1);
 
-			//GenMarshalRead (ilg, t);
+			//GenStructReader (ilg, t);
 			GenReader (ilg, t);
 
 			ilg.Emit (OpCodes.Ret);
@@ -700,15 +732,15 @@ namespace NDesk.DBus
 			else if (t.IsGenericType && (t.GetGenericTypeDefinition () == typeof (IDictionary<,>)))
 				GenReadCollection (ilg, t);
 			else if (t.IsInterface)
-				GenReadFallback (ilg, tUnder);
+				GenFallbackReader (ilg, tUnder);
 			else if (!tUnder.IsValueType) {
 				//Console.Error.WriteLine ("Gen struct reader for " + t);
 				//ilg.Emit (OpCodes.Newobj, messageWriterConstructor);
 				//if (tUnder.IsValueType)
 				//	throw new Exception ("Can't handle value types yet");
-				GenMarshalRead (ilg, tUnder);
+				GenStructReader (ilg, tUnder);
 			} else
-				GenReadFallback (ilg, tUnder);
+				GenFallbackReader (ilg, tUnder);
 
 			/*
 				//if (t.IsValueType)
@@ -718,7 +750,7 @@ namespace NDesk.DBus
 					*/
 		}
 
-		public static void GenReadFallback (ILGenerator ilg, Type t)
+		public static void GenFallbackReader (ILGenerator ilg, Type t)
 		{
 			// TODO: do we want non-tUnder here for Castclass use?
 			Console.Error.WriteLine ("Bad! Generating fallback reader for " + t);
@@ -1001,6 +1033,8 @@ namespace NDesk.DBus
 			}
 		}
 	}
+
+	internal delegate void TypeWriter<T> (MessageWriter writer, T value);
 
 	internal delegate void MethodCaller (MessageReader rdr, Message msg, MessageWriter ret);
 	internal delegate void MethodCaller2 (object instance, MessageReader rdr, Message msg, MessageWriter ret);

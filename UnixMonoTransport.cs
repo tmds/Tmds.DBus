@@ -36,6 +36,13 @@ namespace NDesk.DBus.Transports
 			Stream.WriteByte (0);
 		}
 
+		public override string AuthString ()
+		{
+			long uid = UnixUserInfo.GetRealUserId ();
+
+			return uid.ToString ();
+		}
+
 		protected Socket OpenAbstractUnix (string path)
 		{
 			AbstractUnixEndPoint ep = new AbstractUnixEndPoint (path);

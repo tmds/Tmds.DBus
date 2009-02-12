@@ -360,7 +360,7 @@ namespace NDesk.DBus
 
 		public static object GetObject (Connection conn, string bus_name, ObjectPath object_path, Type declType)
 		{
-			Type proxyType = TypeImplementer.GetImplementation (declType);
+			Type proxyType = TypeImplementer.Root.GetImplementation (declType);
 
 			BusObject inst = (BusObject)Activator.CreateInstance (proxyType);
 			inst.conn = conn;

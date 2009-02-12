@@ -9,30 +9,33 @@ using System.Collections.Generic;
 
 namespace NDesk.DBus
 {
-	static class TypeImplementer
+	class TypeImplementer
 	{
-		static AssemblyBuilder asmB;
-		static ModuleBuilder modB;
+		public static TypeImplementer Root = new TypeImplementer ("NDesk.DBus.Proxies");
+		AssemblyBuilder asmB;
+		ModuleBuilder modB;
 
-		static void InitHack ()
+		public TypeImplementer (string name)
 		{
-			if (asmB != null)
-				return;
-
 			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("NDesk.DBus.Proxies"), AssemblyBuilderAccess.Run);
+			//asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("NDesk.DBus.Proxies"), AssemblyBuilderAccess.RunAndSave);
 			modB = asmB.DefineDynamicModule ("ProxyModule");
+			//modB = asmB.DefineDynamicModule ("NDesk.DBus.Proxies.dll", "NDesk.DBus.Proxies.dll");
 		}
 
-		static Dictionary<Type,Type> map = new Dictionary<Type,Type> ();
+		public void Save ()
+		{
+			asmB.Save ("NDesk.DBus.Proxies.dll");
+		}
 
-		public static Type GetImplementation (Type declType)
+		Dictionary<Type,Type> map = new Dictionary<Type,Type> ();
+
+		public Type GetImplementation (Type declType)
 		{
 			Type retT;
 
 			if (map.TryGetValue (declType, out retT))
 				return retT;
-
-			InitHack ();
 
 			TypeBuilder typeB = modB.DefineType (declType.Name + "Proxy", TypeAttributes.Class | TypeAttributes.Public, typeof (BusObject));
 
@@ -47,7 +50,7 @@ namespace NDesk.DBus
 			return retT;
 		}
 
-		public static void Implement (TypeBuilder typeB, Type iface)
+		static void Implement (TypeBuilder typeB, Type iface)
 		{
 			typeB.AddInterfaceImplementation (iface);
 
@@ -59,6 +62,7 @@ namespace NDesk.DBus
 					parmTypes[i] = parms[i].ParameterType;
 
 				MethodAttributes attrs = declMethod.Attributes ^ MethodAttributes.Abstract;
+				attrs |= MethodAttributes.Final;
 				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, attrs, declMethod.ReturnType, parmTypes);
 				typeB.DefineMethodOverride (method_builder, declMethod);
 
@@ -68,16 +72,11 @@ namespace NDesk.DBus
 
 				//Console.WriteLine ("retType: " + declMethod.ReturnType);
 				ILGenerator ilg = method_builder.GetILGenerator ();
-				//GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
-				if (declMethod.ReturnType != typeof (void) && !declMethod.ReturnType.IsPrimitive && declMethod.ReturnType.IsValueType)
-					GenHookupMethod (ilg, declMethod, sendMethodCallOldMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
-				else
-					GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
+				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
 			}
 		}
 
 		static MethodInfo sendMethodCallMethod = typeof (BusObject).GetMethod ("SendMethodCall");
-		static MethodInfo sendMethodCallOldMethod = typeof (BusObject).GetMethod ("SendMethodCallOld");
 		static MethodInfo sendSignalMethod = typeof (BusObject).GetMethod ("SendSignal");
 		static MethodInfo toggleSignalMethod = typeof (BusObject).GetMethod ("ToggleSignal");
 

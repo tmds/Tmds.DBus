@@ -493,9 +493,6 @@ namespace NDesk.DBus
 					if (!parm.IsOut)
 						continue;
 
-					Console.WriteLine ("parm.ParameterType: " + parm.ParameterType);
-					Console.WriteLine ("parm.ParameterType.GetElementType (): " + parm.ParameterType.GetElementType ());
-					//Type t = parm.ParameterType;
 					Type t = parm.ParameterType.GetElementType ();
 					//offset by one to account for "this"
 					int i = parm.Position + 1;
@@ -753,7 +750,8 @@ namespace NDesk.DBus
 		public static void GenFallbackReader (ILGenerator ilg, Type t)
 		{
 			// TODO: do we want non-tUnder here for Castclass use?
-			Console.Error.WriteLine ("Bad! Generating fallback reader for " + t);
+			if (Protocol.Verbose)
+				Console.Error.WriteLine ("Bad! Generating fallback reader for " + t);
 
 			MethodInfo exactMethod;
 			exactMethod = typeof (MessageReader).GetMethod ("ReadValue", new Type[] { typeof (System.Type) });

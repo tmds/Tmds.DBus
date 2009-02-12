@@ -113,14 +113,6 @@ namespace NDesk.DBus
 		// Note: This method doesn't support aggregate signatures
 		public bool StepOver (Signature sig)
 		{
-			int endPos = pos;
-			if (sig.GetFixedSize (ref endPos)) {
-				pos = endPos;
-				return true;
-			}
-
-			pos = Protocol.Padded (pos, sig.Alignment);
-
 			if (sig == Signature.VariantSig) {
 				Signature valueSig = ReadSignature ();
 				return StepOver (valueSig);
@@ -142,12 +134,21 @@ namespace NDesk.DBus
 
 			// No need to handle dicts specially. IsArray does the job
 			if (sig.IsArray) {
-				uint valueLength = ReadUInt32 ();
-				pos += (int)valueLength;
+				Signature elemSig = sig.GetElementSignature ();
+				uint ln = ReadUInt32 ();
+				pos = Protocol.Padded (pos, elemSig.Alignment);
+				pos += (int)ln;
+				return true;
+			}
+
+			int endPos = pos;
+			if (sig.GetFixedSize (ref endPos)) {
+				pos = endPos;
 				return true;
 			}
 
 			if (sig.IsStruct) {
+				pos = Protocol.Padded (pos, sig.Alignment);
 				foreach (Signature fieldSig in sig.GetFieldSignatures ())
 					if (!StepOver (fieldSig))
 						return false;

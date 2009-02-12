@@ -333,7 +333,21 @@ namespace NDesk.DBus
 
 		object ReadVariant (Signature sig)
 		{
-			return ReadValue (sig.ToType ());
+			Type t = null;
+
+			try {
+				t = sig.ToType ();
+			} catch (Exception e) {
+				if (Protocol.Verbose)
+					Console.Error.WriteLine (e.Message);
+			}
+
+			if (t == null) {
+				StepOver (sig);
+				return null;
+			}
+
+			return ReadValue (t);
 		}
 
 		//not pretty or efficient but works

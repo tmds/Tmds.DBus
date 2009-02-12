@@ -157,6 +157,36 @@ namespace NDesk.DBus
 			throw new Exception ("Can't step over '" + sig + "'");
 			//return false;
 		}
+
+		public IEnumerable<Signature> StepInto (Signature sig)
+		{
+			if (sig == Signature.VariantSig) {
+				Signature valueSig = ReadSignature ();
+				yield return valueSig;
+				yield break;
+			}
+
+			// No need to handle dicts specially. IsArray does the job
+			if (sig.IsArray) {
+				Signature elemSig = sig.GetElementSignature ();
+				uint ln = ReadUInt32 ();
+				ReadPad (elemSig.Alignment);
+				int endPos = pos + (int)ln;
+				while (pos < endPos)
+					yield return elemSig;
+				yield break;
+			}
+
+			if (sig.IsStruct) {
+				pos = Protocol.Padded (pos, sig.Alignment);
+				foreach (Signature fieldSig in sig.GetFieldSignatures ())
+					yield return fieldSig;
+				yield break;
+			}
+
+			throw new Exception ("Can't step into '" + sig + "'");
+			//yield break;
+		}
 	}
 
 	class MessageDumper

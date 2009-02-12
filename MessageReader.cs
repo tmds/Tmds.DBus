@@ -337,7 +337,8 @@ namespace NDesk.DBus
 
 			try {
 				t = sig.ToType ();
-			} catch (Exception e) {
+			} catch (NotSupportedException e) {
+				// We don't catch other exceptions as they indicate a malformed signature
 				if (Protocol.Verbose)
 					Console.Error.WriteLine (e.Message);
 			}

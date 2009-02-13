@@ -4,7 +4,6 @@
 
 using System;
 using System.IO;
-using Mono.Unix;
 
 namespace NDesk.DBus.Transports
 {
@@ -23,13 +22,6 @@ namespace NDesk.DBus.Transports
 				throw new Exception ("No path specified for UNIX transport");
 
 			Open (path, abstr);
-		}
-
-		public override string AuthString ()
-		{
-			long uid = UnixUserInfo.GetRealUserId ();
-
-			return uid.ToString ();
 		}
 
 		public abstract void Open (string path, bool @abstract);

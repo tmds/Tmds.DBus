@@ -10,116 +10,21 @@
 using System;
 using System.IO;
 using System.Text;
-
 using System.Runtime.InteropServices;
-
-using Mono.Unix;
-using Mono.Unix.Native;
+using NDesk.Unix;
 
 namespace NDesk.DBus.Transports
 {
-	class UnixSocket
-	{
-		public const short AF_UNIX = 1;
-		//TODO: SOCK_STREAM is 2 on Solaris
-		public const short SOCK_STREAM = 1;
-
-		//TODO: some of these are provided by libsocket instead of libc on Solaris
-
-		[DllImport ("libc", SetLastError=true)]
-			protected static extern int socket (int domain, int type, int protocol);
-
-		[DllImport ("libc", SetLastError=true)]
-			protected static extern int connect (int sockfd, byte[] serv_addr, uint addrlen);
-
-		[DllImport ("libc", SetLastError=true)]
-			protected static extern int bind (int sockfd, byte[] my_addr, uint addrlen);
-
-		[DllImport ("libc", SetLastError=true)]
-			protected static extern int listen (int sockfd, int backlog);
-
-		//TODO: this prototype is probably wrong, fix it
-		[DllImport ("libc", SetLastError=true)]
-			protected static extern int accept (int sockfd, byte[] addr, ref uint addrlen);
-
-		//TODO: confirm and make use of these functions
-		[DllImport ("libc", SetLastError=true)]
-			protected static extern int getsockopt (int s, int optname, IntPtr optval, ref uint optlen);
-
-		[DllImport ("libc", SetLastError=true)]
-			protected static extern int setsockopt (int s, int optname, IntPtr optval, uint optlen);
-
-		[DllImport ("libc", SetLastError=true)]
-			public static extern int recvmsg (int s, IntPtr msg, int flags);
-
-		[DllImport ("libc", SetLastError=true)]
-			public static extern int sendmsg (int s, IntPtr msg, int flags);
-
-		public int Handle;
-
-		public UnixSocket (int handle)
-		{
-			this.Handle = handle;
-		}
-
-		public UnixSocket ()
-		{
-			//TODO: don't hard-code PF_UNIX and SOCK_STREAM or SocketType.Stream
-			//AddressFamily family, SocketType type, ProtocolType proto
-
-			int r = socket (AF_UNIX, SOCK_STREAM, 0);
-			//we should get the Exception from UnixMarshal and throw it here for a better stack trace, but the relevant API seems to be private
-			UnixMarshal.ThrowExceptionForLastErrorIf (r);
-			Handle = r;
-		}
-
-		protected bool connected = false;
-
-		//TODO: consider memory management
-		public void Connect (byte[] remote_end)
-		{
-			int r = connect (Handle, remote_end, (uint)remote_end.Length);
-			//we should get the Exception from UnixMarshal and throw it here for a better stack trace, but the relevant API seems to be private
-			UnixMarshal.ThrowExceptionForLastErrorIf (r);
-			connected = true;
-		}
-
-		//assigns a name to the socket
-		public void Bind (byte[] local_end)
-		{
-			int r = bind (Handle, local_end, (uint)local_end.Length);
-			UnixMarshal.ThrowExceptionForLastErrorIf (r);
-		}
-
-		public void Listen (int backlog)
-		{
-			int r = listen (Handle, backlog);
-			UnixMarshal.ThrowExceptionForLastErrorIf (r);
-		}
-
-		public UnixSocket Accept ()
-		{
-			byte[] addr = new byte[110];
-			uint addrlen = (uint)addr.Length;
-
-			int r = accept (Handle, addr, ref addrlen);
-			UnixMarshal.ThrowExceptionForLastErrorIf (r);
-			//TODO: use the returned addr
-			//TODO: fix probable memory leak here
-			//string str = Encoding.Default.GetString (addr, 0, (int)addrlen);
-			return new UnixSocket (r);
-		}
-	}
-
-	struct IOVector
-	{
-		public IntPtr Base;
-		public int Length;
-	}
-
 	class UnixNativeTransport : UnixTransport
 	{
-		protected UnixSocket socket;
+		//protected UnixSocket socket;
+		internal UnixSocket socket;
+
+		public override string AuthString ()
+		{
+			long uid = UnixUid.GetEUID ();
+			return uid.ToString ();
+		}
 
 		public override void Open (string path, bool @abstract)
 		{
@@ -133,7 +38,8 @@ namespace NDesk.DBus.Transports
 
 			//socket.Blocking = true;
 			SocketHandle = (long)socket.Handle;
-			Stream = new UnixStream ((int)socket.Handle);
+			//Stream = new UnixStream ((int)socket.Handle);
+			Stream = new UnixStream (socket);
 		}
 
 		//send peer credentials null byte
@@ -145,7 +51,8 @@ namespace NDesk.DBus.Transports
 			byte buf = 0;
 
 			IOVector iov = new IOVector ();
-			iov.Base = (IntPtr)(&buf);
+			//iov.Base = (IntPtr)(&buf);
+			iov.Base = &buf;
 			iov.Length = 1;
 
 			msghdr msg = new msghdr ();
@@ -160,7 +67,9 @@ namespace NDesk.DBus.Transports
 			cm.hdr.cmsg_type = 0x03; //SCM_CREDS
 
 			int written = UnixSocket.sendmsg (socket.Handle, (IntPtr)(&msg), 0);
-			UnixMarshal.ThrowExceptionForLastErrorIf (written);
+			if (written < 0)
+				throw UnixError.GetLastUnixException ();
+
 			if (written != 1)
 				throw new Exception ("Failed to write credentials");
 		}
@@ -171,42 +80,18 @@ namespace NDesk.DBus.Transports
 #if HAVE_CMSGCRED
 			try {
 				WriteBsdCred ();
+				return;
 			} catch {
 				if (Protocol.Verbose)
 					Console.Error.WriteLine ("Warning: WriteBsdCred() failed; falling back to ordinary WriteCred()");
-				//null credentials byte
-				byte buf = 0;
-				Stream.WriteByte (buf);
 			}
-#else
+#endif
 			//null credentials byte
 			byte buf = 0;
 			Stream.WriteByte (buf);
-#endif
 		}
 
-		protected UnixSocket OpenAbstractUnix (string path)
-		{
-			byte[] p = Encoding.Default.GetBytes (path);
-
-			byte[] sa = new byte[2 + 1 + p.Length];
-
-			//we use BitConverter to stay endian-safe
-			byte[] afData = BitConverter.GetBytes (UnixSocket.AF_UNIX);
-			sa[0] = afData[0];
-			sa[1] = afData[1];
-
-			sa[2] = 0; //null prefix for abstract domain socket addresses, see unix(7)
-			for (int i = 0 ; i != p.Length ; i++)
-				sa[3 + i] = p[i];
-
-			UnixSocket client = new UnixSocket ();
-			client.Connect (sa);
-
-			return client;
-		}
-
-		public UnixSocket OpenUnix (string path)
+		public static byte[] GetSockAddr (string path)
 		{
 			byte[] p = Encoding.Default.GetBytes (path);
 
@@ -221,9 +106,40 @@ namespace NDesk.DBus.Transports
 				sa[2 + i] = p[i];
 			sa[2 + p.Length] = 0; //null suffix for domain socket addresses, see unix(7)
 
+			return sa;
+		}
+
+		public static byte[] GetSockAddrAbstract (string path)
+		{
+			byte[] p = Encoding.Default.GetBytes (path);
+
+			byte[] sa = new byte[2 + 1 + p.Length];
+
+			//we use BitConverter to stay endian-safe
+			byte[] afData = BitConverter.GetBytes (UnixSocket.AF_UNIX);
+			sa[0] = afData[0];
+			sa[1] = afData[1];
+
+			sa[2] = 0; //null prefix for abstract domain socket addresses, see unix(7)
+			for (int i = 0 ; i != p.Length ; i++)
+				sa[3 + i] = p[i];
+
+			return sa;
+		}
+
+		internal UnixSocket OpenUnix (string path)
+		{
+			byte[] sa = GetSockAddr (path);
 			UnixSocket client = new UnixSocket ();
 			client.Connect (sa);
+			return client;
+		}
 
+		internal UnixSocket OpenAbstractUnix (string path)
+		{
+			byte[] sa = GetSockAddrAbstract (path);
+			UnixSocket client = new UnixSocket ();
+			client.Connect (sa);
 			return client;
 		}
 	}

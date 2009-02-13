@@ -65,6 +65,17 @@ namespace NDesk.DBus.Transports
 
 		internal Message ReadMessage ()
 		{
+			try {
+				return ReadMessageReal ();
+			} catch (IOException e) {
+				if (Protocol.Verbose)
+					Console.Error.WriteLine (e.Message);
+				return null;
+			}
+		}
+
+		Message ReadMessageReal ()
+		{
 			byte[] header;
 			byte[] body = null;
 

@@ -2,9 +2,13 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
+//#define USE_GLIB
+
 using System;
+using System.Text;
 using System.Diagnostics;
 using System.Collections.Generic;
+using NDesk.Unix;
 using NDesk.DBus;
 using NDesk.DBus.Authentication;
 using NDesk.DBus.Transports;
@@ -53,21 +57,24 @@ public class DBusDaemon
 		*/
 
 		//port = Int32.Parse (args[1]);
-		TcpServer serv = new TcpServer (addr);
+		//TcpServer serv = new TcpServer (addr);
+		//UnixServer serv = new UnixServer (addr);
+
+		Server serv = Server.ListenAt (addr);
 
 		ServerBus sbus = new ServerBus ();
 		sbus.server = serv;
 		serv.SBus = sbus;
 		serv.NewConnection += sbus.AddConnection;
 
-		//serv.Listen ();
-
+#if USE_GLIB
 		new Thread (new ThreadStart (serv.Listen)).Start ();
-
 		//GLib.Idle.Add (delegate { serv.Listen (); return false; });
-
 		GLib.MainLoop main = new GLib.MainLoop ();
 		main.Run ();
+#else
+		serv.Listen ();
+#endif
 	}
 
 	static void RunClient (string addr)
@@ -139,8 +146,7 @@ public class DBusDaemon
 		//static ObjectPath Path2 = new ObjectPath ("/");
 		const string DBusBusName = "org.freedesktop.DBus";
 
-		//internal Server server;
-		internal TcpServer server;
+		internal Server server;
 		//Connection Caller
 		ServerConnection Caller
 		{
@@ -440,7 +446,7 @@ public class DBusDaemon
 							/*
 							replyMsg.Header.Serial = Caller.GenerateSerial ();
 							MessageDumper.WriteMessage (replyMsg, Console.Out);
-							Caller.WriteMessageReal (replyMsg);
+							Caller.SendReal (replyMsg);
 							*/
 							return;
 						}
@@ -465,9 +471,8 @@ public class DBusDaemon
 					StartProcessNamed (destination);
 					Message rmsg = MessageHelper.CreateUnknownMethodError (new MethodCall (msg));
 					if (rmsg != null) {
-						rmsg.Header.Serial = Caller.GenerateSerial ();
 						//Caller.Send (rmsg);
-						Caller.WriteMessageReal (rmsg);
+						Caller.SendReal (rmsg);
 						return;
 					}
 				}
@@ -498,8 +503,10 @@ public class DBusDaemon
 
 			foreach (Connection conn in recipients) {
 				// TODO: rewrite/don't header fields
-				//conn.WriteMessage (msg);
-				((ServerConnection)conn).WriteMessageReal (msg);
+				//conn.Send (msg);
+				// TODO: Zero the Serial or not?
+				//msg.Header.Serial = 0;
+				((ServerConnection)conn).SendReal (msg);
 			}
 		}
 
@@ -578,38 +585,43 @@ public class DBusDaemon
 		{
 		}
 
+		public bool allowActivation = false;
 		void StartProcessNamed (string name)
 		{
 			Console.WriteLine ("Start " + name);
-			return;
+
+			if (!allowActivation)
+				return;
+
 			try {
-			string fname = String.Format ("/usr/share/dbus-1/services/{0}.service", name);
-			using (TextReader r = new StreamReader (fname)) {
-				string ln;
-				while ((ln = r.ReadLine ()) != null) {
-					if (ln.StartsWith ("Exec=")) {
-						string bin = ln.Remove (0, 5);
-						StartProcess (bin);
+				string fname = String.Format ("/usr/share/dbus-1/services/{0}.service", name);
+				using (TextReader r = new StreamReader (fname)) {
+					string ln;
+					while ((ln = r.ReadLine ()) != null) {
+						if (ln.StartsWith ("Exec=")) {
+							string bin = ln.Remove (0, 5);
+							StartProcess (bin);
+						}
 					}
 				}
-			}
 			} catch (Exception e) {
 				Console.Error.WriteLine (e);
 			}
-
 		}
 
 		void StartProcess (string fname)
 		{
-			return;
+			if (!allowActivation)
+				return;
+
 			try {
-			 ProcessStartInfo startInfo = new ProcessStartInfo (fname);
-			 startInfo.UseShellExecute = false;
-			 startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = "session";
-			 startInfo.EnvironmentVariables["DBUS_SESSION_BUS_ADDRESS"] = server.address;
-			 startInfo.EnvironmentVariables["DBUS_STARTER_ADDRESS"] = server.address;
-			 startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = "session";
-			 Process myProcess = Process.Start (startInfo);
+				ProcessStartInfo startInfo = new ProcessStartInfo (fname);
+				startInfo.UseShellExecute = false;
+				startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = "session";
+				startInfo.EnvironmentVariables["DBUS_SESSION_BUS_ADDRESS"] = server.address;
+				startInfo.EnvironmentVariables["DBUS_STARTER_ADDRESS"] = server.address;
+				startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = "session";
+				Process myProcess = Process.Start (startInfo);
 			} catch (Exception e) {
 				Console.Error.WriteLine (e);
 			}
@@ -618,8 +630,7 @@ public class DBusDaemon
 
 class ServerConnection : Connection
 {
-	//public Server Server;
-	public TcpServer Server;
+	public Server Server;
 
 	public ServerConnection (Transport t) : base (t)
 	{
@@ -634,11 +645,11 @@ class ServerConnection : Connection
 	{
 		//Console.Error.WriteLine ("Message!");
 
-		Server.CurrentMessageConnection = this;
-		Server.CurrentMessage = msg;
-
 		if (!isConnected)
 			return;
+
+		Server.CurrentMessageConnection = this;
+		Server.CurrentMessage = msg;
 
 		if (msg == null) {
 			Console.Error.WriteLine ("Disconnected!");
@@ -687,10 +698,10 @@ class ServerConnection : Connection
 		Server.CurrentMessage = null;
 	}
 
-	override internal void WriteMessage (Message msg)
+	override internal uint Send (Message msg)
 	{
 		if (!isConnected)
-			return;
+			return 0;
 
 		if (msg.Header.MessageType != NDesk.DBus.MessageType.MethodReturn) {
 			msg.Header.Fields[FieldCode.Sender] = "org.freedesktop.DBus";
@@ -704,19 +715,26 @@ class ServerConnection : Connection
 			MessageDumper.WriteMessage (msg, Console.Out);
 		}
 
-		//base.WriteMessage (msg);
-		WriteMessageReal (msg);
+		//return base.Send (msg);
+		return SendReal (msg);
 	}
 
-	internal void WriteMessageReal (Message msg)
+	internal uint SendReal (Message msg)
 	{
+		if (!isConnected)
+			return 0;
+
 		try {
-			base.WriteMessage (msg);
-		} catch (System.IO.IOException) {
+			return base.Send (msg);
+		} catch {
+		//} catch (System.IO.IOException) {
 			isConnected = false;
+			Server.SBus.RemoveConnection (this);
 		}
+		return 0;
 	}
 
+	//ServerBus SBus;
 	public string UniqueName = null;
 	public long UserId = 0;
 
@@ -747,75 +765,106 @@ internal class BusContext
 	public string SenderName = null;
 }
 
-class TcpServer : Server
+class UnixServer : Server
 {
-	uint port = 0;
-	public TcpServer (string address)
+	string unixPath = null;
+	bool isAbstract;
+
+	public UnixServer (string address)
 	{
-		AddressEntry[] entries = Address.Parse (address);
+		AddressEntry[] entries = NDesk.DBus.Address.Parse (address);
 		AddressEntry entry = entries[0];
 
-		if (entry.Method != "tcp")
+		if (entry.Method != "unix")
 			throw new Exception ();
 
-		this.address = entry.ToString ();
+		string val;
+		if (entry.Properties.TryGetValue ("path", out val)) {
+			unixPath = val;
+			isAbstract = false;
+		} else if (entry.Properties.TryGetValue ("abstract", out val)) {
+			unixPath = val;
+			isAbstract = true;
+		}
 
+		if (String.IsNullOrEmpty (unixPath))
+			throw new Exception ("Address path is invalid");
+
+		if (entry.GUID == UUID.Zero)
+			entry.GUID = UUID.Generate ();
+		Id = entry.GUID;
+
+		/*
 		Id = entry.GUID;
 		if (Id == UUID.Zero)
 			Id = UUID.Generate ();
+		*/
 
-		string val;
-		if (entry.Properties.TryGetValue ("port", out val))
-			port = UInt32.Parse (val);
+		this.address = entry.ToString ();
+		Console.WriteLine ("Server address: " + Address);
 	}
 
 	public override void Disconnect ()
 	{
 	}
 
-	public void Listen ()
+	bool AcceptClient (UnixSocket csock, out ServerConnection conn)
 	{
-		TcpListener server = new TcpListener (IPAddress.Any, (int)port);
-		server.Server.Blocking = true;
+		//TODO: use the right abstraction here, probably using the Server class
+		UnixNativeTransport transport = new UnixNativeTransport ();
+		//client.Client.Blocking = true;
+		transport.socket = csock;
+		transport.SocketHandle = (long)csock.Handle;
+		transport.Stream = new UnixStream (csock);
+		//Connection conn = new Connection (transport);
+		//Connection conn = new ServerConnection (transport);
+		//ServerConnection conn = new ServerConnection (transport);
+		conn = new ServerConnection (transport);
+		conn.Server = this;
+		conn.Id = Id;
 
-		server.Start ();
+		if (conn.Transport.Stream.ReadByte () != 0)
+			return false;
+
+		SaslPeer remote = new SaslPeer ();
+		remote.stream = transport.Stream;
+		SaslServer local = new SaslServer ();
+		local.stream = transport.Stream;
+		local.Guid = Id;
+
+		local.Peer = remote;
+		remote.Peer = local;
+
+		bool success = local.Authenticate ();
+
+		Console.WriteLine ("Success? " + success);
+
+		if (!success)
+			return false;
+
+		conn.UserId = ((SaslServer)local).uid;
+
+		return true;
+	}
+
+	public override void Listen ()
+	{
+		byte[] sa = isAbstract ? UnixNativeTransport.GetSockAddrAbstract (unixPath) : UnixNativeTransport.GetSockAddr (unixPath);
+		UnixSocket usock = new UnixSocket ();
+		usock.Bind (sa);
+		usock.Listen (10);
 
 		while (true) {
-			Console.WriteLine ("Waiting for client on " + port);
-			TcpClient client = server.AcceptTcpClient ();
-			Console.WriteLine ("Client accepted");
+			Console.WriteLine ("Waiting for client on " + (isAbstract ? "abstract " : String.Empty) + "path " + unixPath);
+			UnixSocket csock = usock.Accept ();
+			Console.WriteLine ("Client connected");
 
-			//TODO: use the right abstraction here, probably using the Server class
-			SocketTransport transport = new SocketTransport ();
-			client.Client.Blocking = true;
-			transport.SocketHandle = (long)client.Client.Handle;
-			transport.Stream = client.GetStream ();
-			//Connection conn = new Connection (transport);
-			//Connection conn = new ServerConnection (transport);
-			ServerConnection conn = new ServerConnection (transport);
-			conn.Server = this;
-			conn.Id = Id;
-
-			if (conn.Transport.Stream.ReadByte () != 0)
-				return;
-
-			SaslPeer remote = new SaslPeer ();
-			remote.stream = transport.Stream;
-			SaslServer local = new SaslServer ();
-			local.stream = transport.Stream;
-			local.Guid = Id;
-
-			local.Peer = remote;
-			remote.Peer = local;
-
-			bool success = local.Authenticate ();
-
-			Console.WriteLine ("Success? " + success);
-
-			if (!success)
-				return;
-
-			conn.UserId = ((SaslServer)local).uid;
+			ServerConnection conn;
+			if (!AcceptClient (csock, out conn)) {
+				Console.WriteLine ("Client rejected");
+				csock.Close ();
+				continue;
+			}
 
 			//GLib.Idle.Add (delegate {
 
@@ -831,19 +880,144 @@ class TcpServer : Server
 			*/
 
 			//GLib.Idle.Add (delegate { BusG.Init (conn); return false; });
+#if USE_GLIB
 			BusG.Init (conn);
+#else
+			new Thread (new ThreadStart (delegate { while (conn.IsConnected) conn.Iterate (); })).Start ();
+#endif
 			Console.WriteLine ("done init");
+
 
 			//return false;
 			//});
 		}
 	}
 
-	// TODO: Make these a thread-specific CallContext prop
-	public Connection CurrentMessageConnection;
-	public Message CurrentMessage;
+	/*
+	public void ConnectionLost (Connection conn)
+	{
+	}
+	*/
 
-	public ServerBus SBus = null;
+	public override event Action<Connection> NewConnection;
+}
+
+class TcpServer : Server
+{
+	uint port = 0;
+	public TcpServer (string address)
+	{
+		AddressEntry[] entries = NDesk.DBus.Address.Parse (address);
+		AddressEntry entry = entries[0];
+
+		if (entry.Method != "tcp")
+			throw new Exception ();
+
+		string val;
+		if (entry.Properties.TryGetValue ("port", out val))
+			port = UInt32.Parse (val);
+
+		if (entry.GUID == UUID.Zero)
+			entry.GUID = UUID.Generate ();
+		Id = entry.GUID;
+
+		/*
+		Id = entry.GUID;
+		if (Id == UUID.Zero)
+			Id = UUID.Generate ();
+		*/
+
+		this.address = entry.ToString ();
+		Console.WriteLine ("Server address: " + Address);
+	}
+
+	public override void Disconnect ()
+	{
+	}
+
+	bool AcceptClient (TcpClient client, out ServerConnection conn)
+	{
+		//TODO: use the right abstraction here, probably using the Server class
+		SocketTransport transport = new SocketTransport ();
+		client.Client.Blocking = true;
+		transport.SocketHandle = (long)client.Client.Handle;
+		transport.Stream = client.GetStream ();
+		//Connection conn = new Connection (transport);
+		//Connection conn = new ServerConnection (transport);
+		//ServerConnection conn = new ServerConnection (transport);
+		conn = new ServerConnection (transport);
+		conn.Server = this;
+		conn.Id = Id;
+
+		if (conn.Transport.Stream.ReadByte () != 0)
+			return false;
+
+		SaslPeer remote = new SaslPeer ();
+		remote.stream = transport.Stream;
+		SaslServer local = new SaslServer ();
+		local.stream = transport.Stream;
+		local.Guid = Id;
+
+		local.Peer = remote;
+		remote.Peer = local;
+
+		bool success = local.Authenticate ();
+
+		Console.WriteLine ("Success? " + success);
+
+		if (!success)
+			return false;
+
+		conn.UserId = ((SaslServer)local).uid;
+
+		return true;
+	}
+
+	public override void Listen ()
+	{
+		TcpListener server = new TcpListener (IPAddress.Any, (int)port);
+		server.Server.Blocking = true;
+
+		server.Start ();
+
+		while (true) {
+			Console.WriteLine ("Waiting for client on TCP port " + port);
+			TcpClient client = server.AcceptTcpClient ();
+			Console.WriteLine ("Client connected");
+
+			ServerConnection conn;
+			if (!AcceptClient (client, out conn)) {
+				Console.WriteLine ("Client rejected");
+				//!!!csock.Close ();
+				continue;
+			}
+
+
+			//GLib.Idle.Add (delegate {
+
+			if (NewConnection != null)
+				NewConnection (conn);
+
+			//BusG.Init (conn);
+			/*
+			conn.Iterate ();
+			Console.WriteLine ("done iter");
+			BusG.Init (conn);
+			Console.WriteLine ("done init");
+			*/
+
+			//GLib.Idle.Add (delegate { BusG.Init (conn); return false; });
+#if USE_GLIB
+			BusG.Init (conn);
+#else
+			new Thread (new ThreadStart (delegate { while (conn.IsConnected) conn.Iterate (); })).Start ();
+#endif
+			Console.WriteLine ("done init");
+
+			//return false;
+			//});
+		}
+	}
 
 	/*
 	public void ConnectionLost (Connection conn)

@@ -12,17 +12,28 @@ namespace NDesk.DBus
 	//TODO: complete this class
 	abstract class Server
 	{
-		public static void Listen (string address)
+		// Was Listen()
+		public static Server ListenAt (string address)
 		{
-			AddressEntry[] entries = Address.Parse (address);
-			AddressEntry entry = entries[0];
+			AddressEntry[] entries = NDesk.DBus.Address.Parse (address);
 
-			Server server;
-			if (entry.Method == "tcp")
-				//server = new TcpServer ();
-				server = new TcpServer (entry.ToString ());
-			else
-				throw new Exception ("");
+			foreach (AddressEntry entry in entries) {
+				try {
+					switch (entry.Method) {
+						case "tcp":
+							return new TcpServer (entry.ToString ());
+						case "unix":
+							return new UnixServer (entry.ToString ());
+					}
+				} catch (Exception e) {
+					if (Protocol.Verbose)
+						Console.Error.WriteLine (e.Message);
+				}
+			}
+
+			// TODO: Should call Listen on the Server?
+
+			return null;
 
 			/*
 			server.address = address;
@@ -32,6 +43,8 @@ namespace NDesk.DBus
 				server.Id = UUID.Generate ();
 			*/
 		}
+
+		public abstract void Listen ();
 
 		public abstract void Disconnect ();
 
@@ -43,19 +56,21 @@ namespace NDesk.DBus
 		}
 
 		internal string address;
-		/*
 		public string Address
 		{
 			get {
 				return address;
 			}
 		}
-		*/
 
 		public UUID Id = UUID.Zero;
 
 		public abstract event Action<Connection> NewConnection;
 
-		//TODO: new connection event/virtual method
+		// FIXME: The follow fields do not belong here!
+		// TODO: Make these a thread-specific CallContext prop
+		public Connection CurrentMessageConnection;
+		public Message CurrentMessage;
+		public ServerBus SBus = null;
 	}
 }

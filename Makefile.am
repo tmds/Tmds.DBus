@@ -29,6 +29,7 @@ CSFILES = \
 	$(srcdir)/SocketTransport.cs \
 	$(srcdir)/Transport.cs \
 	$(srcdir)/TypeImplementer.cs \
+	$(srcdir)/Unix.cs \
 	$(srcdir)/UnixNativeTransport.cs \
 	$(srcdir)/UnixTransport.cs \
 	$(srcdir)/Wrapper.cs

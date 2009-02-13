@@ -328,13 +328,16 @@ namespace NDesk.DBus
 
 		public object ReadVariant ()
 		{
-			return ReadVariant (ReadSignature ());
+			return ReadValue (ReadSignature ());
 		}
 
-		object ReadVariant (Signature sig)
+		// Used primarily for reading variant values
+		object ReadValue (Signature sig)
 		{
-			Type t = null;
+			if (sig.IsPrimitive)
+				return ReadValue (sig[0]);
 
+			Type t = null;
 			try {
 				t = sig.ToType ();
 			} catch (NotSupportedException e) {

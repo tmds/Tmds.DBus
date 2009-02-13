@@ -126,33 +126,33 @@ namespace NDesk.DBus
 		internal PendingCall SendWithReply (Message msg)
 		{
 			msg.ReplyExpected = true;
-			msg.Header.Serial = GenerateSerial ();
 
-			//TODO: throttle the maximum number of concurrent PendingCalls
+			if (msg.Header.Serial == 0)
+				msg.Header.Serial = GenerateSerial ();
+
+			// Should we throttle the maximum number of concurrent PendingCalls?
+			// Should we support timeouts?
 			PendingCall pending = new PendingCall (this);
 			pendingCalls[msg.Header.Serial] = pending;
 
-			WriteMessage (msg);
+			Send (msg);
+			//WriteMessage (msg);
 
 			return pending;
 		}
 
-		internal uint Send (Message msg)
+		internal virtual uint Send (Message msg)
 		{
-			msg.Header.Serial = GenerateSerial ();
+			if (msg.Header.Serial == 0)
+				msg.Header.Serial = GenerateSerial ();
 
-			WriteMessage (msg);
+			transport.WriteMessage (msg);
 
 			//Outbound.Enqueue (msg);
 			//temporary
 			//Flush ();
 
 			return msg.Header.Serial;
-		}
-
-		internal virtual void WriteMessage (Message msg)
-		{
-			transport.WriteMessage (msg);
 		}
 
 		Queue<Message> Inbound = new Queue<Message> ();
@@ -201,11 +201,6 @@ namespace NDesk.DBus
 		}
 		*/
 
-		internal Message ReadMessage ()
-		{
-			return transport.ReadMessage ();
-		}
-
 		//temporary hack
 		internal void DispatchSignals ()
 		{
@@ -225,7 +220,7 @@ namespace NDesk.DBus
 			mainThread = Thread.CurrentThread;
 
 			//Message msg = Inbound.Dequeue ();
-			Message msg = ReadMessage ();
+			Message msg = transport.ReadMessage ();
 			HandleMessage (msg);
 			DispatchSignals ();
 		}

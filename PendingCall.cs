@@ -30,7 +30,7 @@ namespace NDesk.DBus
 					*/
 
 					while (reply == null)
-						conn.HandleMessage (conn.ReadMessage ());
+						conn.HandleMessage (conn.Transport.ReadMessage ());
 
 					conn.DispatchSignals ();
 				} else {

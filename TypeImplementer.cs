@@ -292,6 +292,9 @@ namespace NDesk.DBus
 					break;
 				case OperandType.InlineField: 
 					token = ReadInt32();
+					FieldInfo fi = m_enclosingMethod.Module.ResolveField(token);
+					current.operandType = "Reflection.FieldInfo";
+					current.operand = fi.DeclaringType.FullName + Type.Delimiter + fi.Name;
 					//ilg.Emit(opCode, m_enclosingMethod.Module.ResolveField(token));
 					break;
 				case OperandType.InlineType:   
@@ -301,15 +304,13 @@ namespace NDesk.DBus
 					current.operand = t.FullName;
 					//ilg.Emit(opCode, m_enclosingMethod.Module.ResolveType(token));
 					break;
-				case OperandType.InlineTok:   
+				case OperandType.InlineTok:
 					token = ReadInt32();
 					//ilg.Emit(opCode, token);
 					break;
 				case OperandType.InlineMethod:
 					token = ReadInt32();
 					MethodInfo mi = (MethodInfo)m_enclosingMethod.Module.ResolveMethod(token);
-					//Console.WriteLine("mh: " + mi.MethodHandle.Value);
-					Console.WriteLine("sig: " + mi.ToString());
 					current.operandType = "Reflection.MethodInfo";
 					current.operand = mi.DeclaringType.FullName + Type.Delimiter + mi.Name;
 					//ilg.Emit(opCode, mi);

@@ -64,9 +64,17 @@ namespace NDesk.DBus
 			}
 			*/
 
-			TypeBuilder typeB = modB.DefineType (proxyName, TypeAttributes.Class | TypeAttributes.Public, typeof (BusObject));
+			Type parentType;
 
-			Implement (typeB, declType);
+			if (declType.IsInterface)
+				parentType = typeof (BusObject);
+			else
+				parentType = declType;
+
+			TypeBuilder typeB = modB.DefineType (proxyName, TypeAttributes.Class | TypeAttributes.Public, parentType);
+
+			if (declType.IsInterface)
+				Implement (typeB, declType);
 
 			foreach (Type iface in declType.GetInterfaces ())
 				Implement (typeB, iface);
@@ -381,6 +389,8 @@ namespace NDesk.DBus
 			//	ilg.Emit (OpCodes.Box, type);
 		}
 
+		static MethodInfo getBusObject = typeof(BusObject).GetMethod("GetBusObject");
+
 		public static void GenHookupMethod (ILGenerator ilg, MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member)
 		{
 			ParameterInfo[] parms = declMethod.GetParameters ();
@@ -388,6 +398,8 @@ namespace NDesk.DBus
 
 			//the BusObject instance
 			ilg.Emit (OpCodes.Ldarg_0);
+
+			ilg.Emit (OpCodes.Call, getBusObject);
 
 			//MethodInfo
 			/*

@@ -362,10 +362,28 @@ namespace NDesk.DBus
 		{
 			Type proxyType = TypeImplementer.Root.GetImplementation (declType);
 
-			BusObject inst = (BusObject)Activator.CreateInstance (proxyType);
+			//BusObject inst = (BusObject)Activator.CreateInstance (proxyType);
+			object instObj = Activator.CreateInstance (proxyType);
+			BusObject inst = GetBusObject (instObj);
 			inst.conn = conn;
 			inst.bus_name = bus_name;
 			inst.object_path = object_path;
+
+			return instObj;
+		}
+
+		static Dictionary<object,BusObject> boCache = new Dictionary<object,BusObject>();
+		public static BusObject GetBusObject (object instObj)
+		{
+			if (instObj is BusObject)
+				return (BusObject)instObj;
+
+			BusObject inst;
+			if (boCache.TryGetValue (instObj, out inst))
+				return inst;
+
+			inst = new BusObject ();
+			boCache[instObj] = inst;
 
 			return inst;
 		}

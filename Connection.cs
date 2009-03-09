@@ -395,7 +395,7 @@ namespace NDesk.DBus
 
 			//if the requested type is an interface, we can implement it efficiently
 			//otherwise we fall back to using a transparent proxy
-			if (type.IsInterface) {
+			if (type.IsInterface || type.IsAbstract) {
 				return BusObject.GetObject (this, bus_name, path, type);
 			} else {
 				if (Protocol.Verbose)

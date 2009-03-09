@@ -1326,7 +1326,7 @@ namespace NDesk.DBus
 
 				// Get the destination address
 				ilg.Emit (OpCodes.Ldloc, aryLocal);
-				ilg.Emit (OpCodes.Ldc_I4, 0);
+				ilg.Emit (OpCodes.Ldc_I4_0);
 				ilg.Emit (OpCodes.Ldelema, tElem);
 
 				// Get the source address
@@ -1362,7 +1362,7 @@ namespace NDesk.DBus
 
 				// for (int i = 0 ; i < ary.Length ; i++)
 				LocalBuilder indexLocal = ilg.DeclareLocal (typeof (int));
-				ilg.Emit (OpCodes.Ldc_I4, 0);
+				ilg.Emit (OpCodes.Ldc_I4_0);
 				ilg.Emit (OpCodes.Stloc, indexLocal);
 
 				Label loopStartLabel = ilg.DefineLabel ();
@@ -1385,7 +1385,7 @@ namespace NDesk.DBus
 
 				// i++
 				ilg.Emit (OpCodes.Ldloc, indexLocal);
-				ilg.Emit (OpCodes.Ldc_I4, 1);
+				ilg.Emit (OpCodes.Ldc_I4_1);
 				ilg.Emit (OpCodes.Add);
 				ilg.Emit (OpCodes.Stloc, indexLocal);
 

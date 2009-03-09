@@ -85,7 +85,7 @@ namespace NDesk.DBus
 
 			//public OpCodeType opType;
 			public string operandType;
-			public string operand;
+			public object operand;
 
 			/*
 			public string operandType
@@ -151,11 +151,12 @@ namespace NDesk.DBus
 				object operandObj = null;
 
 				if (t == typeof(MethodInfo)) {
-					int idx = operand.LastIndexOf(Type.Delimiter);
+					string operandStr = (string)operand;
+					int idx = operandStr.LastIndexOf(Type.Delimiter);
 					if (idx < 0)
 						return false;
-					string ifaceName = operand.Remove(idx);
-					string methName = operand.Substring(idx + 1);
+					string ifaceName = operandStr.Remove(idx);
+					string methName = operandStr.Substring(idx + 1);
 
 					//Console.WriteLine("ifacename: " + ifaceName);
 					//Console.WriteLine("methname: " + methName);
@@ -177,7 +178,7 @@ namespace NDesk.DBus
 
 					operandObj = mi;
 				} else if (t == typeof(string))
-					operandObj = operand;
+					operandObj = (string)operand;
 				else
 					operandObj = Convert.ChangeType(operand, t);
 
@@ -331,7 +332,7 @@ namespace NDesk.DBus
 		{ 
 			current.operandType = "Byte";
 			Byte ret = (Byte)m_byteArray[m_position++];
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 
@@ -339,7 +340,7 @@ namespace NDesk.DBus
 		{
 			current.operandType = "SByte";
 			SByte ret = (SByte)ReadByte(); 
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 
@@ -347,7 +348,7 @@ namespace NDesk.DBus
 			current.operandType = "UInt16";
 			m_position += 2;
 			UInt16 ret = BitConverter.ToUInt16(m_byteArray, m_position - 2);
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 
@@ -355,7 +356,7 @@ namespace NDesk.DBus
 			current.operandType = "UInt32";
 			m_position += 4;
 			UInt32 ret = BitConverter.ToUInt32(m_byteArray, m_position - 4);
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 
@@ -363,7 +364,7 @@ namespace NDesk.DBus
 			current.operandType = "UInt64";
 			m_position += 8;
 			UInt64 ret = BitConverter.ToUInt64(m_byteArray, m_position - 8);
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 
@@ -371,7 +372,7 @@ namespace NDesk.DBus
 			current.operandType = "Int32";
 			m_position += 4;
 			Int32 ret = BitConverter.ToInt32(m_byteArray, m_position - 4);
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 
@@ -379,7 +380,7 @@ namespace NDesk.DBus
 			current.operandType = "Int64";
 			m_position += 8;
 			Int64 ret = BitConverter.ToInt64(m_byteArray, m_position - 8);
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 
@@ -387,7 +388,7 @@ namespace NDesk.DBus
 			current.operandType = "UInt16";
 			m_position += 4;
 			Single ret = BitConverter.ToSingle(m_byteArray, m_position - 4);
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 
@@ -395,7 +396,7 @@ namespace NDesk.DBus
 			current.operandType = "Double";
 			m_position += 8;
 			Double ret = BitConverter.ToDouble(m_byteArray, m_position - 8);
-			current.operand = ret.ToString();
+			current.operand = ret;
 			return ret;
 		}
 	}

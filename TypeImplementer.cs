@@ -97,6 +97,7 @@ namespace NDesk.DBus
 					parmTypes[i] = parms[i].ParameterType;
 
 				MethodAttributes attrs = declMethod.Attributes ^ MethodAttributes.Abstract;
+				attrs ^= MethodAttributes.NewSlot;
 				attrs |= MethodAttributes.Final;
 				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, attrs, declMethod.ReturnType, parmTypes);
 				typeB.DefineMethodOverride (method_builder, declMethod);

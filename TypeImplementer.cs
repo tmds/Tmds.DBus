@@ -150,7 +150,8 @@ namespace NDesk.DBus
 
 				object operandObj = null;
 
-				if (t == typeof(MethodInfo)) {
+				//if (t == typeof(MethodInfo)) {
+				if (typeof(MemberInfo).IsAssignableFrom(t)) {
 					string operandStr = (string)operand;
 					int idx = operandStr.LastIndexOf(Type.Delimiter);
 					if (idx < 0)
@@ -170,9 +171,14 @@ namespace NDesk.DBus
 					if (declType == null)
 						return false;
 
-					MethodInfo mi = declType.GetMethod(methName);
-					if (mi == null)
+					//MethodInfo mi = declType.GetMethod(methName);
+					//if (mi == null)
+					//	return false;
+					MemberInfo[] mis = declType.GetMember(methName);
+					if (mis.Length == 0)
 						return false;
+
+					MemberInfo mi = mis[0];
 
 					//Console.WriteLine("good!: " + mi);
 

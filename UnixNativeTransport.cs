@@ -66,7 +66,7 @@ namespace NDesk.DBus.Transports
 			cm.hdr.cmsg_level = 0xffff; //SOL_SOCKET
 			cm.hdr.cmsg_type = 0x03; //SCM_CREDS
 
-			int written = UnixSocket.sendmsg (socket.Handle, (IntPtr)(&msg), 0);
+			int written = (int)UnixSocket.sendmsg (socket.Handle, (IntPtr)(&msg), 0);
 			if (written < 0)
 				throw UnixError.GetLastUnixException ();
 

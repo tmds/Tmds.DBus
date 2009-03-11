@@ -225,10 +225,10 @@ namespace NDesk.Unix
 		//static extern int vmsplice (int fd, IOVector* iov, uint nr_segs, uint flags);
 
 		[DllImport ("libc", SetLastError=true)]
-		public static extern int recvmsg (int s, IntPtr msg, int flags);
+		public static extern SSizeT recvmsg (int s, IntPtr msg, int flags);
 
 		[DllImport ("libc", SetLastError=true)]
-		public static extern int sendmsg (int s, IntPtr msg, int flags);
+		public static extern SSizeT sendmsg (int s, IntPtr msg, int flags);
 
 		public int Handle;
 		bool ownsHandle = false;

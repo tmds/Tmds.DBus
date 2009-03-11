@@ -176,12 +176,14 @@ namespace NDesk.DBus.Transports
 
 	unsafe struct cmsgcred
 	{
+		const int CMGROUP_MAX = 16;
+
 		public int cmcred_pid; //PID of sending process
 		public uint cmcred_uid; //real UID of sending process
 		public uint cmcred_euid; //effective UID of sending process
 		public uint cmcred_gid; //real GID of sending process
 		public short cmcred_ngroups; //number or groups
-		public fixed uint cmcred_groups[16]; //groups, CMGROUP_MAX
+		public fixed uint cmcred_groups[CMGROUP_MAX]; //groups
 	}
 
 	struct cmsg

@@ -176,36 +176,38 @@ namespace NDesk.Unix
 
 	unsafe class UnixSocket
 	{
-		public const short AF_UNIX = 1;
-		//TODO: SOCK_STREAM is 2 on Solaris
-		public const short SOCK_STREAM = 1;
+		// Solaris provides socket functionality in libsocket rather than libc.
+		// We use a dllmap in the .config to deal with this.
+		internal const string LIBSOCKET = "libsocket";
 
-		//TODO: some of these are provided by libsocket instead of libc on Solaris
+		public const short AF_UNIX = 1;
+		// FIXME: SOCK_STREAM is 2 on Solaris
+		public const short SOCK_STREAM = 1;
 
 		[DllImport ("libc", SetLastError=true)]
 		protected static extern int close (int fd);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		protected static extern int socket (int domain, int type, int protocol);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		protected static extern int connect (int sockfd, byte[] serv_addr, uint addrlen);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		protected static extern int bind (int sockfd, byte[] my_addr, uint addrlen);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		protected static extern int listen (int sockfd, int backlog);
 
 		//TODO: this prototype is probably wrong, fix it
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		protected static extern int accept (int sockfd, void* addr, ref uint addrlen);
 
 		//TODO: confirm and make use of these functions
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		protected static extern int getsockopt (int s, int optname, IntPtr optval, ref uint optlen);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		protected static extern int setsockopt (int s, int optname, IntPtr optval, uint optlen);
 
 		[DllImport ("libc", SetLastError=true)]
@@ -224,10 +226,10 @@ namespace NDesk.Unix
 		//[DllImport ("libc", SetLastError=true)]
 		//static extern int vmsplice (int fd, IOVector* iov, uint nr_segs, uint flags);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		public static extern SSizeT recvmsg (int s, IntPtr msg, int flags);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBSOCKET, SetLastError=true)]
 		public static extern SSizeT sendmsg (int s, IntPtr msg, int flags);
 
 		public int Handle;

@@ -53,7 +53,8 @@ uninstall-local:
         fi
 
 EXTRA_DIST = \
-	$(CSFILES)
+	$(CSFILES) \
+	$(srcdir)/NDesk.DBus.dll.config \
 	$(srcdir)/AssemblyInfo.cs.in
 
 CLEANFILES = \

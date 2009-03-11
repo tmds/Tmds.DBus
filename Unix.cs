@@ -8,10 +8,12 @@ using System.Runtime.InteropServices;
 
 namespace NDesk.Unix
 {
+	// size_t
 	using SizeT = System.UIntPtr;
+	// ssize_t
 	using SSizeT = System.IntPtr;
-
-	// TODO: Fix all signatures WRT 64bit
+	// socklen_t: assumed to be 4 bytes
+	// uid_t: assumed to be 4 bytes
 
 	sealed class UnixStream : Stream //, IDisposable
 	{

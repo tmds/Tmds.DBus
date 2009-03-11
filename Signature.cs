@@ -411,7 +411,7 @@ namespace NDesk.DBus
 				if (this[0] == DType.Variant)
 					return false;
 
-				if (this[0] == '\0')
+				if (this[0] == DType.Invalid)
 					return false;
 
 				return true;

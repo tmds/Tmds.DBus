@@ -8,6 +8,11 @@ using System.Runtime.InteropServices;
 
 namespace NDesk.Unix
 {
+	using SizeT = System.UIntPtr;
+	using SSizeT = System.IntPtr;
+
+	// TODO: Fix all signatures WRT 64bit
+
 	sealed class UnixStream : Stream //, IDisposable
 	{
 		public readonly UnixSocket usock;
@@ -150,7 +155,16 @@ namespace NDesk.Unix
 
 		//public IntPtr Base;
 		public void* Base;
-		public int Length;
+
+		public SizeT length;
+		public int Length
+		{
+			get {
+				return (int)length;
+			} set {
+				length = (SizeT)value;
+			}
+		}
 	}
 
 	/*
@@ -195,16 +209,16 @@ namespace NDesk.Unix
 		protected static extern int setsockopt (int s, int optname, IntPtr optval, uint optlen);
 
 		[DllImport ("libc", SetLastError=true)]
-		unsafe static extern int read (int fd, byte* buf, uint count);
+		unsafe static extern SSizeT read (int fd, byte* buf, SizeT count);
 
 		[DllImport ("libc", SetLastError=true)]
-		unsafe static extern int write (int fd, byte* buf, uint count);
+		unsafe static extern SSizeT write (int fd, byte* buf, SizeT count);
 
 		[DllImport ("libc", SetLastError=true)]
-		unsafe static extern int readv (int fd, IOVector* iov, int iovcnt);
+		unsafe static extern SSizeT readv (int fd, IOVector* iov, int iovcnt);
 
 		[DllImport ("libc", SetLastError=true)]
-		unsafe static extern int writev (int fd, IOVector* iov, int iovcnt);
+		unsafe static extern SSizeT writev (int fd, IOVector* iov, int iovcnt);
 
 		// Linux
 		//[DllImport ("libc", SetLastError=true)]
@@ -309,7 +323,7 @@ namespace NDesk.Unix
 			//TODO: check offset correctness
 
 			fixed (byte* bufP = buf) {
-				int r = read (Handle, bufP + offset, (uint)count);
+				int r = (int)read (Handle, bufP + offset, (SizeT)count);
 				if (r < 0)
 					throw UnixError.GetLastUnixException ();
 
@@ -324,7 +338,7 @@ namespace NDesk.Unix
 			//TODO: check offset correctness
 
 			fixed (byte* bufP = buf) {
-				int r = write (Handle, bufP + offset, (uint)count);
+				int r = (int)write (Handle, bufP + offset, (SizeT)count);
 				if (r < 0)
 					throw UnixError.GetLastUnixException ();
 
@@ -338,7 +352,7 @@ namespace NDesk.Unix
 			//FIXME: handle r != count
 			//TODO: check offset correctness
 
-			int r = read (Handle, bufP, (uint)count);
+			int r = (int)read (Handle, bufP, (SizeT)count);
 			if (r < 0)
 				throw UnixError.GetLastUnixException ();
 
@@ -351,7 +365,7 @@ namespace NDesk.Unix
 			//FIXME: handle r != count
 			//TODO: check offset correctness
 
-			int r = write (Handle, bufP, (uint)count);
+			int r = (int)write (Handle, bufP, (SizeT)count);
 			if (r < 0)
 				throw UnixError.GetLastUnixException ();
 
@@ -364,7 +378,7 @@ namespace NDesk.Unix
 			//FIXME: handle r != count
 			//TODO: check offset correctness
 
-			int r = readv (Handle, iov, count);
+			int r = (int)readv (Handle, iov, count);
 			if (r < 0)
 				throw UnixError.GetLastUnixException ();
 
@@ -377,7 +391,7 @@ namespace NDesk.Unix
 			//FIXME: handle r != count
 			//TODO: check offset correctness
 
-			int r = writev (Handle, iov, count);
+			int r = (int)writev (Handle, iov, count);
 			if (r < 0)
 				throw UnixError.GetLastUnixException ();
 
@@ -391,7 +405,7 @@ namespace NDesk.Unix
 			//TODO: check offset correctness
 
 			fixed (IOVector* bufP = &iov[offset]) {
-				int r = writev (Handle, bufP + offset, count);
+				int r = (int)writev (Handle, bufP + offset, count);
 				if (r < 0)
 					throw UnixError.GetLastUnixException ();
 

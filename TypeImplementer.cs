@@ -876,16 +876,6 @@ namespace NDesk.DBus
 			LocalBuilder sizeLocal = ilg.DeclareLocal (typeof (uint));
 			ilg.Emit (OpCodes.Stloc, sizeLocal);
 
-			// WARNING: This may skew pos when we later increment it!
-			if (alignElem > 4) {
-				// Align to element if alignment requirement is higher than 4 (since we just read a uint)
-				ilg.Emit (OpCodes.Ldloc, readerLocal);
-				ilg.Emit (OpCodes.Ldc_I4, alignElem);
-				ilg.Emit (OpCodes.Call, messageReaderReadPad);
-			}
-
-			//ilg.EmitWriteLine (sizeLocal);
-
 			/*
 			// Take the array's byte length
 			ilg.Emit (OpCodes.Ldloc, sizeLocal);
@@ -912,7 +902,17 @@ namespace NDesk.DBus
 			Label nonBlitLabel = ilg.DefineLabel ();
 			Label endLabel = ilg.DefineLabel ();
 
-			// TODO: Ensure enough bytes available!
+			// Skip read or blit for zero-length arrays.
+			ilg.Emit (OpCodes.Ldloc, sizeLocal);
+			ilg.Emit (OpCodes.Brfalse, endLabel);
+
+			// WARNING: This may skew pos when we later increment it!
+			if (alignElem > 4) {
+				// Align to element if alignment requirement is higher than 4 (since we just read a uint)
+				ilg.Emit (OpCodes.Ldloc, readerLocal);
+				ilg.Emit (OpCodes.Ldc_I4, alignElem);
+				ilg.Emit (OpCodes.Call, messageReaderReadPad);
+			}
 
 			// Blit where possible
 

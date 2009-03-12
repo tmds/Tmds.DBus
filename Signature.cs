@@ -435,6 +435,23 @@ namespace NDesk.DBus
 			}
 		}
 
+		public bool IsDictEntry
+		{
+			get {
+				if (Length < 2)
+					return false;
+
+				if (this[0] != DType.DictEntryBegin)
+					return false;
+
+				// FIXME: Incorrect! What if this is in fact a Structlike starting and finishing with structs?
+				if (this[Length - 1] != DType.DictEntryEnd)
+					return false;
+
+				return true;
+			}
+		}
+
 		public bool IsStructlike
 		{
 			get {
@@ -490,8 +507,8 @@ namespace NDesk.DBus
 				throw new Exception ("Cannot get the element signature of a non-array (signature was '" + this + "')");
 
 			//TODO: improve this
-			if (IsDict)
-				throw new NotSupportedException ("Parsing dict signature is not supported (signature was '" + this + "')");
+			//if (IsDict)
+			//	throw new NotSupportedException ("Parsing dict signature is not supported (signature was '" + this + "')");
 
 			// Skip over 'a'
 			int pos = 1;
@@ -644,6 +661,16 @@ namespace NDesk.DBus
 				yield return GetNextSignature (ref pos);
 		}
 
+		public void GetDictEntrySignatures (out Signature sigKey, out Signature sigValue)
+		{
+			if (this == Signature.Empty || this[0] != DType.DictEntryBegin)
+				throw new Exception ("Not a DictEntry");
+
+			int pos = 1;
+			sigKey = GetNextSignature (ref pos);
+			sigValue = GetNextSignature (ref pos);
+		}
+
 		public IEnumerable<Signature> GetParts ()
 		{
 			if (data == null)
@@ -677,6 +704,7 @@ namespace NDesk.DBus
 						Signature elementType = GetNextSignature (ref pos);
 						return elementType.MakeArraySignature ();
 					}
+				//case DType.DictEntryBegin: // FIXME: DictEntries should be handled separately.
 				case DType.StructBegin:
 					//List<Signature> fieldTypes = new List<Signature> ();
 					Signature fieldsSig = Signature.Empty;
@@ -686,6 +714,12 @@ namespace NDesk.DBus
 					pos++;
 					return Signature.MakeStruct (fieldsSig);
 					//return fieldsSig;
+				case DType.DictEntryBegin:
+					Signature sigKey = GetNextSignature (ref pos);
+					Signature sigValue = GetNextSignature (ref pos);
+					//skip over the }
+					pos++;
+					return Signature.MakeDictEntry (sigKey, sigValue);
 				default:
 					return new Signature (dtype);
 			}

@@ -178,6 +178,15 @@ namespace NDesk.DBus
 				yield break;
 			}
 
+			if (sig.IsDictEntry) {
+				pos = Protocol.Padded (pos, sig.Alignment);
+				Signature sigKey, sigValue;
+				sig.GetDictEntrySignatures (out sigKey, out sigValue);
+				yield return sigKey;
+				yield return sigValue;
+				yield break;
+			}
+
 			if (sig.IsStruct) {
 				pos = Protocol.Padded (pos, sig.Alignment);
 				foreach (Signature fieldSig in sig.GetFieldSignatures ())

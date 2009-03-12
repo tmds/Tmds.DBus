@@ -147,7 +147,7 @@ namespace NDesk.DBus
 
 				//define in/out/ref/name for each of the parameters
 				for (int i = 0; i < parms.Length ; i++)
-					method_builder.DefineParameter (i, parms[i].Attributes, parms[i].Name);
+					method_builder.DefineParameter (i + 1, parms[i].Attributes, parms[i].Name);
 
 				//Console.WriteLine ("retType: " + declMethod.ReturnType);
 				ILGenerator ilg = method_builder.GetILGenerator ();

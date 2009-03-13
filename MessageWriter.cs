@@ -332,10 +332,20 @@ namespace NDesk.DBus
 		//variant
 		public void Write (object val)
 		{
-			//TODO: maybe support sending null variants
-
 			if (val == null)
 				throw new NotSupportedException ("Cannot send null variant");
+
+			if (val is DValue) {
+				DValue dv = (DValue)val;
+
+				if (dv.endianness != endianness)
+					throw new NotImplementedException ("Writing opposite endian DValues not yet implemented.");
+
+				Write (dv.signature);
+				WritePad (dv.signature.Alignment);
+				stream.Write (dv.data, 0, dv.data.Length);
+				return;
+			}
 
 			Type type = val.GetType ();
 

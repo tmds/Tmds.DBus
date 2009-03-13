@@ -346,9 +346,25 @@ namespace NDesk.DBus
 					Console.Error.WriteLine (e.Message);
 			}
 
+			/*
 			if (t == null) {
 				StepOver (sig);
 				return null;
+			}
+			*/
+
+			if (t == null) {
+				ReadPad (sig.Alignment);
+				int startPos = pos;
+				StepOver (sig);
+				int ln = pos - startPos;
+
+				DValue dv = new DValue();
+				dv.endianness = endianness;
+				dv.signature = sig;
+				dv.data = new byte[ln];
+				Array.Copy (data, startPos, dv.data, 0, ln);
+				return dv;
 			}
 
 			return ReadValue (t);

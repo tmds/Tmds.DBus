@@ -130,24 +130,24 @@ namespace NDesk.Unix
 	{
 		internal const string LIBC = "libc";
 
-			[DllImport (LIBC, SetLastError=false)]
-			static extern IntPtr strerror (int errnum);
+		[DllImport (LIBC, SetLastError=false)]
+		static extern IntPtr strerror (int errnum);
 
-			static string GetErrorString (int errnum)
-			{
-				IntPtr strPtr = strerror (errnum);
+		static string GetErrorString (int errnum)
+		{
+			IntPtr strPtr = strerror (errnum);
 
-				if (strPtr == IntPtr.Zero)
-					return "Unknown Unix error";
+			if (strPtr == IntPtr.Zero)
+				return "Unknown Unix error";
 
-				return Marshal.PtrToStringAnsi (strPtr);
-			}
+			return Marshal.PtrToStringAnsi (strPtr);
+		}
 
-			public static Exception GetLastUnixException ()
-			{
-				int errno = System.Runtime.InteropServices.Marshal.GetLastWin32Error ();
-				return new Exception (GetErrorString (errno));
-			}
+		public static Exception GetLastUnixException ()
+		{
+			int errno = System.Runtime.InteropServices.Marshal.GetLastWin32Error ();
+			return new Exception (GetErrorString (errno));
+		}
 	}
 
 	//[StructLayout(LayoutKind.Sequential, Pack=1)]

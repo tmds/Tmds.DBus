@@ -105,10 +105,12 @@ namespace NDesk.Unix
 
 	static class UnixUid
 	{
-		[DllImport ("libc", SetLastError=false)]
+		internal const string LIBC = "libc";
+
+		[DllImport (LIBC, SetLastError=false)]
 		static extern uint getuid ();
 
-		[DllImport ("libc", SetLastError=false)]
+		[DllImport (LIBC, SetLastError=false)]
 		static extern uint geteuid ();
 
 		public static long GetUID ()
@@ -126,7 +128,9 @@ namespace NDesk.Unix
 
 	static class UnixError
 	{
-			[DllImport ("libc", SetLastError=false)]
+		internal const string LIBC = "libc";
+
+			[DllImport (LIBC, SetLastError=false)]
 			static extern IntPtr strerror (int errnum);
 
 			static string GetErrorString (int errnum)
@@ -178,6 +182,8 @@ namespace NDesk.Unix
 
 	unsafe class UnixSocket
 	{
+		internal const string LIBC = "libc";
+
 		// Solaris provides socket functionality in libsocket rather than libc.
 		// We use a dllmap in the .config to deal with this.
 		internal const string LIBSOCKET = "libsocket";
@@ -186,7 +192,7 @@ namespace NDesk.Unix
 		// FIXME: SOCK_STREAM is 2 on Solaris
 		public const short SOCK_STREAM = 1;
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBC, SetLastError=true)]
 		protected static extern int close (int fd);
 
 		[DllImport (LIBSOCKET, SetLastError=true)]
@@ -212,20 +218,20 @@ namespace NDesk.Unix
 		[DllImport (LIBSOCKET, SetLastError=true)]
 		protected static extern int setsockopt (int s, int optname, IntPtr optval, uint optlen);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBC, SetLastError=true)]
 		unsafe static extern SSizeT read (int fd, byte* buf, SizeT count);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBC, SetLastError=true)]
 		unsafe static extern SSizeT write (int fd, byte* buf, SizeT count);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBC, SetLastError=true)]
 		unsafe static extern SSizeT readv (int fd, IOVector* iov, int iovcnt);
 
-		[DllImport ("libc", SetLastError=true)]
+		[DllImport (LIBC, SetLastError=true)]
 		unsafe static extern SSizeT writev (int fd, IOVector* iov, int iovcnt);
 
 		// Linux
-		//[DllImport ("libc", SetLastError=true)]
+		//[DllImport (LIBC, SetLastError=true)]
 		//static extern int vmsplice (int fd, IOVector* iov, uint nr_segs, uint flags);
 
 		[DllImport (LIBSOCKET, SetLastError=true)]

@@ -107,10 +107,10 @@ namespace NDesk.Unix
 	{
 		internal const string LIBC = "libc";
 
-		[DllImport (LIBC, SetLastError=false)]
+		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=false)]
 		static extern uint getuid ();
 
-		[DllImport (LIBC, SetLastError=false)]
+		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=false)]
 		static extern uint geteuid ();
 
 		public static long GetUID ()
@@ -130,7 +130,7 @@ namespace NDesk.Unix
 	{
 		internal const string LIBC = "libc";
 
-		[DllImport (LIBC, SetLastError=false)]
+		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=false)]
 		static extern IntPtr strerror (int errnum);
 
 		static string GetErrorString (int errnum)
@@ -203,52 +203,52 @@ namespace NDesk.Unix
 		// FIXME: SOCK_STREAM is 2 on Solaris
 		public const short SOCK_STREAM = 1;
 
-		[DllImport (LIBC, SetLastError=true)]
+		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int close (int fd);
 
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int socket (int domain, int type, int protocol);
 
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int connect (int sockfd, byte[] serv_addr, uint addrlen);
 
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int bind (int sockfd, byte[] my_addr, uint addrlen);
 
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int listen (int sockfd, int backlog);
 
 		//TODO: this prototype is probably wrong, fix it
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int accept (int sockfd, void* addr, ref uint addrlen);
 
 		//TODO: confirm and make use of these functions
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int getsockopt (int s, int optname, IntPtr optval, ref uint optlen);
 
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int setsockopt (int s, int optname, IntPtr optval, uint optlen);
 
-		[DllImport (LIBC, SetLastError=true)]
+		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		unsafe static extern SSizeT read (int fd, byte* buf, SizeT count);
 
-		[DllImport (LIBC, SetLastError=true)]
+		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		unsafe static extern SSizeT write (int fd, byte* buf, SizeT count);
 
-		[DllImport (LIBC, SetLastError=true)]
+		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		unsafe static extern SSizeT readv (int fd, IOVector* iov, int iovcnt);
 
-		[DllImport (LIBC, SetLastError=true)]
+		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		unsafe static extern SSizeT writev (int fd, IOVector* iov, int iovcnt);
 
 		// Linux
-		//[DllImport (LIBC, SetLastError=true)]
+		//[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		//static extern int vmsplice (int fd, IOVector* iov, uint nr_segs, uint flags);
 
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		public static extern SSizeT recvmsg (int s, IntPtr msg, int flags);
 
-		[DllImport (LIBSOCKET, SetLastError=true)]
+		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		public static extern SSizeT sendmsg (int s, IntPtr msg, int flags);
 
 		public int Handle;

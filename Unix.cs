@@ -143,10 +143,21 @@ namespace NDesk.Unix
 			return Marshal.PtrToStringAnsi (strPtr);
 		}
 
+		// FIXME: Don't hard-code this.
+		const int EINTR = 4;
+
+		public static bool ShouldRetry
+		{
+			get {
+				int errno = System.Runtime.InteropServices.Marshal.GetLastWin32Error ();
+				return errno == EINTR;
+			}
+		}
+
 		public static Exception GetLastUnixException ()
 		{
 			int errno = System.Runtime.InteropServices.Marshal.GetLastWin32Error ();
-			return new Exception (GetErrorString (errno));
+			return new Exception (String.Format ("Error {0}: {1}", errno, GetErrorString (errno)));
 		}
 	}
 
@@ -289,7 +300,12 @@ namespace NDesk.Unix
 		//TODO: consider memory management
 		public void Connect (byte[] remote_end)
 		{
-			int r = connect (Handle, remote_end, (uint)remote_end.Length);
+			int r = 0;
+
+			do {
+				r = connect (Handle, remote_end, (uint)remote_end.Length);
+			} while (r < 0 && UnixError.ShouldRetry);
+
 			if (r < 0)
 				throw UnixError.GetLastUnixException ();
 
@@ -317,7 +333,12 @@ namespace NDesk.Unix
 			uint addrlen = (uint)addr.Length;
 
 			fixed (byte* addrP = addr) {
-				int r = accept (Handle, addrP, ref addrlen);
+				int r = 0;
+
+				do {
+					r = accept (Handle, addrP, ref addrlen);
+				} while (r < 0 && UnixError.ShouldRetry);
+
 				if (r < 0)
 					throw UnixError.GetLastUnixException ();
 
@@ -329,40 +350,24 @@ namespace NDesk.Unix
 
 		unsafe public int Read (byte[] buf, int offset, int count)
 		{
-			//FIXME: Handle EINTR here or elsewhere
-			//TODO: check offset correctness
-
-			fixed (byte* bufP = buf) {
-				int r = (int)read (Handle, bufP + offset, (SizeT)count);
-				if (r < 0)
-					throw UnixError.GetLastUnixException ();
-
-				return r;
-			}
+			fixed (byte* bufP = buf)
+				return Read (bufP + offset, count);
 		}
 
 		public int Write (byte[] buf, int offset, int count)
 		{
-			//FIXME: Handle EINTR here or elsewhere
-			//FIXME: handle r != count
-			//TODO: check offset correctness
-
-			fixed (byte* bufP = buf) {
-				int r = (int)write (Handle, bufP + offset, (SizeT)count);
-				if (r < 0)
-					throw UnixError.GetLastUnixException ();
-
-				return r;
-			}
+			fixed (byte* bufP = buf)
+				return Write (bufP + offset, count);
 		}
 
 		unsafe public int Read (byte* bufP, int count)
 		{
-			//FIXME: Handle EINTR here or elsewhere
-			//FIXME: handle r != count
-			//TODO: check offset correctness
+			int r = 0;
 
-			int r = (int)read (Handle, bufP, (SizeT)count);
+			do {
+				r = (int)read (Handle, bufP, (SizeT)count);
+			} while (r < 0 && UnixError.ShouldRetry);
+
 			if (r < 0)
 				throw UnixError.GetLastUnixException ();
 
@@ -371,11 +376,12 @@ namespace NDesk.Unix
 
 		public int Write (byte* bufP, int count)
 		{
-			//FIXME: Handle EINTR here or elsewhere
-			//FIXME: handle r != count
-			//TODO: check offset correctness
+			int r = 0;
 
-			int r = (int)write (Handle, bufP, (SizeT)count);
+			do {
+				r = (int)write (Handle, bufP, (SizeT)count);
+			} while (r < 0 && UnixError.ShouldRetry);
+
 			if (r < 0)
 				throw UnixError.GetLastUnixException ();
 

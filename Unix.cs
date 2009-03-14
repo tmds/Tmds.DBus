@@ -246,10 +246,10 @@ namespace NDesk.Unix
 		//static extern int vmsplice (int fd, IOVector* iov, uint nr_segs, uint flags);
 
 		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
-		public static extern SSizeT recvmsg (int s, IntPtr msg, int flags);
+		public static extern SSizeT recvmsg (int s, void* msg, int flags);
 
 		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
-		public static extern SSizeT sendmsg (int s, IntPtr msg, int flags);
+		public static extern SSizeT sendmsg (int s, void* msg, int flags);
 
 		public int Handle;
 		bool ownsHandle = false;
@@ -385,6 +385,34 @@ namespace NDesk.Unix
 
 			do {
 				r = (int)write (Handle, bufP, (SizeT)count);
+			} while (r < 0 && UnixError.ShouldRetry);
+
+			if (r < 0)
+				throw UnixError.GetLastUnixException ();
+
+			return r;
+		}
+
+		public int RecvMsg (void* bufP, int flags)
+		{
+			int r = 0;
+
+			do {
+				r = (int)recvmsg (Handle, bufP, flags);
+			} while (r < 0 && UnixError.ShouldRetry);
+
+			if (r < 0)
+				throw UnixError.GetLastUnixException ();
+
+			return r;
+		}
+
+		public int SendMsg (void* bufP, int flags)
+		{
+			int r = 0;
+
+			do {
+				r = (int)sendmsg (Handle, bufP, flags);
 			} while (r < 0 && UnixError.ShouldRetry);
 
 			if (r < 0)

@@ -289,7 +289,12 @@ namespace NDesk.Unix
 		//TODO: consider memory management
 		public void Close ()
 		{
-			int r = close (Handle);
+			int r = 0;
+
+			do {
+				r = close (Handle);
+			} while (r < 0 && UnixError.ShouldRetry);
+
 			if (r < 0)
 				throw UnixError.GetLastUnixException ();
 

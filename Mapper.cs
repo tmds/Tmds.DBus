@@ -372,5 +372,10 @@ namespace NDesk.DBus
 		{
 			this.Name = name;
 		}
+
+		public static string GetSignatureString (Type type)
+		{
+			return Signature.GetSig (type).Value;
+		}
 	}
 }

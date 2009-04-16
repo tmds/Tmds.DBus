@@ -38,6 +38,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Address.cs" />
+    <Compile Include="AssemblyInfoStatic.cs" />
     <Compile Include="Authentication.cs" />
     <Compile Include="Bus.cs" />
     <Compile Include="BusObject.cs" />

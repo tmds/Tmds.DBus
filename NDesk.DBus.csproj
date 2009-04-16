@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="Windows-1252"?>
+<Project ToolsVersion="3.5" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{09A0200F-F3AF-4BD6-9EC4-E7D80D273E4C}</ProjectGuid>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <OutputType>Library</OutputType>
+    <NoStandardLibraries>false</NoStandardLibraries>
+    <AssemblyName>NDesk.DBus</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <RootNamespace>NDesk.DBus</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Address.cs" />
+    <Compile Include="Authentication.cs" />
+    <Compile Include="Bus.cs" />
+    <Compile Include="BusObject.cs" />
+    <Compile Include="Connection.cs" />
+    <Compile Include="DBus.cs" />
+    <Compile Include="DProxy.cs" />
+    <Compile Include="ExportObject.cs" />
+    <Compile Include="Introspection.cs" />
+    <Compile Include="IntrospectionSchema.cs" />
+    <Compile Include="Mapper.cs" />
+    <Compile Include="MatchRule.cs" />
+    <Compile Include="Message.cs" />
+    <Compile Include="MessageFilter.cs" />
+    <Compile Include="MessageReader.cs" />
+    <Compile Include="MessageWriter.cs" />
+    <Compile Include="PendingCall.cs" />
+    <Compile Include="Protocol.cs" />
+    <Compile Include="Signature.cs" />
+    <Compile Include="SocketTransport.cs" />
+    <Compile Include="Transport.cs" />
+    <Compile Include="TypeDefiner.cs" />
+    <Compile Include="TypeImplementer.cs" />
+    <Compile Include="Unix.cs" />
+    <None Include="UnixMonoTransport.cs" />
+    <Compile Include="UnixNativeTransport.cs" />
+    <Compile Include="UnixTransport.cs" />
+    <Compile Include="Wrapper.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="NDesk.DBus.dll.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
+  <ProjectExtensions>
+    <VisualStudio AllowExistingFolder="true" />
+  </ProjectExtensions>
+</Project>

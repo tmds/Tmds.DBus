@@ -167,7 +167,7 @@ namespace NDesk.Unix
 		public IOVector (IntPtr bbase, int length)
 		{
 			this.Base = (void*)bbase;
-			this.Length = length;
+			this.length = (SizeT)length;
 		}
 
 		//public IntPtr Base;

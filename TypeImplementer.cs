@@ -944,8 +944,14 @@ namespace NDesk.DBus
 
 			// shouldBlit: Blit if endian is native
 			// mustBlit: Blit regardless of endian (ie. byte or structs containing only bytes)
+
 			bool shouldBlit = tElem.IsValueType && knownElemSizePadded == managedElemSize && !sigElem.IsStruct;
 			//bool shouldBlit = tElem.IsValueType && knownElemSizePadded == managedElemSize;
+
+			// bool and char are not reliably blittable, so we don't allow blitting in these cases.
+			// Their exact layout varies between runtimes, platforms and even data types.
+			shouldBlit &= tElem != typeof (bool) && tElem != typeof (char);
+
 			bool mustBlit = shouldBlit && knownElemSizePadded == 1;
 
 			if (shouldBlit) {

@@ -106,9 +106,57 @@ namespace NDesk.DBus
 			ConstructorBuilder constructorBuilder = handlerB.DefineConstructor (MethodAttributes.RTSpecialName | MethodAttributes.HideBySig | MethodAttributes.Public, CallingConventions.Standard, new Type[] { typeof (object), typeof (System.IntPtr) });
 			constructorBuilder.SetImplementationFlags (MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
 
-			MethodBuilder invokeB = handlerB.DefineMethod ("Invoke", mattr, typeof (void), Type.EmptyTypes);
+			//MethodBuilder invokeB = handlerB.DefineMethod ("Invoke", mattr, typeof (void), Type.EmptyTypes);
+			MethodBuilder invokeB = DefineMethod (handlerB, "Invoke", mattr, declSignal.Arguments, true);
+			
 			invokeB.SetImplementationFlags (MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
 			return handlerB.CreateType ();
+		}
+
+		public static MethodBuilder DefineMethod (TypeBuilder typeB, string name, MethodAttributes mattr, Argument[] args, bool isSignal)
+		{
+			// TODO: Share this method for both signals and methods.
+			// TODO: Support out params.
+
+			//MethodBuilder mb = tb.DefineMethod (name, mattr, typeof(void), Type.EmptyTypes);
+
+			List<Type> parms = new List<Type> ();
+
+			if (args != null)
+				foreach (Argument arg in args) {
+					//if (arg.Direction == Introspection.ArgDirection.@in)
+						parms.Add (new Signature (arg.Type).ToType ());
+					//if (arg.Direction == Introspection.ArgDirection.@out)
+					//	parms.Add (new Signature (arg.Type).ToType ().MakeByRefType ());
+				}
+
+			Type retType = typeof (void);
+
+			/*
+			Signature outSig = Signature.Empty;
+			//this just takes the last out arg and uses is as the return type
+			if (declMethod.Arguments != null)
+				foreach (Argument arg in declMethod.Arguments)
+					if (arg.Direction == Introspection.ArgDirection.@out)
+						outSig = new Signature (arg.Type);
+
+			Type retType = outSig == Signature.Empty ? typeof (void) : outSig.ToType ();
+			*/
+			MethodBuilder mb = typeB.DefineMethod (name, mattr, retType, parms.ToArray ());
+
+			//define the parameter attributes and names
+			if (args != null) {
+				int argNum = 0;
+
+				foreach (Argument arg in args) {
+					//if (arg.Direction == Introspection.ArgDirection.@in)
+						mb.DefineParameter (++argNum, ParameterAttributes.In, arg.Name ?? ("arg" + argNum));
+					//if (arg.Direction == Introspection.ArgDirection.@out)
+					//	method_builder.DefineParameter (++argNum, ParameterAttributes.Out, arg.Name);
+				}
+			}
+
+			return mb;
 		}
 
 		public static void Define (TypeBuilder typeB, Interface iface)

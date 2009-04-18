@@ -97,6 +97,20 @@ namespace NDesk.DBus
 
 		const MethodAttributes ifaceMethAttr = MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual;
 
+		public static Type DefineHandler (ModuleBuilder modB, NDesk.DBus.Introspection.Signal declSignal)
+		{
+			string dlgName = declSignal.Name + "Handler";
+			TypeBuilder handlerB = modB.DefineType (dlgName, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Sealed | TypeAttributes.AnsiClass | TypeAttributes.AutoClass, typeof (System.MulticastDelegate));
+			const MethodAttributes mattr = MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual | MethodAttributes.NewSlot;
+
+			ConstructorBuilder constructorBuilder = handlerB.DefineConstructor (MethodAttributes.RTSpecialName | MethodAttributes.HideBySig | MethodAttributes.Public, CallingConventions.Standard, new Type[] { typeof (object), typeof (System.IntPtr) });
+			constructorBuilder.SetImplementationFlags (MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
+
+			MethodBuilder invokeB = handlerB.DefineMethod ("Invoke", mattr, typeof (void), Type.EmptyTypes);
+			invokeB.SetImplementationFlags (MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
+			return handlerB.CreateType ();
+		}
+
 		public static void Define (TypeBuilder typeB, Interface iface)
 		{
 			foreach (Method declMethod in iface.Methods) {
@@ -152,8 +166,7 @@ namespace NDesk.DBus
 
 			if (iface.Signals != null)
 			foreach (NDesk.DBus.Introspection.Signal signal in iface.Signals) {
-				//Type eventType = typeof (EventHandler);
-				Type eventType = typeof (VoidHandler);
+				Type eventType = DefineHandler (modBdef, signal);
 
 				EventBuilder event_builder = typeB.DefineEvent (signal.Name, EventAttributes.None, eventType);
 

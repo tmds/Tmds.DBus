@@ -132,6 +132,8 @@ namespace NDesk.DBus
 		{
 			typeB.AddInterfaceImplementation (iface);
 
+			Dictionary<string,MethodBuilder> builders = new Dictionary<string,MethodBuilder> ();
+
 			foreach (MethodInfo declMethod in iface.GetMethods ()) {
 				ParameterInfo[] parms = declMethod.GetParameters ();
 
@@ -152,6 +154,30 @@ namespace NDesk.DBus
 				//Console.WriteLine ("retType: " + declMethod.ReturnType);
 				ILGenerator ilg = method_builder.GetILGenerator ();
 				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
+
+				if (declMethod.IsSpecialName)
+					builders[declMethod.Name] = method_builder;
+			}
+
+			foreach (EventInfo declEvent in iface.GetEvents ())
+			{
+				EventBuilder event_builder = typeB.DefineEvent (declEvent.Name, declEvent.Attributes, declEvent.EventHandlerType);
+				event_builder.SetAddOnMethod (builders["add_" + declEvent.Name]);
+				event_builder.SetRemoveOnMethod (builders["remove_" + declEvent.Name]);
+			}
+
+			foreach (PropertyInfo declProp in iface.GetProperties ())
+			{
+				List<Type> indexers = new List<Type> ();
+				foreach (ParameterInfo pi in declProp.GetIndexParameters ())
+					indexers.Add (pi.ParameterType);
+
+				PropertyBuilder prop_builder = typeB.DefineProperty (declProp.Name, declProp.Attributes, declProp.PropertyType, indexers.ToArray ());
+				MethodBuilder mb;
+				if (builders.TryGetValue ("get_" + declProp.Name, out mb))
+					prop_builder.SetGetMethod (mb);
+				if (builders.TryGetValue ("set_" + declProp.Name, out mb))
+					prop_builder.SetSetMethod (mb);
 			}
 		}
 

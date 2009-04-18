@@ -298,10 +298,9 @@ namespace NDesk.DBus
 			if (Handlers.TryGetValue (rule, out dlg)) {
 				//dlg.DynamicInvoke (GetDynamicValues (msg));
 
-				MethodInfo mi = dlg.Method;
+				MethodInfo mi = dlg.GetType ().GetMethod ("Invoke");
 				//signals have no return value
 				dlg.DynamicInvoke (MessageHelper.GetDynamicValues (msg, mi.GetParameters ()));
-
 			} else {
 				//TODO: how should we handle this condition? sending an Error may not be appropriate in this case
 				if (Protocol.Verbose)

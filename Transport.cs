@@ -63,6 +63,11 @@ namespace NDesk.DBus.Transports
 			}
 		}
 
+		public virtual void Disconnect ()
+		{
+			ns.Dispose ();
+		}
+
 		internal Message ReadMessage ()
 		{
 			try {

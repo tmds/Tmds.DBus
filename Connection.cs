@@ -39,13 +39,26 @@ namespace NDesk.DBus
 			Authenticate ();
 		}
 
-		protected bool isConnected = true;
-		//should this be public?
-		internal bool IsConnected
+		protected bool isConnected = false;
+		public bool IsConnected
 		{
 			get {
 				return isConnected;
 			}
+		}
+
+		// TODO: Complete disconnection support
+		internal bool isShared = false;
+		public void Close ()
+		{
+			if (isShared)
+				throw new Exception ("Cannot disconnect a shared Connection");
+			
+			if (!IsConnected)
+				return;
+
+			transport.Disconnect ();
+			isConnected = false;
 		}
 
 		//should we do connection sharing here?
@@ -72,6 +85,7 @@ namespace NDesk.DBus
 
 			Id = entry.GUID;
 			transport = Transport.Create (entry);
+			isConnected = true;
 		}
 
 		internal UUID Id = UUID.Zero;
@@ -230,6 +244,8 @@ namespace NDesk.DBus
 			//TODO: support disconnection situations properly and move this check elsewhere
 			if (msg == null)
 				throw new ArgumentNullException ("msg", "Cannot handle a null message; maybe the bus was disconnected");
+
+			//TODO: Restrict messages to Local ObjectPath?
 
 			{
 				object field_value;

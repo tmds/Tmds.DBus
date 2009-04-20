@@ -352,7 +352,7 @@ namespace NDesk.DBus
 				foreach (ObjectPath pth in RegisteredObjects.Keys) {
 					if (pth.Value == (method_call.Path.Value)) {
 						ExportObject exo = (ExportObject)RegisteredObjects[pth];
-						intro.WriteType (exo.obj.GetType ());
+						exo.WriteIntrospect (intro);
 					} else {
 						for (ObjectPath cur = pth ; cur != null ; cur = cur.Parent) {
 							if (cur.Value == method_call.Path.Value) {
@@ -425,7 +425,7 @@ namespace NDesk.DBus
 
 		public void Register (ObjectPath path, object obj)
 		{
-			ExportObject eo = new ExportObject (this, path, obj);
+			ExportObject eo = ExportObject.CreateExportObject (this, path, obj);
 			eo.Registered = true;
 
 			//TODO: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad

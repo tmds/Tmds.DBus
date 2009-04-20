@@ -292,6 +292,12 @@ namespace NDesk.DBus
 			return vals;
 		}
 
+		public static object[] GetDynamicValues (Message msg)
+		{
+			Type[] types = msg.Signature.ToTypes ();
+			return GetDynamicValues (msg, types);
+		}
+
 		public static Message ConstructReply (MethodCall method_call, params object[] vals)
 		{
 			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);

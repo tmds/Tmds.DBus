@@ -312,9 +312,21 @@ namespace NDesk.DBus
 
 			Delegate dlg;
 			if (Handlers.TryGetValue (rule, out dlg)) {
-				//dlg.DynamicInvoke (GetDynamicValues (msg));
-
 				MethodInfo mi = dlg.GetType ().GetMethod ("Invoke");
+
+				bool compatible = false;
+				Signature inSig, outSig;
+
+				if (TypeImplementer.SigsForMethod(mi, out inSig, out outSig))
+					if (outSig == Signature.Empty && inSig == msg.Signature)
+						compatible = true;
+
+				if (!compatible) {
+					if (Protocol.Verbose)
+						Console.Error.WriteLine ("Signal argument mismatch: " + signal.Interface + '.' + signal.Member);
+					return;
+				}
+
 				//signals have no return value
 				dlg.DynamicInvoke (MessageHelper.GetDynamicValues (msg, mi.GetParameters ()));
 			} else {

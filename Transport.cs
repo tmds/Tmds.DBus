@@ -82,7 +82,13 @@ namespace NDesk.DBus.Transports
 		int Read (byte[] buffer, int offset, int count)
 		{
 			int read = 0;
+			System.Net.Sockets.NetworkStream nns = ns as System.Net.Sockets.NetworkStream;
 			while (read < count) {
+				// FIXME: Remove this hack to support non-blocking sockets on Windows
+				if (nns != null && !nns.DataAvailable) {
+					System.Threading.Thread.Sleep (10);
+					continue;
+				}
 				int nread = ns.Read (buffer, offset + read, count - read);
 				if (nread == 0)
 					break;

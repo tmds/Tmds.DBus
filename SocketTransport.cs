@@ -34,6 +34,7 @@ namespace NDesk.DBus.Transports
 		{
 			//TODO: use Socket directly
 			TcpClient client = new TcpClient (host, port);
+			SocketHandle = (long)client.Client.Handle;
 			Stream = client.GetStream ();
 		}
 

@@ -107,16 +107,15 @@ namespace NDesk.DBus
 			constructorBuilder.SetImplementationFlags (MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
 
 			//MethodBuilder invokeB = handlerB.DefineMethod ("Invoke", mattr, typeof (void), Type.EmptyTypes);
-			MethodBuilder invokeB = DefineMethod (handlerB, "Invoke", mattr, declSignal.Arguments, true);
+			MethodBuilder invokeB = DefineSignal (handlerB, "Invoke", mattr, declSignal.Arguments, true);
 			
 			invokeB.SetImplementationFlags (MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
 			return handlerB.CreateType ();
 		}
 
-		public static MethodBuilder DefineMethod (TypeBuilder typeB, string name, MethodAttributes mattr, Argument[] args, bool isSignal)
+		public static MethodBuilder DefineSignal (TypeBuilder typeB, string name, MethodAttributes mattr, Argument[] args, bool isSignal)
 		{
 			// TODO: Share this method for both signals and methods.
-			// TODO: Support out params.
 
 			//MethodBuilder mb = tb.DefineMethod (name, mattr, typeof(void), Type.EmptyTypes);
 
@@ -159,45 +158,39 @@ namespace NDesk.DBus
 			return mb;
 		}
 
+		public static MethodBuilder DefineMethod (TypeBuilder typeB, string name, MethodAttributes mattr, Argument[] args, bool isSignal)
+		{
+			// TODO: Share this method for both signals and methods.
+
+			List<Type> parms = new List<Type> ();
+
+			if (args != null)
+				for (int argNum = 0; argNum != args.Length; argNum++) {
+					Argument arg = args[argNum];
+					Signature sig = new Signature (arg.Type);
+					Type argType = sig.ToType ();
+					if (arg.Direction == Introspection.ArgDirection.@out)
+						argType = argType.MakeByRefType ();
+					parms.Add (argType);
+				}
+
+			MethodBuilder mb = typeB.DefineMethod (name, mattr, typeof (void), parms.ToArray ());
+
+			if (args != null)
+				for (int argNum = 0; argNum != args.Length; argNum++) {
+					Argument arg = args[argNum];
+
+					ParameterAttributes pattrs = (arg.Direction == Introspection.ArgDirection.@out) ? ParameterAttributes.Out : ParameterAttributes.In;
+					mb.DefineParameter (argNum + 1, pattrs, arg.Name ?? ("arg" + argNum));
+				}
+
+			return mb;
+		}
+
 		public static void Define (TypeBuilder typeB, Interface iface)
 		{
-			foreach (Method declMethod in iface.Methods) {
-
-				//MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, MethodAttributes.Public | MethodAttributes.Virtual, declMethod.ReturnType, Mapper.GetTypes (ArgDirection.In, declMethod.GetParameters ()));
-
-				List<Type> parms = new List<Type> ();
-
-				if (declMethod.Arguments != null)
-					foreach (Argument arg in declMethod.Arguments) {
-						if (arg.Direction == Introspection.ArgDirection.@in)
-							parms.Add (new Signature (arg.Type).ToType ());
-						//if (arg.Direction == Introspection.ArgDirection.@out)
-						//	parms.Add (new Signature (arg.Type).ToType ().MakeByRefType ());
-					}
-
-				Signature outSig = Signature.Empty;
-				//this just takes the last out arg and uses is as the return type
-				if (declMethod.Arguments != null)
-					foreach (Argument arg in declMethod.Arguments)
-						if (arg.Direction == Introspection.ArgDirection.@out)
-							outSig = new Signature (arg.Type);
-
-				Type retType = outSig == Signature.Empty ? typeof (void) : outSig.ToType ();
-
-				MethodBuilder method_builder = typeB.DefineMethod (declMethod.Name, ifaceMethAttr, retType, parms.ToArray ());
-
-				//define the parameter attributes and names
-				if (declMethod.Arguments != null) {
-					int argNum = 0;
-
-					foreach (Argument arg in declMethod.Arguments) {
-						if (arg.Direction == Introspection.ArgDirection.@in)
-							method_builder.DefineParameter (++argNum, ParameterAttributes.In, arg.Name);
-						//if (arg.Direction == Introspection.ArgDirection.@out)
-						//	method_builder.DefineParameter (++argNum, ParameterAttributes.Out, arg.Name);
-					}
-				}
-			}
+			foreach (Method declMethod in iface.Methods)
+				DefineMethod (typeB, declMethod.Name, ifaceMethAttr, declMethod.Arguments, false);
 
 			if (iface.Properties != null)
 			foreach (NDesk.DBus.Introspection.Property prop in iface.Properties) {

@@ -74,6 +74,19 @@ namespace NDesk.DBus.Transports
 			}
 		}
 
+		int Read (byte[] buffer, int offset, int count)
+		{
+			int read = 0;
+			while (read < count) {
+				int nread = ns.Read (buffer, offset + read, count - read);
+				if (nread == 0)
+					break;
+				read += nread;
+			}
+
+			return read;
+		}
+
 		Message ReadMessageReal ()
 		{
 			byte[] header;
@@ -83,7 +96,7 @@ namespace NDesk.DBus.Transports
 
 			//16 bytes is the size of the fixed part of the header
 			byte[] hbuf = new byte[16];
-			read = ns.Read (hbuf, 0, 16);
+			read = Read (hbuf, 0, 16);
 
 			if (read == 0)
 				return null;
@@ -134,7 +147,7 @@ namespace NDesk.DBus.Transports
 			header = new byte[16 + toRead];
 			Array.Copy (hbuf, header, 16);
 
-			read = ns.Read (header, 16, toRead);
+			read = Read (header, 16, toRead);
 
 			if (read != toRead)
 				throw new Exception ("Message header length mismatch: " + read + " of expected " + toRead);
@@ -142,7 +155,8 @@ namespace NDesk.DBus.Transports
 			//read the body
 			if (bodyLen != 0) {
 				body = new byte[bodyLen];
-				read = ns.Read (body, 0, bodyLen);
+
+				read = Read (body, 0, bodyLen);
 
 				if (read != bodyLen)
 					throw new Exception ("Message body length mismatch: " + read + " of expected " + bodyLen);
@@ -170,6 +184,8 @@ namespace NDesk.DBus.Transports
 				if (msg.Body != null && msg.Body.Length != 0)
 					ns.Write (msg.Body, 0, msg.Body.Length);
 			}
+
+			ns.Flush ();
 		}
 	}
 }

@@ -102,9 +102,6 @@ namespace NDesk.DBus
 		};
 		*/
 			Register ();
-
-			// TODO: Find out why this hack is needed to prevent failure of immediately subsequent method calls.
-			global::System.Threading.Thread.Sleep (0);
 		}
 
 		//should this be public?

@@ -517,6 +517,10 @@ namespace NDesk.DBus
 
 		public Type[] ToTypes ()
 		{
+			// TODO: Find a way to avoid these null checks everywhere.
+			if (data == null)
+				return Type.EmptyTypes;
+
 			List<Type> types = new List<Type> ();
 			for (int i = 0 ; i != data.Length ; types.Add (ToType (ref i)));
 			return types.ToArray ();
@@ -727,6 +731,10 @@ namespace NDesk.DBus
 
 		public Type ToType (ref int pos)
 		{
+			// TODO: Find a way to avoid these null checks everywhere.
+			if (data == null)
+				return typeof (void);
+
 			DType dtype = (DType)data[pos++];
 
 			switch (dtype) {

@@ -290,20 +290,33 @@ namespace NDesk.DBus.Authentication
 
 		//static Regex rejectedRegex = new Regex (@"^REJECTED(\s+(\w+))*$");
 
+		// This enables simple support for multiple AUTH schemes
+		enum AuthMech
+		{
+			External,
+			Anonymous,
+			None,
+		}
+
 		public override IEnumerator<AuthCommand> GetEnumerator ()
 		{
 			IEnumerator<AuthCommand> replies = Peer.GetEnumerator ();
+			
+			AuthMech currMech = AuthMech.External;
 
 			while (true) {
-				string str = Identity;
-				byte[] bs = Encoding.ASCII.GetBytes (str);
-				string initialData = Sasl.ToHex (bs);
-				yield return new AuthCommand ("AUTH EXTERNAL " + initialData);
-
-				/*
-				yield return new AuthCommand ("AUTH X");
-				yield return new AuthCommand ("DATA " + initialData);
-				*/
+				if (currMech == AuthMech.External) {
+					string str = Identity;
+					byte[] bs = Encoding.ASCII.GetBytes (str);
+					string initialData = Sasl.ToHex (bs);
+					yield return new AuthCommand ("AUTH EXTERNAL " + initialData);
+					currMech = AuthMech.Anonymous;
+				} else if (currMech == AuthMech.Anonymous) {
+					yield return new AuthCommand ("AUTH ANONYMOUS");
+					currMech = AuthMech.None;
+				} else {
+					throw new Exception ("Authentication failure");
+				}
 
 				AuthCommand reply;
 				if (!replies.MoveNext ())

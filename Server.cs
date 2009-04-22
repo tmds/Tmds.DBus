@@ -24,6 +24,10 @@ namespace NDesk.DBus
 							return new TcpServer (entry.ToString ());
 						case "unix":
 							return new UnixServer (entry.ToString ());
+#if ENABLE_PIPES
+						case "win":
+							return new WinServer (entry.ToString ());
+#endif
 					}
 				} catch (Exception e) {
 					if (Protocol.Verbose)
@@ -69,7 +73,9 @@ namespace NDesk.DBus
 
 		// FIXME: The follow fields do not belong here!
 		// TODO: Make these a thread-specific CallContext prop
+		[ThreadStatic]
 		public Connection CurrentMessageConnection;
+		[ThreadStatic]
 		public Message CurrentMessage;
 		public ServerBus SBus = null;
 	}

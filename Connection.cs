@@ -39,7 +39,7 @@ namespace NDesk.DBus
 			Authenticate ();
 		}
 
-		protected bool isConnected = false;
+		internal bool isConnected = false;
 		public bool IsConnected
 		{
 			get {
@@ -115,7 +115,7 @@ namespace NDesk.DBus
 			isAuthenticated = true;
 		}
 
-		bool isAuthenticated = false;
+		internal bool isAuthenticated = false;
 		internal bool IsAuthenticated
 		{
 			get {

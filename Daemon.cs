@@ -3,6 +3,7 @@
 // See COPYING for details
 
 //#define USE_GLIB
+//#define ENABLE_PIPES
 
 using System;
 using System.Text;
@@ -22,12 +23,17 @@ using System.Reflection;
 
 using System.Threading;
 
+#if ENABLE_PIPES
+using System.IO.Pipes;
+#endif
+
 public class DBusDaemon
 {
 	public static void Main (string[] args)
 	{
 		bool isServer = true;
 		string addr = "tcp:host=localhost,port=12345";
+		//string addr = "win:path=dbus-session";
 
 		if (args.Length >= 1) {
 
@@ -143,7 +149,6 @@ public class DBusDaemon
 		readonly List<Connection> conns = new List<Connection> ();
 
 		public static readonly ObjectPath Path = new ObjectPath ("/org/freedesktop/DBus");
-		//static ObjectPath Path2 = new ObjectPath ("/");
 		const string DBusBusName = "org.freedesktop.DBus";
 
 		internal Server server;
@@ -168,18 +173,18 @@ public class DBusDaemon
 
 			conns.Add (conn);
 			conn.Register (Path, this);
-			//conn.Register (Path2, this);
 		}
 
 		public void RemoveConnection (Connection conn)
 		{
+			// FIXME: RemoveConnection is not always called when sessions end!
+
 			Console.Error.WriteLine ("RemoveConn");
 
 			if (!conns.Remove (conn))
 				throw new Exception ("Cannot remove connection");
 
 			//conn.Unregister (Path);
-			//conn.Unregister (Path2);
 
 			List<string> namesToDisown = new List<string> ();
 			foreach (KeyValuePair<string,Connection> pair in Names) {
@@ -216,7 +221,18 @@ public class DBusDaemon
 
 			// FIXME: Unregister earlier?
 			conn.Unregister (Path);
-			//conn.Unregister (Path2);
+		}
+
+		struct NameRequisition
+		{
+			public NameRequisition (Connection connection, bool allowReplacement)
+			{
+				this.Connection = connection;
+				this.AllowReplacement = allowReplacement;
+			}
+
+			public readonly Connection Connection;
+			public readonly bool AllowReplacement;
 		}
 
 		//SortedList<>
@@ -239,11 +255,13 @@ public class DBusDaemon
 
 			// TODO: NameFlag support
 
+			if (flags != NameFlag.None)
+				Console.Error.WriteLine ("Warning: Ignoring unimplemented NameFlags: " + flags);
+
 			Connection c;
 			if (!Names.TryGetValue (name, out c)) {
 				Names[name] = Caller;
-				// NameAcquired should only be sent to the caller?
-				//NameAcquired (name);
+				RaiseNameSignal ("Acquired", name);
 				NameOwnerChanged (name, String.Empty, Caller.UniqueName);
 				return RequestNameReply.PrimaryOwner;
 			} else if (c == Caller)
@@ -264,6 +282,8 @@ public class DBusDaemon
 				return ReleaseNameReply.NotOwner;
 
 			Names.Remove (name);
+			// TODO: Does official daemon send NameLost signal here? Do the same.
+			RaiseNameSignal ("Lost", name);
 			NameOwnerChanged (name, Caller.UniqueName, String.Empty);
 			return ReleaseNameReply.Released;
 		}
@@ -314,27 +334,41 @@ public class DBusDaemon
 		}
 
 		readonly long uniqueBase = 1;
-		long uniqueNames = 1;
+		long uniqueNames = 0;
 		public string Hello ()
 		{
 			// org.freedesktop.DBus.Error.Failed: Already handled an Hello message
 			if (Caller.UniqueName != null)
 				throw new Exception ("Already handled an Hello message");
 
-			Console.Error.WriteLine ("Hello!");
-			//return ":1";
-			string uniqueName = String.Format (":{0}.{1}", uniqueBase, uniqueNames++);
+			long uniqueNumber = Interlocked.Increment (ref uniqueNames);
 
+			string uniqueName = String.Format (":{0}.{1}", uniqueBase, uniqueNumber);
+			Console.Error.WriteLine ("Hello " + uniqueName + "!");
 			Caller.UniqueName = uniqueName;
 			Names[uniqueName] = Caller;
 
 			// These signals ought to be queued up and send after the reply is sent?
-			// TODO: NameAcquired should only be sent to the caller
 			// Should have the Destination field set!
-			NameAcquired (uniqueName);
+			//NameAcquired (uniqueName);
+			RaiseNameSignal ("Acquired", uniqueName);
+
 			NameOwnerChanged (uniqueName, String.Empty, uniqueName);
 
 			return uniqueName;
+		}
+
+		void RaiseNameSignal (string memberSuffix, string name)
+		{
+			// Name* signals on org.freedesktop.DBus are connection-specific.
+			// We handle them here as a special case.
+
+			Signal nameSignal = new Signal (Path, "org.freedesktop.DBus", "Name" + memberSuffix);
+			MessageWriter mw = new MessageWriter ();
+			mw.Write (name);
+			nameSignal.message.Body = mw.ToArray ();
+			nameSignal.message.Signature = Signature.StringSig;
+			Caller.Send (nameSignal.message);
 		}
 
 		public string[] ListNames ()
@@ -703,6 +737,17 @@ class ServerConnection : Connection
 		if (!isConnected)
 			return 0;
 
+		/*
+		if (msg.Header.MessageType == NDesk.DBus.MessageType.Signal) {
+			Signal signal = new Signal (msg);
+			if (signal.Member == "NameAcquired" || signal.Member == "NameLost") {
+				string dest = (string)msg.Header.Fields[FieldCode.Destination];
+				if (dest != UniqueName)
+					return 0;
+			}
+		}
+		*/
+
 		if (msg.Header.MessageType != NDesk.DBus.MessageType.MethodReturn) {
 			msg.Header.Fields[FieldCode.Sender] = "org.freedesktop.DBus";
 		}
@@ -826,6 +871,8 @@ class UnixServer : Server
 		if (conn.Transport.Stream.ReadByte () != 0)
 			return false;
 
+		conn.isConnected = true;
+
 		SaslPeer remote = new SaslPeer ();
 		remote.stream = transport.Stream;
 		SaslServer local = new SaslServer ();
@@ -843,6 +890,8 @@ class UnixServer : Server
 			return false;
 
 		conn.UserId = ((SaslServer)local).uid;
+
+		conn.isAuthenticated = true;
 
 		return true;
 	}
@@ -952,6 +1001,8 @@ class TcpServer : Server
 		if (conn.Transport.Stream.ReadByte () != 0)
 			return false;
 
+		conn.isConnected = true;
+
 		SaslPeer remote = new SaslPeer ();
 		remote.stream = transport.Stream;
 		SaslServer local = new SaslServer ();
@@ -969,6 +1020,8 @@ class TcpServer : Server
 			return false;
 
 		conn.UserId = ((SaslServer)local).uid;
+
+		conn.isAuthenticated = true;
 
 		return true;
 	}
@@ -1027,3 +1080,137 @@ class TcpServer : Server
 
 	public override event Action<Connection> NewConnection;
 }
+
+#if ENABLE_PIPES
+class WinServer : Server
+{
+	string pipePath;
+
+	public WinServer (string address)
+	{
+		AddressEntry[] entries = NDesk.DBus.Address.Parse (address);
+		AddressEntry entry = entries[0];
+
+		if (entry.Method != "win")
+			throw new Exception ();
+
+		string val;
+		if (entry.Properties.TryGetValue ("path", out val)) {
+			pipePath = val;
+		}
+
+		if (String.IsNullOrEmpty (pipePath))
+			throw new Exception ("Address path is invalid");
+
+		if (entry.GUID == UUID.Zero)
+			entry.GUID = UUID.Generate ();
+		Id = entry.GUID;
+
+		/*
+		Id = entry.GUID;
+		if (Id == UUID.Zero)
+			Id = UUID.Generate ();
+		*/
+
+		this.address = entry.ToString ();
+		Console.WriteLine ("Server address: " + Address);
+	}
+
+	public override void Disconnect ()
+	{
+	}
+
+	bool AcceptClient (PipeStream client, out ServerConnection conn)
+	{
+		PipeTransport transport = new PipeTransport ();
+		//client.Client.Blocking = true;
+		//transport.SocketHandle = (long)client.Client.Handle;
+		transport.Stream = client;
+		conn = new ServerConnection (transport);
+		conn.Server = this;
+		conn.Id = Id;
+
+		if (conn.Transport.Stream.ReadByte () != 0)
+			return false;
+
+		conn.isConnected = true;
+
+		SaslPeer remote = new SaslPeer ();
+		remote.stream = transport.Stream;
+		SaslServer local = new SaslServer ();
+		local.stream = transport.Stream;
+		local.Guid = Id;
+
+		local.Peer = remote;
+		remote.Peer = local;
+
+		bool success = local.Authenticate ();
+		//bool success = true;
+
+		Console.WriteLine ("Success? " + success);
+
+		if (!success)
+			return false;
+
+		conn.UserId = ((SaslServer)local).uid;
+
+		conn.isAuthenticated = true;
+
+		return true;
+	}
+
+	static int numPipeThreads = 16;
+
+	public override void Listen ()
+	{
+		// TODO: Use a ThreadPool to have an adaptive number of reusable threads.
+		for (int i = 0; i != numPipeThreads; i++) {
+			Thread newThread = new Thread (new ThreadStart (DoListen));
+			newThread.Name = "DBusPipeServer" + i;
+			// Hack to allow shutdown without Joining threads for now.
+			newThread.IsBackground = true;
+			newThread.Start ();
+		}
+
+		Console.WriteLine ("Press enter to exit.");
+		Console.ReadLine ();
+	}
+
+	void DoListen ()
+	{
+		while (true)
+		using (NamedPipeServerStream pipeServer = new NamedPipeServerStream (pipePath, PipeDirection.InOut, numPipeThreads, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, (int)Protocol.MaxMessageLength, (int)Protocol.MaxMessageLength)) {
+			Console.WriteLine ("Waiting for client on path " + pipePath);
+			pipeServer.WaitForConnection ();
+
+			Console.WriteLine ("Client connected");
+
+			ServerConnection conn;
+			if (!AcceptClient (pipeServer, out conn)) {
+				Console.WriteLine ("Client rejected");
+				pipeServer.Disconnect ();
+				continue;
+			}
+
+			pipeServer.Flush ();
+			pipeServer.WaitForPipeDrain ();
+
+			if (NewConnection != null)
+				NewConnection (conn);
+
+			while (conn.IsConnected)
+				conn.Iterate ();
+
+			pipeServer.Disconnect ();
+		}
+	}
+
+	/*
+	public void ConnectionLost (Connection conn)
+	{
+	}
+	*/
+
+	public override event Action<Connection> NewConnection;
+}
+#endif

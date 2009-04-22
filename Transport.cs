@@ -2,6 +2,8 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
+#define ENABLE_PIPES
+
 using System;
 using System.IO;
 
@@ -23,6 +25,13 @@ namespace NDesk.DBus.Transports
 				{
 					//Transport transport = new UnixMonoTransport ();
 					Transport transport = new UnixNativeTransport ();
+					transport.Open (entry);
+					return transport;
+				}
+#endif
+#if ENABLE_PIPES
+				case "win": {
+					Transport transport = new PipeTransport ();
 					transport.Open (entry);
 					return transport;
 				}
@@ -94,6 +103,12 @@ namespace NDesk.DBus.Transports
 					break;
 				read += nread;
 			}
+
+			//if (read < count)
+			//	throw new Exception ();
+
+			if (read > count)
+				throw new Exception ();
 
 			return read;
 		}
@@ -194,9 +209,9 @@ namespace NDesk.DBus.Transports
 				ns.Write (HeaderData, 0, HeaderData.Length);
 				if (msg.Body != null && msg.Body.Length != 0)
 					ns.Write (msg.Body, 0, msg.Body.Length);
+				ns.Flush ();
 			}
 
-			ns.Flush ();
 		}
 	}
 }

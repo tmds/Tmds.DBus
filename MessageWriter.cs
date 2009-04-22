@@ -11,10 +11,10 @@ using System.Runtime.InteropServices;
 
 namespace NDesk.DBus
 {
-	class MessageWriter
+	sealed class MessageWriter
 	{
-		protected EndianFlag endianness;
-		protected MemoryStream stream;
+		EndianFlag endianness;
+		MemoryStream stream;
 
 		public Connection connection;
 
@@ -50,7 +50,7 @@ namespace NDesk.DBus
 
 		// Buffer for integer marshaling
 		byte[] dst = new byte[8];
-		unsafe protected void MarshalUShort (void* dataPtr)
+		unsafe void MarshalUShort (void* dataPtr)
 		{
 			WritePad (2);
 
@@ -76,7 +76,7 @@ namespace NDesk.DBus
 			MarshalUShort (&val);
 		}
 
-		unsafe protected void MarshalUInt (void* dataPtr)
+		unsafe void MarshalUInt (void* dataPtr)
 		{
 			WritePad (4);
 
@@ -104,7 +104,7 @@ namespace NDesk.DBus
 			MarshalUInt (&val);
 		}
 
-		unsafe protected void MarshalULong (void* dataPtr)
+		unsafe void MarshalULong (void* dataPtr)
 		{
 			WritePad (8);
 

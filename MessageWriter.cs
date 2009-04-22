@@ -469,7 +469,7 @@ namespace NDesk.DBus
 		}
 
 		// Source buffer for zero-padding
-		byte[] nullBytes = new byte[8];
+		static readonly byte[] nullBytes = new byte[8];
 		public void WritePad (int alignment)
 		{
 			int needed = Protocol.PadNeeded ((int)stream.Position, alignment);

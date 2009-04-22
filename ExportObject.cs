@@ -2,8 +2,6 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
-//#define DLR
-
 using System;
 using System.Collections.Generic;
 using System.Reflection;

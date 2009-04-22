@@ -227,6 +227,8 @@ namespace NDesk.DBus.Authentication
 			return GetEnumerator ();
 		}
 
+		internal bool isFinalRead = false;
+
 		public virtual IEnumerator<AuthCommand> GetEnumerator ()
 		{
 			// Read the mandatory null credentials byte
@@ -240,10 +242,45 @@ namespace NDesk.DBus.Authentication
 			sr = UseConsole ? Console.In : new StreamReader (stream, Encoding.ASCII);
 
 			while (true) {
-				string ln = sr.ReadLine ();
+				string ln;
+				bool isEnd = false;
+				if (!UseConsole && isFinalRead) {
+					StringBuilder sb = new StringBuilder ();
+
+					while (true) {
+						//MemoryStream ms = new MemoryStream ();
+						// TODO: Use char instead? Check for -1?
+						int a = stream.ReadByte ();
+
+						if (a == -1) {
+							isEnd = true;
+							break;
+						}
+
+						if (a == '\r') {
+							int b = stream.ReadByte ();
+							if (b != '\n')
+								throw new Exception ();
+							break;
+						}
+
+						sb.Append ((char)a);
+					}
+
+					ln = sb.ToString ();
+					//isFinalRead = false;
+				} else {
+					ln = sr.ReadLine ();
+				}
+
+				//if (isEnd && ln == string.Empty)
+				//	yield break;
 				if (ln == null)
 					yield break;
-				yield return new AuthCommand (ln);
+				if (ln != String.Empty)
+					yield return new AuthCommand (ln);
+				if (isEnd)
+					yield break;
 			}
 		}
 
@@ -305,6 +342,8 @@ namespace NDesk.DBus.Authentication
 			AuthMech currMech = AuthMech.External;
 
 			while (true) {
+				Peer.isFinalRead = false;
+
 				if (currMech == AuthMech.External) {
 					string str = Identity;
 					byte[] bs = Encoding.ASCII.GetBytes (str);
@@ -317,6 +356,8 @@ namespace NDesk.DBus.Authentication
 				} else {
 					throw new Exception ("Authentication failure");
 				}
+
+				Peer.isFinalRead = true;
 
 				AuthCommand reply;
 				if (!replies.MoveNext ())
@@ -370,6 +411,8 @@ namespace NDesk.DBus.Authentication
 			IEnumerator<AuthCommand> replies = Peer.GetEnumerator ();
 
 			while (true) {
+				Peer.isFinalRead = false;
+
 				AuthCommand reply;
 				if (!replies.MoveNext ()) {
 					yield return null;
@@ -405,6 +448,8 @@ namespace NDesk.DBus.Authentication
 					yield return new AuthCommand ("OK");
 				else
 					yield return new AuthCommand ("OK " + Guid.ToString ());
+
+				Peer.isFinalRead = true;
 
 				if (!replies.MoveNext ()) {
 					/*

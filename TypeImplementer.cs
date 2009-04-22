@@ -834,7 +834,7 @@ namespace NDesk.DBus
 				GenReadCollection (ilg, t);
 			else if (t.IsGenericType && (t.GetGenericTypeDefinition () == typeof (IList<>)))
 				GenReadCollection (ilg, t);
-			else if (t.IsGenericType && (t.GetGenericTypeDefinition () == typeof (IDictionary<,>)))
+			else if (t.IsGenericType && (t.GetGenericTypeDefinition () == typeof (IDictionary<,>) || t.GetGenericTypeDefinition () == typeof (Dictionary<,>)))
 				GenReadCollection (ilg, t);
 			else if (t.IsInterface)
 				GenFallbackReader (ilg, tUnder);

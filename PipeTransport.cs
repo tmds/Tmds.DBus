@@ -8,11 +8,13 @@ using System.Net;
 using System.Net.Sockets;
 using System.IO.Pipes;
 
+using System.Threading;
+
 namespace NDesk.DBus.Transports
 {
 	class PipeTransport : Transport
 	{
-		protected NamedPipeClientStream pipe;
+		protected PipeStream pipe;
 
 		public override void Open (AddressEntry entry)
 		{
@@ -34,17 +36,52 @@ namespace NDesk.DBus.Transports
 			Open (new NamedPipeClientStream (host, path, PipeDirection.InOut, PipeOptions.Asynchronous));
 		}
 
+		//public WaitHandle wHandle = new ManualResetEvent (false);
+		//public WaitHandle wHandle = new AutoResetEvent (false);
 		public void Open (NamedPipeClientStream pipe)
 		{
+
 			//if (!pipe.IsConnected)
 				pipe.Connect ();
 
 			pipe.ReadMode = PipeTransmissionMode.Byte;
 			this.pipe = pipe;
 			//socket.Blocking = true;
-			SocketHandle = (long)pipe.SafePipeHandle.DangerousGetHandle ();
+			//SocketHandle = (long)pipe.SafePipeHandle.DangerousGetHandle ();
+			//SocketHandle = (long)pipe.BeginRead()
+			//this.ffd = pipe.SafePipeHandle.DangerousGetHandle ();
+			//SocketHandle = (long)wHandle.SafeWaitHandle.DangerousGetHandle ();
+			//var ovr = new System.Threading.Overlapped ();
+			//ovr.AsyncResult = asr;
 			Stream = pipe;
+			//WaitHandle.WaitAny
 		}
+
+#if ASYNC_PIPES
+		protected override int Read (byte[] buffer, int offset, int count)
+		{
+			pipe = (PipeStream)Stream;
+			AsyncCallback cb = delegate (IAsyncResult ar)
+			{
+				//wHandle = ar.AsyncWaitHandle;
+				
+				pipe.EndRead (ar);
+				((ManualResetEvent)wHandle).Set ();
+
+			};
+
+			//((AutoResetEvent)wHandle).
+			IAsyncResult iar = pipe.BeginRead (buffer, offset, count, cb, wHandle);
+
+
+			Thread.Sleep (100);
+			wHandle.WaitOne ();
+			((ManualResetEvent)wHandle).Reset ();
+
+			return count;
+		}
+#endif
+
 
 		public override void WriteCred ()
 		{

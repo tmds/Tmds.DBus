@@ -3,7 +3,6 @@
 // See COPYING for details
 
 //#define USE_GLIB
-//#define ENABLE_PIPES
 
 using System;
 using System.Text;
@@ -31,24 +30,16 @@ public class DBusDaemon
 {
 	public static void Main (string[] args)
 	{
-		bool isServer = true;
-		string addr = "tcp:host=localhost,port=12345";
-		//string addr = "win:path=dbus-session";
+		//string addr = "tcp:host=localhost,port=12345";
+		string addr = "win:path=dbus-session";
 
 		if (args.Length >= 1) {
-
-			if (args[0] == "client")
-				isServer = false;
-
-			if (args.Length >= 2)
-				addr = args[1];
+				addr = args[0];
 		}
 
-		if (isServer)
-			RunServer (addr);
-		else
-			RunClient (addr);
-		//Console.Error.WriteLine ("Usage: test-server-tcp [server PORT|client HOSTNAME PORT]");
+		RunServer (addr);
+
+		//Console.Error.WriteLine ("Usage: dbus-daemon [address]");
 	}
 
 	static void RunServer (string addr)
@@ -82,51 +73,6 @@ public class DBusDaemon
 		serv.Listen ();
 #endif
 	}
-
-	static void RunClient (string addr)
-	{
-		//ObjectPath myOpath = new ObjectPath ("/org/ndesk/test");
-		//string myNameReq = "org.ndesk.test";
-
-		/*
-		SocketTransport transport = new SocketTransport ();
-		transport.Open (hostname, port);
-		conn = new Connection (transport);
-		*/
-
-		Console.WriteLine ("Opening " + addr);
-		Bus bus = Bus.Open (addr);
-
-		Console.WriteLine (bus.UniqueName);
-		Console.WriteLine (bus.RequestName ("org.ndesk.Test"));
-
-		IBus ibus = bus.GetObject<IBus> ("org.freedesktop.DBus", new ObjectPath ("/org/freedesktop/DBus"));
-
-		string[] names = ibus.ListNames ();
-		Console.WriteLine (String.Join (" ", names));
-
-		Console.WriteLine (bus.RequestName ("org.ndesk.Test"));
-
-		ibus.AddMatch ("type='method_call'");
-		ibus.AddMatch ("type='method_call'");
-		ibus.AddMatch ("type='method_call'");
-		ibus.RemoveMatch ("type='method_call'");
-		ibus.RemoveMatch ("type='method_call'");
-		ibus.RemoveMatch ("type='method_call'");
-
-		/*
-		DemoObject demo = conn.GetObject<DemoObject> (myNameReq, myOpath);
-		demo.GiveNoReply ();
-		//float ret = demo.Hello ("hi from test client", 21);
-		float ret = 200;
-		while (ret > 5) {
-			ret = demo.Hello ("hi from test client", (int)ret);
-			Console.WriteLine ("Returned float: " + ret);
-			System.Threading.Thread.Sleep (1000);
-		}
-		*/
-	}
-
 }
 
 	public class ServerBus : org.freedesktop.DBus.IBus
@@ -1036,14 +982,19 @@ class TcpServer : Server
 		while (true) {
 			Console.WriteLine ("Waiting for client on TCP port " + port);
 			TcpClient client = server.AcceptTcpClient ();
+			client.NoDelay = true;
+			client.ReceiveBufferSize = (int)Protocol.MaxMessageLength;
+			client.SendBufferSize = (int)Protocol.MaxMessageLength;
 			Console.WriteLine ("Client connected");
 
 			ServerConnection conn;
 			if (!AcceptClient (client, out conn)) {
 				Console.WriteLine ("Client rejected");
-				//!!!csock.Close ();
+				client.Close ();
 				continue;
 			}
+
+			//client.Client.Blocking = false;
 
 
 			//GLib.Idle.Add (delegate {

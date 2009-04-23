@@ -2,8 +2,6 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
-#define ENABLE_PIPES
-
 using System;
 using System.IO;
 
@@ -92,12 +90,15 @@ namespace NDesk.DBus.Transports
 		{
 			int read = 0;
 			System.Net.Sockets.NetworkStream nns = ns as System.Net.Sockets.NetworkStream;
+			SocketTransport st = this as SocketTransport;
 			while (read < count) {
 				// FIXME: Remove this hack to support non-blocking sockets on Windows
-				if (nns != null && !nns.DataAvailable) {
+				/*
+				if (st != null && st.socket.Blocking == false && nns != null && !nns.DataAvailable) {
 					System.Threading.Thread.Sleep (10);
 					continue;
 				}
+				*/
 				int nread = ns.Read (buffer, offset + read, count - read);
 				if (nread == 0)
 					break;

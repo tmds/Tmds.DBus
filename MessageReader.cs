@@ -315,6 +315,13 @@ namespace NDesk.DBus
 		{
 			byte ln = ReadByte ();
 
+			// Avoid an array allocation for small signatures
+			if (ln == 1) {
+				DType dtype = (DType)ReadByte ();
+				ReadNull ();
+				return new Signature (dtype);
+			}
+
 			if (ln > Protocol.MaxSignatureLength)
 				throw new Exception ("Signature length " + ln + " exceeds maximum allowed " + Protocol.MaxSignatureLength + " bytes");
 

@@ -143,7 +143,7 @@ namespace NDesk.DBus
 			}
 
 			if (method_call.Sender != null)
-				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+				replyMsg.Header[FieldCode.Destination] = method_call.Sender;
 
 			conn.Send (replyMsg);
 		}

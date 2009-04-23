@@ -248,8 +248,8 @@ namespace NDesk.DBus
 			//TODO: Restrict messages to Local ObjectPath?
 
 			{
-				object field_value;
-				if (msg.Header.Fields.TryGetValue (FieldCode.ReplySerial, out field_value)) {
+				object field_value = msg.Header[FieldCode.ReplySerial];
+				if (field_value != null) {
 					uint reply_serial = (uint)field_value;
 					PendingCall pending;
 

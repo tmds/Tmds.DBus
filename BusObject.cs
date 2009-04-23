@@ -135,7 +135,7 @@ namespace NDesk.DBus
 #if PROTO_REPLY_SIGNATURE
 			if (needsReply) {
 				Signature outSig = Signature.GetSig (outTypes);
-				callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
+				callMsg.Header[FieldCode.ReplySignature] = outSig;
 			}
 #endif
 
@@ -213,7 +213,7 @@ namespace NDesk.DBus
 #if PROTO_REPLY_SIGNATURE
 			if (needsReply) {
 				Signature outSig = Signature.GetSig (outTypes);
-				callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
+				callMsg.Header[FieldCode.ReplySignature] = outSig;
 			}
 #endif
 
@@ -328,7 +328,7 @@ namespace NDesk.DBus
 #if PROTO_REPLY_SIGNATURE
 			if (needsReply) {
 				Signature outSig = Signature.GetSig (outTypes);
-				callMsg.Header.Fields[FieldCode.ReplySignature] = outSig;
+				callMsg.Header[FieldCode.ReplySignature] = outSig;
 			}
 #endif
 

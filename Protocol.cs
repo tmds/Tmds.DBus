@@ -18,7 +18,24 @@ namespace NDesk.DBus
 		public uint Length;
 		public uint Serial;
 		//public HeaderField[] Fields;
-		public IDictionary<FieldCode,object> Fields;
+
+		// Dictionary keyed by Enum has performance issues on .NET
+		// So we key by byte and use an indexer instead.
+		public Dictionary<byte, object> Fields;
+		public object this[FieldCode key]
+		{
+			get
+			{
+				object value = null;
+				Fields.TryGetValue ((byte)key, out value);
+				return value;
+			} set {
+				if (value == null)
+					Fields.Remove((byte)key);
+				else
+					Fields[(byte)key] = value;
+			}
+		}
 
 		/*
 		public static DType TypeForField (FieldCode f)

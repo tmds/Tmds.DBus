@@ -227,7 +227,7 @@ namespace NDesk.DBus
 
 			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
 			if (method_call.Sender != null)
-				error.message.Header.Fields[FieldCode.Destination] = method_call.Sender;
+				error.message.Header[FieldCode.Destination] = method_call.Sender;
 
 			return error.message;
 		}
@@ -316,7 +316,7 @@ namespace NDesk.DBus
 
 			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
 			if (method_call.Sender != null)
-				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+				replyMsg.Header[FieldCode.Destination] = method_call.Sender;
 
 			replyMsg.Signature = inSig;
 
@@ -350,7 +350,7 @@ namespace NDesk.DBus
 
 			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
 			if (method_call.Sender != null)
-				replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+				replyMsg.Header[FieldCode.Destination] = method_call.Sender;
 
 			replyMsg.Signature = outSig;
 

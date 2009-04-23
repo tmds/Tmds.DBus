@@ -21,42 +21,36 @@ namespace NDesk.DBus
 		{
 			message.Header.MessageType = MessageType.MethodCall;
 			message.ReplyExpected = true;
-			message.Header.Fields[FieldCode.Path] = path;
-			if (@interface != null)
-				message.Header.Fields[FieldCode.Interface] = @interface;
-			message.Header.Fields[FieldCode.Member] = member;
-			message.Header.Fields[FieldCode.Destination] = destination;
+			message.Header[FieldCode.Path] = path;
+			message.Header[FieldCode.Interface] = @interface;
+			message.Header[FieldCode.Member] = member;
+			message.Header[FieldCode.Destination] = destination;
 			//TODO: consider setting Sender here for p2p situations
 			//this will allow us to remove the p2p hacks in MethodCall and Message
 #if PROTO_REPLY_SIGNATURE
 			//TODO
 #endif
-			//message.Header.Fields[FieldCode.Signature] = signature;
-			//use the wrapper in Message because it checks for emptiness
 			message.Signature = signature;
 		}
 
 		public MethodCall (Message message)
 		{
 			this.message = message;
-			Path = (ObjectPath)message.Header.Fields[FieldCode.Path];
-			if (message.Header.Fields.ContainsKey (FieldCode.Interface))
-				Interface = (string)message.Header.Fields[FieldCode.Interface];
-			Member = (string)message.Header.Fields[FieldCode.Member];
-			Destination = (string)message.Header.Fields[FieldCode.Destination];
+			Path = (ObjectPath)message.Header[FieldCode.Path];
+			Interface = (string)message.Header[FieldCode.Interface];
+			Member = (string)message.Header[FieldCode.Member];
+			Destination = (string)message.Header[FieldCode.Destination];
 			//TODO: filled by the bus so reliable, but not the case for p2p
 			//so we make it optional here, but this needs some more thought
-			if (message.Header.Fields.ContainsKey (FieldCode.Sender))
-				Sender = (string)message.Header.Fields[FieldCode.Sender];
+			//if (message.Header.Fields.ContainsKey (FieldCode.Sender))
+			Sender = (string)message.Header[FieldCode.Sender];
 #if PROTO_REPLY_SIGNATURE
 			//TODO: note that an empty ReplySignature should really be treated differently to the field not existing!
 			if (message.Header.Fields.ContainsKey (FieldCode.ReplySignature))
-				ReplySignature = (Signature)message.Header.Fields[FieldCode.ReplySignature];
+				ReplySignature = (Signature)message.Header[FieldCode.ReplySignature];
 			else
 				ReplySignature = Signature.Empty;
 #endif
-			//Signature = (Signature)message.Header.Fields[FieldCode.Signature];
-			//use the wrapper in Message because it checks for emptiness
 			Signature = message.Signature;
 		}
 
@@ -81,7 +75,7 @@ namespace NDesk.DBus
 			error.message.Body = writer.ToArray ();
 
 			//if (method_call.Sender != null)
-			//	replyMsg.Header.Fields[FieldCode.Destination] = method_call.Sender;
+			//	replyMsg.Header[FieldCode.Destination] = method_call.Sender;
 
 			return error;
 		}
@@ -95,15 +89,15 @@ namespace NDesk.DBus
 		{
 			message.Header.MessageType = MessageType.MethodReturn;
 			message.Header.Flags = HeaderFlag.NoReplyExpected | HeaderFlag.NoAutoStart;
-			message.Header.Fields[FieldCode.ReplySerial] = reply_serial;
+			message.Header[FieldCode.ReplySerial] = reply_serial;
 			//signature optional?
-			//message.Header.Fields[FieldCode.Signature] = signature;
+			//message.Header[FieldCode.Signature] = signature;
 		}
 
 		public MethodReturn (Message message)
 		{
 			this.message = message;
-			ReplySerial = (uint)message.Header.Fields[FieldCode.ReplySerial];
+			ReplySerial = (uint)message.Header[FieldCode.ReplySerial];
 		}
 
 		public uint ReplySerial;
@@ -117,16 +111,16 @@ namespace NDesk.DBus
 		{
 			message.Header.MessageType = MessageType.Error;
 			message.Header.Flags = HeaderFlag.NoReplyExpected | HeaderFlag.NoAutoStart;
-			message.Header.Fields[FieldCode.ErrorName] = error_name;
-			message.Header.Fields[FieldCode.ReplySerial] = reply_serial;
+			message.Header[FieldCode.ErrorName] = error_name;
+			message.Header[FieldCode.ReplySerial] = reply_serial;
 		}
 
 		public Error (Message message)
 		{
 			this.message = message;
-			ErrorName = (string)message.Header.Fields[FieldCode.ErrorName];
-			ReplySerial = (uint)message.Header.Fields[FieldCode.ReplySerial];
-			//Signature = (Signature)message.Header.Fields[FieldCode.Signature];
+			ErrorName = (string)message.Header[FieldCode.ErrorName];
+			ReplySerial = (uint)message.Header[FieldCode.ReplySerial];
+			//Signature = (Signature)message.Header[FieldCode.Signature];
 		}
 
 		public string ErrorName;
@@ -142,19 +136,18 @@ namespace NDesk.DBus
 		{
 			message.Header.MessageType = MessageType.Signal;
 			message.Header.Flags = HeaderFlag.NoReplyExpected | HeaderFlag.NoAutoStart;
-			message.Header.Fields[FieldCode.Path] = path;
-			message.Header.Fields[FieldCode.Interface] = @interface;
-			message.Header.Fields[FieldCode.Member] = member;
+			message.Header[FieldCode.Path] = path;
+			message.Header[FieldCode.Interface] = @interface;
+			message.Header[FieldCode.Member] = member;
 		}
 
 		public Signal (Message message)
 		{
 			this.message = message;
-			Path = (ObjectPath)message.Header.Fields[FieldCode.Path];
-			Interface = (string)message.Header.Fields[FieldCode.Interface];
-			Member = (string)message.Header.Fields[FieldCode.Member];
-			if (message.Header.Fields.ContainsKey (FieldCode.Sender))
-				Sender = (string)message.Header.Fields[FieldCode.Sender];
+			Path = (ObjectPath)message.Header[FieldCode.Path];
+			Interface = (string)message.Header[FieldCode.Interface];
+			Member = (string)message.Header[FieldCode.Member];
+			Sender = (string)message.Header[FieldCode.Sender];
 		}
 
 		public ObjectPath Path;

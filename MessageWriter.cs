@@ -463,6 +463,67 @@ namespace NDesk.DBus
 			stream.Position = endPos;
 		}
 
+		/*
+		public void Write (IDictionary<FieldCode, object> val)
+		{
+			WriteHeaderDict(val);
+		}
+
+		public void Write (Dictionary<FieldCode, object> val)
+		{
+			WriteHeaderDict (val);
+		}
+		*/
+
+		public void Write (Dictionary<byte, object> val)
+		{
+			long origPos = stream.Position;
+			Write ((uint)0);
+
+			WritePad (8);
+
+			long startPos = stream.Position;
+
+			foreach (KeyValuePair<byte, object> entry in val) {
+				WritePad (8);
+				Write (entry.Key);
+				Write (entry.Value);
+				/*
+				switch ((FieldCode)entry.Key) {
+					case FieldCode.Destination:
+					case FieldCode.ErrorName:
+					case FieldCode.Interface:
+					case FieldCode.Member:
+					case FieldCode.Sender:
+						Write (Signature.StringSig);
+						Write ((string)entry.Value);
+						break;
+					case FieldCode.Path:
+						Write (Signature.ObjectPathSig);
+						Write ((ObjectPath)entry.Value);
+						break;
+					case FieldCode.ReplySerial:
+						Write (Signature.UInt32Sig);
+						Write ((uint)entry.Value);
+						break;
+					default:
+						Write (entry.Value);
+						break;
+				}
+				*/
+			}
+
+			long endPos = stream.Position;
+			uint ln = (uint)(endPos - startPos);
+			stream.Position = origPos;
+
+			if (ln > Protocol.MaxArrayLength)
+				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+
+			Write (ln);
+			stream.Position = endPos;
+		}
+
 		public void WriteNull ()
 		{
 			stream.WriteByte (0);

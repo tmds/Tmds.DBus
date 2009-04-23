@@ -139,7 +139,7 @@ namespace NDesk.DBus
 		{
 			ObjectPath path = ReadObjectPath ();
 
-			return message.Connection.GetObject (type, (string)message.Header.Fields[FieldCode.Sender], path);
+			return message.Connection.GetObject (type, (string)message.Header[FieldCode.Sender], path);
 		}
 
 		public byte ReadByte ()

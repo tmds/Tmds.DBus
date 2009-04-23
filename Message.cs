@@ -16,7 +16,7 @@ namespace NDesk.DBus
 			Header.MessageType = MessageType.MethodCall;
 			Header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
 			Header.MajorVersion = Protocol.Version;
-			Header.Fields = new Dictionary<FieldCode,object> ();
+			Header.Fields = new Dictionary<byte,object> ();
 		}
 
 		public Header Header = new Header ();
@@ -26,16 +26,16 @@ namespace NDesk.DBus
 		public Signature Signature
 		{
 			get {
-				object o;
-				if (Header.Fields.TryGetValue (FieldCode.Signature, out o))
-					return (Signature)o;
-				else
+				object o = Header[FieldCode.Signature];
+				if (o == null)
 					return Signature.Empty;
+				else
+					return (Signature)o;
 			} set {
 				if (value == Signature.Empty)
-					Header.Fields.Remove (FieldCode.Signature);
+					Header[FieldCode.Signature] = null;
 				else
-					Header.Fields[FieldCode.Signature] = value;
+					Header[FieldCode.Signature] = value;
 			}
 		}
 

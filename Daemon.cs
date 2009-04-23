@@ -30,8 +30,8 @@ public class DBusDaemon
 {
 	public static void Main (string[] args)
 	{
-		//string addr = "tcp:host=localhost,port=12345";
-		string addr = "win:path=dbus-session";
+		string addr = "tcp:host=localhost,port=12345";
+		//string addr = "win:path=dbus-session";
 
 		if (args.Length >= 1) {
 				addr = args[0];
@@ -411,14 +411,14 @@ public class DBusDaemon
 						Console.WriteLine ("replyMsg body: " + replyMsg.Body.Length);
 						/*
 						try {
-						replyMsg.Header.Fields[FieldCode.Destination] = msg.Header.Fields[FieldCode.Sender];
-						replyMsg.Header.Fields[FieldCode.Sender] = Caller.UniqueName;
+						replyMsg.Header[FieldCode.Destination] = msg.Header[FieldCode.Sender];
+						replyMsg.Header[FieldCode.Sender] = Caller.UniqueName;
 						} catch (Exception e) {
 							Console.Error.WriteLine (e);
 						}
 						*/
-						replyMsg.Header.Fields[FieldCode.Destination] = Caller.UniqueName;
-						replyMsg.Header.Fields[FieldCode.Sender] = "org.freedesktop.DBus";
+						replyMsg.Header[FieldCode.Destination] = Caller.UniqueName;
+						replyMsg.Header[FieldCode.Sender] = "org.freedesktop.DBus";
 						replyMsg.Signature = outSig;
 						{
 							Caller.Send (replyMsg);
@@ -438,8 +438,8 @@ public class DBusDaemon
 			HashSet<Connection> recipients = new HashSet<Connection> ();
 			//HashSet<Connection> recipientsAll = new HashSet<Connection> (Connections);
 
-			object fieldValue;
-			if (msg.Header.Fields.TryGetValue (FieldCode.Destination, out fieldValue)) {
+			object fieldValue = msg.Header[FieldCode.Destination];
+			if (fieldValue != null) {
 				string destination = (string)fieldValue;
 				Connection destConn;
 				if (Names.TryGetValue (destination, out destConn))
@@ -655,15 +655,15 @@ class ServerConnection : Connection
 		}
 
 		if (UniqueName != null)
-			msg.Header.Fields[FieldCode.Sender] = UniqueName;
+			msg.Header[FieldCode.Sender] = UniqueName;
 
-		object fieldValue;
-		if (msg.Header.Fields.TryGetValue (FieldCode.Destination, out fieldValue)) {
+		object fieldValue = msg.Header[FieldCode.Destination];
+		if (fieldValue != null) {
 			if ((string)fieldValue == "org.freedesktop.DBus") {
 
 				// Workaround for our daemon only listening on a single path
 				if (msg.Header.MessageType == NDesk.DBus.MessageType.MethodCall)
-					msg.Header.Fields[FieldCode.Path] = ServerBus.Path;
+					msg.Header[FieldCode.Path] = ServerBus.Path;
 
 				base.HandleMessage (msg);
 				//return;
@@ -687,7 +687,7 @@ class ServerConnection : Connection
 		if (msg.Header.MessageType == NDesk.DBus.MessageType.Signal) {
 			Signal signal = new Signal (msg);
 			if (signal.Member == "NameAcquired" || signal.Member == "NameLost") {
-				string dest = (string)msg.Header.Fields[FieldCode.Destination];
+				string dest = (string)msg.Header[FieldCode.Destination];
 				if (dest != UniqueName)
 					return 0;
 			}
@@ -695,11 +695,11 @@ class ServerConnection : Connection
 		*/
 
 		if (msg.Header.MessageType != NDesk.DBus.MessageType.MethodReturn) {
-			msg.Header.Fields[FieldCode.Sender] = "org.freedesktop.DBus";
+			msg.Header[FieldCode.Sender] = "org.freedesktop.DBus";
 		}
 
 		if (UniqueName != null)
-			msg.Header.Fields[FieldCode.Destination] = UniqueName;
+			msg.Header[FieldCode.Destination] = UniqueName;
 
 		if (shouldDump) {
 			MessageDumper.WriteComment ("Sending:", Console.Out);

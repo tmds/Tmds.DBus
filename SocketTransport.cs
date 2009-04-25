@@ -15,11 +15,11 @@ namespace NDesk.DBus.Transports
 
 		public override void Open (AddressEntry entry)
 		{
-			string host, portStr;
+			string host, portStr, family;
 			int port;
 
 			if (!entry.Properties.TryGetValue ("host", out host))
-				throw new Exception ("No host specified");
+				host = "localhost";
 
 			if (!entry.Properties.TryGetValue ("port", out portStr))
 				throw new Exception ("No port specified");
@@ -27,10 +27,13 @@ namespace NDesk.DBus.Transports
 			if (!Int32.TryParse (portStr, out port))
 				throw new Exception ("Invalid port: \"" + port + "\"");
 
-			Open (host, port);
+			if (!entry.Properties.TryGetValue ("family", out family))
+				family = null;
+
+			Open (host, port, family);
 		}
 
-		public void Open (string host, int port)
+		public void Open (string host, int port, string family)
 		{
 			//TODO: use Socket directly
 			TcpClient client = new TcpClient (host, port);

@@ -82,6 +82,7 @@ namespace org.freedesktop.DBus
 		event NameLostHandler NameLost;
 		event NameAcquiredHandler NameAcquired;
 		StartReply StartServiceByName (string name, uint flags);
+		void UpdateActivationEnvironment (IDictionary<string, string> environment);
 		string GetNameOwner (string name);
 		uint GetConnectionUnixUser (string connection_name);
 		void AddMatch (string rule);

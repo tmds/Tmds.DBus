@@ -44,22 +44,16 @@ public class DBusDaemon
 
 	static void RunServer (string addr)
 	{
-		/*
-		int port;
-		string hostname = "127.0.0.1";
-		//IPAddress ipaddr = IPAddress.Parse ("127.0.0.1");
-
-		port = 12345;
-		string addr = "tcp:host=localhost,port=" + port;
-		*/
-
-		//port = Int32.Parse (args[1]);
-		//TcpServer serv = new TcpServer (addr);
-		//UnixServer serv = new UnixServer (addr);
-
 		Server serv = Server.ListenAt (addr);
 
 		ServerBus sbus = new ServerBus ();
+
+		string activationEnv = Environment.GetEnvironmentVariable ("DBUS_ACTIVATION");
+		if (activationEnv == "1") {
+			sbus.ScanServices ();
+			sbus.allowActivation = true;
+		}
+
 		sbus.server = serv;
 		serv.SBus = sbus;
 		serv.NewConnection += sbus.AddConnection;
@@ -187,6 +181,7 @@ public class DBusDaemon
 		//readonly SortedDictionary<string,Connection> Names = new SortedDictionary<string,Connection> ();
 		public RequestNameReply RequestName (string name, NameFlag flags)
 		{
+			Console.Error.WriteLine ("RequestName " + name);
 			string nameError;
 			if (!BusNameIsValid (name, out nameError))
 				throw new ArgumentException (String.Format ("Requested name \"{0}\" is not valid: {1}", name, nameError), "name");
@@ -209,6 +204,13 @@ public class DBusDaemon
 				Names[name] = Caller;
 				RaiseNameSignal ("Acquired", name);
 				NameOwnerChanged (name, String.Empty, Caller.UniqueName);
+
+				Message activationMessage;
+				if (activationMessages.TryGetValue (name, out activationMessage)) {
+					activationMessages.Remove (name);
+					Caller.SendReal (activationMessage);
+				}
+
 				return RequestNameReply.PrimaryOwner;
 			} else if (c == Caller)
 				return RequestNameReply.AlreadyOwner;
@@ -359,6 +361,18 @@ public class DBusDaemon
 			//throw new NotSupportedException ();
 		}
 
+		Dictionary<string, string> activationEnv = new Dictionary<string, string> ();
+		public void UpdateActivationEnvironment (IDictionary<string, string> environment)
+		{
+			Console.Error.WriteLine ("UpdateActivationEnvironment");
+			foreach (KeyValuePair<string, string> pair in environment) {
+				if (pair.Value == String.Empty)
+					activationEnv.Remove (pair.Key);
+				else
+					activationEnv[pair.Key] = pair.Value;
+			}
+		}
+
 		public string GetNameOwner (string name)
 		{
 			if (name == DBusBusName)
@@ -383,6 +397,8 @@ public class DBusDaemon
 
 			return (uint)((ServerConnection)c).UserId;
 		}
+
+		Dictionary<string, Message> activationMessages = new Dictionary<string, Message> ();
 
 		internal void HandleMessage (Message msg)
 		{
@@ -444,17 +460,28 @@ public class DBusDaemon
 				Connection destConn;
 				if (Names.TryGetValue (destination, out destConn))
 					recipients.Add (destConn);
-
-				// Send an error when there's no hope of getting the requested reply
-				else if (destination != "org.freedesktop.DBus" && msg.ReplyExpected) {
-					// Error org.freedesktop.DBus.Error.ServiceUnknown: The name {0} was not provided by any .service files
+				else if (destination != "org.freedesktop.DBus" && !destination.StartsWith(":") && (msg.Header.Flags & HeaderFlag.NoAutoStart) != HeaderFlag.NoAutoStart) {
+					// Attempt activation
 					StartProcessNamed (destination);
-					Message rmsg = MessageHelper.CreateUnknownMethodError (new MethodCall (msg));
-					if (rmsg != null) {
-						//Caller.Send (rmsg);
-						Caller.SendReal (rmsg);
-						return;
+					//Thread.Sleep (5000);
+					// TODO: Route the message to the newly activated service!
+					activationMessages[destination] = msg;
+					//if (Names.TryGetValue (destination, out destConn))
+					//	recipients.Add (destConn);
+					//else
+					//	Console.Error.WriteLine ("Couldn't route message to activated service");
+				} else if (destination != "org.freedesktop.DBus") {
+					// Send an error when there's no hope of getting the requested reply
+					if (msg.ReplyExpected) {
+						// Error org.freedesktop.DBus.Error.ServiceUnknown: The name {0} was not provided by any .service files
+						Message rmsg = MessageHelper.CreateUnknownMethodError (new MethodCall (msg));
+						if (rmsg != null) {
+							//Caller.Send (rmsg);
+							Caller.SendReal (rmsg);
+							return;
+						}
 					}
+
 				}
 			}
 
@@ -563,6 +590,33 @@ public class DBusDaemon
 		// Undocumented in spec
 		public void ReloadConfig ()
 		{
+			ScanServices ();
+		}
+
+		Dictionary<string, string> services = new Dictionary<string, string> ();
+		public void ScanServices ()
+		{
+			services.Clear ();
+
+			string svcPath = "/usr/share/dbus-1/services";
+			string[] svcs = Directory.GetFiles (svcPath, "*.service");
+			foreach (string svc in svcs) {
+				string fname = System.IO.Path.Combine (svcPath, svc);
+				using (TextReader r = new StreamReader (fname)) {
+					string ln;
+					string cmd = null;
+					string name = null;
+					while ((ln = r.ReadLine ()) != null) {
+						if (ln.StartsWith ("Exec="))
+							cmd = ln.Remove (0, 5);
+						else if (ln.StartsWith ("Name="))
+							name = ln.Remove (0, 5);
+					}
+
+					if (name != null && cmd != null)
+						services[name] = cmd;
+				}
+			}
 		}
 
 		public bool allowActivation = false;
@@ -573,17 +627,12 @@ public class DBusDaemon
 			if (!allowActivation)
 				return;
 
+			string cmd;
+			if (!services.TryGetValue (name, out cmd))
+				return;
+
 			try {
-				string fname = String.Format ("/usr/share/dbus-1/services/{0}.service", name);
-				using (TextReader r = new StreamReader (fname)) {
-					string ln;
-					while ((ln = r.ReadLine ()) != null) {
-						if (ln.StartsWith ("Exec=")) {
-							string bin = ln.Remove (0, 5);
-							StartProcess (bin);
-						}
-					}
-				}
+				StartProcess (cmd);
 			} catch (Exception e) {
 				Console.Error.WriteLine (e);
 			}
@@ -597,6 +646,11 @@ public class DBusDaemon
 			try {
 				ProcessStartInfo startInfo = new ProcessStartInfo (fname);
 				startInfo.UseShellExecute = false;
+
+				foreach (KeyValuePair<string, string> pair in activationEnv) {
+					startInfo.EnvironmentVariables[pair.Key] = pair.Value;
+				}
+
 				startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = "session";
 				startInfo.EnvironmentVariables["DBUS_SESSION_BUS_ADDRESS"] = server.address;
 				startInfo.EnvironmentVariables["DBUS_STARTER_ADDRESS"] = server.address;

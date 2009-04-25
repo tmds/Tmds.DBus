@@ -16,7 +16,7 @@ namespace NDesk.DBus
 			Header.MessageType = MessageType.MethodCall;
 			Header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
 			Header.MajorVersion = Protocol.Version;
-			Header.Fields = new Dictionary<byte,object> ();
+			Header.Fields = new Dictionary<byte, object> ();
 		}
 
 		public Header Header = new Header ();
@@ -94,17 +94,50 @@ namespace NDesk.DBus
 		}
 		*/
 
-		TypeWriter<Header> headerWriter = TypeImplementer.GetTypeWriter<Header> ();
+		//TypeWriter<Header> headerWriter = TypeImplementer.GetTypeWriter<Header> ();
 		public byte[] GetHeaderData ()
 		{
 			if (Body != null)
 				Header.Length = (uint)Body.Length;
 
 			MessageWriter writer = new MessageWriter (Header.Endianness);
-			headerWriter (writer, Header);
+
+			//writer.stream.Capacity = 512;
+			//headerWriter (writer, Header);
+
+			writer.Write ((byte)Header.Endianness);
+			writer.Write ((byte)Header.MessageType);
+			writer.Write ((byte)Header.Flags);
+			writer.Write (Header.MajorVersion);
+			writer.Write (Header.Length);
+			writer.Write (Header.Serial);
+			writer.WriteHeaderFields (Header.Fields);
+
 			writer.CloseWrite ();
 
 			return writer.ToArray ();
+		}
+
+		public void GetHeaderDataToStream (Stream stream)
+		{
+			if (Body != null)
+				Header.Length = (uint)Body.Length;
+
+			MessageWriter writer = new MessageWriter (Header.Endianness);
+
+			//headerWriter (writer, Header);
+
+			writer.Write ((byte)Header.Endianness);
+			writer.Write ((byte)Header.MessageType);
+			writer.Write ((byte)Header.Flags);
+			writer.Write (Header.MajorVersion);
+			writer.Write (Header.Length);
+			writer.Write (Header.Serial);
+			writer.WriteHeaderFields (Header.Fields);
+
+			writer.CloseWrite ();
+
+			writer.ToStream (stream);
 		}
 	}
 

@@ -94,6 +94,91 @@ namespace NDesk.DBus
 	}
 	*/
 
+	/*
+	struct HeaderFieldSet
+	{
+		public ObjectPath Path;
+		public string Interface;
+		public string Member;
+		public string ErrorName;
+		public uint ReplySerial;
+		public string Destination;
+		public string Sender;
+		//public Signature Signature;
+		public Signature Sig;
+
+#if PROTO_REPLY_SIGNATURE
+		public Signature ReplySignature;
+#endif
+
+		public void Read (MessageReader reader)
+		{
+			FieldCode code = (FieldCode)reader.ReadByte ();
+		}
+
+		public void Write (MessageWriter writer)
+		{
+			// TODO: Write overall length
+
+			if (Path != null) {
+				writer.WritePad (8);
+				writer.Write ((byte)FieldCode.Path);
+				writer.Write (Signature.ObjectPathSig);
+				writer.Write (Path);
+			}
+
+			if (Interface != null) {
+				writer.WritePad (8);
+				writer.Write ((byte)FieldCode.Interface);
+				writer.Write (Signature.StringSig);
+				writer.Write (Interface);
+			}
+
+			if (Member != null) {
+				writer.WritePad (8);
+				writer.Write ((byte)FieldCode.Member);
+				writer.Write (Signature.StringSig);
+				writer.Write (Member);
+			}
+
+			if (ErrorName != null) {
+				writer.WritePad (8);
+				writer.Write ((byte)FieldCode.ErrorName);
+				writer.Write (Signature.StringSig);
+				writer.Write (ErrorName);
+			}
+
+			if (ReplySerial != 0) {
+				writer.WritePad (8);
+				writer.Write ((byte)FieldCode.ReplySerial);
+				writer.Write (Signature.UInt32Sig);
+				writer.Write (ReplySerial);
+			}
+
+			if (Destination != null) {
+				writer.WritePad (8);
+				writer.Write ((byte)FieldCode.Destination);
+				writer.Write (Signature.StringSig);
+				writer.Write (Destination);
+			}
+
+			if (Sender != null) {
+				writer.WritePad (8);
+				writer.Write ((byte)FieldCode.Sender);
+				writer.Write (Signature.StringSig);
+				writer.Write (Sender);
+			}
+
+			if (Sig != Signature.Empty) {
+				writer.WritePad (8);
+				writer.Write ((byte)FieldCode.Signature);
+				writer.Write (Signature.SignatureSig);
+				writer.Write (Sig);
+			}
+		}
+	}
+	*/
+
 	enum MessageType : byte
 	{
 		//This is an invalid type.

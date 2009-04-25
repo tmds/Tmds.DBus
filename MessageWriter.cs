@@ -14,7 +14,7 @@ namespace NDesk.DBus
 	sealed class MessageWriter
 	{
 		EndianFlag endianness;
-		MemoryStream stream;
+		internal MemoryStream stream;
 
 		public Connection connection;
 
@@ -31,6 +31,11 @@ namespace NDesk.DBus
 		{
 			//TODO: mark the writer locked or something here
 			return stream.ToArray ();
+		}
+
+		public void ToStream (Stream dest)
+		{
+			stream.WriteTo (dest);
 		}
 
 		public void CloseWrite ()
@@ -474,7 +479,8 @@ namespace NDesk.DBus
 			WriteHeaderDict (val);
 		}
 		*/
-
+		
+		/*
 		public void Write (Dictionary<byte, object> val)
 		{
 			long origPos = stream.Position;
@@ -488,7 +494,32 @@ namespace NDesk.DBus
 				WritePad (8);
 				Write (entry.Key);
 				Write (entry.Value);
-				/*
+			}
+
+			long endPos = stream.Position;
+			uint ln = (uint)(endPos - startPos);
+			stream.Position = origPos;
+
+			if (ln > Protocol.MaxArrayLength)
+				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+
+			Write (ln);
+			stream.Position = endPos;
+		}
+		*/
+
+		internal void WriteHeaderFields (Dictionary<byte, object> val)
+		{
+			long origPos = stream.Position;
+			Write ((uint)0);
+
+			WritePad (8);
+
+			long startPos = stream.Position;
+
+			foreach (KeyValuePair<byte, object> entry in val) {
+				WritePad (8);
+				Write (entry.Key);
 				switch ((FieldCode)entry.Key) {
 					case FieldCode.Destination:
 					case FieldCode.ErrorName:
@@ -510,7 +541,6 @@ namespace NDesk.DBus
 						Write (entry.Value);
 						break;
 				}
-				*/
 			}
 
 			long endPos = stream.Position;

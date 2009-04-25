@@ -93,12 +93,11 @@ namespace NDesk.DBus.Transports
 			SocketTransport st = this as SocketTransport;
 			while (read < count) {
 				// FIXME: Remove this hack to support non-blocking sockets on Windows
-				/*
-				if (st != null && st.socket.Blocking == false && nns != null && !nns.DataAvailable) {
+				//if (st != null && st.socket.Blocking == false && nns != null && !nns.DataAvailable) {
+				if (nns != null && !nns.DataAvailable) {
 					System.Threading.Thread.Sleep (10);
 					continue;
 				}
-				*/
 				int nread = ns.Read (buffer, offset + read, count - read);
 				if (nread == 0)
 					break;
@@ -200,14 +199,17 @@ namespace NDesk.DBus.Transports
 		object writeLock = new object ();
 		internal virtual void WriteMessage (Message msg)
 		{
+			/*
 			byte[] HeaderData = msg.GetHeaderData ();
 
 			long msgLength = HeaderData.Length + (msg.Body != null ? msg.Body.Length : 0);
 			if (msgLength > Protocol.MaxMessageLength)
 				throw new Exception ("Message length " + msgLength + " exceeds maximum allowed " + Protocol.MaxMessageLength + " bytes");
+			*/
 
 			lock (writeLock) {
-				ns.Write (HeaderData, 0, HeaderData.Length);
+				//ns.Write (HeaderData, 0, HeaderData.Length);
+				msg.GetHeaderDataToStream (ns);
 				if (msg.Body != null && msg.Body.Length != 0)
 					ns.Write (msg.Body, 0, msg.Body.Length);
 				ns.Flush ();

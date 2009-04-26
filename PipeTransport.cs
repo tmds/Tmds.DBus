@@ -55,6 +55,29 @@ namespace NDesk.DBus.Transports
 			//ovr.AsyncResult = asr;
 			Stream = pipe;
 			//WaitHandle.WaitAny
+
+		}
+
+		public void RunOnThread ()
+		{
+			Thread t = new Thread (new ThreadStart (Run));
+			t.Start ();
+		}
+
+		void Run ()
+		{
+			connection.mainThread = Thread.CurrentThread;
+
+			while (true) {
+				Message msg = ReadMessage ();
+				//if (connection.pendingCalls.ContainsKey (msg.Header.Serial))
+				if (msg.Header.MessageType == MessageType.MethodReturn || msg.Header.MessageType == MessageType.Error)
+					connection.HandleMessage (msg);
+				else {
+					Inbound.Enqueue (msg);
+					FireWakeUp ();
+				}
+			}
 		}
 
 #if ASYNC_PIPES

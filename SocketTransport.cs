@@ -37,9 +37,11 @@ namespace NDesk.DBus.Transports
 		{
 			//TODO: use Socket directly
 			TcpClient client = new TcpClient (host, port);
+			/*
 			client.NoDelay = true;
 			client.ReceiveBufferSize = (int)Protocol.MaxMessageLength;
 			client.SendBufferSize = (int)Protocol.MaxMessageLength;
+			*/
 			this.socket = client.Client;
 			SocketHandle = (long)client.Client.Handle;
 			Stream = client.GetStream ();

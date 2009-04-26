@@ -21,6 +21,7 @@ namespace NDesk.DBus
 				return transport;
 			} set {
 				transport = value;
+				transport.Connection = this;
 			}
 		}
 
@@ -84,7 +85,7 @@ namespace NDesk.DBus
 			AddressEntry entry = entries[0];
 
 			Id = entry.GUID;
-			transport = Transport.Create (entry);
+			Transport = Transport.Create (entry);
 			isConnected = true;
 		}
 
@@ -113,6 +114,8 @@ namespace NDesk.DBus
 				Id = auth.ActualId;
 
 			isAuthenticated = true;
+
+			//(((SocketTransport)Transport).socket).Blocking = false;
 		}
 
 		internal bool isAuthenticated = false;
@@ -235,12 +238,25 @@ namespace NDesk.DBus
 
 			//Message msg = Inbound.Dequeue ();
 			Message msg = transport.ReadMessage ();
+			//if (msg != null)
 			HandleMessage (msg);
+			DispatchSignals ();
+		}
+
+		internal void Dispatch ()
+		{
+			while (transport.Inbound.Count != 0) {
+				Message msg = transport.Inbound.Dequeue ();
+				HandleMessage (msg);
+			}
 			DispatchSignals ();
 		}
 
 		internal virtual void HandleMessage (Message msg)
 		{
+			if (msg == null)
+				return;
+
 			//TODO: support disconnection situations properly and move this check elsewhere
 			if (msg == null)
 				throw new ArgumentNullException ("msg", "Cannot handle a null message; maybe the bus was disconnected");

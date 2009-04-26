@@ -7,22 +7,24 @@ using System.Threading;
 
 namespace NDesk.DBus
 {
-	class PendingCall
+	class PendingCall : IAsyncResult
 	{
 		Connection conn;
 		Message reply = null;
-		object lockObj = new object ();
+		//AutoResetEvent waitHandle = new AutoResetEvent (false);
+		ManualResetEvent waitHandle;
 
 		public PendingCall (Connection conn)
 		{
 			this.conn = conn;
 		}
 
-		int waiters = 0;
-
 		public Message Reply
 		{
 			get {
+				if (reply != null)
+					return reply;
+
 				if (Thread.CurrentThread == conn.mainThread) {
 					/*
 					while (reply == null)
@@ -31,33 +33,79 @@ namespace NDesk.DBus
 
 					while (reply == null)
 						conn.HandleMessage (conn.Transport.ReadMessage ());
+					
+					completedSync = true;
 
 					conn.DispatchSignals ();
 				} else {
-					lock (lockObj) {
-						Interlocked.Increment (ref waiters);
+					if (waitHandle == null)
+						waitHandle = new ManualResetEvent (false);
 
-						while (reply == null)
-							Monitor.Wait (lockObj);
+					// TODO: Possible race condition?
+					while (reply == null)
+						waitHandle.WaitOne ();
 
-						Interlocked.Decrement (ref waiters);
-					}
+					completedSync = false;
 				}
 
 				return reply;
 			} set {
-				lock (lockObj) {
-					reply = value;
+				if (reply != null)
+					throw new Exception ("Cannot handle reply more than once");
 
-					if (waiters > 0)
-						Monitor.PulseAll (lockObj);
+				reply = value;
 
-					if (Completed != null)
-						Completed (reply);
-				}
+				if (waitHandle != null)
+					waitHandle.Set ();
+
+				if (Completed != null)
+					Completed (reply);
 			}
 		}
 
 		public event Action<Message> Completed;
+		bool completedSync;
+
+		public void Cancel ()
+		{
+			throw new NotImplementedException ();
+		}
+
+
+
+		#region IAsyncResult Members
+
+		object IAsyncResult.AsyncState
+		{
+			get {
+				return conn;
+			}
+		}
+
+		WaitHandle IAsyncResult.AsyncWaitHandle
+		{
+			get {
+				if (waitHandle == null)
+					waitHandle = new ManualResetEvent (false);
+
+				return waitHandle;
+			}
+		}
+
+		bool IAsyncResult.CompletedSynchronously
+		{
+			get {
+				return reply != null && completedSync;
+			}
+		}
+
+		bool IAsyncResult.IsCompleted
+		{
+			get {
+				return reply != null;
+			}
+		}
+
+		#endregion
 	}
 }

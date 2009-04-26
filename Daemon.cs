@@ -33,11 +33,178 @@ public class DBusDaemon
 		string addr = "tcp:host=localhost,port=12345";
 		//string addr = "win:path=dbus-session";
 
+		bool shouldFork = false;
+
+		for (int i = 0; i != args.Length; i++) {
+			string arg = args[i];
+			//Console.Error.WriteLine ("arg: " + arg);
+
+			/*
+			if (!arg.StartsWith ("--")) {
+				addr = arg;
+				continue;
+			}
+			*/
+
+			if (arg.StartsWith ("--print-")) {
+				string[] parts = arg.Split('=');
+				int fd = 1;
+				if (parts.Length > 1)
+					fd = Int32.Parse (parts[1]);
+				else if (args.Length > i + 1) {
+					string poss = args[i + 1];
+					if (Int32.TryParse (poss, out fd))
+						i++;
+				}
+
+				TextWriter tw;
+				if (fd == 1) {
+					tw = Console.Out;
+				} else if (fd == 2) {
+					tw = Console.Error;
+				}  else {
+					Stream fs = new NDesk.Unix.UnixStream (fd);
+					tw = new StreamWriter (fs, Encoding.ASCII);
+					tw.NewLine = "\n";
+				}
+
+				if (parts[0] == "--print-address")
+					tw.WriteLine (addr);
+				//else if (parts[0] == "--print-pid") {
+				//	int pid = System.Diagnostics.Process.GetCurrentProcess ().Id; ;
+				//	tw.WriteLine (pid);
+				//}
+				else
+					continue;
+					//throw new Exception ();
+
+				tw.Flush ();
+				continue;
+			}
+
+			switch (arg) {
+				case "--version":
+					//Console.WriteLine ("NDesk D-Bus Message Bus Daemon " + Introspector.GetProductDescription ());
+					Console.WriteLine ("NDesk D-Bus Message Bus Daemon " + "0.1");
+					return;
+				case "--system":
+					break;
+				case "--session":
+					break;
+				case "--fork":
+					shouldFork = true;
+					break;
+				case "--introspect":
+					{
+						Introspector intro = new Introspector ();
+						intro.root_path = ObjectPath.Root;
+						intro.WriteStart ();
+						intro.WriteType (typeof (org.freedesktop.DBus.IBus));
+						intro.WriteEnd ();
+
+						Console.WriteLine (intro.xml);
+					}
+					return;
+				default:
+					break;
+			}
+		}
+
+		/*
 		if (args.Length >= 1) {
 				addr = args[0];
 		}
+		*/
+
+		int childPid;
+		if (shouldFork) {
+			childPid = (int)UnixSocket.fork ();
+			//if (childPid != 0)
+			//	return;
+		} else
+			childPid = System.Diagnostics.Process.GetCurrentProcess ().Id;
+
+		if (childPid != 0) {
+			for (int i = 0; i != args.Length; i++) {
+				string arg = args[i];
+				//Console.Error.WriteLine ("arg: " + arg);
+
+				/*
+				if (!arg.StartsWith ("--")) {
+					addr = arg;
+					continue;
+				}
+				*/
+
+				if (arg.StartsWith ("--print-")) {
+					string[] parts = arg.Split ('=');
+					int fd = 1;
+					if (parts.Length > 1)
+						fd = Int32.Parse (parts[1]);
+					else if (args.Length > i + 1) {
+						string poss = args[i + 1];
+						if (Int32.TryParse (poss, out fd))
+							i++;
+					}
+
+					TextWriter tw;
+					if (fd == 1) {
+						tw = Console.Out;
+					} else if (fd == 2) {
+						tw = Console.Error;
+					} else {
+						Stream fs = new NDesk.Unix.UnixStream (fd);
+						tw = new StreamWriter (fs, Encoding.ASCII);
+						tw.NewLine = "\n";
+					}
+
+					//if (parts[0] == "--print-address")
+					//	tw.WriteLine (addr);
+					if (parts[0] == "--print-pid") {
+						int pid = childPid;
+						tw.WriteLine (pid);
+					}
+
+					tw.Flush ();
+					continue;
+				}
+			}
+
+		}
+
+		if (shouldFork && childPid != 0) {
+			return;
+			//Environment.Exit (1);
+		}
+
+
+		//if (shouldFork && childPid == 0) {
+		if (shouldFork) {
+
+			/*
+			Console.In.Dispose ();
+			Console.Out.Dispose ();
+			Console.Error.Dispose ();
+			*/
+
+
+			int O_RDWR = 2;
+			int devnull = UnixSocket.open ("/dev/null", O_RDWR);
+
+			UnixSocket.dup2 (devnull, 0);
+			UnixSocket.dup2 (devnull, 1);
+			UnixSocket.dup2 (devnull, 2);
+
+			//UnixSocket.close (0);
+			//UnixSocket.close (1);
+			//UnixSocket.close (2);
+
+			if (UnixSocket.setsid () == (IntPtr) (-1))
+				throw new Exception ();
+		}
 
 		RunServer (addr);
+
 
 		//Console.Error.WriteLine ("Usage: dbus-daemon [address]");
 	}
@@ -106,7 +273,7 @@ public class DBusDaemon
 
 		public void AddConnection (Connection conn)
 		{
-			Console.Error.WriteLine ("AddConn");
+			//Console.Error.WriteLine ("AddConn");
 
 			if (conns.Contains (conn))
 				throw new Exception ("Cannot add connection");
@@ -134,7 +301,8 @@ public class DBusDaemon
 
 			List<MatchRule> toRemove = new List<MatchRule> ();
 			foreach (KeyValuePair<MatchRule,List<Connection>> pair in Rules) {
-				while (pair.Value.Remove (Caller)) { }
+				//while (pair.Value.Remove (Caller)) { }
+				while (pair.Value.Remove (conn)) { }
 				//while (pair.Value.Remove (Caller)) { Console.WriteLine ("Remove!"); }
 				//pair.Value.RemoveAll ( delegate (Connection conn) { conn == Caller; } )
 				if (pair.Value.Count == 0)
@@ -155,7 +323,8 @@ public class DBusDaemon
 				Names.Remove (name);
 
 			foreach (string name in namesToDisown)
-				NameOwnerChanged (name, Caller.UniqueName, String.Empty);
+				//NameOwnerChanged (name, Caller.UniqueName, String.Empty);
+				NameOwnerChanged (name, ((ServerConnection)conn).UniqueName, String.Empty);
 
 			//NameOwnerChanged (Caller.UniqueName, Caller.UniqueName, String.Empty);
 
@@ -846,7 +1015,7 @@ class UnixServer : Server
 		*/
 
 		this.address = entry.ToString ();
-		Console.WriteLine ("Server address: " + Address);
+		//Console.WriteLine ("Server address: " + Address);
 	}
 
 	public override void Disconnect ()
@@ -901,7 +1070,7 @@ class UnixServer : Server
 		byte[] sa = isAbstract ? UnixNativeTransport.GetSockAddrAbstract (unixPath) : UnixNativeTransport.GetSockAddr (unixPath);
 		UnixSocket usock = new UnixSocket ();
 		usock.Bind (sa);
-		usock.Listen (10);
+		usock.Listen (50);
 
 		while (true) {
 			Console.WriteLine ("Waiting for client on " + (isAbstract ? "abstract " : String.Empty) + "path " + unixPath);
@@ -977,7 +1146,7 @@ class TcpServer : Server
 		*/
 
 		this.address = entry.ToString ();
-		Console.WriteLine ("Server address: " + Address);
+		//Console.WriteLine ("Server address: " + Address);
 	}
 
 	public override void Disconnect ()
@@ -1034,12 +1203,14 @@ class TcpServer : Server
 		server.Start ();
 
 		while (true) {
-			Console.WriteLine ("Waiting for client on TCP port " + port);
+			//Console.WriteLine ("Waiting for client on TCP port " + port);
 			TcpClient client = server.AcceptTcpClient ();
+			/*
 			client.NoDelay = true;
 			client.ReceiveBufferSize = (int)Protocol.MaxMessageLength;
 			client.SendBufferSize = (int)Protocol.MaxMessageLength;
-			Console.WriteLine ("Client connected");
+			*/
+			//Console.WriteLine ("Client connected");
 
 			ServerConnection conn;
 			if (!AcceptClient (client, out conn)) {
@@ -1070,7 +1241,7 @@ class TcpServer : Server
 #else
 			new Thread (new ThreadStart (delegate { while (conn.IsConnected) conn.Iterate (); })).Start ();
 #endif
-			Console.WriteLine ("done init");
+			//Console.WriteLine ("done init");
 
 			//return false;
 			//});

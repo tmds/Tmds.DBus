@@ -203,8 +203,21 @@ namespace NDesk.Unix
 		// FIXME: SOCK_STREAM is 2 on Solaris
 		public const short SOCK_STREAM = 1;
 
+		[DllImport (LIBC, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+		internal static extern IntPtr fork ();
+
+		[DllImport (LIBC, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+		internal static extern int dup2 (int fd, int fd2);
+		
+		[DllImport (LIBC, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+		internal static extern int open ([MarshalAs(UnmanagedType.LPStr)] string path, int oflag);
+
+		[DllImport (LIBC, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+		internal static extern IntPtr setsid ();
+		
+
 		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
-		protected static extern int close (int fd);
+		internal static extern int close (int fd);
 
 		[DllImport (LIBSOCKET, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		protected static extern int socket (int domain, int type, int protocol);

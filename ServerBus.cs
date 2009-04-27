@@ -36,6 +36,7 @@ namespace NDesk.DBus
 
 		public static readonly ObjectPath Path = new ObjectPath ("/org/freedesktop/DBus");
 		const string DBusBusName = "org.freedesktop.DBus";
+		const string DBusInterface = "org.freedesktop.DBus";
 
 		internal Server server;
 		//Connection Caller
@@ -214,7 +215,7 @@ namespace NDesk.DBus
 			// Name* signals on org.freedesktop.DBus are connection-specific.
 			// We handle them here as a special case.
 
-			Signal nameSignal = new Signal (Path, "org.freedesktop.DBus", "Name" + memberSuffix);
+			Signal nameSignal = new Signal (Path, DBusInterface, "Name" + memberSuffix);
 			MessageWriter mw = new MessageWriter ();
 			mw.Write (name);
 			nameSignal.message.Body = mw.ToArray ();
@@ -269,7 +270,6 @@ namespace NDesk.DBus
 		Dictionary<string, string> activationEnv = new Dictionary<string, string> ();
 		public void UpdateActivationEnvironment (IDictionary<string, string> environment)
 		{
-			Console.Error.WriteLine ("UpdateActivationEnvironment");
 			foreach (KeyValuePair<string, string> pair in environment) {
 				if (pair.Value == String.Empty)
 					activationEnv.Remove (pair.Key);
@@ -322,7 +322,7 @@ namespace NDesk.DBus
 				Connection destConn;
 				if (Names.TryGetValue (destination, out destConn))
 					recipients.Add (destConn);
-				else if (destination != "org.freedesktop.DBus" && !destination.StartsWith (":") && (msg.Header.Flags & HeaderFlag.NoAutoStart) != HeaderFlag.NoAutoStart) {
+				else if (destination != DBusBusName && !destination.StartsWith (":") && (msg.Header.Flags & HeaderFlag.NoAutoStart) != HeaderFlag.NoAutoStart) {
 					// Attempt activation
 					StartProcessNamed (destination);
 					//Thread.Sleep (5000);
@@ -332,7 +332,7 @@ namespace NDesk.DBus
 					//	recipients.Add (destConn);
 					//else
 					//	Console.Error.WriteLine ("Couldn't route message to activated service");
-				} else if (destination != "org.freedesktop.DBus") {
+				} else if (destination != DBusBusName) {
 					// Send an error when there's no hope of getting the requested reply
 					if (msg.ReplyExpected) {
 						// Error org.freedesktop.DBus.Error.ServiceUnknown: The name {0} was not provided by any .service files

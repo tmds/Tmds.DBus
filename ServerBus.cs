@@ -189,7 +189,7 @@ namespace NDesk.DBus
 		public string Hello ()
 		{
 			if (Caller.UniqueName != null)
-				throw new BusException ("org.freedesktop.DBus.Error.Failed", "Already handled an Hello message");
+				throw new DBusException ("Failed", "Already handled an Hello message");
 
 			long uniqueNumber = Interlocked.Increment (ref uniqueNames);
 
@@ -259,7 +259,7 @@ namespace NDesk.DBus
 				return StartReply.AlreadyRunning;
 
 			if (!StartProcessNamed (name))
-				throw new BusException ("org.freedesktop.DBus.Error.Spawn.ServiceNotFound", "The name {0} was not provided by any .service files", name);
+				throw new DBusException ("Spawn.ServiceNotFound", "The name {0} was not provided by any .service files", name);
 
 			return StartReply.Success;
 		}
@@ -282,7 +282,7 @@ namespace NDesk.DBus
 
 			Connection c;
 			if (!Names.TryGetValue (name, out c))
-				throw new BusException ("org.freedesktop.DBus.Error.NameHasNoOwner", "Could not get owner of name '{0}': no such name", name);
+				throw new DBusException ("NameHasNoOwner", "Could not get owner of name '{0}': no such name", name);
 
 			return ((ServerConnection)c).UniqueName;
 		}
@@ -295,10 +295,10 @@ namespace NDesk.DBus
 
 			Connection c;
 			if (!Names.TryGetValue (name, out c))
-				throw new BusException ("org.freedesktop.DBus.Error.NameHasNoOwner", "Could not get UID of name '{0}': no such name", name);
+				throw new DBusException ("NameHasNoOwner", "Could not get UID of name '{0}': no such name", name);
 
 			return (uint)((ServerConnection)c).UserId;
-			//throw new BusException ("org.freedesktop.DBus.Error.Failed", "Could not determine UID for '{0}'", name);
+			//throw new DBusException ("Failed", "Could not determine UID for '{0}'", name);
 
 		}
 
@@ -427,7 +427,7 @@ namespace NDesk.DBus
 
 			Connection c;
 			if (!Names.TryGetValue (name, out c))
-				throw new BusException ("org.freedesktop.DBus.Error.NameHasNoOwner", "Could not get owners of name '{0}': no such name", name);
+				throw new DBusException ("NameHasNoOwner", "Could not get owners of name '{0}': no such name", name);
 
 			return new string[] { ((ServerConnection)c).UniqueName };
 			//throw new NotImplementedException ();
@@ -438,11 +438,11 @@ namespace NDesk.DBus
 		{
 			Connection c;
 			if (!Names.TryGetValue (connection_name, out c))
-				throw new BusException ("org.freedesktop.DBus.Error.NameHasNoOwner", "Could not get PID of name '{0}': no such name", connection_name);
+				throw new DBusException ("NameHasNoOwner", "Could not get PID of name '{0}': no such name", connection_name);
 
 			uint pid;
 			if (!c.Transport.TryGetPeerPid (out pid))
-				throw new BusException ("org.freedesktop.DBus.Error.UnixProcessIdUnknown", "Could not determine PID for '{0}'", connection_name);
+				throw new DBusException ("UnixProcessIdUnknown", "Could not determine PID for '{0}'", connection_name);
 
 			return pid;
 		}
@@ -450,7 +450,7 @@ namespace NDesk.DBus
 		// Undocumented in spec
 		public byte[] GetConnectionSELinuxSecurityContext (string connection_name)
 		{
-			throw new BusException ("org.freedesktop.DBus.Error.SELinuxSecurityContextUnknown", "Could not determine security context for '{0}'", connection_name);
+			throw new DBusException ("SELinuxSecurityContextUnknown", "Could not determine security context for '{0}'", connection_name);
 		}
 
 		// Undocumented in spec
@@ -679,5 +679,13 @@ namespace NDesk.DBus
 		}
 
 		public string SenderName = null;
+	}
+
+	class DBusException : BusException
+	{
+		public DBusException (string errorNameSuffix, string format, params object[] args)
+			: base ("org.freedesktop.DBus.Error." + errorNameSuffix, format, args)
+		{
+		}
 	}
 }

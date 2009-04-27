@@ -187,7 +187,7 @@ namespace NDesk.DBus
 		}
 
 		readonly long uniqueBase = 1;
-		long uniqueNames = 0;
+		long uniqueNames = -1;
 		public string Hello ()
 		{
 			if (Caller.UniqueName != null)

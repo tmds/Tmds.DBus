@@ -185,51 +185,6 @@ namespace NDesk.DBus
 			return ReleaseNameReply.Released;
 		}
 
-		/*
-		public string MyMeth (uint val1, string val2)
-		{
-			Console.WriteLine ("MyMeth " + val1 + " " + val2);
-			return "WEE!";
-		}
-		*/
-
-		/*
-		public struct MethData
-		{
-			public int A;
-			public int B;
-			public int C;
-		}
-		*/
-
-		public class MethDataBase
-		{
-			public int A;
-		}
-
-		public class MethData : MethDataBase
-		{
-			public int B;
-			public int C;
-			//public MethData[] Children;
-			public long[] Children;
-		}
-
-		public void MyMeth0 ()
-		{
-		}
-
-		public string MyMeth (MethData d, int[] ary, IDictionary<int, string> dict)
-		{
-			Console.WriteLine ("MyMeth struct " + d.A + " " + d.B + " " + d.C);
-			foreach (int i in ary)
-				Console.WriteLine (i);
-			Console.WriteLine ("Children: " + d.Children.Length);
-			Console.WriteLine ("Dict entries: " + dict.Count);
-			Console.WriteLine ("321: " + dict[321]);
-			return "WEE!";
-		}
-
 		readonly long uniqueBase = 1;
 		long uniqueNames = 0;
 		public string Hello ()
@@ -356,51 +311,6 @@ namespace NDesk.DBus
 		{
 			if (msg == null)
 				return;
-
-			//if (msg.Signature == new Signature ("u"))
-			if (false) {
-				System.Reflection.MethodInfo target = typeof (ServerBus).GetMethod ("MyMeth");
-				//System.Reflection.MethodInfo target = typeof (ServerBus).GetMethod ("MyMeth0");
-				Signature inSig, outSig;
-				TypeImplementer.SigsForMethod (target, out inSig, out outSig);
-				Console.WriteLine ("inSig: " + inSig);
-
-				if (msg.Signature == inSig) {
-					MethodCaller caller = TypeImplementer.GenCaller (target, this);
-					//caller (new MessageReader (msg), msg);
-
-					MessageWriter retWriter = new MessageWriter ();
-					caller (new MessageReader (msg), msg, retWriter);
-
-					if (msg.ReplyExpected) {
-						MethodReturn method_return = new MethodReturn (msg.Header.Serial);
-						Message replyMsg = method_return.message;
-						replyMsg.Body = retWriter.ToArray ();
-						Console.WriteLine ("replyMsg body: " + replyMsg.Body.Length);
-						/*
-						try {
-						replyMsg.Header[FieldCode.Destination] = msg.Header[FieldCode.Sender];
-						replyMsg.Header[FieldCode.Sender] = Caller.UniqueName;
-						} catch (Exception e) {
-							Console.Error.WriteLine (e);
-						}
-						*/
-						replyMsg.Header[FieldCode.Destination] = Caller.UniqueName;
-						replyMsg.Header[FieldCode.Sender] = "org.freedesktop.DBus";
-						replyMsg.Signature = outSig;
-						{
-							Caller.Send (replyMsg);
-
-							/*
-							replyMsg.Header.Serial = Caller.GenerateSerial ();
-							MessageDumper.WriteMessage (replyMsg, Console.Out);
-							Caller.SendReal (replyMsg);
-							*/
-							return;
-						}
-					}
-				}
-			}
 
 			//List<Connection> recipients = new List<Connection> ();
 			HashSet<Connection> recipients = new HashSet<Connection> ();

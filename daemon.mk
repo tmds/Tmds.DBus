@@ -1,6 +1,6 @@
 CSC=gmcs
 
-SRCS=Daemon.cs Server.cs
+SRCS=Daemon.cs Server.cs ServerBus.cs
 
 ifdef USE_GLIB
 GLIB_FLAGS=-d:USE_GLIB -pkg:ndesk-dbus-glib-1.0 -pkg:glib-sharp-2.0

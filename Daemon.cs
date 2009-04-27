@@ -454,9 +454,8 @@ public class DBusDaemon
 		long uniqueNames = 0;
 		public string Hello ()
 		{
-			// org.freedesktop.DBus.Error.Failed: Already handled an Hello message
 			if (Caller.UniqueName != null)
-				throw new Exception ("Already handled an Hello message");
+				throw new BusException ("org.freedesktop.DBus.Error.Failed", "Already handled an Hello message");
 
 			long uniqueNumber = Interlocked.Increment (ref uniqueNames);
 
@@ -551,7 +550,7 @@ public class DBusDaemon
 
 			Connection c;
 			if (!Names.TryGetValue (name, out c))
-				throw new Exception (String.Format ("Could not get owner of name '{0}': no such name", name));
+				throw new BusException ("org.freedesktop.DBus.Error.NameHasNoOwner", "Could not get owner of name '{0}': no such name", name);
 
 			return ((ServerConnection)c).UniqueName;
 		}
@@ -564,9 +563,11 @@ public class DBusDaemon
 
 			Connection c;
 			if (!Names.TryGetValue (name, out c))
-				throw new Exception ();
+				throw new BusException ("org.freedesktop.DBus.Error.NameHasNoOwner", "Could not get UID of name '{0}': no such name", name);
 
 			return (uint)((ServerConnection)c).UserId;
+			//throw new BusException ("org.freedesktop.DBus.Error.Failed", "Could not determine UID for '{0}'", name);
+
 		}
 
 		Dictionary<string, Message> activationMessages = new Dictionary<string, Message> ();
@@ -739,7 +740,7 @@ public class DBusDaemon
 
 			Connection c;
 			if (!Names.TryGetValue (name, out c))
-				throw new Exception (String.Format ("Could not get owners of name '{0}': no such name", name));
+				throw new BusException ("org.freedesktop.DBus.Error.NameHasNoOwner", "Could not get owners of name '{0}': no such name", name);
 
 			return new string[] { ((ServerConnection)c).UniqueName };
 			//throw new NotImplementedException ();
@@ -750,11 +751,11 @@ public class DBusDaemon
 		{
 			Connection c;
 			if (!Names.TryGetValue (connection_name, out c))
-				throw new Exception (String.Format ("org.freedesktop.DBus.Error.NameHasNoOwner: Could not get PID of name '{0}': no such name", connection_name));
+				throw new BusException ("org.freedesktop.DBus.Error.NameHasNoOwner", "Could not get PID of name '{0}': no such name", connection_name);
 
 			uint pid;
 			if (!c.Transport.TryGetPeerPid (out pid))
-				throw new Exception (String.Format ("org.freedesktop.DBus.Error.Failed: Could not determine UID for '{0}'", connection_name));
+				throw new BusException ("org.freedesktop.DBus.Error.Failed", "Could not determine UID for '{0}'", connection_name);
 
 			return pid;
 		}
@@ -762,7 +763,7 @@ public class DBusDaemon
 		// Undocumented in spec
 		public byte[] GetConnectionSELinuxSecurityContext (string connection_name)
 		{
-			throw new Exception (String.Format ("org.freedesktop.DBus.Error.SELinuxSecurityContextUnknown: Could not determine security context for '{0}'", connection_name));
+			throw new BusException ("org.freedesktop.DBus.Error.SELinuxSecurityContextUnknown", "Could not determine security context for '{0}'", connection_name);
 		}
 
 		// Undocumented in spec

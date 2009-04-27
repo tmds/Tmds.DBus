@@ -137,8 +137,15 @@ namespace NDesk.DBus
 				replyMsg.Body = retWriter.ToArray ();
 				replyMsg.Signature = outSig;
 			} else {
-				// TODO: send an error!
-				Error error = method_call.CreateError (Mapper.GetInterfaceName (raisedException.GetType ()), raisedException.Message);
+				Error error;
+
+				// BusException allows precisely formatted Error messages.
+				BusException busException = raisedException as BusException;
+				if (busException != null)
+					error = method_call.CreateError (busException.ErrorName, busException.ErrorMessage);
+				else
+					error = method_call.CreateError (Mapper.GetInterfaceName (raisedException.GetType ()), raisedException.Message);
+				
 				replyMsg = error.message;
 			}
 

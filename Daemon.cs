@@ -5,20 +5,16 @@
 //#define USE_GLIB
 
 using System;
-using System.Text;
-using System.Diagnostics;
 using System.Collections.Generic;
-
+using System.Diagnostics;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Reflection;
+using System.Text;
 using System.Threading;
 
-using NDesk.Unix;
 using NDesk.DBus;
-using org.freedesktop.DBus;
 using NDesk.DBus.Transports;
+using NDesk.Unix;
+using org.freedesktop.DBus;
 
 public class DBusDaemon
 {

@@ -61,6 +61,7 @@ namespace NDesk.DBus
 
 			conns.Add (conn);
 			conn.Register (Path, this);
+			//((ExportObject)conn.RegisteredObjects[Path]).Registered = false;
 		}
 
 		public void RemoveConnection (Connection conn)
@@ -104,10 +105,7 @@ namespace NDesk.DBus
 				Names.Remove (name);
 
 			foreach (string name in namesToDisown)
-				//NameOwnerChanged (name, Caller.UniqueName, String.Empty);
 				NameOwnerChanged (name, ((ServerConnection)conn).UniqueName, String.Empty);
-
-			//NameOwnerChanged (Caller.UniqueName, Caller.UniqueName, String.Empty);
 
 			// FIXME: Unregister earlier?
 			conn.Unregister (Path);
@@ -140,7 +138,7 @@ namespace NDesk.DBus
 				throw new ArgumentException (String.Format ("Cannot acquire a name starting with ':' such as \"{0}\"", name), "name");
 
 			if (name == DBusBusName)
-				throw new ArgumentException (String.Format ("Connection \"{0}\" is not allowed to own the name \"{1}\" because it is reserved for D-Bus' use only", Caller.UniqueName, name), "name");
+				throw new ArgumentException (String.Format ("Connection \"{0}\" is not allowed to own the name \"{1}\" because it is reserved for D-Bus' use only", Caller.UniqueName ?? "(inactive)", name), "name");
 
 			// TODO: Policy delegate support
 
@@ -260,11 +258,10 @@ namespace NDesk.DBus
 			if (Names.ContainsKey (name))
 				return StartReply.AlreadyRunning;
 
-			StartProcessNamed (name);
-			return StartReply.Success;
+			if (!StartProcessNamed (name))
+				throw new BusException ("org.freedesktop.DBus.Error.Spawn.ServiceNotFound", "The name {0} was not provided by any .service files", name);
 
-			//return StartReply.Success;
-			//throw new NotSupportedException ();
+			return StartReply.Success;
 		}
 
 		Dictionary<string, string> activationEnv = new Dictionary<string, string> ();
@@ -293,8 +290,8 @@ namespace NDesk.DBus
 		//public uint GetConnectionUnixUser (string connection_name)
 		public uint GetConnectionUnixUser (string name)
 		{
-			//if (name == DBusBusName)
-			//	return 0;
+			if (name == DBusBusName)
+				return (uint)Process.GetCurrentProcess ().Id;
 
 			Connection c;
 			if (!Names.TryGetValue (name, out c))
@@ -445,7 +442,7 @@ namespace NDesk.DBus
 
 			uint pid;
 			if (!c.Transport.TryGetPeerPid (out pid))
-				throw new BusException ("org.freedesktop.DBus.Error.Failed", "Could not determine PID for '{0}'", connection_name);
+				throw new BusException ("org.freedesktop.DBus.Error.UnixProcessIdUnknown", "Could not determine PID for '{0}'", connection_name);
 
 			return pid;
 		}
@@ -463,12 +460,11 @@ namespace NDesk.DBus
 		}
 
 		Dictionary<string, string> services = new Dictionary<string, string> ();
-
+		public string svcPath = "/usr/share/dbus-1/services";
 		public void ScanServices ()
 		{
 			services.Clear ();
 
-			string svcPath = "/usr/share/dbus-1/services";
 			string[] svcs = Directory.GetFiles (svcPath, "*.service");
 			foreach (string svc in svcs) {
 				string fname = System.IO.Path.Combine (svcPath, svc);
@@ -483,6 +479,8 @@ namespace NDesk.DBus
 							name = ln.Remove (0, 5);
 					}
 
+					// TODO: use XdgNet
+					// TODO: Validate names and trim strings
 					if (name != null && cmd != null)
 						services[name] = cmd;
 				}
@@ -490,22 +488,25 @@ namespace NDesk.DBus
 		}
 
 		public bool allowActivation = false;
-		void StartProcessNamed (string name)
+		bool StartProcessNamed (string name)
 		{
-			Console.WriteLine ("Start " + name);
+			Console.Error.WriteLine ("Start " + name);
 
 			if (!allowActivation)
-				return;
+				return false;
 
 			string cmd;
 			if (!services.TryGetValue (name, out cmd))
-				return;
+				return false;
 
 			try {
 				StartProcess (cmd);
 			} catch (Exception e) {
 				Console.Error.WriteLine (e);
+				return false;
 			}
+
+			return true;
 		}
 
 		void StartProcess (string fname)
@@ -542,19 +543,11 @@ namespace NDesk.DBus
 		}
 
 		bool shouldDump = false;
-		//bool shouldDump = true;
 
-		//bool isHelloed = false;
-		//bool isConnected = true;
 		override internal void HandleMessage (Message msg)
 		{
-			//Console.Error.WriteLine ("Message!");
-
 			if (!isConnected)
 				return;
-
-			Server.CurrentMessageConnection = this;
-			Server.CurrentMessage = msg;
 
 			if (msg == null) {
 				Console.Error.WriteLine ("Disconnected!");
@@ -574,33 +567,38 @@ namespace NDesk.DBus
 				return;
 			}
 
-			if (shouldDump) {
-				MessageDumper.WriteComment ("Handling:", Console.Out);
-				MessageDumper.WriteMessage (msg, Console.Out);
-			}
+			Server.CurrentMessageConnection = this;
+			Server.CurrentMessage = msg;
 
-			if (UniqueName != null)
-				msg.Header[FieldCode.Sender] = UniqueName;
-
-			object fieldValue = msg.Header[FieldCode.Destination];
-			if (fieldValue != null) {
-				if ((string)fieldValue == "org.freedesktop.DBus") {
-
-					// Workaround for our daemon only listening on a single path
-					if (msg.Header.MessageType == NDesk.DBus.MessageType.MethodCall)
-						msg.Header[FieldCode.Path] = ServerBus.Path;
-
-					base.HandleMessage (msg);
-					//return;
+			try {
+				if (shouldDump) {
+					MessageDumper.WriteComment ("Handling:", Console.Out);
+					MessageDumper.WriteMessage (msg, Console.Out);
 				}
+
+				if (UniqueName != null)
+					msg.Header[FieldCode.Sender] = UniqueName;
+
+				object fieldValue = msg.Header[FieldCode.Destination];
+				if (fieldValue != null) {
+					if ((string)fieldValue == "org.freedesktop.DBus") {
+
+						// Workaround for our daemon only listening on a single path
+						if (msg.Header.MessageType == NDesk.DBus.MessageType.MethodCall)
+							msg.Header[FieldCode.Path] = ServerBus.Path;
+
+						base.HandleMessage (msg);
+						//return;
+					}
+				}
+				//base.HandleMessage (msg);
+
+				Server.SBus.HandleMessage (msg);
+			} finally {
+				// TODO: we ought to make sure these are cleared in other cases above too!
+				Server.CurrentMessageConnection = null;
+				Server.CurrentMessage = null;
 			}
-			//base.HandleMessage (msg);
-
-			Server.SBus.HandleMessage (msg);
-
-			// TODO: we ought to make sure these are cleared in other cases above too!
-			Server.CurrentMessageConnection = null;
-			Server.CurrentMessage = null;
 		}
 
 		override internal uint Send (Message msg)
@@ -656,7 +654,7 @@ namespace NDesk.DBus
 
 		~ServerConnection ()
 		{
-			Console.Error.WriteLine ("Good! ~ServerConnection () for {0}", UniqueName);
+			Console.Error.WriteLine ("Good! ~ServerConnection () for {0}", UniqueName ?? "(inactive)");
 		}
 	}
 

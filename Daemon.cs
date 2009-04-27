@@ -755,7 +755,7 @@ public class DBusDaemon
 
 			uint pid;
 			if (!c.Transport.TryGetPeerPid (out pid))
-				throw new BusException ("org.freedesktop.DBus.Error.Failed", "Could not determine UID for '{0}'", connection_name);
+				throw new BusException ("org.freedesktop.DBus.Error.Failed", "Could not determine PID for '{0}'", connection_name);
 
 			return pid;
 		}

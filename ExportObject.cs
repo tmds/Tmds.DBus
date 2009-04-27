@@ -138,12 +138,17 @@ namespace NDesk.DBus
 				replyMsg.Signature = outSig;
 			} else {
 				Error error;
-
 				// BusException allows precisely formatted Error messages.
 				BusException busException = raisedException as BusException;
 				if (busException != null)
 					error = method_call.CreateError (busException.ErrorName, busException.ErrorMessage);
-				else
+				else if (raisedException is ArgumentException && raisedException.TargetSite.Name == mi.Name) {
+					// Name match trick above is a hack since we don't have the resolved MethodInfo.
+					ArgumentException argException = (ArgumentException)raisedException;
+					using (System.IO.StringReader sr = new System.IO.StringReader (argException.Message)) {
+						error = method_call.CreateError ("org.freedesktop.DBus.Error.InvalidArgs", sr.ReadLine ());
+					}
+				} else
 					error = method_call.CreateError (Mapper.GetInterfaceName (raisedException.GetType ()), raisedException.Message);
 				
 				replyMsg = error.message;

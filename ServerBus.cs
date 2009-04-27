@@ -17,6 +17,10 @@ namespace NDesk.DBus
 {
 	public class ServerBus : org.freedesktop.DBus.IBus
 	{
+		public static readonly ObjectPath Path = new ObjectPath ("/org/freedesktop/DBus");
+		public const string DBusBusName = "org.freedesktop.DBus";
+		public const string DBusInterface = "org.freedesktop.DBus";
+
 		static string ValidateBusName (string name)
 		{
 			if (name == String.Empty)
@@ -34,28 +38,18 @@ namespace NDesk.DBus
 
 		readonly List<Connection> conns = new List<Connection> ();
 
-		public static readonly ObjectPath Path = new ObjectPath ("/org/freedesktop/DBus");
-		const string DBusBusName = "org.freedesktop.DBus";
-		const string DBusInterface = "org.freedesktop.DBus";
-
 		internal Server server;
-		//Connection Caller
+
 		ServerConnection Caller
 		{
 			get
 			{
-				//return server.CurrentMessageConnection;
 				return server.CurrentMessageConnection as ServerConnection;
 			}
 		}
 
-		// TODO: Should be the : name, or "(inactive)" / caller.UniqueName
-		//string callerUniqueName = ":?";
-
 		public void AddConnection (Connection conn)
 		{
-			//Console.Error.WriteLine ("AddConn");
-
 			if (conns.Contains (conn))
 				throw new Exception ("Cannot add connection");
 
@@ -66,8 +60,6 @@ namespace NDesk.DBus
 
 		public void RemoveConnection (Connection conn)
 		{
-			// FIXME: RemoveConnection is not always called when sessions end!
-
 			Console.Error.WriteLine ("RemoveConn");
 
 			if (!conns.Remove (conn))
@@ -107,7 +99,7 @@ namespace NDesk.DBus
 			foreach (string name in namesToDisown)
 				NameOwnerChanged (name, ((ServerConnection)conn).UniqueName, String.Empty);
 
-			// FIXME: Unregister earlier?
+			// TODO: Unregister earlier?
 			conn.Unregister (Path);
 		}
 
@@ -168,7 +160,15 @@ namespace NDesk.DBus
 
 		public ReleaseNameReply ReleaseName (string name)
 		{
-			// TODO: Check for : name here?
+			string nameError;
+			if (!BusNameIsValid (name, out nameError))
+				throw new ArgumentException (String.Format ("Given bus name \"{0}\" is not valid: {1}", name, nameError), "name");
+
+			if (name.StartsWith (":"))
+				throw new ArgumentException (String.Format ("Cannot release a name starting with ':' such as \"{0}\"", name), "name");
+
+			if (name == DBusBusName)
+				throw new ArgumentException (String.Format ("Cannot release the \"{0}\" name because it is owned by the bus", name), "name");
 
 			Connection c;
 			if (!Names.TryGetValue (name, out c))
@@ -184,25 +184,45 @@ namespace NDesk.DBus
 			return ReleaseNameReply.Released;
 		}
 
-		readonly long uniqueBase = 1;
-		long uniqueNames = -1;
+		int uniqueMajor = 1;
+		int uniqueMinor = -1;
+
+		string CreateUniqueName ()
+		{
+			int newMajor = uniqueMajor;
+			int newMinor = Interlocked.Increment (ref uniqueMinor);
+
+			// Major wrapping should probably be made atomic too.
+			if (newMinor == Int32.MaxValue) {
+				if (uniqueMajor == Int32.MaxValue)
+					uniqueMajor = 1;
+				else
+					uniqueMajor++;
+				uniqueMinor = -1;
+			}
+
+			string uniqueName = String.Format (":{0}.{1}", newMajor, newMinor);
+
+			// We could check if the unique name already has an owner here for absolute correctness.
+			Debug.Assert (!NameHasOwner (uniqueName));
+
+			return uniqueName;
+		}
+
 		public string Hello ()
 		{
 			if (Caller.UniqueName != null)
 				throw new DBusException ("Failed", "Already handled an Hello message");
 
-			long uniqueNumber = Interlocked.Increment (ref uniqueNames);
+			string uniqueName = CreateUniqueName ();
 
-			string uniqueName = String.Format (":{0}.{1}", uniqueBase, uniqueNumber);
 			Console.Error.WriteLine ("Hello " + uniqueName + "!");
 			Caller.UniqueName = uniqueName;
 			Names[uniqueName] = Caller;
 
-			// These signals ought to be queued up and send after the reply is sent?
-			// Should have the Destination field set!
+			// TODO: Verify the order in which these messages are sent.
 			//NameAcquired (uniqueName);
 			RaiseNameSignal ("Acquired", uniqueName);
-
 			NameOwnerChanged (uniqueName, String.Empty, uniqueName);
 
 			return uniqueName;
@@ -223,8 +243,6 @@ namespace NDesk.DBus
 
 		public string[] ListNames ()
 		{
-			//return Names.Keys.ToArray ();
-			//List<string> names = new List<string> (Names.Keys);
 			List<string> names = new List<string> ();
 			names.Add (DBusBusName);
 			names.AddRange (Names.Keys);
@@ -268,6 +286,8 @@ namespace NDesk.DBus
 		public void UpdateActivationEnvironment (IDictionary<string, string> environment)
 		{
 			foreach (KeyValuePair<string, string> pair in environment) {
+				if (pair.Key == String.Empty)
+					continue;
 				if (pair.Value == String.Empty)
 					activationEnv.Remove (pair.Key);
 				else
@@ -287,7 +307,6 @@ namespace NDesk.DBus
 			return ((ServerConnection)c).UniqueName;
 		}
 
-		//public uint GetConnectionUnixUser (string connection_name)
 		public uint GetConnectionUnixUser (string name)
 		{
 			if (name == DBusBusName)
@@ -297,9 +316,10 @@ namespace NDesk.DBus
 			if (!Names.TryGetValue (name, out c))
 				throw new DBusException ("NameHasNoOwner", "Could not get UID of name '{0}': no such name", name);
 
-			return (uint)((ServerConnection)c).UserId;
-			//throw new DBusException ("Failed", "Could not determine UID for '{0}'", name);
+			if (((ServerConnection)c).UserId == 0)
+				throw new DBusException ("Failed", "Could not determine UID for '{0}'", name);
 
+			return (uint)((ServerConnection)c).UserId;
 		}
 
 		Dictionary<string, Message> activationMessages = new Dictionary<string, Message> ();
@@ -430,7 +450,6 @@ namespace NDesk.DBus
 				throw new DBusException ("NameHasNoOwner", "Could not get owners of name '{0}': no such name", name);
 
 			return new string[] { ((ServerConnection)c).UniqueName };
-			//throw new NotImplementedException ();
 		}
 
 		// Undocumented in spec
@@ -509,6 +528,9 @@ namespace NDesk.DBus
 			return true;
 		}
 
+		// Can be "session" or "system"
+		public string busType = "session";
+
 		void StartProcess (string fname)
 		{
 			if (!allowActivation)
@@ -522,10 +544,10 @@ namespace NDesk.DBus
 					startInfo.EnvironmentVariables[pair.Key] = pair.Value;
 				}
 
-				startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = "session";
-				startInfo.EnvironmentVariables["DBUS_SESSION_BUS_ADDRESS"] = server.address;
+				startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = busType;
+				startInfo.EnvironmentVariables["DBUS_" + busType.ToUpper () + "_BUS_ADDRESS"] = server.address;
 				startInfo.EnvironmentVariables["DBUS_STARTER_ADDRESS"] = server.address;
-				startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = "session";
+				startInfo.EnvironmentVariables["DBUS_STARTER_BUS_TYPE"] = busType;
 				Process myProcess = Process.Start (startInfo);
 			} catch (Exception e) {
 				Console.Error.WriteLine (e);
@@ -581,7 +603,7 @@ namespace NDesk.DBus
 
 				object fieldValue = msg.Header[FieldCode.Destination];
 				if (fieldValue != null) {
-					if ((string)fieldValue == "org.freedesktop.DBus") {
+					if ((string)fieldValue == ServerBus.DBusBusName) {
 
 						// Workaround for our daemon only listening on a single path
 						if (msg.Header.MessageType == NDesk.DBus.MessageType.MethodCall)
@@ -595,7 +617,6 @@ namespace NDesk.DBus
 
 				Server.SBus.HandleMessage (msg);
 			} finally {
-				// TODO: we ought to make sure these are cleared in other cases above too!
 				Server.CurrentMessageConnection = null;
 				Server.CurrentMessage = null;
 			}
@@ -618,7 +639,7 @@ namespace NDesk.DBus
 			*/
 
 			if (msg.Header.MessageType != NDesk.DBus.MessageType.MethodReturn) {
-				msg.Header[FieldCode.Sender] = "org.freedesktop.DBus";
+				msg.Header[FieldCode.Sender] = ServerBus.DBusBusName;
 			}
 
 			if (UniqueName != null)
@@ -684,8 +705,11 @@ namespace NDesk.DBus
 	class DBusException : BusException
 	{
 		public DBusException (string errorNameSuffix, string format, params object[] args)
-			: base ("org.freedesktop.DBus.Error." + errorNameSuffix, format, args)
+			: base (ServerBus.DBusInterface + ".Error." + errorNameSuffix, format, args)
 		{
+			// Note: This won't log ArgumentExceptions which are used in some places.
+			if (Protocol.Verbose)
+				Console.Error.WriteLine (Message);
 		}
 	}
 }

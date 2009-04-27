@@ -60,6 +60,12 @@ namespace NDesk.DBus.Transports
 		public abstract void Open (AddressEntry entry);
 		public abstract string AuthString ();
 		public abstract void WriteCred ();
+
+		public virtual bool TryGetPeerPid (out uint pid)
+		{
+			pid = 0;
+			return false;
+		}
 		/*
 	}
 

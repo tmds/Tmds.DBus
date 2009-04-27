@@ -500,7 +500,9 @@ public class DBusDaemon
 
 		public string[] ListActivatableNames ()
 		{
-			return new string[0];
+			List<string> names = new List<string> ();
+			names.AddRange (services.Keys);
+			return names.ToArray ();
 		}
 
 		public bool NameHasOwner (string name)
@@ -746,8 +748,15 @@ public class DBusDaemon
 		// Undocumented in spec
 		public uint GetConnectionUnixProcessID (string connection_name)
 		{
-			return 0;
-			//throw new NotImplementedException ();
+			Connection c;
+			if (!Names.TryGetValue (connection_name, out c))
+				throw new Exception (String.Format ("org.freedesktop.DBus.Error.NameHasNoOwner: Could not get PID of name '{0}': no such name", connection_name));
+
+			uint pid;
+			if (!c.Transport.TryGetPeerPid (out pid))
+				throw new Exception (String.Format ("org.freedesktop.DBus.Error.Failed: Could not determine UID for '{0}'", connection_name));
+
+			return pid;
 		}
 
 		// Undocumented in spec
@@ -763,6 +772,7 @@ public class DBusDaemon
 		}
 
 		Dictionary<string, string> services = new Dictionary<string, string> ();
+
 		public void ScanServices ()
 		{
 			services.Clear ();

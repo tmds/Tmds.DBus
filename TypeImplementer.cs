@@ -51,7 +51,7 @@ namespace NDesk.DBus
 			if (map.TryGetValue (declType, out retT))
 				return retT;
 
-			string proxyName = declType.Name + "Proxy";
+			string proxyName = declType.FullName + "Proxy";
 
 			/*
 			foreach (Assembly cacheA in cacheAs) {

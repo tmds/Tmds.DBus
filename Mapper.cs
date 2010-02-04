@@ -190,21 +190,23 @@ namespace NDesk.DBus
 		static List<Type> genTypes = new List<Type> ();
 		internal static Type GetGenericType (Type defType, Type[] parms)
 		{
-			foreach (Type genType in genTypes) {
-				if (genType.GetGenericTypeDefinition () != defType)
-					continue;
+			lock (genTypes) {
+				foreach (Type genType in genTypes) {
+					if (genType.GetGenericTypeDefinition () != defType)
+						continue;
 
-				Type[] genParms = genType.GetGenericArguments ();
+					Type[] genParms = genType.GetGenericArguments ();
 
-				if (!AreEqual (genParms, parms))
-					continue;
+					if (!AreEqual (genParms, parms))
+						continue;
 
-				return genType;
+					return genType;
+				}
+
+				Type type = defType.MakeGenericType (parms);
+				genTypes.Add (type);
+				return type;
 			}
-
-			Type type = defType.MakeGenericType (parms);
-			genTypes.Add (type);
-			return type;
 		}
 	}
 

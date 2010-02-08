@@ -13,6 +13,7 @@ namespace NDesk.DBus
 	{
 		protected Connection conn;
 		string bus_name;
+		string alt_bus_name;
 		ObjectPath object_path;
 
 		//protected BusObject ()
@@ -55,6 +56,7 @@ namespace NDesk.DBus
 			rule.Fields.Add (FieldCode.Interface, new MatchTest (iface));
 			rule.Fields.Add (FieldCode.Member, new MatchTest (member));
 			rule.Fields.Add (FieldCode.Path, new MatchTest (object_path));
+			rule.Fields.Add (FieldCode.Sender, new MatchTest (alt_bus_name != null? alt_bus_name: bus_name));
 
 			if (adding) {
 				if (conn.Handlers.ContainsKey (rule))
@@ -224,6 +226,8 @@ namespace NDesk.DBus
 			//handle the reply message
 			switch (retMsg.Header.MessageType) {
 				case MessageType.MethodReturn:
+				if ((string)retMsg.Header[FieldCode.Sender] != bus_name)
+					alt_bus_name = (string)retMsg.Header[FieldCode.Sender];
 					retVal = new MessageReader (retMsg);
 				break;
 				case MessageType.Error:

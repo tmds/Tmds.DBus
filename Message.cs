@@ -292,6 +292,13 @@ namespace NDesk.DBus
 				return true;
 			}
 
+			if (sig == Signature.ObjectPathSig) {
+				uint valueLength = ReadUInt32 ();
+				pos += (int)valueLength;
+				pos++;
+				return true;
+			}
+
 			if (sig == Signature.SignatureSig) {
 				byte valueLength = ReadByte ();
 				pos += valueLength;

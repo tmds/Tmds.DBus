@@ -324,6 +324,7 @@ namespace NDesk.DBus
 			rule.MessageType = MessageType.Signal;
 			rule.Fields.Add (FieldCode.Interface, new MatchTest (signal.Interface));
 			rule.Fields.Add (FieldCode.Member, new MatchTest (signal.Member));
+			rule.Fields.Add (FieldCode.Sender, new MatchTest (signal.Sender));
 			rule.Fields.Add (FieldCode.Path, new MatchTest (signal.Path));
 
 			Delegate dlg;

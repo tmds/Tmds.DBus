@@ -327,7 +327,7 @@ namespace NDesk.DBus
 			rule.Fields.Add (FieldCode.Path, new MatchTest (signal.Path));
 
 			Delegate dlg;
-			if (Handlers.TryGetValue (rule, out dlg)) {
+			if (Handlers.TryGetValue (rule, out dlg) && dlg != null) {
 				MethodInfo mi = dlg.GetType ().GetMethod ("Invoke");
 
 				bool compatible = false;

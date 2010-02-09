@@ -74,7 +74,7 @@ namespace NDesk.DBus
 					parentType = declType;
 
 				TypeBuilder typeB = modB.DefineType (proxyName, TypeAttributes.Class | TypeAttributes.Public, parentType);
-
+/*
 				if (false && !declType.IsInterface) {
 					foreach (MethodInfo mi in declType.GetMethods (BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)) {
 						MethodBody body = mi.GetMethodBody ();
@@ -116,7 +116,7 @@ namespace NDesk.DBus
 
 					}
 				}
-
+*/
 
 				if (declType.IsInterface)
 					Implement (typeB, declType);
@@ -228,7 +228,7 @@ namespace NDesk.DBus
 		static MethodInfo getTypeFromHandleMethod = typeof (Type).GetMethod ("GetTypeFromHandle", new Type[] {typeof (RuntimeTypeHandle)});
 		static ConstructorInfo argumentNullExceptionConstructor = typeof (ArgumentNullException).GetConstructor (new Type[] {typeof (string)});
 		static ConstructorInfo messageWriterConstructor = typeof (MessageWriter).GetConstructor (Type.EmptyTypes);
-		static MethodInfo messageWriterWriteMethod = typeof (MessageWriter).GetMethod ("WriteComplex", new Type[] {typeof (object), typeof (Type)});
+		//static MethodInfo messageWriterWriteMethod = typeof (MessageWriter).GetMethod ("WriteComplex", new Type[] {typeof (object), typeof (Type)});
 		static MethodInfo messageWriterWritePad = typeof (MessageWriter).GetMethod ("WritePad", new Type[] {typeof (int)});
 		static MethodInfo messageReaderReadPad = typeof (MessageReader).GetMethod ("ReadPad", new Type[] {typeof (int)});
 
@@ -320,7 +320,7 @@ namespace NDesk.DBus
 				MethodInfo mi = typeof (MessageWriter).GetMethod ("WriteFromDict");
 				exactWriteMethod = mi.MakeGenericMethod (genArgs);
 				ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
-			} else if (false) {
+			} /*else if (false) {
 				//..boxed if necessary
 				if (t.IsValueType)
 					ilg.Emit (OpCodes.Box, t);
@@ -330,7 +330,7 @@ namespace NDesk.DBus
 				ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
 
 				ilg.Emit (messageWriterWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, messageWriterWriteMethod);
-			} else {
+			}*/ else {
 				GenStructWriter (ilg, t);
 			}
 		}

@@ -71,9 +71,8 @@ namespace NDesk.DBus
 
 		public static ExportObject CreateExportObject (Connection conn, ObjectPath object_path, object obj)
 		{
-			Type type = obj.GetType ();
-
 #if DLR
+			Type type = obj.GetType ();
 			if (type.Name == "RubyObject" || type.FullName == "IronPython.Runtime.Types.OldInstance")
 				return new DynamicExportObject (conn, object_path, obj);
 #endif

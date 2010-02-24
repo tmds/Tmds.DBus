@@ -65,7 +65,7 @@ namespace NDesk.DBus
 					conn.Handlers[rule] = dlg;
 					conn.AddMatch (rule.ToString ());
 				}
-			} else {
+			} else if (conn.Handlers.ContainsKey (rule)) {
 				conn.Handlers[rule] = Delegate.Remove (conn.Handlers[rule], dlg);
 				if (conn.Handlers[rule] == null) {
 					conn.RemoveMatch (rule.ToString ());

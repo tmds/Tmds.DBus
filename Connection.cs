@@ -150,7 +150,8 @@ namespace NDesk.DBus
 			// Should we throttle the maximum number of concurrent PendingCalls?
 			// Should we support timeouts?
 			PendingCall pending = new PendingCall (this);
-			pendingCalls[msg.Header.Serial] = pending;
+			lock (pendingCalls)
+				pendingCalls[msg.Header.Serial] = pending;
 
 			Send (msg);
 			//WriteMessage (msg);
@@ -269,11 +270,13 @@ namespace NDesk.DBus
 					uint reply_serial = (uint)field_value;
 					PendingCall pending;
 
-					if (pendingCalls.TryGetValue (reply_serial, out pending)) {
-						if (pendingCalls.Remove (reply_serial))
-							pending.Reply = msg;
+					lock (pendingCalls) {
+						if (pendingCalls.TryGetValue (reply_serial, out pending)) {
+							if (pendingCalls.Remove (reply_serial))
+								pending.Reply = msg;
 
-						return;
+							return;
+						}
 					}
 
 					//we discard reply messages with no corresponding PendingCall

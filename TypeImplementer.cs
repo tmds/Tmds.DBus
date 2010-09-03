@@ -11,10 +11,10 @@ namespace NDesk.DBus
 {
 	class TypeImplementer
 	{
-		public static TypeImplementer Root = new TypeImplementer ("NDesk.DBus.Proxies", false);
+		public static readonly TypeImplementer Root = new TypeImplementer ("NDesk.DBus.Proxies", false);
 		AssemblyBuilder asmB;
 		ModuleBuilder modB;
-		static object getImplLock = new Object ();
+		static readonly object getImplLock = new Object ();
 
 		public TypeImplementer (string name, bool canSave)
 		{

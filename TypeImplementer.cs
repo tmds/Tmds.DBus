@@ -18,8 +18,8 @@ namespace NDesk.DBus
 
 		public TypeImplementer (string name, bool canSave)
 		{
-			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName ("NDesk.DBus.Proxies"), canSave ? AssemblyBuilderAccess.RunAndSave : AssemblyBuilderAccess.Run);
-			modB = asmB.DefineDynamicModule ("NDesk.DBus.Proxies");
+			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName (name), canSave ? AssemblyBuilderAccess.RunAndSave : AssemblyBuilderAccess.Run);
+			modB = asmB.DefineDynamicModule (name);
 		}
 
 		Dictionary<Type,Type> map = new Dictionary<Type,Type> ();

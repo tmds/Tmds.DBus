@@ -26,34 +26,35 @@ namespace NDesk.DBus
 
 		public Type GetImplementation (Type declType)
 		{
-			lock (getImplLock) {
-				Type retT;
+			Type retT;
 
+			lock (getImplLock)
 				if (map.TryGetValue (declType, out retT))
 					return retT;
 
-				string proxyName = declType.FullName + "Proxy";
+			string proxyName = declType.FullName + "Proxy";
 
-				Type parentType;
+			Type parentType;
 
-				if (declType.IsInterface)
-					parentType = typeof (BusObject);
-				else
-					parentType = declType;
+			if (declType.IsInterface)
+				parentType = typeof (BusObject);
+			else
+				parentType = declType;
 
-				TypeBuilder typeB = modB.DefineType (proxyName, TypeAttributes.Class | TypeAttributes.Public, parentType);
+			TypeBuilder typeB = modB.DefineType (proxyName, TypeAttributes.Class | TypeAttributes.Public, parentType);
 
-				if (declType.IsInterface)
-					Implement (typeB, declType);
+			if (declType.IsInterface)
+				Implement (typeB, declType);
 
-				foreach (Type iface in declType.GetInterfaces ())
-					Implement (typeB, iface);
+			foreach (Type iface in declType.GetInterfaces ())
+				Implement (typeB, iface);
 
-				retT = typeB.CreateType ();
+			retT = typeB.CreateType ();
+
+			lock (getImplLock)
 				map[declType] = retT;
 
-				return retT;
-			}
+			return retT;
 		}
 
 		static void Implement (TypeBuilder typeB, Type iface)

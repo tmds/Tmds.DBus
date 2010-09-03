@@ -381,7 +381,7 @@ namespace NDesk.DBus.Transports
 			return msg;
 		}
 
-		object writeLock = new object ();
+		readonly object writeLock = new object ();
 		internal virtual void WriteMessage (Message msg)
 		{
 			/*

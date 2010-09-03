@@ -2,7 +2,7 @@ ASSEMBLY = NDesk.DBus
 TARGET = $(ASSEMBLY).dll
 
 CSFLAGS = \
-	-debug -target:library -unsafe -d:STRONG_NAME -keyfile:../ndesk.snk
+	-debug -target:library -unsafe -d:STRONG_NAME -keyfile:$(top_srcdir)/ndesk.snk
 
 LIBFLAGS = \
 	-r:Mono.Posix

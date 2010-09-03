@@ -23,7 +23,6 @@ namespace NDesk.DBus.Transports
 #if !PORTABLE
 				case "unix":
 				{
-					//Transport transport = new UnixMonoTransport ();
 					Transport transport = new UnixNativeTransport ();
 					transport.Open (entry);
 					return transport;
@@ -66,12 +65,7 @@ namespace NDesk.DBus.Transports
 			pid = 0;
 			return false;
 		}
-		/*
-	}
 
-	abstract class StreamTransport : Transport
-	{
-	*/
 		Stream ns {
 			get {
 				return this.Stream;
@@ -111,7 +105,6 @@ namespace NDesk.DBus.Transports
 			while (msgRdr != null)
 				GetData ();
 
-			//return ReadMessageReal ();
 			try {
 				return ReadMessageReal ();
 			} catch (IOException e) {
@@ -150,40 +143,24 @@ namespace NDesk.DBus.Transports
 
 			return read;
 		}
-		//protected MemoryStream mbuf = new MemoryStream ();
-		//byte[] mmbuf = new byte[Protocol.MaxMessageLength];
+
 		byte[] mmbuf = null;
 
 		int mmpos = 0;
 		int mmneeded = 16;
 		IEnumerator<MsgState> msgRdr;
-		//int nIters = 0;
+
 		public void GetData ()
 		{
-			//nIters++;
-			//Console.WriteLine ("nIters: " + nIters);
 			if (msgRdr == null) {
 				msgRdr = ReadMessageReal2 ();
 			}
 
-			/*
-			{
-				System.Net.Sockets.NetworkStream nns = ns as System.Net.Sockets.NetworkStream;
-				SocketTransport st = this as SocketTransport;
-				if (!nns.DataAvailable)
-					return null;
-			}
-			*/
-
 			SocketTransport st = this as SocketTransport;
-
-			//int nread = ns.Read (mmbuf, mmpos, 16);
 
 			int avail = st.socket.Available;
 			if (mmneeded == 0)
 				throw new Exception ();
-			//if (avail < mmneeded)
-			//	System.Threading.Thread.Sleep (10);
 
 			if (avail == 0)
 				return;
@@ -307,6 +284,7 @@ namespace NDesk.DBus.Transports
 
 			//16 bytes is the size of the fixed part of the header
 			byte[] hbuf = new byte[16];
+
 			read = Read (hbuf, 0, 16);
 
 			if (read == 0)

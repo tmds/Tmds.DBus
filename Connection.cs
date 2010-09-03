@@ -114,8 +114,6 @@ namespace NDesk.DBus
 				Id = auth.ActualId;
 
 			isAuthenticated = true;
-
-			//(((SocketTransport)Transport).socket).Blocking = false;
 		}
 
 		internal bool isAuthenticated = false;
@@ -130,7 +128,6 @@ namespace NDesk.DBus
 		int serial = 0;
 		internal uint GenerateSerial ()
 		{
-			//return ++serial;
 			return (uint)Interlocked.Increment (ref serial);
 		}
 
@@ -154,7 +151,6 @@ namespace NDesk.DBus
 				pendingCalls[msg.Header.Serial] = pending;
 
 			Send (msg);
-			//WriteMessage (msg);
 
 			return pending;
 		}
@@ -166,58 +162,10 @@ namespace NDesk.DBus
 
 			transport.WriteMessage (msg);
 
-			//Outbound.Enqueue (msg);
-			//temporary
-			//Flush ();
-
 			return msg.Header.Serial;
 		}
 
 		Queue<Message> Inbound = new Queue<Message> ();
-		/*
-		Queue<Message> Outbound = new Queue<Message> ();
-
-		public void Flush ()
-		{
-			//should just iterate the enumerator here
-			while (Outbound.Count != 0) {
-				Message msg = Outbound.Dequeue ();
-				WriteMessage (msg);
-			}
-		}
-
-		public bool ReadWrite (int timeout_milliseconds)
-		{
-			//TODO
-
-			return true;
-		}
-
-		public bool ReadWrite ()
-		{
-			return ReadWrite (-1);
-		}
-
-		public bool Dispatch ()
-		{
-			//TODO
-			Message msg = Inbound.Dequeue ();
-			//HandleMessage (msg);
-
-			return true;
-		}
-
-		public bool ReadWriteDispatch (int timeout_milliseconds)
-		{
-			//TODO
-			return Dispatch ();
-		}
-
-		public bool ReadWriteDispatch ()
-		{
-			return ReadWriteDispatch (-1);
-		}
-		*/
 
 		//temporary hack
 		internal void DispatchSignals ()
@@ -237,9 +185,8 @@ namespace NDesk.DBus
 		{
 			mainThread = Thread.CurrentThread;
 
-			//Message msg = Inbound.Dequeue ();
 			Message msg = transport.ReadMessage ();
-			//if (msg != null)
+
 			HandleMessage (msg);
 			DispatchSignals ();
 		}
@@ -305,8 +252,6 @@ namespace NDesk.DBus
 						MessageReader reader = new MessageReader (msg);
 						errMsg = reader.ReadString ();
 					}
-					//throw new Exception ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
-					//if (Protocol.Verbose)
 					Console.Error.WriteLine ("Remote Error: Signature='" + msg.Signature.Value + "' " + error.ErrorName + ": " + errMsg);
 					break;
 				case MessageType.Invalid:
@@ -548,40 +493,6 @@ namespace NDesk.DBus
 				return UUID.Parse (System.Text.Encoding.ASCII.GetString (data));
 			}
 		}
-
-
-		/*
-		[DllImport ("advapi32.dll", SetLastError = true)]
-		static extern bool GetCurrentHwProfile (IntPtr fProfile);
-
-		[StructLayout (LayoutKind.Sequential)]
-		private class HWProfile
-		{
-			public Int32 dwDockInfo;
-			[MarshalAs (UnmanagedType.ByValTStr, SizeConst = 39)]
-			public string szHwProfileGuid;
-			[MarshalAs (UnmanagedType.ByValTStr, SizeConst = 80)]
-			public string szHwProfileName;
-		}
-
-		static UUID ReadMachineIdWin32 ()
-		{
-			// Completely untested
-			string lText = null;
-
-			IntPtr lHWInfoPtr = Marshal.AllocHGlobal (123);
-			HWProfile lProfile = new HWProfile ();
-			Marshal.StructureToPtr (lProfile, lHWInfoPtr, false);
-			if (GetCurrentHwProfile (lHWInfoPtr)) {
-				Marshal.PtrToStructure (lHWInfoPtr, lProfile);
-				lText = lProfile.szHwProfileGuid.ToString ();
-			}
-			Marshal.FreeHGlobal (lHWInfoPtr);
-
-			string uuidString = lText.Replace ("-", String.Empty).Substring (1, 32);
-			return UUID.Parse (uuidString);
-		}
-		*/
 
 		static Connection ()
 		{

@@ -17,7 +17,6 @@ namespace NDesk.DBus.Transports
 {
 	class UnixNativeTransport : UnixTransport
 	{
-		//protected UnixSocket socket;
 		internal UnixSocket socket;
 
 		public override string AuthString ()
@@ -142,17 +141,6 @@ namespace NDesk.DBus.Transports
 	}
 
 #if HAVE_CMSGCRED
-	/*
-	public struct msg
-	{
-		public IntPtr msg_next;
-		public long msg_type;
-		public ushort msg_ts;
-		short msg_spot;
-		IntPtr label;
-	}
-	*/
-
 	unsafe struct msghdr
 	{
 		public IntPtr msg_name; //optional address

@@ -11,13 +11,13 @@
     <AssemblyName>NDesk.DBus</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <RootNamespace>NDesk.DBus</RootNamespace>
+    <RootNamespace>DBus</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>.</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -26,10 +26,11 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
+    <OutputPath>.</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -47,7 +48,6 @@
     <Compile Include="DProxy.cs" />
     <Compile Include="ExportObject.cs" />
     <Compile Include="Introspection.cs" />
-    <Compile Include="IntrospectionSchema.cs" />
     <Compile Include="Mapper.cs" />
     <Compile Include="MatchRule.cs" />
     <Compile Include="Message.cs" />
@@ -59,19 +59,19 @@
     <Compile Include="Signature.cs" />
     <Compile Include="SocketTransport.cs" />
     <Compile Include="Transport.cs" />
-    <Compile Include="TypeDefiner.cs" />
     <Compile Include="TypeImplementer.cs" />
     <Compile Include="Unix.cs" />
-    <None Include="UnixMonoTransport.cs" />
     <Compile Include="UnixNativeTransport.cs" />
     <Compile Include="UnixTransport.cs" />
     <Compile Include="Wrapper.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="NDesk.DBus.dll.config" />
+    <Compile Include="TypeRental.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio AllowExistingFolder="true" />
   </ProjectExtensions>
+  <ItemGroup>
+    <None Include="dbus-sharp.dll.config" />
+  </ItemGroup>
 </Project>

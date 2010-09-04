@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	static class Mapper
 	{

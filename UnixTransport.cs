@@ -5,7 +5,7 @@
 using System;
 using System.IO;
 
-namespace NDesk.DBus.Transports
+namespace DBus.Transports
 {
 	abstract class UnixTransport : Transport
 	{

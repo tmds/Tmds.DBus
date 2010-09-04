@@ -10,10 +10,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
-using NDesk.DBus.Transports;
+using DBus.Transports;
 using org.freedesktop.DBus;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	public class ServerBus : org.freedesktop.DBus.IBus
 	{
@@ -606,7 +606,7 @@ namespace NDesk.DBus
 					if ((string)fieldValue == ServerBus.DBusBusName) {
 
 						// Workaround for our daemon only listening on a single path
-						if (msg.Header.MessageType == NDesk.DBus.MessageType.MethodCall)
+						if (msg.Header.MessageType == DBus.MessageType.MethodCall)
 							msg.Header[FieldCode.Path] = ServerBus.Path;
 
 						base.HandleMessage (msg);
@@ -628,7 +628,7 @@ namespace NDesk.DBus
 				return 0;
 
 			/*
-			if (msg.Header.MessageType == NDesk.DBus.MessageType.Signal) {
+			if (msg.Header.MessageType == DBus.MessageType.Signal) {
 				Signal signal = new Signal (msg);
 				if (signal.Member == "NameAcquired" || signal.Member == "NameLost") {
 					string dest = (string)msg.Header[FieldCode.Destination];
@@ -638,7 +638,7 @@ namespace NDesk.DBus
 			}
 			*/
 
-			if (msg.Header.MessageType != NDesk.DBus.MessageType.MethodReturn) {
+			if (msg.Header.MessageType != DBus.MessageType.MethodReturn) {
 				msg.Header[FieldCode.Sender] = ServerBus.DBusBusName;
 			}
 

@@ -7,11 +7,11 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Collections.Generic;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	class TypeImplementer
 	{
-		public static readonly TypeImplementer Root = new TypeImplementer ("NDesk.DBus.Proxies", false);
+		public static readonly TypeImplementer Root = new TypeImplementer ("DBus.Proxies", false);
 		AssemblyBuilder asmB;
 		ModuleBuilder modB;
 		static readonly object getImplLock = new Object ();

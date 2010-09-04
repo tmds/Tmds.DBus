@@ -9,7 +9,7 @@ using System.Reflection.Emit;
 
 using org.freedesktop.DBus;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	//TODO: perhaps ExportObject should not derive from BusObject
 	internal class ExportObject : BusObject, IDisposable //, Peer

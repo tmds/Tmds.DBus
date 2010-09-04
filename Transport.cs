@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
-namespace NDesk.DBus.Transports
+namespace DBus.Transports
 {
 	abstract class Transport
 	{

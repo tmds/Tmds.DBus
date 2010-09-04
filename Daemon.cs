@@ -8,8 +8,8 @@ using System;
 using System.IO;
 using System.Text;
 
-using NDesk.DBus;
-using NDesk.Unix;
+using DBus;
+using DBus.Unix;
 
 public class DBusDaemon
 {
@@ -48,7 +48,7 @@ public class DBusDaemon
 				} else if (fd == 2) {
 					tw = Console.Error;
 				}  else {
-					Stream fs = new NDesk.Unix.UnixStream (fd);
+					Stream fs = new UnixStream (fd);
 					tw = new StreamWriter (fs, Encoding.ASCII);
 					tw.NewLine = "\n";
 				}
@@ -69,8 +69,8 @@ public class DBusDaemon
 
 			switch (arg) {
 				case "--version":
-					//Console.WriteLine ("NDesk D-Bus Message Bus Daemon " + Introspector.GetProductDescription ());
-					Console.WriteLine ("NDesk D-Bus Message Bus Daemon " + "0.1");
+					//Console.WriteLine ("D-Bus Message Bus Daemon " + Introspector.GetProductDescription ());
+					Console.WriteLine ("D-Bus Message Bus Daemon " + "0.1");
 					return;
 				case "--system":
 					break;
@@ -138,7 +138,7 @@ public class DBusDaemon
 					} else if (fd == 2) {
 						tw = Console.Error;
 					} else {
-						Stream fs = new NDesk.Unix.UnixStream (fd);
+						Stream fs = new UnixStream (fd);
 						tw = new StreamWriter (fs, Encoding.ASCII);
 						tw.NewLine = "\n";
 					}

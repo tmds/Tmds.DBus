@@ -4,7 +4,7 @@
 
 using System;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	class MessageFilter
 	{

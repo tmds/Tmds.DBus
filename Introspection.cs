@@ -9,7 +9,7 @@ using System.Xml;
 using System.Text;
 using System.Reflection;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	//TODO: complete this class
 	class Introspector

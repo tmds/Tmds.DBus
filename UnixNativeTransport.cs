@@ -11,9 +11,9 @@ using System;
 using System.IO;
 using System.Text;
 using System.Runtime.InteropServices;
-using NDesk.Unix;
+using DBus.Unix;
 
-namespace NDesk.DBus.Transports
+namespace DBus.Transports
 {
 	class UnixNativeTransport : UnixTransport
 	{

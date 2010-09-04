@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Runtime.Remoting.Proxies;
 using System.Runtime.Remoting.Messaging;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	//marked internal because this is really an implementation detail and needs to be replaced
 	internal class DProxy : RealProxy

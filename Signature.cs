@@ -9,7 +9,7 @@ using System.Collections.Generic;
 //TODO: Reflection should be done at a higher level than this class
 using System.Reflection;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	//maybe this should be nullable?
 	struct Signature

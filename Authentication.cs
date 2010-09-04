@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Globalization;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	using Authentication;
 
@@ -156,7 +156,7 @@ namespace NDesk.DBus
 	}
 }
 
-namespace NDesk.DBus.Authentication
+namespace DBus.Authentication
 {
 	enum ClientState
 	{

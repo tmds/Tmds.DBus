@@ -7,7 +7,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
-namespace NDesk.DBus.Transports
+namespace DBus.Transports
 {
 	class SocketTransport : Transport
 	{

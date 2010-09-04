@@ -12,7 +12,7 @@ using System.Threading;
 using System.IO.Pipes;
 #endif
 
-namespace NDesk.DBus
+namespace DBus
 {
 	using Unix;
 	using Transports;
@@ -24,7 +24,7 @@ namespace NDesk.DBus
 		// Was Listen()
 		public static Server ListenAt (string address)
 		{
-			AddressEntry[] entries = NDesk.DBus.Address.Parse (address);
+			AddressEntry[] entries = DBus.Address.Parse (address);
 
 			foreach (AddressEntry entry in entries) {
 				try {
@@ -96,7 +96,7 @@ namespace NDesk.DBus
 
 		public UnixServer (string address)
 		{
-			AddressEntry[] entries = NDesk.DBus.Address.Parse (address);
+			AddressEntry[] entries = DBus.Address.Parse (address);
 			AddressEntry entry = entries[0];
 
 			if (entry.Method != "unix")
@@ -235,7 +235,7 @@ namespace NDesk.DBus
 		uint port = 0;
 		public TcpServer (string address)
 		{
-			AddressEntry[] entries = NDesk.DBus.Address.Parse (address);
+			AddressEntry[] entries = DBus.Address.Parse (address);
 			AddressEntry entry = entries[0];
 
 			if (entry.Method != "tcp")
@@ -374,7 +374,7 @@ namespace NDesk.DBus
 
 		public WinServer (string address)
 		{
-			AddressEntry[] entries = NDesk.DBus.Address.Parse (address);
+			AddressEntry[] entries = DBus.Address.Parse (address);
 			AddressEntry entry = entries[0];
 
 			if (entry.Method != "win")

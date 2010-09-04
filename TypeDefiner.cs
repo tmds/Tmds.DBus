@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Xml.Serialization;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	using Introspection;
 
@@ -97,7 +97,7 @@ namespace NDesk.DBus
 
 		const MethodAttributes ifaceMethAttr = MethodAttributes.HideBySig | MethodAttributes.NewSlot | MethodAttributes.Public | MethodAttributes.Abstract | MethodAttributes.Virtual;
 
-		public static Type DefineHandler (ModuleBuilder modB, NDesk.DBus.Introspection.Signal declSignal)
+		public static Type DefineHandler (ModuleBuilder modB, DBus.Introspection.Signal declSignal)
 		{
 			string dlgName = declSignal.Name + "Handler";
 			TypeBuilder handlerB = modB.DefineType (dlgName, TypeAttributes.Public | TypeAttributes.Class | TypeAttributes.Sealed | TypeAttributes.AnsiClass | TypeAttributes.AutoClass, typeof (System.MulticastDelegate));
@@ -193,7 +193,7 @@ namespace NDesk.DBus
 				DefineMethod (typeB, declMethod.Name, ifaceMethAttr, declMethod.Arguments, false);
 
 			if (iface.Properties != null)
-			foreach (NDesk.DBus.Introspection.Property prop in iface.Properties) {
+			foreach (DBus.Introspection.Property prop in iface.Properties) {
 				Type propType = new Signature (prop.Type).ToType ();
 
 				PropertyBuilder prop_builder = typeB.DefineProperty (prop.Name, PropertyAttributes.None, propType, Type.EmptyTypes);
@@ -206,7 +206,7 @@ namespace NDesk.DBus
 			}
 
 			if (iface.Signals != null)
-			foreach (NDesk.DBus.Introspection.Signal signal in iface.Signals) {
+			foreach (DBus.Introspection.Signal signal in iface.Signals) {
 				Type eventType = DefineHandler (modBdef, signal);
 
 				EventBuilder event_builder = typeB.DefineEvent (signal.Name, EventAttributes.None, eventType);

@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using org.freedesktop.DBus;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	public sealed class Bus : Connection
 	{

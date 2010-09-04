@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	//TODO: complete and use these wrapper classes
 	//not sure exactly what I'm thinking but there seems to be sense here

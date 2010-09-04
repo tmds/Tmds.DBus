@@ -17,7 +17,7 @@ using Microsoft.Scripting.Hosting;
 
 using org.freedesktop.DBus;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	internal class DynamicExportObject : ExportObject
 	{

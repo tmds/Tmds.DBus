@@ -6,7 +6,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace NDesk.Unix
+namespace DBus.Unix
 {
 	// size_t
 	using SizeT = System.UIntPtr;

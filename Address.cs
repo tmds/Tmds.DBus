@@ -6,7 +6,7 @@ using System;
 using System.Text;
 using System.Collections.Generic;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	// Subclass obsolete BadAddressException to avoid ABI break
 #pragma warning disable 0618

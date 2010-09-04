@@ -6,7 +6,7 @@ using System;
 using System.Xml.Serialization;
 using System.Collections.Generic;
 
-namespace NDesk.DBus.Introspection
+namespace DBus.Introspection
 {
 	[XmlRootAttribute(IsNullable=true)]
 	public class Member {

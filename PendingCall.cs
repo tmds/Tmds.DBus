@@ -5,7 +5,7 @@
 using System;
 using System.Threading;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	class PendingCall : IAsyncResult
 	{

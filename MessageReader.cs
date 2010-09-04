@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	partial class MessageReader
 	{

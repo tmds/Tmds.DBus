@@ -5,7 +5,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace NDesk.DBus
+namespace DBus
 {
 	//yyyyuua{yv}
 	//struct Header

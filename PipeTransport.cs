@@ -10,7 +10,7 @@ using System.IO.Pipes;
 
 using System.Threading;
 
-namespace NDesk.DBus.Transports
+namespace DBus.Transports
 {
 	class PipeTransport : Transport
 	{

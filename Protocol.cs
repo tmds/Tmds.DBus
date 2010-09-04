@@ -233,7 +233,22 @@ namespace DBus
 		{
 			if (value == null)
 				throw new ArgumentNullException ("value");
-
+			if (!value.StartsWith ("/"))
+				throw new ArgumentException ("value");
+			if (value.EndsWith ("/") && value.Length > 1)
+				throw new ArgumentException ("ObjectPath cannot end in '/'"); 
+			
+			foreach (char c in value) {
+				bool valid = (c >= 'a' && c <='z')
+							|| (c >= 'A' && c <= 'Z')
+							|| (c >= '0' && c <= '9')
+							|| c == '_' || c == '/';
+				if (!valid) {
+					var message = string.Format ("'{0}' is not a valid character in an ObjectPath", c);
+					throw new ArgumentException (message, "value");
+				}
+			}
+			
 			this.Value = value;
 		}
 

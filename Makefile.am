@@ -2,7 +2,7 @@ ASSEMBLY = dbus-sharp
 TARGET = $(ASSEMBLY).dll
 
 CSFLAGS = \
-	-debug -target:library -unsafe -d:STRONG_NAME -keyfile:$(top_srcdir)/ndesk.snk
+	-debug -target:library -unsafe -d:STRONG_NAME -keyfile:$(top_srcdir)/dbus-sharp.snk
 
 LIBFLAGS = \
 	-r:Mono.Posix

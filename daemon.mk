@@ -7,5 +7,5 @@ GLIB_FLAGS=-d:USE_GLIB -pkg:ndesk-dbus-glib-1.0 -pkg:glib-sharp-2.0
 endif
 
 dbus-daemon.exe: $(SRCS)
-	$(CSC) -debug -t:exe -out:$@ -r:NDesk.DBus.dll $(GLIB_FLAGS) -keyfile:../ndesk.snk $(SRCS)
+	$(CSC) -debug -t:exe -out:$@ -r:dbus-sharp.dll $(GLIB_FLAGS) -keyfile:../ndesk.snk $(SRCS)
 

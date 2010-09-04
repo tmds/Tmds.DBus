@@ -1,4 +1,4 @@
-ASSEMBLY = NDesk.DBus
+ASSEMBLY = dbus-sharp
 TARGET = $(ASSEMBLY).dll
 
 CSFLAGS = \
@@ -54,7 +54,7 @@ uninstall-local:
 
 EXTRA_DIST = \
 	$(CSFILES) \
-	$(srcdir)/NDesk.DBus.dll.config \
+	$(srcdir)/dbus-sharp.dll.config \
 	$(srcdir)/AssemblyInfo.cs.in
 
 CLEANFILES = \

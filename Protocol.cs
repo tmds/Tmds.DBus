@@ -233,23 +233,36 @@ namespace DBus
 		{
 			if (value == null)
 				throw new ArgumentNullException ("value");
+
+			Validate (value);
+
+			this.Value = value;
+		}
+
+		static void Validate (string value)
+		{
 			if (!value.StartsWith ("/"))
 				throw new ArgumentException ("value");
 			if (value.EndsWith ("/") && value.Length > 1)
 				throw new ArgumentException ("ObjectPath cannot end in '/'");
 
+			bool multipleSlash = false;
+
 			foreach (char c in value) {
 				bool valid = (c >= 'a' && c <='z')
-							|| (c >= 'A' && c <= 'Z')
-							|| (c >= '0' && c <= '9')
-							|| c == '_' || c == '/';
+					|| (c >= 'A' && c <= 'Z')
+					|| (c >= '0' && c <= '9')
+					|| c == '_'
+					|| (!multipleSlash && c == '/');
+
 				if (!valid) {
 					var message = string.Format ("'{0}' is not a valid character in an ObjectPath", c);
 					throw new ArgumentException (message, "value");
 				}
+
+				multipleSlash = c == '/';
 			}
 
-			this.Value = value;
 		}
 
 		public int CompareTo (ObjectPath other)

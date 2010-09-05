@@ -208,13 +208,13 @@ namespace DBus.Unix
 
 		[DllImport (LIBC, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
 		internal static extern int dup2 (int fd, int fd2);
-		
+
 		[DllImport (LIBC, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
 		internal static extern int open ([MarshalAs(UnmanagedType.LPStr)] string path, int oflag);
 
 		[DllImport (LIBC, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
 		internal static extern IntPtr setsid ();
-		
+
 
 		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=true)]
 		internal static extern int close (int fd);

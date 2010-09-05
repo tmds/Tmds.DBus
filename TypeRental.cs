@@ -16,7 +16,7 @@ namespace DBus
 		MethodBase m_enclosingMethod;
 
 		static OpCode[] s_OneByteOpCodes = new OpCode[0x100];
-		static OpCode[] s_TwoByteOpCodes = new OpCode[0x100]; 
+		static OpCode[] s_TwoByteOpCodes = new OpCode[0x100];
 		static ILReader2()
 		{
 			foreach (FieldInfo fi in typeof(OpCodes).GetFields(BindingFlags.Public | BindingFlags.Static))
@@ -261,19 +261,19 @@ namespace DBus
 					byte int8 = ReadByte();
 					//ilg.Emit(opCode, int8);
 					break;
-				case OperandType.InlineI:       
-					Int32 int32 = ReadInt32();     
+				case OperandType.InlineI:
+					Int32 int32 = ReadInt32();
 					//ilg.Emit(opCode, int32);
 					break;
-				case OperandType.InlineI8:    
-					Int64 int64 = ReadInt64();    
+				case OperandType.InlineI8:
+					Int64 int64 = ReadInt64();
 					//ilg.Emit(opCode, int64);
 					break;
-				case OperandType.ShortInlineR:  
+				case OperandType.ShortInlineR:
 					Single float32 = ReadSingle();
 					//ilg.Emit(opCode, float32);
 					break;
-				case OperandType.InlineR:      
+				case OperandType.InlineR:
 					Double float64 = ReadDouble();
 					//ilg.Emit(opCode, float64);
 					break;
@@ -281,29 +281,29 @@ namespace DBus
 					Byte index8 = ReadByte();
 					//ilg.Emit(opCode, index8);
 					break;
-				case OperandType.InlineVar:   
+				case OperandType.InlineVar:
 					UInt16 index16 = ReadUInt16();
 					//ilg.Emit(opCode, index16);
 					break;
-				case OperandType.InlineString: 
+				case OperandType.InlineString:
 					token = ReadInt32();
 					current.operandType = "String";
 					current.operand = m_enclosingMethod.Module.ResolveString(token);
 					//ilg.Emit(opCode, m_enclosingMethod.Module.ResolveString(token));
 					break;
-				case OperandType.InlineSig:   
-					token = ReadInt32(); 
+				case OperandType.InlineSig:
+					token = ReadInt32();
 					//ilg.Emit(opCode, m_enclosingMethod.Module.ResolveSignature(token));
 					throw new NotImplementedException();
 					break;
-				case OperandType.InlineField: 
+				case OperandType.InlineField:
 					token = ReadInt32();
 					FieldInfo fi = m_enclosingMethod.Module.ResolveField(token);
 					current.operandType = "Reflection.FieldInfo";
 					current.operand = fi.DeclaringType.FullName + Type.Delimiter + fi.Name;
 					//ilg.Emit(opCode, m_enclosingMethod.Module.ResolveField(token));
 					break;
-				case OperandType.InlineType:   
+				case OperandType.InlineType:
 					token = ReadInt32();
 					current.operandType = "Type";
 					Type t = m_enclosingMethod.Module.ResolveType(token);
@@ -336,7 +336,7 @@ namespace DBus
 		}
 
 		Byte ReadByte()
-		{ 
+		{
 			current.operandType = "Byte";
 			Byte ret = (Byte)m_byteArray[m_position++];
 			current.operand = ret;
@@ -346,7 +346,7 @@ namespace DBus
 		SByte ReadSByte()
 		{
 			current.operandType = "SByte";
-			SByte ret = (SByte)ReadByte(); 
+			SByte ret = (SByte)ReadByte();
 			current.operand = ret;
 			return ret;
 		}
@@ -391,7 +391,7 @@ namespace DBus
 			return ret;
 		}
 
-		Single ReadSingle() { 
+		Single ReadSingle() {
 			current.operandType = "UInt16";
 			m_position += 4;
 			Single ret = BitConverter.ToSingle(m_byteArray, m_position - 4);

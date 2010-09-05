@@ -50,7 +50,7 @@ namespace DBus
 		{
 			//object retVal = obj.GetType ().InvokeMember (method_call.Member, BindingFlags.InvokeMethod, null, obj, new object[0]);
 			//IDynamicMetaObjectProvider idyn = obj as IDynamicMetaObjectProvider;
-			
+
 			object retVal = null;
 
 			Exception raisedException = null;

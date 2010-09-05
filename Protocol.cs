@@ -236,8 +236,8 @@ namespace DBus
 			if (!value.StartsWith ("/"))
 				throw new ArgumentException ("value");
 			if (value.EndsWith ("/") && value.Length > 1)
-				throw new ArgumentException ("ObjectPath cannot end in '/'"); 
-			
+				throw new ArgumentException ("ObjectPath cannot end in '/'");
+
 			foreach (char c in value) {
 				bool valid = (c >= 'a' && c <='z')
 							|| (c >= 'A' && c <= 'Z')
@@ -248,7 +248,7 @@ namespace DBus
 					throw new ArgumentException (message, "value");
 				}
 			}
-			
+
 			this.Value = value;
 		}
 

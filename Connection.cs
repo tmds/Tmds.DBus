@@ -54,7 +54,7 @@ namespace DBus
 		{
 			if (isShared)
 				throw new Exception ("Cannot disconnect a shared Connection");
-			
+
 			if (!IsConnected)
 				return;
 

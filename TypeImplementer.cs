@@ -850,7 +850,7 @@ namespace DBus
 			LocalBuilder endPosLocal = ilg.DeclareLocal (typeof (int));
 			ilg.Emit (OpCodes.Ldloc, readerLocal);
 			ilg.Emit (OpCodes.Ldfld, posField);
-			
+
 			// Add the current position and byte length to determine endPos
 			// TODO: Consider padding?
 			ilg.Emit (OpCodes.Add);

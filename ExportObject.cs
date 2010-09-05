@@ -149,7 +149,7 @@ namespace DBus
 					}
 				} else
 					error = method_call.CreateError (Mapper.GetInterfaceName (raisedException.GetType ()), raisedException.Message);
-				
+
 				replyMsg = error.message;
 			}
 
@@ -178,14 +178,14 @@ namespace DBus
 			GC.SuppressFinalize (this);
 		}
 
-		~ExportObject () 
+		~ExportObject ()
 		{
 			Dispose (false);
 		}
 
 		protected virtual void Dispose (bool disposing)
 		{
-			if (disposing) 
+			if (disposing)
 			{
 				if (obj != null)
 				{

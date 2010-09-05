@@ -479,7 +479,7 @@ namespace DBus
 			WriteHeaderDict (val);
 		}
 		*/
-		
+
 		/*
 		public void Write (Dictionary<byte, object> val)
 		{

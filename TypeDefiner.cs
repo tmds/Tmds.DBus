@@ -108,7 +108,7 @@ namespace DBus
 
 			//MethodBuilder invokeB = handlerB.DefineMethod ("Invoke", mattr, typeof (void), Type.EmptyTypes);
 			MethodBuilder invokeB = DefineSignal (handlerB, "Invoke", mattr, declSignal.Arguments, true);
-			
+
 			invokeB.SetImplementationFlags (MethodImplAttributes.Runtime | MethodImplAttributes.Managed);
 			return handlerB.CreateType ();
 		}

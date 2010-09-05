@@ -33,7 +33,7 @@ namespace DBus
 
 					while (reply == null)
 						conn.HandleMessage (conn.Transport.ReadMessage ());
-					
+
 					completedSync = true;
 
 					conn.DispatchSignals ();

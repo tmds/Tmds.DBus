@@ -338,7 +338,7 @@ namespace DBus.Authentication
 		public override IEnumerator<AuthCommand> GetEnumerator ()
 		{
 			IEnumerator<AuthCommand> replies = Peer.GetEnumerator ();
-			
+
 			AuthMech currMech = AuthMech.External;
 
 			while (true) {

@@ -87,7 +87,7 @@ namespace DBus.Transports
 			AsyncCallback cb = delegate (IAsyncResult ar)
 			{
 				//wHandle = ar.AsyncWaitHandle;
-				
+
 				pipe.EndRead (ar);
 				((ManualResetEvent)wHandle).Set ();
 

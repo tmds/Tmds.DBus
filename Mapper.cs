@@ -221,7 +221,7 @@ namespace DBus
 			string errMsg = String.Format ("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist", method_call.Member, method_call.Signature.Value, method_call.Interface);
 
 			Error error = new Error ("org.freedesktop.DBus.Error.UnknownMethod", method_call.message.Header.Serial);
-			error.message.Signature = new Signature (DType.String);
+			error.message.Signature = Signature.StringSig;
 
 			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
 			writer.Write (errMsg);

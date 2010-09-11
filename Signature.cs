@@ -17,11 +17,16 @@ namespace DBus
 		static readonly byte [] EmptyArray = new byte [0];
 
 		public static readonly Signature Empty = new Signature (String.Empty);
+		public static readonly Signature ArraySig = Allocate (DType.Array);
 		public static readonly Signature ByteSig = Allocate (DType.Byte);
+		public static readonly Signature DictEntryBegin = Allocate (DType.DictEntryBegin);
+		public static readonly Signature DictEntryEnd = Allocate (DType.DictEntryEnd);
 		public static readonly Signature Int32Sig = Allocate (DType.Int32);
 		public static readonly Signature UInt16Sig = Allocate (DType.UInt16);
 		public static readonly Signature UInt32Sig = Allocate (DType.UInt32);
 		public static readonly Signature StringSig = Allocate (DType.String);
+		public static readonly Signature StructBegin = Allocate (DType.StructBegin);
+		public static readonly Signature StructEnd = Allocate (DType.StructEnd);
 		public static readonly Signature ObjectPathSig = Allocate (DType.ObjectPath);
 		public static readonly Signature SignatureSig = Allocate (DType.Signature);
 		public static readonly Signature VariantSig = Allocate (DType.Variant);
@@ -229,19 +234,19 @@ namespace DBus
 
 		public Signature MakeArraySignature ()
 		{
-			return new Signature (DType.Array) + this;
+			return Signature.ArraySig + this;
 		}
 
 		public static Signature MakeStruct (params Signature[] elems)
 		{
 			Signature sig = Signature.Empty;
 
-			sig += new Signature (DType.StructBegin);
+			sig += Signature.StructBegin;
 
 			foreach (Signature elem in elems)
 				sig += elem;
 
-			sig += new Signature (DType.StructEnd);
+			sig += Signature.StructEnd;
 
 			return sig;
 		}
@@ -250,12 +255,12 @@ namespace DBus
 		{
 			Signature sig = Signature.Empty;
 
-			sig += new Signature (DType.DictEntryBegin);
+			sig += Signature.DictEntryBegin;
 
 			sig += keyType;
 			sig += valueType;
 
-			sig += new Signature (DType.DictEntryEnd);
+			sig += Signature.DictEntryEnd;
 
 			return sig;
 		}
@@ -802,19 +807,19 @@ namespace DBus
 
 			//this is inelegant, but works for now
 			if (type == typeof (Signature))
-				return new Signature (DType.Signature);
+				return Signature.SignatureSig;
 
 			if (type == typeof (ObjectPath))
-				return new Signature (DType.ObjectPath);
+				return Signature.ObjectPathSig;
 
 			if (type == typeof (void))
 				return Signature.Empty;
 
 			if (type == typeof (string))
-				return new Signature (DType.String);
+				return Signature.StringSig;
 
 			if (type == typeof (object))
-				return new Signature (DType.Variant);
+				return Signature.VariantSig;
 
 			if (type.IsArray)
 				return GetSig (type.GetElementType ()).MakeArraySignature ();
@@ -826,7 +831,7 @@ namespace DBus
 			}
 
 			if (Mapper.IsPublic (type)) {
-				return new Signature (DType.ObjectPath);
+				return Signature.ObjectPathSig;
 			}
 
 			if (!type.IsPrimitive && !type.IsEnum) {

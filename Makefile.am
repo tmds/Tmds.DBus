@@ -9,12 +9,14 @@ LIBFLAGS = \
 
 CSFILES = \
 	$(srcdir)/Address.cs \
+	$(srcdir)/ArgDirection.cs \
 	$(srcdir)/Authentication.cs \
 	$(srcdir)/Bus.cs \
 	$(srcdir)/BusObject.cs \
 	$(srcdir)/Connection.cs \
 	$(srcdir)/DBus.cs \
 	$(srcdir)/DProxy.cs \
+	$(srcdir)/DType.cs \
 	$(srcdir)/ExportObject.cs \
 	$(srcdir)/Introspection.cs \
 	$(srcdir)/Protocol.cs \

@@ -225,27 +225,6 @@ namespace DBus
 		public override string ToString ()
 		{
 			return Value;
-
-			/*
-			StringBuilder sb = new StringBuilder ();
-
-			foreach (DType t in data) {
-				//we shouldn't rely on object mapping here, but it's an easy way to get string representations for now
-				Type type = DTypeToType (t);
-				if (type != null) {
-					sb.Append (type.Name);
-				} else {
-					char c = (char)t;
-					if (!Char.IsControl (c))
-						sb.Append (c);
-					else
-						sb.Append (@"\" + (int)c);
-				}
-				sb.Append (" ");
-			}
-
-			return sb.ToString ();
-			*/
 		}
 
 		public Signature MakeArraySignature ()
@@ -862,42 +841,5 @@ namespace DBus
 			DType dtype = Signature.TypeToDType (type);
 			return new Signature (dtype);
 		}
-	}
-
-	enum ArgDirection
-	{
-		In,
-		Out,
-	}
-
-	enum DType : byte
-	{
-		Invalid = (byte)'\0',
-
-		Byte = (byte)'y',
-		Boolean = (byte)'b',
-		Int16 = (byte)'n',
-		UInt16 = (byte)'q',
-		Int32 = (byte)'i',
-		UInt32 = (byte)'u',
-		Int64 = (byte)'x',
-		UInt64 = (byte)'t',
-		Single = (byte)'f', //This is not yet supported!
-		Double = (byte)'d',
-		String = (byte)'s',
-		ObjectPath = (byte)'o',
-		Signature = (byte)'g',
-
-		Array = (byte)'a',
-		[Obsolete ("Not in protocol")]
-		Struct = (byte)'r',
-		[Obsolete ("Not in protocol")]
-		DictEntry = (byte)'e',
-		Variant = (byte)'v',
-
-		StructBegin = (byte)'(',
-		StructEnd = (byte)')',
-		DictEntryBegin = (byte)'{',
-		DictEntryEnd = (byte)'}',
 	}
 }

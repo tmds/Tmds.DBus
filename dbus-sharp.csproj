@@ -65,6 +65,8 @@
     <Compile Include="UnixTransport.cs" />
     <Compile Include="Wrapper.cs" />
     <Compile Include="TypeRental.cs" />
+    <Compile Include="DType.cs" />
+    <Compile Include="ArgDirection.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

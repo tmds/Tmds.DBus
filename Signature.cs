@@ -14,11 +14,11 @@ namespace DBus
 	//maybe this should be nullable?
 	struct Signature
 	{
-		//TODO: this class needs some work
-		//Data should probably include the null terminator
+		static readonly byte [] EmptyArray = new byte [0];
 
 		public static readonly Signature Empty = new Signature (String.Empty);
 		public static readonly Signature ByteSig = Allocate (DType.Byte);
+		public static readonly Signature Int32Sig = Allocate (DType.Int32);
 		public static readonly Signature UInt16Sig = Allocate (DType.UInt16);
 		public static readonly Signature UInt32Sig = Allocate (DType.UInt32);
 		public static readonly Signature StringSig = Allocate (DType.String);
@@ -96,17 +96,20 @@ namespace DBus
 
 		public Signature (string value)
 		{
+			if (value == null)
+				throw new ArgumentNullException ("value");
+			
+			foreach (var c in value)
+				if (!Enum.IsDefined (typeof (DType), (byte) c))
+					throw new ArgumentException (string.Format ("{0} is not a valid dbus type", c));
+			
 			if (value.Length == 0) {
-				this.data = Empty.data;
-				return;
+				data = EmptyArray;
+			} else if (value.Length == 1) {
+				data = DataForDType ((DType)value[0]);
+			} else {
+				data = Encoding.ASCII.GetBytes (value);
 			}
-
-			if (value.Length == 1) {
-				this.data = DataForDType ((DType)value[0]);
-				return;
-			}
-
-			this.data = Encoding.ASCII.GetBytes (value);
 		}
 
 		internal static Signature Take (byte[] value)
@@ -165,6 +168,9 @@ namespace DBus
 
 		internal Signature (DType[] value)
 		{
+			if (value == null)
+				throw new ArgumentNullException ("value");
+			
 			if (value.Length == 0) {
 				this.data = Empty.data;
 				return;

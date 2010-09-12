@@ -232,9 +232,9 @@ namespace DBus
 			return Value;
 		}
 
-		public Signature MakeArraySignature ()
+		public static Signature MakeArray (Signature signature)
 		{
-			return Signature.ArraySig + this;
+			return Signature.ArraySig + signature;
 		}
 
 		public static Signature MakeStruct (params Signature[] elems)
@@ -267,7 +267,7 @@ namespace DBus
 
 		public static Signature MakeDict (Signature keyType, Signature valueType)
 		{
-			return MakeDictEntry (keyType, valueType).MakeArraySignature ();
+			return MakeArray (MakeDictEntry (keyType, valueType));
 		}
 
 		public int Alignment
@@ -696,7 +696,7 @@ namespace DBus
 						return Signature.MakeDict (keyType, valueType);
 					} else {
 						Signature elementType = GetNextSignature (ref pos);
-						return elementType.MakeArraySignature ();
+						return MakeArray (elementType);
 					}
 				//case DType.DictEntryBegin: // FIXME: DictEntries should be handled separately.
 				case DType.StructBegin:
@@ -822,7 +822,7 @@ namespace DBus
 				return Signature.VariantSig;
 
 			if (type.IsArray)
-				return GetSig (type.GetElementType ()).MakeArraySignature ();
+				return MakeArray (GetSig (type.GetElementType ()));
 
 			if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 

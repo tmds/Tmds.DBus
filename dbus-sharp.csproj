@@ -67,6 +67,13 @@
     <Compile Include="TypeRental.cs" />
     <Compile Include="DType.cs" />
     <Compile Include="ArgDirection.cs" />
+    <Compile Include="ObjectPath.cs" />
+    <Compile Include="Header.cs" />
+    <Compile Include="MessageType.cs" />
+    <Compile Include="FieldCode.cs" />
+    <Compile Include="EndianFlag.cs" />
+    <Compile Include="HeaderFlag.cs" />
+    <Compile Include="BusException.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -12,19 +12,26 @@ CSFILES = \
 	$(srcdir)/ArgDirection.cs \
 	$(srcdir)/Authentication.cs \
 	$(srcdir)/Bus.cs \
+	$(srcdir)/BusException.cs \
 	$(srcdir)/BusObject.cs \
 	$(srcdir)/Connection.cs \
 	$(srcdir)/DBus.cs \
 	$(srcdir)/DProxy.cs \
 	$(srcdir)/DType.cs \
+	$(srcdir)/EndianFlag.cs \
 	$(srcdir)/ExportObject.cs \
+	$(srcdir)/FieldCode.cs \
+	$(srcdir)/Header.cs \
+	$(srcdir)/HeaderFlag.cs \
 	$(srcdir)/Introspection.cs \
+	$(srcdir)/ObjectPath.cs \
 	$(srcdir)/Protocol.cs \
 	$(srcdir)/Mapper.cs \
 	$(srcdir)/MatchRule.cs \
 	$(srcdir)/Message.cs \
 	$(srcdir)/MessageFilter.cs \
 	$(srcdir)/MessageReader.cs \
+	$(srcdir)/MessageType.cs \
 	$(srcdir)/MessageWriter.cs \
 	$(srcdir)/PendingCall.cs \
 	$(srcdir)/Signature.cs \

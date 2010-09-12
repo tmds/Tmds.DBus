@@ -63,7 +63,6 @@
     <Compile Include="Unix.cs" />
     <Compile Include="UnixNativeTransport.cs" />
     <Compile Include="UnixTransport.cs" />
-    <Compile Include="Wrapper.cs" />
     <Compile Include="TypeRental.cs" />
     <Compile Include="DType.cs" />
     <Compile Include="ArgDirection.cs" />
@@ -74,6 +73,11 @@
     <Compile Include="EndianFlag.cs" />
     <Compile Include="HeaderFlag.cs" />
     <Compile Include="BusException.cs" />
+    <Compile Include="AddressEntry.cs" />
+    <Compile Include="Signal.cs" />
+    <Compile Include="Error.cs" />
+    <Compile Include="MethodReturn.cs" />
+    <Compile Include="MethodCall.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

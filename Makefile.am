@@ -9,6 +9,7 @@ LIBFLAGS = \
 
 CSFILES = \
 	$(srcdir)/Address.cs \
+	$(srcdir)/AddressEntry.cs \
 	$(srcdir)/ArgDirection.cs \
 	$(srcdir)/Authentication.cs \
 	$(srcdir)/Bus.cs \
@@ -19,6 +20,7 @@ CSFILES = \
 	$(srcdir)/DProxy.cs \
 	$(srcdir)/DType.cs \
 	$(srcdir)/EndianFlag.cs \
+	$(srcdir)/Error.cs \
 	$(srcdir)/ExportObject.cs \
 	$(srcdir)/FieldCode.cs \
 	$(srcdir)/Header.cs \
@@ -33,7 +35,10 @@ CSFILES = \
 	$(srcdir)/MessageReader.cs \
 	$(srcdir)/MessageType.cs \
 	$(srcdir)/MessageWriter.cs \
+	$(srcdir)/MethodCall.cs \
+	$(srcdir)/MethodReturn.cs \
 	$(srcdir)/PendingCall.cs \
+	$(srcdir)/Signal.cs \
 	$(srcdir)/Signature.cs \
 	$(srcdir)/SocketTransport.cs \
 	$(srcdir)/Transport.cs \
@@ -41,8 +46,7 @@ CSFILES = \
 	$(srcdir)/TypeRental.cs \
 	$(srcdir)/Unix.cs \
 	$(srcdir)/UnixNativeTransport.cs \
-	$(srcdir)/UnixTransport.cs \
-	$(srcdir)/Wrapper.cs
+	$(srcdir)/UnixTransport.cs 
 
 all: $(TARGET)
 

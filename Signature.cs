@@ -234,40 +234,30 @@ namespace DBus
 
 		public static Signature MakeArray (Signature signature)
 		{
+			if (!signature.IsSingleCompleteType)
+				throw new ArgumentException ("The type of an array must be a single complete type", "signature");
 			return Signature.ArraySig + signature;
 		}
 
-		public static Signature MakeStruct (params Signature[] elems)
+		public static Signature MakeStruct (Signature signature)
 		{
-			Signature sig = Signature.Empty;
-
-			sig += Signature.StructBegin;
-
-			foreach (Signature elem in elems)
-				sig += elem;
-
-			sig += Signature.StructEnd;
-
-			return sig;
+			if (signature == Signature.Empty)
+				throw new ArgumentException ("Cannot create a struct with no fields", "signature");
+			
+			return Signature.StructBegin + signature + Signature.StructEnd;
 		}
 
 		public static Signature MakeDictEntry (Signature keyType, Signature valueType)
 		{
 			if (!keyType.IsSingleCompleteType)
-				throw new ArgumentException ("Key is not a single complete type");
+				throw new ArgumentException ("Signature must be a single complete type", "keyType");
 			if (!valueType.IsSingleCompleteType)
-				throw new ArgumentException ("Value is not a single complete type");
+				throw new ArgumentException ("Signature must be a single complete type", "valueType");
 			
-			Signature sig = Signature.Empty;
-
-			sig += Signature.DictEntryBegin;
-
-			sig += keyType;
-			sig += valueType;
-
-			sig += Signature.DictEntryEnd;
-
-			return sig;
+			return Signature.DictEntryBegin +
+					keyType +
+					valueType +
+					Signature.DictEntryEnd;
 		}
 
 		public static Signature MakeDict (Signature keyType, Signature valueType)
@@ -416,18 +406,36 @@ namespace DBus
 		public bool IsSingleCompleteType
 		{
 			get {
+				if (data.Length == 0)
+					return false;
+				
 				// If the length is 1, it must be
 				// a single complete type
 				if (data.Length == 1)
 					return true;
-				if (data [0] == '(') {
+				
+				// The type of an array must be a single complete
+				// type, therefore if it's an array we know this is
+				// a single complete type
+				if (data [0] == 'a')
+					return true;
+				
+				// Single complete types can be structs: (ii)
+				// or they can be dict entries: {ii}.
+				var start = data [0];
+				if (start == '(' || start == '{') {
 					if (data.Length < 3)
 						return false;
+					
+					// Search for exactly 1 instance of the corresponding closing brace
+					// and make sure it's at the end of the signature
 					int found = 0;
+					var seeking = start == '(' ? ')' : '}';
 					for (int i = 1; i < data.Length; i++)
-						if (data[i] == ')')
+						if (data[i] == seeking)
 							found++;
-					return found == 1 && data [data.Length - 1] == ')';
+					
+					return found == 1 && data [data.Length - 1] == seeking;
 				}
 				return false;
 			}

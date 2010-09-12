@@ -253,6 +253,11 @@ namespace DBus
 
 		public static Signature MakeDictEntry (Signature keyType, Signature valueType)
 		{
+			if (!keyType.IsSingleCompleteType)
+				throw new ArgumentException ("Key is not a single complete type");
+			if (!valueType.IsSingleCompleteType)
+				throw new ArgumentException ("Value is not a single complete type");
+			
 			Signature sig = Signature.Empty;
 
 			sig += Signature.DictEntryBegin;
@@ -407,7 +412,27 @@ namespace DBus
 				return true;
 			}
 		}
-
+		
+		public bool IsSingleCompleteType
+		{
+			get {
+				// If the length is 1, it must be
+				// a single complete type
+				if (data.Length == 1)
+					return true;
+				if (data [0] == '(') {
+					if (data.Length < 3)
+						return false;
+					int found = 0;
+					for (int i = 1; i < data.Length; i++)
+						if (data[i] == ')')
+							found++;
+					return found == 1 && data [data.Length - 1] == ')';
+				}
+				return false;
+			}
+		}
+		
 		public bool IsStruct
 		{
 			get {

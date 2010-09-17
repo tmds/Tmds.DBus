@@ -56,7 +56,8 @@ namespace DBus
 				char c = str[i];
 
 				//everything other than the optionally escaped chars _must_ be escaped
-				if (Char.IsLetterOrDigit (c) || c == '-' || c == '_' || c == '/' || c == '\\' || c == '.')
+				if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+				    || c == '-' || c == '_' || c == '/' || c == '\\' || c == '.')
 					sb.Append (c);
 				else
 					sb.Append (Uri.HexEscape (c));

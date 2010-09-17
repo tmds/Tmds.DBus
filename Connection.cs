@@ -116,8 +116,21 @@ namespace DBus
 			if (entries.Length == 0)
 				throw new Exception ("No addresses were found");
 
-			//TODO: try alternative addresses if needed
-			AddressEntry entry = entries[0];
+			int index = 0;
+			while (index < entries.Length) {
+				AddressEntry entry = entries[index++];
+
+				Id = entry.GUID;
+				try {
+					Transport = Transport.Create (entry);
+				} catch {
+					if (index < entries.Length)
+						continue;
+					throw;
+				}
+
+				break;
+			}
 
 			isConnected = true;
 		}

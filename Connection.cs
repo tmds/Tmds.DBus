@@ -13,9 +13,62 @@ namespace DBus
 	using Authentication;
 	using Transports;
 
-	public partial class Connection
+	public class Connection
 	{
+		// Maybe we should use XDG/basedir or check an env var for this?
+		const string machineUuidPath = @"/var/lib/dbus/machine-id";
+
+		internal static readonly EndianFlag NativeEndianness =
+			BitConverter.IsLittleEndian ? EndianFlag.Little : EndianFlag.Big;
+		internal static readonly UUID MachineId =
+			File.Exists (machineUuidPath) ? ReadMachineId (machineUuidPath) : UUID.Zero;
+
 		Transport transport;
+		bool isConnected = false;
+		bool isShared = false;
+		UUID Id = UUID.Zero;
+		bool isAuthenticated = false;
+		int serial = 0;
+
+		// STRONG TODO: GET RID OF THAT SHIT
+		internal Thread mainThread = Thread.CurrentThread;
+
+		Dictionary<uint,PendingCall> pendingCalls = new Dictionary<uint,PendingCall> ();
+		Queue<Message> inbound = new Queue<Message> ();
+		Dictionary<ObjectPath,BusObject> registeredObjects = new Dictionary<ObjectPath,BusObject> ();
+
+		protected Connection ()
+		{
+
+		}
+
+		internal Connection (Transport transport)
+		{
+			this.transport = transport;
+			transport.Connection = this;
+		}
+
+		internal Connection (string address)
+		{
+			OpenPrivate (address);
+			Authenticate ();
+		}
+
+		public bool IsConnected {
+			get {
+				return isConnected;
+			}
+			internal set {
+				isConnected = value;
+			}
+		}
+
+		internal bool IsAuthenticated {
+			get {
+				return isAuthenticated;
+			}
+		}
+
 		internal Transport Transport {
 			get {
 				return transport;
@@ -25,31 +78,7 @@ namespace DBus
 			}
 		}
 
-		protected Connection () {}
-
-		internal Connection (Transport transport)
-		{
-			this.transport = transport;
-			transport.Connection = this;
-		}
-
-		//should this be public?
-		internal Connection (string address)
-		{
-			OpenPrivate (address);
-			Authenticate ();
-		}
-
-		internal bool isConnected = false;
-		public bool IsConnected
-		{
-			get {
-				return isConnected;
-			}
-		}
-
 		// TODO: Complete disconnection support
-		internal bool isShared = false;
 		public void Close ()
 		{
 			if (isShared)
@@ -78,7 +107,7 @@ namespace DBus
 			return conn;
 		}
 
-		internal void OpenPrivate (string address)
+		void OpenPrivate (string address)
 		{
 			if (address == null)
 				throw new ArgumentNullException ("address");
@@ -90,12 +119,8 @@ namespace DBus
 			//TODO: try alternative addresses if needed
 			AddressEntry entry = entries[0];
 
-			Id = entry.GUID;
-			Transport = Transport.Create (entry);
 			isConnected = true;
 		}
-
-		internal UUID Id = UUID.Zero;
 
 		void Authenticate ()
 		{
@@ -122,16 +147,7 @@ namespace DBus
 			isAuthenticated = true;
 		}
 
-		internal bool isAuthenticated = false;
-		internal bool IsAuthenticated
-		{
-			get {
-				return isAuthenticated;
-			}
-		}
-
 		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint
-		int serial = 0;
 		internal uint GenerateSerial ()
 		{
 			return (uint)Interlocked.Increment (ref serial);
@@ -171,26 +187,20 @@ namespace DBus
 			return msg.Header.Serial;
 		}
 
-		Queue<Message> Inbound = new Queue<Message> ();
-
 		//temporary hack
 		internal void DispatchSignals ()
 		{
-			lock (Inbound) {
-				while (Inbound.Count != 0) {
-					Message msg = Inbound.Dequeue ();
+			lock (inbound) {
+				while (inbound.Count != 0) {
+					Message msg = inbound.Dequeue ();
 					HandleSignal (msg);
 				}
 			}
 		}
 
-		internal Thread mainThread = Thread.CurrentThread;
-
 		//temporary hack
 		public void Iterate ()
 		{
-			mainThread = Thread.CurrentThread;
-
 			Message msg = transport.ReadMessage ();
 
 			HandleMessage (msg);
@@ -247,8 +257,8 @@ namespace DBus
 					break;
 				case MessageType.Signal:
 					//HandleSignal (msg);
-					lock (Inbound)
-						Inbound.Enqueue (msg);
+					lock (inbound)
+						inbound.Enqueue (msg);
 					break;
 				case MessageType.Error:
 					//TODO: better exception handling
@@ -265,8 +275,6 @@ namespace DBus
 					throw new Exception ("Invalid message received: MessageType='" + msg.Header.MessageType + "'");
 			}
 		}
-
-		Dictionary<uint,PendingCall> pendingCalls = new Dictionary<uint,PendingCall> ();
 
 		//this might need reworking with MulticastDelegate
 		internal void HandleSignal (Message msg)
@@ -348,9 +356,9 @@ namespace DBus
 				//this is messy and inefficient
 				List<string> linkNodes = new List<string> ();
 				int depth = method_call.Path.Decomposed.Length;
-				foreach (ObjectPath pth in RegisteredObjects.Keys) {
+				foreach (ObjectPath pth in registeredObjects.Keys) {
 					if (pth.Value == (method_call.Path.Value)) {
-						ExportObject exo = (ExportObject)RegisteredObjects[pth];
+						ExportObject exo = (ExportObject)registeredObjects[pth];
 						exo.WriteIntrospect (intro);
 					} else {
 						for (ObjectPath cur = pth ; cur != null ; cur = cur.Parent) {
@@ -373,7 +381,7 @@ namespace DBus
 			}
 
 			BusObject bo;
-			if (RegisteredObjects.TryGetValue (method_call.Path, out bo)) {
+			if (registeredObjects.TryGetValue (method_call.Path, out bo)) {
 				ExportObject eo = (ExportObject)bo;
 				eo.HandleMethodCall (method_call);
 			} else {
@@ -381,16 +389,8 @@ namespace DBus
 			}
 		}
 
-		Dictionary<ObjectPath,BusObject> RegisteredObjects = new Dictionary<ObjectPath,BusObject> ();
-
-		//FIXME: this shouldn't be part of the core API
-		//that also applies to much of the other object mapping code
-
 		public object GetObject (Type type, string bus_name, ObjectPath path)
 		{
-			//if (type == null)
-			//	return GetObject (bus_name, path);
-
 			//if the requested type is an interface, we can implement it efficiently
 			//otherwise we fall back to using a transparent proxy
 			if (type.IsInterface || type.IsAbstract) {
@@ -410,35 +410,23 @@ namespace DBus
 			return (T)GetObject (typeof (T), bus_name, path);
 		}
 
-		[Obsolete ("Use the overload of Register() which does not take a bus_name parameter")]
-		public void Register (string bus_name, ObjectPath path, object obj)
-		{
-			Register (path, obj);
-		}
-
-		[Obsolete ("Use the overload of Unregister() which does not take a bus_name parameter")]
-		public object Unregister (string bus_name, ObjectPath path)
-		{
-			return Unregister (path);
-		}
-
 		public void Register (ObjectPath path, object obj)
 		{
 			ExportObject eo = ExportObject.CreateExportObject (this, path, obj);
 			eo.Registered = true;
 
 			//TODO: implement some kind of tree data structure or internal object hierarchy. right now we are ignoring the name and putting all object paths in one namespace, which is bad
-			RegisteredObjects[path] = eo;
+			registeredObjects[path] = eo;
 		}
 
 		public object Unregister (ObjectPath path)
 		{
 			BusObject bo;
 
-			if (!RegisteredObjects.TryGetValue (path, out bo))
+			if (!registeredObjects.TryGetValue (path, out bo))
 				throw new Exception ("Cannot unregister " + path + " as it isn't registered");
 
-			RegisteredObjects.Remove (path);
+			registeredObjects.Remove (path);
 
 			ExportObject eo = (ExportObject)bo;
 			eo.Registered = false;
@@ -455,59 +443,13 @@ namespace DBus
 		{
 		}
 
-		// Maybe we should use XDG/basedir or check an env var for this?
-		const string machineUuidFilename = @"/var/lib/dbus/machine-id";
-		static UUID? machineId = null;
-		private static object idReadLock = new object ();
-		internal static UUID MachineId
-		{
-			get {
-				lock (idReadLock) {
-					if (machineId != null)
-						return (UUID)machineId;
-					try {
-						machineId = ReadMachineId (machineUuidFilename);
-					} catch {
-						machineId = UUID.Zero;
-					}
-					return (UUID)machineId;
-				}
-			}
-		}
-
 		static UUID ReadMachineId (string fname)
 		{
-			using (FileStream fs = File.OpenRead (fname)) {
-				// Length is typically 33 (32 for the UUID, plus a linefeed)
-				//if (fs.Length < 32)
-				//	return UUID.Zero;
+			byte[] data = File.ReadAllBytes (fname);
+			if (data.Length < 33)
+				return UUID.Zero;
 
-				byte[] data = new byte[32];
-
-				int pos = 0;
-				while (pos < data.Length) {
-					int read = fs.Read (data, pos, data.Length - pos);
-					if (read == 0)
-						break;
-					pos += read;
-				}
-
-				if (pos != data.Length)
-					//return UUID.Zero;
-					throw new Exception ("Insufficient data while reading GUID string");
-
-				return UUID.Parse (System.Text.Encoding.ASCII.GetString (data));
-			}
+			return UUID.Parse (System.Text.Encoding.ASCII.GetString (data, 0, 32));
 		}
-
-		static Connection ()
-		{
-			if (BitConverter.IsLittleEndian)
-				NativeEndianness = EndianFlag.Little;
-			else
-				NativeEndianness = EndianFlag.Big;
-		}
-
-		internal static readonly EndianFlag NativeEndianness;
 	}
 }

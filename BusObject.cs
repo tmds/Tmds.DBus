@@ -9,7 +9,9 @@ using System.Collections.Generic;
 
 namespace DBus
 {
-	class BusObject
+	using Protocol;
+
+	public class BusObject
 	{
 		protected Connection conn;
 		string bus_name;

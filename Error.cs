@@ -2,9 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-namespace DBus
+
+namespace DBus.Protocol
 {
-	class Error
+	public class Error
 	{
 		public Message message = new Message ();
 

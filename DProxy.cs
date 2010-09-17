@@ -9,6 +9,8 @@ using System.Runtime.Remoting.Messaging;
 
 namespace DBus
 {
+	using Protocol;
+
 	//marked internal because this is really an implementation detail and needs to be replaced
 	internal class DProxy : RealProxy
 	{
@@ -72,7 +74,7 @@ namespace DBus
 		~DProxy ()
 		{
 			//FIXME: remove handlers/match rules here
-			if (Protocol.Verbose)
+			if (ProtocolInformations.Verbose)
 				Console.Error.WriteLine ("Warning: Finalization of " + busObject.Path + " not yet supported");
 		}
 	}

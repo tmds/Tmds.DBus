@@ -9,10 +9,10 @@ using System.Collections.Generic;
 //TODO: Reflection should be done at a higher level than this class
 using System.Reflection;
 
-namespace DBus
+namespace DBus.Protocol
 {
 	//maybe this should be nullable?
-	struct Signature
+	public struct Signature
 	{
 		static readonly byte [] EmptyArray = new byte [0];
 
@@ -271,7 +271,7 @@ namespace DBus
 				if (data.Length == 0)
 					return 0;
 
-				return Protocol.GetAlignment (this[0]);
+				return ProtocolInformations.GetAlignment (this[0]);
 			}
 		}
 
@@ -320,7 +320,7 @@ namespace DBus
 				return true;
 
 			// Sensible?
-			size = Protocol.Padded (size, Alignment);
+			size = ProtocolInformations.Padded (size, Alignment);
 
 			if (data.Length == 1) {
 				int valueSize = GetSize (this[0]);

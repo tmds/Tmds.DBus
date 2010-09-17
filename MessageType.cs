@@ -5,9 +5,9 @@
 
 using System;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	enum MessageType : byte
+	public enum MessageType : byte
 	{
 		//This is an invalid type.
 		Invalid,
@@ -19,5 +19,7 @@ namespace DBus
 		Error,
 		//Signal emission.
 		Signal,
+		All
+		// Correspond to all types
 	}
 }

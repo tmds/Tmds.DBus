@@ -5,21 +5,21 @@
 
 using System;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	enum FieldCode : byte
+	public enum FieldCode : byte
 	{
 		Invalid,
-			Path,
-			Interface,
-			Member,
-			ErrorName,
-			ReplySerial,
-			Destination,
-			Sender,
-			Signature,
+		Path,
+		Interface,
+		Member,
+		ErrorName,
+		ReplySerial,
+		Destination,
+		Sender,
+		Signature,
 #if PROTO_REPLY_SIGNATURE
-			ReplySignature, //note: not supported in dbus
+		ReplySignature, //note: not supported in dbus
 #endif
 	}
 }

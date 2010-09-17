@@ -6,9 +6,9 @@
 using System;
 using System.Collections.Generic;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	class Header
+	public class Header
 	{
 		public EndianFlag Endianness;
 		public MessageType MessageType;

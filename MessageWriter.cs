@@ -9,9 +9,9 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	sealed class MessageWriter
+	public sealed class MessageWriter
 	{
 		EndianFlag endianness;
 		internal MemoryStream stream;
@@ -164,8 +164,8 @@ namespace DBus
 		{
 			byte[] ascii_data = val.GetBuffer ();
 
-			if (ascii_data.Length > Protocol.MaxSignatureLength)
-				throw new Exception ("Signature length " + ascii_data.Length + " exceeds maximum allowed " + Protocol.MaxSignatureLength + " bytes");
+			if (ascii_data.Length > ProtocolInformations.MaxSignatureLength)
+				throw new Exception ("Signature length " + ascii_data.Length + " exceeds maximum allowed " + ProtocolInformations.MaxSignatureLength + " bytes");
 
 			Write ((byte)ascii_data.Length);
 			stream.Write (ascii_data, 0, ascii_data.Length);
@@ -371,8 +371,8 @@ namespace DBus
 			Type elemType = typeof (T);
 
 			if (elemType == typeof (byte)) {
-				if (val.Length > Protocol.MaxArrayLength)
-					throw new Exception ("Array length " + val.Length + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+				if (val.Length > ProtocolInformations.MaxArrayLength)
+					throw new Exception ("Array length " + val.Length + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 
 				Write ((uint)val.Length);
 				stream.Write ((byte[])(object)val, 0, val.Length);
@@ -386,8 +386,8 @@ namespace DBus
 			int fixedSize = 0;
 			if (endianness == Connection.NativeEndianness && elemType.IsValueType && !sigElem.IsStruct && sigElem.GetFixedSize (ref fixedSize)) {
 				int byteLength = fixedSize * val.Length;
-				if (byteLength > Protocol.MaxArrayLength)
-					throw new Exception ("Array length " + byteLength + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+				if (byteLength > ProtocolInformations.MaxArrayLength)
+					throw new Exception ("Array length " + byteLength + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 				Write ((uint)byteLength);
 				WritePad (sigElem.Alignment);
 
@@ -419,8 +419,8 @@ namespace DBus
 			uint ln = (uint)(endPos - startPos);
 			stream.Position = origPos;
 
-			if (ln > Protocol.MaxArrayLength)
-				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+			if (ln > ProtocolInformations.MaxArrayLength)
+				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 
 			Write (ln);
 			stream.Position = endPos;
@@ -461,8 +461,8 @@ namespace DBus
 			uint ln = (uint)(endPos - startPos);
 			stream.Position = origPos;
 
-			if (ln > Protocol.MaxArrayLength)
-				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+			if (ln > ProtocolInformations.MaxArrayLength)
+				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 
 			Write (ln);
 			stream.Position = endPos;
@@ -547,8 +547,8 @@ namespace DBus
 			uint ln = (uint)(endPos - startPos);
 			stream.Position = origPos;
 
-			if (ln > Protocol.MaxArrayLength)
-				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+			if (ln > ProtocolInformations.MaxArrayLength)
+				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 
 			Write (ln);
 			stream.Position = endPos;
@@ -563,7 +563,7 @@ namespace DBus
 		static readonly byte[] nullBytes = new byte[8];
 		public void WritePad (int alignment)
 		{
-			int needed = Protocol.PadNeeded ((int)stream.Position, alignment);
+			int needed = ProtocolInformations.PadNeeded ((int)stream.Position, alignment);
 			stream.Write (nullBytes, 0, needed);
 		}
 	}

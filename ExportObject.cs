@@ -11,6 +11,8 @@ using org.freedesktop.DBus;
 
 namespace DBus
 {
+	using Protocol;
+
 	//TODO: perhaps ExportObject should not derive from BusObject
 	internal class ExportObject : BusObject, IDisposable //, Peer
 	{

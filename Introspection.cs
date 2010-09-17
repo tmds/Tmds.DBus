@@ -11,6 +11,8 @@ using System.Reflection;
 
 namespace DBus
 {
+	using Protocol;
+
 	//TODO: complete this class
 	class Introspector
 	{

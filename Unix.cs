@@ -161,13 +161,6 @@ namespace DBus.Unix
 		}
 	}
 
-	/*
-	unsafe class SockAddr
-	{
-		byte[] data;
-	}
-	*/
-
 	unsafe class UnixSocket
 	{
 		internal const string LIBC = "libc";

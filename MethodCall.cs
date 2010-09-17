@@ -6,14 +6,14 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace DBus
+namespace DBus.Protocol
 {
 	//TODO: complete and use these wrapper classes
 	//not sure exactly what I'm thinking but there seems to be sense here
 
 	//FIXME: signature sending/receiving is currently ambiguous in this code
 	//FIXME: in fact, these classes are totally broken and end up doing no-op, do not use without understanding the problem
-	class MethodCall
+	public class MethodCall
 	{
 		public Message message = new Message ();
 

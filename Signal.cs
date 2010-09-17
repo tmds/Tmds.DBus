@@ -2,9 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-namespace DBus
+
+namespace DBus.Protocol
 {
-	class Signal
+	public class Signal
 	{
 		public Message message = new Message ();
 

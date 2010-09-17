@@ -12,6 +12,7 @@ using System.IO;
 using System.Text;
 using System.Runtime.InteropServices;
 using DBus.Unix;
+using DBus.Protocol;
 
 namespace DBus.Transports
 {
@@ -78,7 +79,7 @@ namespace DBus.Transports
 				WriteBsdCred ();
 				return;
 			} catch {
-				if (Protocol.Verbose)
+				if (ProtocolInformations.Verbose)
 					Console.Error.WriteLine ("Warning: WriteBsdCred() failed; falling back to ordinary WriteCred()");
 			}
 #endif

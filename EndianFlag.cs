@@ -5,9 +5,9 @@
 
 using System;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	enum EndianFlag : byte
+	public enum EndianFlag : byte
 	{
 		Little = (byte)'l',
 		Big = (byte)'B',

@@ -5,9 +5,9 @@
 using System;
 using System.Threading;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	class PendingCall : IAsyncResult
+	public class PendingCall : IAsyncResult
 	{
 		Connection conn;
 		Message reply = null;

@@ -9,6 +9,8 @@ using System.Collections.Generic;
 
 namespace DBus
 {
+	using Protocol;
+
 	class TypeImplementer
 	{
 		public static readonly TypeImplementer Root = new TypeImplementer ("DBus.Proxies", false);
@@ -641,7 +643,7 @@ namespace DBus
 		public static void GenFallbackReader (ILGenerator ilg, Type t)
 		{
 			// TODO: do we want non-tUnder here for Castclass use?
-			if (Protocol.Verbose)
+			if (ProtocolInformations.Verbose)
 				Console.Error.WriteLine ("Bad! Generating fallback reader for " + t);
 
 			MethodInfo exactMethod;
@@ -667,7 +669,7 @@ namespace DBus
 			Type tElem = t.GetElementType ();
 			Signature sigElem = Signature.GetSig (tElem);
 			int alignElem = sigElem.Alignment;
-			int knownElemSizePadded = Protocol.Padded (knownElemSize, sigElem.Alignment);
+			int knownElemSizePadded = ProtocolInformations.Padded (knownElemSize, sigElem.Alignment);
 			Type tUnder = tElem.IsEnum ? Enum.GetUnderlyingType (tElem) : tElem;
 			int managedElemSize = System.Runtime.InteropServices.Marshal.SizeOf (tUnder);
 
@@ -682,7 +684,7 @@ namespace DBus
 			ilg.Emit (OpCodes.Ldloc, sizeLocal);
 			if (knownElemSizePadded > 1) {
 				ilg.Emit (OpCodes.Ldc_I4, alignElem);
-				MethodInfo paddedMethod = typeof (Protocol).GetMethod ("Padded");
+				MethodInfo paddedMethod = typeof (ProtocolInformations).GetMethod ("Padded");
 				ilg.Emit (OpCodes.Call, paddedMethod);
 				// Divide by the known element size
 				ilg.Emit (OpCodes.Ldc_I4, knownElemSizePadded);

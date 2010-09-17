@@ -6,9 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	class Message
+	public class Message
 	{
 		public Message ()
 		{

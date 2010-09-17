@@ -8,9 +8,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	partial class MessageReader
+	public class MessageReader
 	{
 		protected EndianFlag endianness;
 		//protected byte[] data;
@@ -322,8 +322,8 @@ namespace DBus
 				return new Signature (dtype);
 			}
 
-			if (ln > Protocol.MaxSignatureLength)
-				throw new Exception ("Signature length " + ln + " exceeds maximum allowed " + Protocol.MaxSignatureLength + " bytes");
+			if (ln > ProtocolInformations.MaxSignatureLength)
+				throw new Exception ("Signature length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxSignatureLength + " bytes");
 
 			byte[] sigData = new byte[ln];
 			Array.Copy (data, pos, sigData, 0, (int)ln);
@@ -349,7 +349,7 @@ namespace DBus
 				t = sig.ToType ();
 			} catch (NotSupportedException e) {
 				// We don't catch other exceptions as they indicate a malformed signature
-				if (Protocol.Verbose)
+				if (ProtocolInformations.Verbose)
 					Console.Error.WriteLine (e.Message);
 			}
 
@@ -382,8 +382,8 @@ namespace DBus
 		{
 			uint ln = ReadUInt32 ();
 
-			if (ln > Protocol.MaxArrayLength)
-				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
+			if (ln > ProtocolInformations.MaxArrayLength)
+				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 
 			//advance to the alignment of the element
 			//ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));

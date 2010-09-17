@@ -5,9 +5,9 @@
 using System;
 using System.Collections.Generic;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	static class Protocol
+	static class ProtocolInformations
 	{
 		//protocol versions that we support
 		public const byte MinVersion = 0;

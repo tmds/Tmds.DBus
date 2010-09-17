@@ -4,9 +4,9 @@
 
 using System;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	class MessageFilter
+	public class MessageFilter
 	{
 		//this should probably be made to use HeaderField or similar
 		//this class is not generalized yet

@@ -5,10 +5,10 @@
 
 using System;
 
-namespace DBus
+namespace DBus.Protocol
 {
 	[Flags]
-	enum HeaderFlag : byte
+	public enum HeaderFlag : byte
 	{
 		None = 0,
 		NoReplyExpected = 0x1,

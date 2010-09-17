@@ -12,6 +12,7 @@ namespace DBus
 {
 	using Authentication;
 	using Transports;
+	using Protocol;
 
 	public class Connection
 	{
@@ -256,7 +257,7 @@ namespace DBus
 					}
 
 					//we discard reply messages with no corresponding PendingCall
-					if (Protocol.Verbose)
+					if (ProtocolInformations.Verbose)
 						Console.Error.WriteLine ("Unexpected reply message received: MessageType='" + msg.Header.MessageType + "', ReplySerial=" + reply_serial);
 
 					return;
@@ -314,7 +315,7 @@ namespace DBus
 						compatible = true;
 
 				if (!compatible) {
-					if (Protocol.Verbose)
+					if (ProtocolInformations.Verbose)
 						Console.Error.WriteLine ("Signal argument mismatch: " + signal.Interface + '.' + signal.Member);
 					return;
 				}
@@ -323,7 +324,7 @@ namespace DBus
 				dlg.DynamicInvoke (MessageHelper.GetDynamicValues (msg, mi.GetParameters ()));
 			} else {
 				//TODO: how should we handle this condition? sending an Error may not be appropriate in this case
-				if (Protocol.Verbose)
+				if (ProtocolInformations.Verbose)
 					Console.Error.WriteLine ("Warning: No signal handler for " + signal.Member);
 			}
 		}
@@ -409,7 +410,7 @@ namespace DBus
 			if (type.IsInterface || type.IsAbstract) {
 				return BusObject.GetObject (this, bus_name, path, type);
 			} else {
-				if (Protocol.Verbose)
+				if (ProtocolInformations.Verbose)
 					Console.Error.WriteLine ("Warning: Note that MarshalByRefObject use is not recommended; for best performance, define interfaces");
 
 				BusObject busObject = new BusObject (this, bus_name, path);

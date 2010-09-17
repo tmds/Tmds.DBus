@@ -7,9 +7,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 
-namespace DBus
+namespace DBus.Protocol
 {
-	class MatchRule
+	public class MatchRule
 	{
 		public MessageType? MessageType;
 		public readonly SortedList<FieldCode,MatchTest> Fields = new SortedList<FieldCode,MatchTest> ();
@@ -161,8 +161,8 @@ namespace DBus
 		static Regex matchRuleRegex = new Regex (@"(\w+)\s*=\s*'((\\\\|\\'|[^'\\])*)'", RegexOptions.Compiled);
 		public static MatchRule Parse (string text)
 		{
-			if (text.Length > Protocol.MaxMatchRuleLength)
-				throw new Exception ("Match rule length exceeds maximum " + Protocol.MaxMatchRuleLength + " characters");
+			if (text.Length > ProtocolInformations.MaxMatchRuleLength)
+				throw new Exception ("Match rule length exceeds maximum " + ProtocolInformations.MaxMatchRuleLength + " characters");
 
 			MatchRule r = new MatchRule ();
 
@@ -182,8 +182,8 @@ namespace DBus
 						return null;
 					int argNum = (int)UInt32.Parse (mArg.Groups[1].Value);
 
-					if (argNum < 0 || argNum >= Protocol.MaxMatchRuleArgs)
-						throw new Exception ("arg match must be between 0 and " + (Protocol.MaxMatchRuleArgs - 1) + " inclusive");
+					if (argNum < 0 || argNum >= ProtocolInformations.MaxMatchRuleArgs)
+						throw new Exception ("arg match must be between 0 and " + (ProtocolInformations.MaxMatchRuleArgs - 1) + " inclusive");
 
 					//if (r.Args.ContainsKey (argNum))
 					//	return null;
@@ -221,7 +221,7 @@ namespace DBus
 						r.Fields[FieldCode.Destination] = new MatchTest (value);
 						break;
 					default:
-						if (Protocol.Verbose)
+						if (ProtocolInformations.Verbose)
 							Console.Error.WriteLine ("Warning: Unrecognized match rule key: " + key);
 						break;
 				}
@@ -231,7 +231,7 @@ namespace DBus
 		}
 	}
 
-	class HeaderTest : MatchTest
+	public class HeaderTest : MatchTest
 	{
 		public FieldCode Field;
 		public HeaderTest (FieldCode field, object value)
@@ -242,7 +242,7 @@ namespace DBus
 		}
 	}
 
-	struct ArgMatchTest
+	public struct ArgMatchTest
 	{
 		public int ArgNum;
 		public Signature Signature;
@@ -290,7 +290,7 @@ namespace DBus
 	}
 	*/
 
-	class MatchTest
+	public class MatchTest
 	{
 		public Signature Signature;
 		public object Value;

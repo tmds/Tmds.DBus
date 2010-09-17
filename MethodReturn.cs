@@ -2,9 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-namespace DBus
+
+namespace DBus.Protocol
 {
-	class MethodReturn
+	public class MethodReturn
 	{
 		public Message message = new Message ();
 

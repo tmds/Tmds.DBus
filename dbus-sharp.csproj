@@ -56,7 +56,6 @@
     <Compile Include="MessageReader.cs" />
     <Compile Include="MessageWriter.cs" />
     <Compile Include="PendingCall.cs" />
-    <Compile Include="Protocol.cs" />
     <Compile Include="Signature.cs" />
     <Compile Include="SocketTransport.cs" />
     <Compile Include="Transport.cs" />
@@ -79,6 +78,13 @@
     <Compile Include="Error.cs" />
     <Compile Include="MethodReturn.cs" />
     <Compile Include="MethodCall.cs" />
+    <Compile Include="DValue.cs" />
+    <Compile Include="DynamicExportObject.cs" />
+    <Compile Include="IntrospectionSchema.cs" />
+    <Compile Include="MessageDumper.cs" />
+    <Compile Include="PipeTransport.cs" />
+    <Compile Include="TypeDefiner.cs" />
+    <Compile Include="ProtocolInformations.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

@@ -224,17 +224,17 @@ namespace DBus
 			string errMsg = String.Format ("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist", method_call.Member, method_call.Signature.Value, method_call.Interface);
 
 			Error error = new Error ("org.freedesktop.DBus.Error.UnknownMethod", method_call.message.Header.Serial);
-			error.message.Signature = Signature.StringSig;
+			error.Message.Signature = Signature.StringSig;
 
 			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
 			writer.Write (errMsg);
-			error.message.Body = writer.ToArray ();
+			error.Message.AttachBodyTo (writer);
 
 			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
 			if (method_call.Sender != null)
-				error.message.Header[FieldCode.Destination] = method_call.Sender;
+				error.Message.Header[FieldCode.Destination] = method_call.Sender;
 
-			return error.message;
+			return error.Message;
 		}
 
 		public static void WriteDynamicValues (MessageWriter mw, ParameterInfo[] parms, object[] vals)
@@ -316,7 +316,7 @@ namespace DBus
 				foreach (object arg in vals)
 					writer.Write (arg.GetType (), arg);
 
-				replyMsg.Body = writer.ToArray ();
+				replyMsg.AttachBodyTo (writer);
 			}
 
 			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
@@ -350,7 +350,7 @@ namespace DBus
 				//then write the out args
 				WriteDynamicValues (writer, mi.GetParameters (), vals);
 
-				replyMsg.Body = writer.ToArray ();
+				replyMsg.AttachBodyTo (writer);
 			}
 
 			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p

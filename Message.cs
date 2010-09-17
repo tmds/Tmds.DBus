@@ -10,28 +10,58 @@ namespace DBus.Protocol
 {
 	public class Message
 	{
+		static System.Reflection.MethodInfo hHandler = typeof (Message).GetMethod ("HandleHeader");
+
+		Header header = new Header ();
+		Connection connection;
+		byte[] body;
+
 		public Message ()
 		{
-			Header.Endianness = Connection.NativeEndianness;
-			Header.MessageType = MessageType.MethodCall;
-			Header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
-			Header.MajorVersion = Protocol.Version;
-			Header.Fields = new Dictionary<byte, object> ();
+			header.Endianness = Connection.NativeEndianness;
+			header.MessageType = MessageType.MethodCall;
+			header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
+			header.MajorVersion = ProtocolInformations.Version;
+			header.Fields = new Dictionary<byte, object> ();
 		}
 
-		public Header Header = new Header ();
-
-		public Connection Connection;
-
-		public Signature Signature
+		public static Message FromReceivedBytes (Connection connection, byte[] header, byte[] body)
 		{
+			Message message = new Message ();
+			message.connection = connection;
+			message.body = body;
+			message.SetHeaderData (header);
+
+			return message;
+		}
+
+		public byte[] Body {
+			get {
+				return body;
+			}
+		}
+
+		public Header Header {
+			get {
+				return header;
+			}
+		}
+
+		public Connection Connection {
+			get {
+				return connection;
+			}
+		}
+
+		public Signature Signature {
 			get {
 				object o = Header[FieldCode.Signature];
 				if (o == null)
 					return Signature.Empty;
 				else
 					return (Signature)o;
-			} set {
+			}
+			set {
 				if (value == Signature.Empty)
 					Header[FieldCode.Signature] = null;
 				else
@@ -39,11 +69,11 @@ namespace DBus.Protocol
 			}
 		}
 
-		public bool ReplyExpected
-		{
+		public bool ReplyExpected {
 			get {
 				return (Header.Flags & HeaderFlag.NoReplyExpected) == HeaderFlag.None;
-			} set {
+			}
+			set {
 				if (value)
 					Header.Flags &= ~HeaderFlag.NoReplyExpected; //flag off
 				else
@@ -51,28 +81,16 @@ namespace DBus.Protocol
 			}
 		}
 
-		//public HeaderField[] HeaderFields;
-		//public Dictionary<FieldCode,object>;
-
-		public byte[] Body;
-
-		//TODO: make use of Locked
-		/*
-		protected bool locked = false;
-		public bool Locked
+		public void AttachBodyTo (MessageWriter writer)
 		{
-			get {
-				return locked;
-			}
+			body = writer.ToArray ();
 		}
-		*/
 
 		public void HandleHeader (Header headerIn)
 		{
-			Header = headerIn;
+			header = headerIn;
 		}
 
-		static System.Reflection.MethodInfo hHandler = typeof (Message).GetMethod ("HandleHeader");
 		public void SetHeaderData (byte[] data)
 		{
 			EndianFlag endianness = (EndianFlag)data[0];
@@ -82,39 +100,13 @@ namespace DBus.Protocol
 			mCaller (this, reader, null, new MessageWriter ());
 		}
 
-		//public HeaderField[] Fields;
-
-		/*
-		public void SetHeaderData (byte[] data)
-		{
-			EndianFlag endianness = (EndianFlag)data[0];
-			MessageReader reader = new MessageReader (endianness, data);
-
-			Header = (Header)reader.ReadStruct (typeof (Header));
-		}
-		*/
-
-		//TypeWriter<Header> headerWriter = TypeImplementer.GetTypeWriter<Header> ();
 		public byte[] GetHeaderData ()
 		{
 			if (Body != null)
 				Header.Length = (uint)Body.Length;
 
 			MessageWriter writer = new MessageWriter (Header.Endianness);
-
-			//writer.stream.Capacity = 512;
-			//headerWriter (writer, Header);
-
-			writer.Write ((byte)Header.Endianness);
-			writer.Write ((byte)Header.MessageType);
-			writer.Write ((byte)Header.Flags);
-			writer.Write (Header.MajorVersion);
-			writer.Write (Header.Length);
-			writer.Write (Header.Serial);
-			writer.WriteHeaderFields (Header.Fields);
-
-			writer.CloseWrite ();
-
+			WriteHeaderToMessage (writer);
 			return writer.ToArray ();
 		}
 
@@ -124,9 +116,12 @@ namespace DBus.Protocol
 				Header.Length = (uint)Body.Length;
 
 			MessageWriter writer = new MessageWriter (Header.Endianness);
+			WriteHeaderToMessage (writer);
+			writer.ToStream (stream);
+		}
 
-			//headerWriter (writer, Header);
-
+		void WriteHeaderToMessage (MessageWriter writer)
+		{
 			writer.Write ((byte)Header.Endianness);
 			writer.Write ((byte)Header.MessageType);
 			writer.Write ((byte)Header.Flags);

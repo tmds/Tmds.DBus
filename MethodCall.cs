@@ -67,15 +67,11 @@ namespace DBus.Protocol
 		public Error CreateError (string errorName, string errorMessage)
 		{
 			Error error = new Error (errorName, message.Header.Serial);
-			error.message.Signature = Signature.StringSig;
+			error.Message.Signature = Signature.StringSig;
 
 			MessageWriter writer = new MessageWriter (message.Header.Endianness);
-			//writer.connection = conn;
 			writer.Write (errorMessage);
-			error.message.Body = writer.ToArray ();
-
-			//if (method_call.Sender != null)
-			//	replyMsg.Header[FieldCode.Destination] = method_call.Sender;
+			error.Message.AttachBodyTo (writer);
 
 			return error;
 		}

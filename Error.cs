@@ -7,7 +7,9 @@ namespace DBus.Protocol
 {
 	public class Error
 	{
-		public Message message = new Message ();
+		Message message = new Message ();
+		string errorName;
+		uint replySerial;
 
 		public Error (string error_name, uint reply_serial)
 		{
@@ -20,13 +22,26 @@ namespace DBus.Protocol
 		public Error (Message message)
 		{
 			this.message = message;
-			ErrorName = (string)message.Header[FieldCode.ErrorName];
-			ReplySerial = (uint)message.Header[FieldCode.ReplySerial];
-			//Signature = (Signature)message.Header[FieldCode.Signature];
+			errorName = (string)message.Header[FieldCode.ErrorName];
+			replySerial = (uint)message.Header[FieldCode.ReplySerial];
 		}
 
-		public string ErrorName;
-		public uint ReplySerial;
-		//public Signature Signature;
+		public string ErrorName {
+			get {
+				return this.errorName;
+			}
+		}
+
+		public Message Message {
+			get {
+				return this.message;
+			}
+		}
+
+		public uint ReplySerial {
+			get {
+				return this.replySerial;
+			}
+		}
 	}
 }

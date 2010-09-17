@@ -10,27 +10,23 @@ namespace DBus.Protocol
 	public class PendingCall : IAsyncResult
 	{
 		Connection conn;
-		Message reply = null;
-		//AutoResetEvent waitHandle = new AutoResetEvent (false);
+		Message reply;
 		ManualResetEvent waitHandle;
+		bool completedSync;
+		
+		public event Action<Message> Completed;
 
 		public PendingCall (Connection conn)
 		{
 			this.conn = conn;
 		}
 
-		public Message Reply
-		{
+		public Message Reply {
 			get {
 				if (reply != null)
 					return reply;
 
 				if (Thread.CurrentThread == conn.mainThread) {
-					/*
-					while (reply == null)
-						conn.Iterate ();
-					*/
-
 					while (reply == null)
 						conn.HandleMessage (conn.Transport.ReadMessage ());
 
@@ -49,7 +45,8 @@ namespace DBus.Protocol
 				}
 
 				return reply;
-			} set {
+			} 
+			set {
 				if (reply != null)
 					throw new Exception ("Cannot handle reply more than once");
 
@@ -63,27 +60,20 @@ namespace DBus.Protocol
 			}
 		}
 
-		public event Action<Message> Completed;
-		bool completedSync;
-
 		public void Cancel ()
 		{
 			throw new NotImplementedException ();
 		}
 
-
-
 		#region IAsyncResult Members
 
-		object IAsyncResult.AsyncState
-		{
+		object IAsyncResult.AsyncState {
 			get {
 				return conn;
 			}
 		}
 
-		WaitHandle IAsyncResult.AsyncWaitHandle
-		{
+		WaitHandle IAsyncResult.AsyncWaitHandle {
 			get {
 				if (waitHandle == null)
 					waitHandle = new ManualResetEvent (false);
@@ -92,15 +82,13 @@ namespace DBus.Protocol
 			}
 		}
 
-		bool IAsyncResult.CompletedSynchronously
-		{
+		bool IAsyncResult.CompletedSynchronously {
 			get {
 				return reply != null && completedSync;
 			}
 		}
 
-		bool IAsyncResult.IsCompleted
-		{
+		bool IAsyncResult.IsCompleted {
 			get {
 				return reply != null;
 			}

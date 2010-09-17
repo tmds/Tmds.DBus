@@ -19,7 +19,7 @@ namespace DBus.Transports
 			else if (entry.Properties.TryGetValue ("abstract", out path))
 				abstr = true;
 			else
-				throw new Exception ("No path specified for UNIX transport");
+				throw new ArgumentException ("No path specified for UNIX transport");
 
 			Open (path, abstr);
 		}

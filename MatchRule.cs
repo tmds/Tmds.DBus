@@ -11,13 +11,36 @@ namespace DBus.Protocol
 {
 	public class MatchRule
 	{
-		public MessageType? MessageType;
-		public readonly SortedList<FieldCode,MatchTest> Fields = new SortedList<FieldCode,MatchTest> ();
-		//public readonly SortedList<int,MatchTest> Args = new SortedList<int,MatchTest> ();
-		public readonly HashSet<ArgMatchTest> Args = new HashSet<ArgMatchTest> ();
+		static readonly Regex argNRegex = new Regex (@"^arg(\d+)(path)?$");
+		static readonly Regex matchRuleRegex = new Regex (@"(\w+)\s*=\s*'((\\\\|\\'|[^'\\])*)'", RegexOptions.Compiled);
+
+		MessageType messageType = MessageType.All;
+		readonly SortedList<FieldCode,MatchTest> fields = new SortedList<FieldCode,MatchTest> ();
+		readonly HashSet<ArgMatchTest> args = new HashSet<ArgMatchTest> ();
 
 		public MatchRule ()
 		{
+		}
+
+		public HashSet<ArgMatchTest> Args {
+			get {
+				return this.args;
+			}
+		}
+
+		public SortedList<FieldCode, MatchTest> Fields {
+			get {
+				return this.fields;
+			}
+		}
+
+		public MessageType MessageType {
+			get {
+				return this.messageType;
+			}
+			set {
+				this.messageType = value;
+			}
 		}
 
 		static void Append (StringBuilder sb, string key, object value)
@@ -65,7 +88,7 @@ namespace DBus.Protocol
 		{
 			StringBuilder sb = new StringBuilder ();
 
-			if (MessageType != null)
+			if (MessageType != MessageType.All)
 				Append (sb, "type", MessageFilter.MessageTypeToString ((MessageType)MessageType));
 
 			// Note that fdo D-Bus daemon sorts in a different order.
@@ -129,10 +152,8 @@ namespace DBus.Protocol
 				}
 
 				// TODO: Avoid re-reading values
-				int savedPos = reader.pos;
-				if (!reader.ReadValue (test.Signature[0]).Equals (test.Value)) {
+				if (!reader.PeekValue (test.Signature[0]).Equals (test.Value)) {
 					a.Remove (test);
-					reader.pos = savedPos;
 					continue;
 				}
 
@@ -142,7 +163,7 @@ namespace DBus.Protocol
 
 		public bool MatchesHeader (Message msg)
 		{
-			if (MessageType != null)
+			if (MessageType != MessageType.All)
 				if (msg.Header.MessageType != MessageType)
 					return false;
 
@@ -157,8 +178,6 @@ namespace DBus.Protocol
 			return true;
 		}
 
-		static Regex argNRegex = new Regex (@"^arg(\d+)(path)?$");
-		static Regex matchRuleRegex = new Regex (@"(\w+)\s*=\s*'((\\\\|\\'|[^'\\])*)'", RegexOptions.Compiled);
 		public static MatchRule Parse (string text)
 		{
 			if (text.Length > ProtocolInformations.MaxMatchRuleLength)
@@ -201,7 +220,7 @@ namespace DBus.Protocol
 				//TODO: more consistent error handling
 				switch (key) {
 					case "type":
-						if (r.MessageType != null)
+						if (r.MessageType != MessageType.All)
 							return null;
 						r.MessageType = MessageFilter.StringToMessageType (value);
 						break;

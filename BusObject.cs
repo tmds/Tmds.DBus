@@ -87,11 +87,10 @@ namespace DBus
 
 			Signature outSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
 
-			Signal signal = new Signal (object_path, iface, member);
-			signal.message.Signature = outSig;
+			Signal signal = new Signal (object_path, iface, member, outSig);
 
-			Message signalMsg = signal.message;
-			signalMsg.Body = writer.ToArray ();
+			Message signalMsg = signal.Message;
+			signalMsg.AttachBodyTo (writer);
 
 			conn.Send (signalMsg);
 		}
@@ -107,7 +106,7 @@ namespace DBus
 			MethodCall method_call = new MethodCall (object_path, iface, member, bus_name, inSig);
 
 			Message callMsg = method_call.message;
-			callMsg.Body = writer.ToArray ();
+			callMsg.AttachBodyTo (writer);
 
 			//Invoke Code::
 
@@ -152,12 +151,12 @@ namespace DBus
 
 			//handle the reply message
 			switch (retMsg.Header.MessageType) {
-				case MessageType.MethodReturn:
+			case MessageType.MethodReturn:
 				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
 				if (retVals.Length != 0)
 					retVal = retVals[retVals.Length - 1];
 				break;
-				case MessageType.Error:
+			case MessageType.Error:
 				//TODO: typed exceptions
 				Error error = new Error (retMsg);
 				string errMsg = String.Empty;
@@ -167,7 +166,7 @@ namespace DBus
 				}
 				exception = new Exception (error.ErrorName + ": " + errMsg);
 				break;
-				default:
+			default:
 				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
 			}
 
@@ -185,7 +184,7 @@ namespace DBus
 			MethodCall method_call = new MethodCall (object_path, iface, member, bus_name, inSig);
 
 			Message callMsg = method_call.message;
-			callMsg.Body = writer.ToArray ();
+			callMsg.AttachBodyTo (writer);
 
 			//Invoke Code::
 
@@ -302,7 +301,7 @@ namespace DBus
 					for (int i = 0 ; i != inTypes.Length ; i++)
 						writer.Write (inTypes[i], inArgs[i]);
 
-					callMsg.Body = writer.ToArray ();
+					callMsg.AttachBodyTo (writer);
 				}
 			}
 

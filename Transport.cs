@@ -112,7 +112,7 @@ namespace DBus.Transports
 			} catch (IOException e) {
 				if (ProtocolInformations.Verbose)
 					Console.Error.WriteLine (e.Message);
-				connection.isConnected = false;
+				connection.IsConnected = false;
 				return null;
 			}
 		}
@@ -265,10 +265,7 @@ namespace DBus.Transports
 				//	throw new Exception ("Message body length mismatch: " + read + " of expected " + bodyLen);
 			}
 
-			Message msg = new Message ();
-			msg.Connection = this.Connection;
-			msg.Body = body;
-			msg.SetHeaderData (header);
+			Message msg = Message.FromReceivedBytes (Connection, header, body);
 
 			Inbound.Enqueue (msg);
 
@@ -353,10 +350,7 @@ namespace DBus.Transports
 					throw new Exception ("Message body length mismatch: " + read + " of expected " + bodyLen);
 			}
 
-			Message msg = new Message ();
-			msg.Connection = this.Connection;
-			msg.Body = body;
-			msg.SetHeaderData (header);
+			Message msg = Message.FromReceivedBytes (Connection, header, body);
 
 			return msg;
 		}

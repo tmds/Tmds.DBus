@@ -135,7 +135,7 @@ namespace DBus
 			if (raisedException == null) {
 				MethodReturn method_return = new MethodReturn (msg.Header.Serial);
 				replyMsg = method_return.message;
-				replyMsg.Body = retWriter.ToArray ();
+				replyMsg.AttachBodyTo (retWriter);
 				replyMsg.Signature = outSig;
 			} else {
 				Error error;
@@ -152,7 +152,7 @@ namespace DBus
 				} else
 					error = method_call.CreateError (Mapper.GetInterfaceName (raisedException.GetType ()), raisedException.Message);
 
-				replyMsg = error.message;
+				replyMsg = error.Message;
 			}
 
 			if (method_call.Sender != null)

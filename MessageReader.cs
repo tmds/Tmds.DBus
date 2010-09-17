@@ -3,32 +3,55 @@
 // See COPYING for details
 
 using System;
+using System.Linq;
 using System.Text;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace DBus.Protocol
 {
 	public class MessageReader
 	{
-		protected EndianFlag endianness;
-		//protected byte[] data;
-		public byte[] data;
-		//TODO: this should be uint or long to handle long messages
-		//internal int pos = 0;
-		public int pos = 0;
-		protected Message message;
+		public class PaddingException : Exception
+		{
+			int position;
+			byte element;
+
+			internal PaddingException (int position, byte element)
+				: base ("Read non-zero byte at position " + position + " while expecting padding. Value given: " + element)
+			{
+				this.position = position;
+				this.element = element;
+			}
+
+			public int Position {
+				get {
+					return position;
+				}
+			}
+
+			public byte Byte {
+				get {
+					return element;
+				}
+			}
+		}
+
+		readonly EndianFlag endianness;
+		readonly byte[] data;
+		readonly Message message;
+
+		int pos = 0;
+		Dictionary<Type, bool> isPrimitiveStruct;
 
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
-			//if (data == null)
-			//	throw new ArgumentNullException ("data");
 			if (data == null)
 				data = new byte[0];
 
 			this.endianness = endianness;
-			this.IsNativeEndian = endianness == Connection.NativeEndianness;
 			this.data = data;
 		}
 
@@ -40,7 +63,11 @@ namespace DBus.Protocol
 			this.message = message;
 		}
 
-		public readonly bool IsNativeEndian;
+		public bool DataAvailable {
+			get {
+				return pos < data.Length;
+			}
+		}
 
 		public object ReadValue (Type type)
 		{
@@ -81,7 +108,6 @@ namespace DBus.Protocol
 			}
 		}
 
-		//helper method, should not be used generally
 		public object ReadValue (DType dtype)
 		{
 			switch (dtype)
@@ -133,6 +159,15 @@ namespace DBus.Protocol
 				default:
 					throw new Exception ("Unhandled D-Bus type: " + dtype);
 			}
+		}
+
+		public object PeekValue (DType sig)
+		{
+			int savedPos = pos;
+			object result = ReadValue (sig);
+			pos = savedPos;
+
+			return result;
 		}
 
 		public object GetObject (Type type)
@@ -408,61 +443,73 @@ namespace DBus.Protocol
 		{
 			uint ln = ReadUInt32 ();
 
-			if (ln > Protocol.MaxArrayLength)
-				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
-
-			//TODO: more fast paths for primitive arrays
-			if (elemType == typeof (byte)) {
-				byte[] valb = new byte[ln];
-				Array.Copy (data, pos, valb, 0, (int)ln);
-				pos += (int)ln;
-				return valb;
-			}
+			if (ln > ProtocolInformations.MaxArrayLength)
+				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 
 			//advance to the alignment of the element
-			ReadPad (Protocol.GetAlignment (Signature.TypeToDType (elemType)));
+			ReadPad (ProtocolInformations.GetAlignment (Signature.TypeToDType (elemType)));
 
+			if (elemType.IsPrimitive) {
+				// Fast path for primitive types (except bool which isn't blittable and take another path)
+				if (elemType != typeof (bool))
+					return MarshalArray (elemType, ln);
+				else
+					return MarshalBoolArray (ln);
+		    }
+
+			Array array = Array.CreateInstance (elemType, (int)ln);
 			int endPos = pos + (int)ln;
+			int index = -1;
 
-			//List<T> vals = new List<T> ();
-			System.Collections.ArrayList vals = new System.Collections.ArrayList ();
-
-			//while (stream.Position != endPos)
 			while (pos < endPos)
-				vals.Add (ReadValue (elemType));
+				array.SetValue (ReadValue (elemType), ++index);
 
 			if (pos != endPos)
 				throw new Exception ("Read pos " + pos + " != ep " + endPos);
 
-			return vals.ToArray (elemType);
+			return array;
 		}
 
-		//struct
-		//probably the wrong place for this
-		//there might be more elegant solutions
+		unsafe Array MarshalArray (Type primitiveType, uint length)
+		{
+			int sof = Marshal.SizeOf (primitiveType);
+			Array array = Array.CreateInstance (primitiveType, (int)length);
+			GCHandle handle = GCHandle.Alloc (array, GCHandleType.Pinned);
+
+			if (endianness == Connection.NativeEndianness) {
+				Marshal.Copy (data, pos, handle.AddrOfPinnedObject (), (int)length * sof);
+			} else {
+				byte* ptr = (byte*)(void*)handle.AddrOfPinnedObject ();
+				for (int i = pos; i < pos + length * sof; i += sof)
+					for (int j = i; j < i + sof; j++)
+						ptr[2 * i - pos + (sof - 1) - j] = data[j];
+			}
+
+			pos += (int)length * sof;
+			handle.Free ();
+
+			return array;
+		}
+
+		Array MarshalBoolArray (uint length)
+		{
+			bool[] array = new bool [length];
+			for (int i = 0; i < length; i++)
+				array[i] = ReadBoolean ();
+
+			return array;
+		}
+
 		public object ReadStruct (Type type)
 		{
 			ReadPad (8);
 
-			object val = Activator.CreateInstance (type);
-
-			/*
-			if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (KeyValuePair<,>)) {
-				object elem;
-
-				System.Reflection.PropertyInfo key_prop = type.GetProperty ("Key");
-				GetValue (key_prop.PropertyType, out elem);
-				key_prop.SetValue (val, elem, null);
-
-				System.Reflection.PropertyInfo val_prop = type.GetProperty ("Value");
-				GetValue (val_prop.PropertyType, out elem);
-				val_prop.SetValue (val, elem, null);
-
-				return;
-			}
-			*/
-
 			FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+			/*if (IsPrimitiveStruct (type, fis))
+				return MarshalStruct (type, fis);*/
+
+			object val = Activator.CreateInstance (type);
 
 			foreach (System.Reflection.FieldInfo fi in fis)
 				fi.SetValue (val, ReadValue (fi.FieldType));
@@ -477,18 +524,126 @@ namespace DBus.Protocol
 			pos++;
 		}
 
-		/*
 		public void ReadPad (int alignment)
 		{
-			pos = Protocol.Padded (pos, alignment);
-		}
-		*/
-
-		public void ReadPad (int alignment)
-		{
-			for (int endPos = Protocol.Padded (pos, alignment) ; pos != endPos ; pos++)
+			for (int endPos = ProtocolInformations.Padded (pos, alignment) ; pos != endPos ; pos++)
 				if (data[pos] != 0)
-					throw new Exception ("Read non-zero byte at position " + pos + " while expecting padding");
+					throw new PaddingException (pos, data[pos]);
+		}
+
+		// Note: This method doesn't support aggregate signatures
+		public bool StepOver (Signature sig)
+		{
+			if (sig == Signature.VariantSig) {
+				Signature valueSig = ReadSignature ();
+				return StepOver (valueSig);
+			}
+
+			if (sig == Signature.StringSig) {
+				uint valueLength = ReadUInt32 ();
+				pos += (int)valueLength;
+				pos++;
+				return true;
+			}
+
+			if (sig == Signature.ObjectPathSig) {
+				uint valueLength = ReadUInt32 ();
+				pos += (int)valueLength;
+				pos++;
+				return true;
+			}
+
+			if (sig == Signature.SignatureSig) {
+				byte valueLength = ReadByte ();
+				pos += valueLength;
+				pos++;
+				return true;
+			}
+
+			// No need to handle dicts specially. IsArray does the job
+			if (sig.IsArray) {
+				Signature elemSig = sig.GetElementSignature ();
+				uint ln = ReadUInt32 ();
+				pos = ProtocolInformations.Padded (pos, elemSig.Alignment);
+				pos += (int)ln;
+				return true;
+			}
+
+			int endPos = pos;
+			if (sig.GetFixedSize (ref endPos)) {
+				pos = endPos;
+				return true;
+			}
+
+			if (sig.IsDictEntry) {
+				pos = ProtocolInformations.Padded (pos, sig.Alignment);
+				Signature sigKey, sigValue;
+				sig.GetDictEntrySignatures (out sigKey, out sigValue);
+				if (!StepOver (sigKey))
+					return false;
+				if (!StepOver (sigValue))
+					return false;
+				return true;
+			}
+
+			if (sig.IsStruct) {
+				pos = ProtocolInformations.Padded (pos, sig.Alignment);
+				foreach (Signature fieldSig in sig.GetFieldSignatures ())
+					if (!StepOver (fieldSig))
+						return false;
+				return true;
+			}
+
+			throw new Exception ("Can't step over '" + sig + "'");
+		}
+
+		public IEnumerable<Signature> StepInto (Signature sig)
+		{
+			if (sig == Signature.VariantSig) {
+				Signature valueSig = ReadSignature ();
+				yield return valueSig;
+				yield break;
+			}
+
+			// No need to handle dicts specially. IsArray does the job
+			if (sig.IsArray) {
+				Signature elemSig = sig.GetElementSignature ();
+				uint ln = ReadUInt32 ();
+				ReadPad (elemSig.Alignment);
+				int endPos = pos + (int)ln;
+				while (pos < endPos)
+					yield return elemSig;
+				yield break;
+			}
+
+			if (sig.IsDictEntry) {
+				pos = ProtocolInformations.Padded (pos, sig.Alignment);
+				Signature sigKey, sigValue;
+				sig.GetDictEntrySignatures (out sigKey, out sigValue);
+				yield return sigKey;
+				yield return sigValue;
+				yield break;
+			}
+
+			if (sig.IsStruct) {
+				pos = ProtocolInformations.Padded (pos, sig.Alignment);
+				foreach (Signature fieldSig in sig.GetFieldSignatures ())
+					yield return fieldSig;
+				yield break;
+			}
+
+			throw new Exception ("Can't step into '" + sig + "'");
+		}
+
+		// If a struct is only composed of primitive type fields (i.e. blittable types)
+		// then this method return true. Result is cached in isPrimitiveStruct dictionary.
+		bool IsPrimitiveStruct (Type structType, FieldInfo[] fields)
+		{
+			bool result;
+			if (isPrimitiveStruct.TryGetValue (structType, out result))
+				return result;
+
+			return isPrimitiveStruct[structType] = fields.All ((f) => f.FieldType.IsPrimitive);
 		}
 	}
 }

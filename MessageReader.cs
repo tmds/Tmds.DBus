@@ -44,7 +44,7 @@ namespace DBus.Protocol
 		readonly Message message;
 
 		int pos = 0;
-		Dictionary<Type, bool> isPrimitiveStruct;
+		Dictionary<Type, bool> isPrimitiveStruct = new Dictionary<Type, bool> ();
 
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
@@ -470,12 +470,19 @@ namespace DBus.Protocol
 			return array;
 		}
 
-		unsafe Array MarshalArray (Type primitiveType, uint length)
+		Array MarshalArray (Type primitiveType, uint length)
 		{
 			int sof = Marshal.SizeOf (primitiveType);
 			Array array = Array.CreateInstance (primitiveType, (int)length);
 			GCHandle handle = GCHandle.Alloc (array, GCHandleType.Pinned);
+			DirectCopy (sof, length, handle);
+			handle.Free ();
 
+			return array;
+		}
+
+		unsafe void DirectCopy (int sof, uint length, GCHandle handle)
+		{
 			if (endianness == Connection.NativeEndianness) {
 				Marshal.Copy (data, pos, handle.AddrOfPinnedObject (), (int)length * sof);
 			} else {
@@ -486,9 +493,6 @@ namespace DBus.Protocol
 			}
 
 			pos += (int)length * sof;
-			handle.Free ();
-
-			return array;
 		}
 
 		Array MarshalBoolArray (uint length)
@@ -506,8 +510,12 @@ namespace DBus.Protocol
 
 			FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
-			/*if (IsPrimitiveStruct (type, fis))
-				return MarshalStruct (type, fis);*/
+			// Empty struct? No need for processing
+			if (fis.Length == 0)
+				return Activator.CreateInstance (type);
+
+			if (IsEligibleStruct (type, fis))
+				return MarshalStruct (type, fis);
 
 			object val = Activator.CreateInstance (type);
 
@@ -515,6 +523,17 @@ namespace DBus.Protocol
 				fi.SetValue (val, ReadValue (fi.FieldType));
 
 			return val;
+		}
+
+		object MarshalStruct (Type structType, FieldInfo[] fis)
+		{
+			object strct = Activator.CreateInstance (structType);
+			int sof = Marshal.SizeOf (fis[0].FieldType);
+			GCHandle handle = GCHandle.Alloc (strct, GCHandleType.Pinned);
+			DirectCopy (sof, (uint)fis.Length, handle);
+			handle.Free ();
+
+			return strct;
 		}
 
 		public void ReadNull ()
@@ -637,13 +656,23 @@ namespace DBus.Protocol
 
 		// If a struct is only composed of primitive type fields (i.e. blittable types)
 		// then this method return true. Result is cached in isPrimitiveStruct dictionary.
-		bool IsPrimitiveStruct (Type structType, FieldInfo[] fields)
+		bool IsEligibleStruct (Type structType, FieldInfo[] fields)
 		{
 			bool result;
 			if (isPrimitiveStruct.TryGetValue (structType, out result))
 				return result;
 
-			return isPrimitiveStruct[structType] = fields.All ((f) => f.FieldType.IsPrimitive);
+			if (!(isPrimitiveStruct[structType] = fields.All ((f) => f.FieldType.IsPrimitive && f.FieldType != typeof (bool))))
+				return false;
+
+			int alignement = GetAlignmentFromPrimitiveType (fields[0].FieldType);
+
+			return isPrimitiveStruct[structType] = !fields.Any ((f) => GetAlignmentFromPrimitiveType (f.FieldType) != alignement);
+		}
+
+		static int GetAlignmentFromPrimitiveType (Type type)
+		{
+			return ProtocolInformations.GetAlignment (Signature.TypeCodeToDType (Type.GetTypeCode (type)));
 		}
 	}
 }

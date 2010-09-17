@@ -27,7 +27,7 @@ CSFILES = \
 	$(srcdir)/HeaderFlag.cs \
 	$(srcdir)/Introspection.cs \
 	$(srcdir)/ObjectPath.cs \
-	$(srcdir)/Protocol.cs \
+	$(srcdir)/ProtocolInformations.cs \
 	$(srcdir)/Mapper.cs \
 	$(srcdir)/MatchRule.cs \
 	$(srcdir)/Message.cs \
@@ -46,7 +46,9 @@ CSFILES = \
 	$(srcdir)/TypeRental.cs \
 	$(srcdir)/Unix.cs \
 	$(srcdir)/UnixNativeTransport.cs \
-	$(srcdir)/UnixTransport.cs 
+	$(srcdir)/UnixTransport.cs \
+	$(srcdir)/DValue.cs \
+	$(srcdir)/MessageDumper.cs
 
 all: $(TARGET)
 

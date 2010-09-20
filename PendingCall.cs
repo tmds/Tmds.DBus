@@ -39,7 +39,7 @@ namespace DBus
 					conn.DispatchSignals ();
 				} else {
 					if (waitHandle == null)
-						waitHandle = new ManualResetEvent (false);
+						Interlocked.CompareExchange (ref waitHandle, new ManualResetEvent (false), null);
 
 					// TODO: Possible race condition?
 					while (reply == null)

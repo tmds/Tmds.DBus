@@ -10,40 +10,18 @@ namespace DBus
 {
 	public sealed class Bus : Connection
 	{
-		static Bus systemBus = null;
+		static Bus systemBus = Address.StarterBusType == "system" ? Starter : Bus.Open (Address.System);
 		public static Bus System
 		{
 			get {
-				if (systemBus == null) {
-					try {
-						if (Address.StarterBusType == "system")
-							systemBus = Starter;
-						else
-							systemBus = Bus.Open (Address.System);
-					} catch (Exception e) {
-						throw new Exception ("Unable to open the system message bus.", e);
-					}
-				}
-
 				return systemBus;
 			}
 		}
 
-		static Bus sessionBus = null;
+		static Bus sessionBus = Address.StarterBusType == "session" ? Starter : Bus.Open (Address.Session);
 		public static Bus Session
 		{
 			get {
-				if (sessionBus == null) {
-					try {
-						if (Address.StarterBusType == "session")
-							sessionBus = Starter;
-						else
-							sessionBus = Bus.Open (Address.Session);
-					} catch (Exception e) {
-						throw new Exception ("Unable to open the session message bus.", e);
-					}
-				}
-
 				return sessionBus;
 			}
 		}

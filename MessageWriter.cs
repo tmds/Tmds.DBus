@@ -15,16 +15,29 @@ namespace DBus.Protocol
 	{
 		EndianFlag endianness;
 		internal MemoryStream stream;
-
-		public Connection connection;
+		Connection connection;
 
 		//a default constructor is a bad idea for now as we want to make sure the header and content-type match
 		public MessageWriter () : this (Connection.NativeEndianness) {}
+
+		public MessageWriter (Connection connection) : this(Connection.NativeEndianness)
+		{
+			this.connection = connection;
+		}
 
 		public MessageWriter (EndianFlag endianness)
 		{
 			this.endianness = endianness;
 			stream = new MemoryStream ();
+		}
+
+		public Connection Connection {
+			get {
+				return connection;
+			}
+			set {
+				connection = value;
+			}
 		}
 
 		public byte[] ToArray ()
@@ -372,7 +385,7 @@ namespace DBus.Protocol
 
 			if (elemType == typeof (byte)) {
 				if (val.Length > ProtocolInformations.MaxArrayLength)
-					throw new Exception ("Array length " + val.Length + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
+					ThrowArrayLengthException ((uint)val.Length);
 
 				Write ((uint)val.Length);
 				stream.Write ((byte[])(object)val, 0, val.Length);
@@ -384,21 +397,21 @@ namespace DBus.Protocol
 
 			Signature sigElem = Signature.GetSig (elemType);
 			int fixedSize = 0;
-			if (endianness == Connection.NativeEndianness && elemType.IsValueType && !sigElem.IsStruct && sigElem.GetFixedSize (ref fixedSize)) {
+			// TODO: similar to MessageReader's ReadArray, make the fast path available to both endianess
+			if (endianness == Connection.NativeEndianness && elemType.IsValueType && !sigElem.IsStruct && elemType != typeof(bool) && sigElem.GetFixedSize (ref fixedSize)) {
 				int byteLength = fixedSize * val.Length;
 				if (byteLength > ProtocolInformations.MaxArrayLength)
-					throw new Exception ("Array length " + byteLength + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
+					ThrowArrayLengthException ((uint)byteLength);
+
 				Write ((uint)byteLength);
 				WritePad (sigElem.Alignment);
 
 				GCHandle valHandle = GCHandle.Alloc (val, GCHandleType.Pinned);
 				IntPtr p = valHandle.AddrOfPinnedObject ();
 				byte[] data = new byte[byteLength];
-				byte* bp = (byte*)p;
-				for (int i = 0 ; i != byteLength ; i++)
-					data[i] = bp[i];
-				stream.Write (data, 0, data.Length);
+				Marshal.Copy (p, data, 0, byteLength);
 				valHandle.Free ();
+
 				return;
 			}
 
@@ -420,10 +433,15 @@ namespace DBus.Protocol
 			stream.Position = origPos;
 
 			if (ln > ProtocolInformations.MaxArrayLength)
-				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
+				ThrowArrayLengthException (ln);
 
 			Write (ln);
 			stream.Position = endPos;
+		}
+
+		static void ThrowArrayLengthException (uint ln)
+		{
+			throw new Exception ("Array length " + ln.ToString () + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 		}
 
 		public void WriteValueType (object val, Type type)

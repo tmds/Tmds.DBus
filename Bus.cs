@@ -88,6 +88,7 @@ namespace DBus
 		}
 
 		IBus bus;
+		string address;
 
 		static readonly string DBusName = "org.freedesktop.DBus";
 		static readonly ObjectPath DBusPath = new ObjectPath ("/org/freedesktop/DBus");
@@ -95,6 +96,7 @@ namespace DBus
 		public Bus (string address) : base (address)
 		{
 			bus = GetObject<IBus> (DBusName, DBusPath);
+			this.address = address;
 
 			/*
 					bus.NameAcquired += delegate (string acquired_name) {
@@ -112,6 +114,15 @@ namespace DBus
 				throw new Exception ("Bus already has a unique name");
 
 			unique_name = bus.Hello ();
+		}
+
+		protected override void CloseInternal ()
+		{
+			/* In case the bus was opened with static method
+			 * Open, clear it from buses dictionary
+			 */
+			if (buses.ContainsKey (address))
+				buses.Remove (address);
 		}
 
 		public ulong GetUnixUser (string name)

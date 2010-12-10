@@ -58,8 +58,14 @@ namespace DBus
 			if (!IsConnected)
 				return;
 
+			CloseInternal ();
+
 			transport.Disconnect ();
 			isConnected = false;
+		}
+
+		protected virtual void CloseInternal ()
+		{
 		}
 
 		//should we do connection sharing here?

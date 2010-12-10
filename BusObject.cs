@@ -56,7 +56,10 @@ namespace DBus
 			rule.Fields.Add (FieldCode.Interface, new MatchTest (iface));
 			rule.Fields.Add (FieldCode.Member, new MatchTest (member));
 			rule.Fields.Add (FieldCode.Path, new MatchTest (object_path));
-			rule.Fields.Add (FieldCode.Sender, new MatchTest (alt_bus_name ?? bus_name));
+			// FIXME: Cause a regression compared to 0.6 as name wasn't matched before
+			// the problem arises because busname is not used by DBus daemon and
+			// instead it uses the canonical name of the sender (i.e. similar to ':1.13')
+			//rule.Fields.Add (FieldCode.Sender, new MatchTest (alt_bus_name ?? bus_name));
 
 			if (adding) {
 				if (conn.Handlers.ContainsKey (rule))

@@ -83,8 +83,6 @@ namespace DBus
 		{
 			exception = null;
 
-			//TODO: don't ignore retVal, exception etc.
-
 			Signature outSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
 
 			Signal signal = new Signal (object_path, iface, member, outSig);
@@ -95,118 +93,16 @@ namespace DBus
 			conn.Send (signalMsg);
 		}
 
-		public object SendMethodCallOld (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
-		{
-			exception = null;
-
-			//TODO: don't ignore retVal, exception etc.
-
-			Signature inSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
-
-			MethodCall method_call = new MethodCall (object_path, iface, member, bus_name, inSig);
-
-			Message callMsg = method_call.message;
-			callMsg.AttachBodyTo (writer);
-
-			//Invoke Code::
-
-			//TODO: complete out parameter support
-			/*
-			Type[] outParmTypes = Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ());
-			Signature outParmSig = Signature.GetSig (outParmTypes);
-
-			if (outParmSig != Signature.Empty)
-				throw new Exception ("Out parameters not yet supported: out_signature='" + outParmSig.Value + "'");
-			*/
-
-			Type[] outTypes = new Type[1];
-			outTypes[0] = retType;
-
-			//we default to always requiring replies for now, even though unnecessary
-			//this is to make sure errors are handled synchronously
-			//TODO: don't hard code this
-			bool needsReply = true;
-
-			//if (mi.ReturnType == typeof (void))
-			//	needsReply = false;
-
-			callMsg.ReplyExpected = needsReply;
-			callMsg.Signature = inSig;
-
-			if (!needsReply) {
-				conn.Send (callMsg);
-				return null;
-			}
-
-#if PROTO_REPLY_SIGNATURE
-			if (needsReply) {
-				Signature outSig = Signature.GetSig (outTypes);
-				callMsg.Header[FieldCode.ReplySignature] = outSig;
-			}
-#endif
-
-			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
-
-			object retVal = null;
-
-			//handle the reply message
-			switch (retMsg.Header.MessageType) {
-			case MessageType.MethodReturn:
-				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
-				if (retVals.Length != 0)
-					retVal = retVals[retVals.Length - 1];
-				break;
-			case MessageType.Error:
-				//TODO: typed exceptions
-				Error error = new Error (retMsg);
-				string errMsg = String.Empty;
-				if (retMsg.Signature.Value.StartsWith ("s")) {
-					MessageReader reader = new MessageReader (retMsg);
-					errMsg = reader.ReadString ();
-				}
-				exception = new Exception (error.ErrorName + ": " + errMsg);
-				break;
-			default:
-				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
-			}
-
-			return retVal;
-		}
-
 		public MessageReader SendMethodCall (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
 		{
 			exception = null;
-
-			//TODO: don't ignore retVal, exception etc.
-
 			Signature inSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
-
 			MethodCall method_call = new MethodCall (object_path, iface, member, bus_name, inSig);
 
 			Message callMsg = method_call.message;
 			callMsg.AttachBodyTo (writer);
 
-			//Invoke Code::
-
-			//TODO: complete out parameter support
-			/*
-			Type[] outParmTypes = Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ());
-			Signature outParmSig = Signature.GetSig (outParmTypes);
-
-			if (outParmSig != Signature.Empty)
-				throw new Exception ("Out parameters not yet supported: out_signature='" + outParmSig.Value + "'");
-			*/
-
-			Type[] outTypes = new Type[1];
-			outTypes[0] = retType;
-
-			//we default to always requiring replies for now, even though unnecessary
-			//this is to make sure errors are handled synchronously
-			//TODO: don't hard code this
 			bool needsReply = true;
-
-			//if (mi.ReturnType == typeof (void))
-			//	needsReply = false;
 
 			callMsg.ReplyExpected = needsReply;
 			callMsg.Signature = inSig;
@@ -218,7 +114,7 @@ namespace DBus
 
 #if PROTO_REPLY_SIGNATURE
 			if (needsReply) {
-				Signature outSig = Signature.GetSig (outTypes);
+				Signature outSig = Signature.GetSig (retType);
 				callMsg.Header[FieldCode.ReplySignature] = outSig;
 			}
 #endif
@@ -272,98 +168,27 @@ namespace DBus
 			Type[] inTypes = Mapper.GetTypes (ArgDirection.In, mi.GetParameters ());
 			Signature inSig = Signature.GetSig (inTypes);
 
-			MethodCall method_call;
-			Message callMsg;
+			string iface = null;
+			if (mi != null)
+				iface = Mapper.GetInterfaceName (mi);
 
-			//build the outbound method call message
-			{
-				//this bit is error-prone (no null checking) and will need rewriting when DProxy is replaced
-				string iface = null;
-				if (mi != null)
-					iface = Mapper.GetInterfaceName (mi);
-
-				//map property accessors
-				//TODO: this needs to be done properly, not with simple String.Replace
-				//note that IsSpecialName is also for event accessors, but we already handled those and returned
-				if (mi != null && mi.IsSpecialName) {
-					methodName = methodName.Replace ("get_", "Get");
-					methodName = methodName.Replace ("set_", "Set");
-				}
-
-				method_call = new MethodCall (object_path, iface, methodName, bus_name, inSig);
-
-				callMsg = method_call.message;
-
-				if (inArgs != null && inArgs.Length != 0) {
-					MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-					writer.connection = conn;
-
-					for (int i = 0 ; i != inTypes.Length ; i++)
-						writer.Write (inTypes[i], inArgs[i]);
-
-					callMsg.AttachBodyTo (writer);
-				}
+			if (mi != null && mi.IsSpecialName) {
+				methodName = methodName.Replace ("get_", "Get");
+				methodName = methodName.Replace ("set_", "Set");
 			}
 
-			//TODO: complete out parameter support
-			/*
-			Type[] outParmTypes = Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ());
-			Signature outParmSig = Signature.GetSig (outParmTypes);
+			MessageWriter writer = new MessageWriter (conn);
 
-			if (outParmSig != Signature.Empty)
-				throw new Exception ("Out parameters not yet supported: out_signature='" + outParmSig.Value + "'");
-			*/
+			if (inArgs != null && inArgs.Length != 0) {
+				for (int i = 0 ; i != inTypes.Length ; i++)
+					writer.Write (inTypes[i], inArgs[i]);
+			}
 
-			Type[] outTypes = new Type[1];
-			outTypes[0] = mi.ReturnType;
-
-			//we default to always requiring replies for now, even though unnecessary
-			//this is to make sure errors are handled synchronously
-			//TODO: don't hard code this
-			bool needsReply = true;
-
-			//if (mi.ReturnType == typeof (void))
-			//	needsReply = false;
-
-			callMsg.ReplyExpected = needsReply;
-			callMsg.Signature = inSig;
-
-			if (!needsReply) {
-				conn.Send (callMsg);
+			MessageReader reader = SendMethodCall (iface, methodName, inSig.Value, writer, mi.ReturnType, out exception);
+			if (reader == null)
 				return;
-			}
 
-#if PROTO_REPLY_SIGNATURE
-			if (needsReply) {
-				Signature outSig = Signature.GetSig (outTypes);
-				callMsg.Header[FieldCode.ReplySignature] = outSig;
-			}
-#endif
-
-			Message retMsg = conn.SendWithReplyAndBlock (callMsg);
-
-			//handle the reply message
-			switch (retMsg.Header.MessageType) {
-				case MessageType.MethodReturn:
-				object[] retVals = MessageHelper.GetDynamicValues (retMsg, outTypes);
-				if (retVals.Length != 0)
-					retVal = retVals[retVals.Length - 1];
-				break;
-				case MessageType.Error:
-				//TODO: typed exceptions
-				Error error = new Error (retMsg);
-				string errMsg = String.Empty;
-				if (retMsg.Signature.Value.StartsWith ("s")) {
-					MessageReader reader = new MessageReader (retMsg);
-					errMsg = reader.ReadString ();
-				}
-				exception = new Exception (error.ErrorName + ": " + errMsg);
-				break;
-				default:
-				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
-			}
-
-			return;
+			retVal = reader.ReadValue (mi.ReturnType);
 		}
 
 		public static object GetObject (Connection conn, string bus_name, ObjectPath object_path, Type declType)

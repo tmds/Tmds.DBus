@@ -139,8 +139,7 @@ namespace DBus
 			ParameterInfo[] delegateParms = declMethod.GetParameters ();
 			Type[] hookupParms = new Type[delegateParms.Length+1];
 			hookupParms[0] = typeof (BusObject);
-			for (int i = 0; i < delegateParms.Length ; i++)
-				hookupParms[i+1] = delegateParms[i].ParameterType;
+			Array.Copy (delegateParms, 0, hookupParms, 1, delegateParms.Length);
 
 			DynamicMethod hookupMethod = new DynamicMethod ("Handle" + member, declMethod.ReturnType, hookupParms, typeof (MessageWriter));
 
@@ -214,21 +213,19 @@ namespace DBus
 
 			Type type = t;
 
-			//MethodInfo exactWriteMethod = typeof (MessageWriter).GetMethod ("Write", new Type[] {tUnder});
 			MethodInfo exactWriteMethod = typeof (MessageWriter).GetMethod ("Write", BindingFlags.ExactBinding | BindingFlags.Instance | BindingFlags.Public, null, new Type[] {tUnder}, null);
-			//ExactBinding InvokeMethod
 
 			if (exactWriteMethod != null) {
-				ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
+				ilg.Emit (OpCodes.Call, exactWriteMethod);
 			} else if (t.IsArray) {
 				MethodInfo mi = typeof (MessageWriter).GetMethod ("WriteArray");
 				exactWriteMethod = mi.MakeGenericMethod (type.GetElementType ());
-				ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
+				ilg.Emit (OpCodes.Call, exactWriteMethod);
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
 				MethodInfo mi = typeof (MessageWriter).GetMethod ("WriteFromDict");
 				exactWriteMethod = mi.MakeGenericMethod (genArgs);
-				ilg.Emit (exactWriteMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactWriteMethod);
+				ilg.Emit (OpCodes.Call, exactWriteMethod);
 			} else {
 				GenStructWriter (ilg, t);
 			}
@@ -339,8 +336,6 @@ namespace DBus
 
 			ilg.Emit (OpCodes.Call, getBusObject);
 
-			//MethodInfo
-
 			//interface
 			ilg.Emit (OpCodes.Ldstr, @interface);
 
@@ -348,7 +343,7 @@ namespace DBus
 			if (declMethod.IsSpecialName && (declMethod.Name.StartsWith ("add_") || declMethod.Name.StartsWith ("remove_"))) {
 				string[] parts = declMethod.Name.Split (new char[]{'_'}, 2);
 				string ename = parts[1];
-				//Delegate dlg = (Delegate)inArgs[0];
+
 				bool adding = parts[0] == "add";
 
 				ilg.Emit (OpCodes.Ldstr, ename);
@@ -375,8 +370,8 @@ namespace DBus
 			ilg.Emit (OpCodes.Ldstr, member);
 
 			//signature
-			Signature inSig = Signature.Empty;
-			Signature outSig = Signature.Empty;
+			Signature inSig;
+			Signature outSig;
 			SigsForMethod (declMethod, out inSig, out outSig);
 
 			ilg.Emit (OpCodes.Ldstr, inSig.Value);

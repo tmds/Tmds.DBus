@@ -215,7 +215,6 @@ namespace DBus.Protocol
 			}
 		}
 
-		//[Obsolete]
 		public string Value
 		{
 			get {

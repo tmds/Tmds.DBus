@@ -118,7 +118,8 @@ namespace DBus
 			if (type.IsDefined (typeof (InterfaceAttribute), false))
 				return true;
 
-			if (type.IsSubclassOf (typeof (MarshalByRefObject)))
+			if (type.IsSubclassOf (typeof (MarshalByRefObject)) &&
+			    type.GetCustomAttributes (typeof (IgnoreMarshalByRefObjectBaseClassAttribute), true).Length == 0)
 				return true;
 
 			return false;
@@ -358,6 +359,11 @@ namespace DBus
 
 			return replyMsg;
 		}
+	}
+
+	[AttributeUsage (AttributeTargets.Class, AllowMultiple=false, Inherited=true)]
+	public class IgnoreMarshalByRefObjectBaseClassAttribute : Attribute
+	{
 	}
 
 	[AttributeUsage (AttributeTargets.Interface | AttributeTargets.Class, AllowMultiple=false, Inherited=true)]

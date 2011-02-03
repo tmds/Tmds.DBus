@@ -119,7 +119,7 @@ namespace DBus
 				return true;
 
 			if (type.IsSubclassOf (typeof (MarshalByRefObject)) &&
-			    type.GetCustomAttributes (typeof (IgnoreMarshalByRefObjectBaseClassAttribute), true).Length == 0)
+			    type.GetCustomAttributes (typeof (ExportInterfaceMembersOnlyAttribute), true).Length == 0)
 				return true;
 
 			return false;
@@ -362,7 +362,7 @@ namespace DBus
 	}
 
 	[AttributeUsage (AttributeTargets.Class, AllowMultiple=false, Inherited=true)]
-	public class IgnoreMarshalByRefObjectBaseClassAttribute : Attribute
+	public class ExportInterfaceMembersOnlyAttribute : Attribute
 	{
 	}
 

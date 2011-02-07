@@ -10,7 +10,15 @@ namespace DBus
 {
 	public sealed class Bus : Connection
 	{
+		static readonly string DBusName = "org.freedesktop.DBus";
+		static readonly ObjectPath DBusPath = new ObjectPath ("/org/freedesktop/DBus");
+
+		static Dictionary<string,Bus> buses = new Dictionary<string,Bus> ();
+
+		static Bus starterBus = null;
 		static Bus systemBus = Address.StarterBusType == "system" ? Starter : Bus.Open (Address.System);
+		static Bus sessionBus = Address.StarterBusType == "session" ? Starter : Bus.Open (Address.Session);
+
 		public static Bus System
 		{
 			get {
@@ -18,7 +26,6 @@ namespace DBus
 			}
 		}
 
-		static Bus sessionBus = Address.StarterBusType == "session" ? Starter : Bus.Open (Address.Session);
 		public static Bus Session
 		{
 			get {
@@ -26,8 +33,6 @@ namespace DBus
 			}
 		}
 
-		//TODO: parsing of starter bus type, or maybe do this another way
-		static Bus starterBus = null;
 		public static Bus Starter
 		{
 			get {
@@ -43,13 +48,6 @@ namespace DBus
 			}
 		}
 
-		//public static readonly Bus Session = null;
-
-		//TODO: use the guid, not the whole address string
-		//TODO: consider what happens when a connection has been closed
-		static Dictionary<string,Bus> buses = new Dictionary<string,Bus> ();
-
-		//public static Connection Open (string address)
 		public static new Bus Open (string address)
 		{
 			if (address == null)
@@ -67,9 +65,6 @@ namespace DBus
 
 		IBus bus;
 		string address;
-
-		static readonly string DBusName = "org.freedesktop.DBus";
-		static readonly ObjectPath DBusPath = new ObjectPath ("/org/freedesktop/DBus");
 
 		public Bus (string address) : base (address)
 		{

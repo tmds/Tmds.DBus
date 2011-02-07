@@ -95,8 +95,14 @@ namespace DBus
 
 		public MessageReader SendMethodCall (string iface, string member, string inSigStr, MessageWriter writer, Type retType, out Exception exception)
 		{
+			if (string.IsNullOrEmpty (bus_name))
+				throw new ArgumentNullException ("bus_name");
+			if (object_path == null)
+				throw new ArgumentNullException ("object_path");
+
 			exception = null;
 			Signature inSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
+
 			MethodCall method_call = new MethodCall (object_path, iface, member, bus_name, inSig);
 
 			Message callMsg = method_call.message;

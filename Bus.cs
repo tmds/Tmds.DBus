@@ -64,18 +64,11 @@ namespace DBus
 		}
 
 		IBus bus;
-		string address;
+
 
 		public Bus (string address) : base (address)
 		{
 			bus = GetObject<IBus> (DBusName, DBusPath);
-			this.address = address;
-
-			/*
-					bus.NameAcquired += delegate (string acquired_name) {
-			Console.WriteLine ("NameAcquired: " + acquired_name);
-		};
-		*/
 			Register ();
 		}
 

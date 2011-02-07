@@ -4,6 +4,7 @@
 // See COPYING for details
 
 using System;
+using System.IO;
 using System.Collections.Generic;
 
 namespace DBus.Protocol
@@ -16,24 +17,82 @@ namespace DBus.Protocol
 		public byte MajorVersion;
 		public uint Length;
 		public uint Serial;
-		//public HeaderField[] Fields;
 
-		// Dictionary keyed by Enum has performance issues on .NET
-		// So we key by byte and use an indexer instead.
-		public Dictionary<byte, object> Fields;
+		Dictionary<byte, object> fields = new Dictionary<byte, object> ();
+
 		public object this[FieldCode key]
 		{
-			get
-			{
+			get {
 				object value = null;
-				Fields.TryGetValue ((byte)key, out value);
+				fields.TryGetValue ((byte)key, out value);
 				return value;
-			} set {
-				if (value == null)
-					Fields.Remove((byte)key);
-				else
-					Fields[(byte)key] = value;
 			}
+			set {
+				if (value == null)
+					fields.Remove((byte)key);
+				else
+					fields[(byte)key] = value;
+			}
+		}
+
+		public bool TryGetField (FieldCode code, out object value)
+		{
+			return fields.TryGetValue ((byte)code, out value);
+		}
+
+		public int FieldsCount {
+			get {
+				return fields.Count;
+			}
+		}
+
+		public static Header FromBytes (byte[] data)
+		{
+			Header header = new Header ();
+			EndianFlag endianness = (EndianFlag)data[0];
+
+			header.Endianness = endianness;
+			header.MessageType = (MessageType)data[1];
+			header.Flags = (HeaderFlag)data[2];
+			header.MajorVersion = data[3];
+
+			var reader = new MessageReader (endianness, data);
+			reader.Seek (4);
+			header.Length = reader.ReadUInt32 ();
+			header.Serial = reader.ReadUInt32 ();
+
+			FieldCodeEntry[] fields = (FieldCodeEntry[])reader.ReadArray (typeof (FieldCodeEntry));
+			foreach (var f in fields) {
+				header[(FieldCode)f.Code] = f.Value;
+			}
+
+			return header;
+		}
+
+		public void GetHeaderDataToStream (Stream stream)
+		{
+			MessageWriter writer = new MessageWriter (Endianness);
+			WriteHeaderToMessage (writer);
+			writer.ToStream (stream);
+		}
+
+		internal void WriteHeaderToMessage (MessageWriter writer)
+		{
+			writer.Write ((byte)Endianness);
+			writer.Write ((byte)MessageType);
+			writer.Write ((byte)Flags);
+			writer.Write (MajorVersion);
+			writer.Write (Length);
+			writer.Write (Serial);
+			writer.WriteHeaderFields (fields);
+
+			writer.CloseWrite ();
+		}
+
+		struct FieldCodeEntry
+		{
+			public byte Code;
+			public object Value;
 		}
 
 		/*

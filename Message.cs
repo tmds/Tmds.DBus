@@ -10,8 +10,6 @@ namespace DBus.Protocol
 {
 	public class Message
 	{
-		static System.Reflection.MethodInfo hHandler = typeof (Message).GetMethod ("HandleHeader");
-
 		Header header = new Header ();
 		Connection connection;
 		byte[] body;
@@ -22,7 +20,6 @@ namespace DBus.Protocol
 			header.MessageType = MessageType.MethodCall;
 			header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
 			header.MajorVersion = ProtocolInformations.Version;
-			header.Fields = new Dictionary<byte, object> ();
 		}
 
 		public static Message FromReceivedBytes (Connection connection, byte[] header, byte[] body)
@@ -93,44 +90,17 @@ namespace DBus.Protocol
 
 		public void SetHeaderData (byte[] data)
 		{
-			EndianFlag endianness = (EndianFlag)data[0];
-			MessageReader reader = new MessageReader (endianness, data);
-
-			MethodCaller2 mCaller = ExportObject.GetMCaller (hHandler);
-			mCaller (this, reader, null, new MessageWriter ());
+			header = Header.FromBytes (data);
 		}
 
 		public byte[] GetHeaderData ()
 		{
 			if (Body != null)
-				Header.Length = (uint)Body.Length;
+				header.Length = (uint)Body.Length;
 
-			MessageWriter writer = new MessageWriter (Header.Endianness);
-			WriteHeaderToMessage (writer);
+			MessageWriter writer = new MessageWriter (header.Endianness);
+			header.WriteHeaderToMessage (writer);
 			return writer.ToArray ();
-		}
-
-		public void GetHeaderDataToStream (Stream stream)
-		{
-			if (Body != null)
-				Header.Length = (uint)Body.Length;
-
-			MessageWriter writer = new MessageWriter (Header.Endianness);
-			WriteHeaderToMessage (writer);
-			writer.ToStream (stream);
-		}
-
-		void WriteHeaderToMessage (MessageWriter writer)
-		{
-			writer.Write ((byte)Header.Endianness);
-			writer.Write ((byte)Header.MessageType);
-			writer.Write ((byte)Header.Flags);
-			writer.Write (Header.MajorVersion);
-			writer.Write (Header.Length);
-			writer.Write (Header.Serial);
-			writer.WriteHeaderFields (Header.Fields);
-
-			writer.CloseWrite ();
 		}
 	}
 }

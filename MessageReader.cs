@@ -170,6 +170,14 @@ namespace DBus.Protocol
 			return result;
 		}
 
+		public void Seek (int stride)
+		{
+			var check = pos + stride;
+			if (check < 0 || check > data.Length)
+				throw new ArgumentOutOfRangeException ("stride");
+			pos = check;
+		}
+
 		public object GetObject (Type type)
 		{
 			ObjectPath path = ReadObjectPath ();

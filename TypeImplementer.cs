@@ -18,13 +18,32 @@ namespace DBus
 		ModuleBuilder modB;
 		static readonly object getImplLock = new Object ();
 
+		Dictionary<Type,Type> map = new Dictionary<Type,Type> ();
+
+		static MethodInfo getTypeFromHandleMethod = typeof (Type).GetMethod ("GetTypeFromHandle", new Type[] {typeof (RuntimeTypeHandle)});
+		static ConstructorInfo argumentNullExceptionConstructor = typeof (ArgumentNullException).GetConstructor (new Type[] {typeof (string)});
+		static ConstructorInfo messageWriterConstructor = typeof (MessageWriter).GetConstructor (Type.EmptyTypes);
+		static MethodInfo messageWriterWritePad = typeof (MessageWriter).GetMethod ("WritePad", new Type[] {typeof (int)});
+		static MethodInfo messageReaderReadValue = typeof (MessageReader).GetMethod ("ReadValue", new Type[] { typeof (System.Type) });
+		static MethodInfo messageReaderReadArray = typeof (MessageReader).GetMethod ("ReadArray", new[] { typeof (Type) });
+		static MethodInfo messageReaderReadDictionary = typeof (MessageReader).GetMethod ("ReadDictionary", new[] { typeof (Type) });
+		static MethodInfo messageReaderReadStruct = typeof (MessageReader).GetMethod ("ReadStruct", new[] { typeof (Type) });
+
+		static Dictionary<Type,MethodInfo> writeMethods = new Dictionary<Type,MethodInfo> ();
+		static Dictionary<Type,object> typeWriters = new Dictionary<Type,object> ();
+
+		static MethodInfo sendMethodCallMethod = typeof (BusObject).GetMethod ("SendMethodCall");
+		static MethodInfo sendSignalMethod = typeof (BusObject).GetMethod ("SendSignal");
+		static MethodInfo toggleSignalMethod = typeof (BusObject).GetMethod ("ToggleSignal");
+
+		static Dictionary<EventInfo,DynamicMethod> hookup_methods = new Dictionary<EventInfo,DynamicMethod> ();
+		static Dictionary<Type,MethodInfo> readMethods = new Dictionary<Type,MethodInfo> ();
+
 		public TypeImplementer (string name, bool canSave)
 		{
 			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName (name), canSave ? AssemblyBuilderAccess.RunAndSave : AssemblyBuilderAccess.Run);
 			modB = asmB.DefineDynamicModule (name);
 		}
-
-		Dictionary<Type,Type> map = new Dictionary<Type,Type> ();
 
 		public Type GetImplementation (Type declType)
 		{
@@ -111,11 +130,6 @@ namespace DBus
 			}
 		}
 
-		static MethodInfo sendMethodCallMethod = typeof (BusObject).GetMethod ("SendMethodCall");
-		static MethodInfo sendSignalMethod = typeof (BusObject).GetMethod ("SendSignal");
-		static MethodInfo toggleSignalMethod = typeof (BusObject).GetMethod ("ToggleSignal");
-
-		static Dictionary<EventInfo,DynamicMethod> hookup_methods = new Dictionary<EventInfo,DynamicMethod> ();
 		public static DynamicMethod GetHookupMethod (EventInfo ei)
 		{
 			DynamicMethod hookupMethod;
@@ -150,14 +164,6 @@ namespace DBus
 			return hookupMethod;
 		}
 
-		static MethodInfo getTypeFromHandleMethod = typeof (Type).GetMethod ("GetTypeFromHandle", new Type[] {typeof (RuntimeTypeHandle)});
-		static ConstructorInfo argumentNullExceptionConstructor = typeof (ArgumentNullException).GetConstructor (new Type[] {typeof (string)});
-		static ConstructorInfo messageWriterConstructor = typeof (MessageWriter).GetConstructor (Type.EmptyTypes);
-		static MethodInfo messageWriterWritePad = typeof (MessageWriter).GetMethod ("WritePad", new Type[] {typeof (int)});
-		static MethodInfo messageReaderReadPad = typeof (MessageReader).GetMethod ("ReadPad", new Type[] {typeof (int)});
-
-		static Dictionary<Type,MethodInfo> writeMethods = new Dictionary<Type,MethodInfo> ();
-
 		public static MethodInfo GetWriteMethod (Type t)
 		{
 			MethodInfo meth;
@@ -182,7 +188,6 @@ namespace DBus
 			return meth;
 		}
 
-		static Dictionary<Type,object> typeWriters = new Dictionary<Type,object> ();
 		public static TypeWriter<T> GetTypeWriter<T> ()
 		{
 			Type t = typeof (T);
@@ -206,10 +211,8 @@ namespace DBus
 		{
 			Type tUnder = t;
 
-			if (t.IsEnum) {
+			if (t.IsEnum)
 				tUnder = Enum.GetUnderlyingType (t);
-				//imprecise = true;
-			}
 
 			Type type = t;
 
@@ -287,45 +290,6 @@ namespace DBus
 			}
 		}
 
-		//takes a reader and a reference to an object off the stack
-		public static void GenStructReader (ILGenerator ilg, Type type)
-		{
-			// FIXME: Newobj fails if type has no default ctor!
-
-			LocalBuilder val = ilg.DeclareLocal (type);
-			ConstructorInfo ctor = type.GetConstructor (Type.EmptyTypes);
-			ilg.Emit (OpCodes.Newobj, ctor);
-			ilg.Emit (OpCodes.Stloc, val);
-
-			LocalBuilder reader = ilg.DeclareLocal (typeof (MessageReader));
-			ilg.Emit (OpCodes.Stloc, reader);
-
-			//align to 8 for structs
-			ilg.Emit (OpCodes.Ldloc, reader);
-			ilg.Emit (OpCodes.Ldc_I4, 8);
-			ilg.Emit (OpCodes.Call, messageReaderReadPad);
-
-			foreach (FieldInfo fi in GetMarshalFields (type)) {
-				Type t = fi.FieldType;
-
-				//the object to read into
-				ilg.Emit (OpCodes.Ldloc, val);
-
-				//the Reader to read from
-				ilg.Emit (OpCodes.Ldloc, reader);
-
-				GenReader (ilg, t);
-
-				ilg.Emit (OpCodes.Stfld, fi);
-			}
-
-			ilg.Emit (OpCodes.Ldloc, val);
-			//if (type.IsValueType)
-			//	ilg.Emit (OpCodes.Box, type);
-		}
-
-		static MethodInfo getBusObject = typeof(BusObject).GetMethod("GetBusObject");
-
 		public static void GenHookupMethod (ILGenerator ilg, MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member)
 		{
 			ParameterInfo[] parms = declMethod.GetParameters ();
@@ -334,7 +298,7 @@ namespace DBus
 			//the BusObject instance
 			ilg.Emit (OpCodes.Ldarg_0);
 
-			ilg.Emit (OpCodes.Call, getBusObject);
+			ilg.Emit (OpCodes.Castclass, typeof (BusObject));
 
 			//interface
 			ilg.Emit (OpCodes.Ldstr, @interface);
@@ -418,14 +382,13 @@ namespace DBus
 			ilg.Emit (OpCodes.Ldloc, writer);
 
 			//the expected return Type
-			ilg.Emit (OpCodes.Ldtoken, retType);
-			ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
+			GenTypeOf (ilg, retType);
 
 			LocalBuilder exc = ilg.DeclareLocal (typeof (Exception));
 			ilg.Emit (OpCodes.Ldloca_S, exc);
 
 			//make the call
-			ilg.Emit (invokeMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, invokeMethod);
+			ilg.Emit (OpCodes.Callvirt, invokeMethod);
 
 			//define a label we'll use to deal with a non-null Exception
 			Label noErr = ilg.DefineLabel ();
@@ -502,7 +465,6 @@ namespace DBus
 			return true;
 		}
 
-		static Dictionary<Type,MethodInfo> readMethods = new Dictionary<Type,MethodInfo> ();
 		static void InitReaders ()
 		{
 			foreach (MethodInfo mi in typeof (MessageReader).GetMethods (BindingFlags.Instance | BindingFlags.Public)) {
@@ -601,7 +563,6 @@ namespace DBus
 				ilg.Emit (OpCodes.Ldarg_3); // writer
 				ilg.Emit (OpCodes.Ldloc, retLocal);
 				GenWriter (ilg, retType);
-
 			}
 
 			ilg.Emit (OpCodes.Ret);
@@ -610,27 +571,27 @@ namespace DBus
 		//takes the Reader instance off the stack, puts value of type t on the stack
 		public static void GenReader (ILGenerator ilg, Type t)
 		{
-			// TODO: Cache generated methods
-			// TODO: Generate methods with the correct module/type permissions
-
 			Type tUnder = t;
 
 			if (t.IsEnum)
 				tUnder = Enum.GetUnderlyingType (t);
 
+			Type gDef = t.IsGenericType ? t.GetGenericTypeDefinition () : null;
+
 			MethodInfo exactMethod = GetReadMethod (tUnder);
-			if (exactMethod != null)
-				ilg.Emit (exactMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactMethod);
-			else if (t.IsArray)
-				GenReadCollection (ilg, t);
-			else if (t.IsGenericType && (t.GetGenericTypeDefinition () == typeof (IList<>)))
-				GenReadCollection (ilg, t);
-			else if (t.IsGenericType && (t.GetGenericTypeDefinition () == typeof (IDictionary<,>) || t.GetGenericTypeDefinition () == typeof (Dictionary<,>)))
-				GenReadCollection (ilg, t);
-			else if (t.IsInterface)
+			if (exactMethod != null) {
+				ilg.Emit (OpCodes.Callvirt, exactMethod);
+			} else if (t.IsArray) {
+				GenTypeOf (ilg, t.GetElementType ());
+				ilg.Emit (OpCodes.Callvirt, messageReaderReadArray);
+			} else if (gDef != null && (gDef == typeof (IDictionary<,>) || gDef == typeof (Dictionary<,>))) {
+				GenTypeOf (ilg, gDef);
+				ilg.Emit (OpCodes.Callvirt, messageReaderReadDictionary);
+			} else if (t.IsInterface)
 				GenFallbackReader (ilg, tUnder);
 			else if (!tUnder.IsValueType) {
-				GenStructReader (ilg, tUnder);
+				GenTypeOf (ilg, tUnder);
+				ilg.Emit (OpCodes.Callvirt, messageReaderReadStruct);
 			} else
 				GenFallbackReader (ilg, tUnder);
 		}
@@ -641,14 +602,9 @@ namespace DBus
 			if (ProtocolInformations.Verbose)
 				Console.Error.WriteLine ("Bad! Generating fallback reader for " + t);
 
-			MethodInfo exactMethod;
-			exactMethod = typeof (MessageReader).GetMethod ("ReadValue", new Type[] { typeof (System.Type) });
-
 			// The Type parameter
-			ilg.Emit (OpCodes.Ldtoken, t);
-			ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
-
-			ilg.Emit (exactMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactMethod);
+			GenTypeOf (ilg, t);
+			ilg.Emit (OpCodes.Callvirt, messageReaderReadValue);
 
 			if (t.IsValueType)
 				ilg.Emit (OpCodes.Unbox_Any, t);
@@ -656,246 +612,10 @@ namespace DBus
 				ilg.Emit (OpCodes.Castclass, t);
 		}
 
-		public static void GenReadArrayFixed (ILGenerator ilg, Type t, int knownElemSize)
+		static void GenTypeOf (ILGenerator ilg, Type t)
 		{
-			LocalBuilder readerLocal = ilg.DeclareLocal (typeof (MessageReader));
-			ilg.Emit (OpCodes.Stloc, readerLocal);
-
-			Type tElem = t.GetElementType ();
-			Signature sigElem = Signature.GetSig (tElem);
-			int alignElem = sigElem.Alignment;
-			int knownElemSizePadded = ProtocolInformations.Padded (knownElemSize, sigElem.Alignment);
-			Type tUnder = tElem.IsEnum ? Enum.GetUnderlyingType (tElem) : tElem;
-			int managedElemSize = System.Runtime.InteropServices.Marshal.SizeOf (tUnder);
-
-			// Read the array's byte length
-			ilg.Emit (OpCodes.Ldloc, readerLocal);
-			MethodInfo exactMethod = GetReadMethod (typeof (uint));
-			ilg.Emit (exactMethod.IsFinal ? OpCodes.Call : OpCodes.Callvirt, exactMethod);
-			LocalBuilder sizeLocal = ilg.DeclareLocal (typeof (uint));
-			ilg.Emit (OpCodes.Stloc, sizeLocal);
-
-			// Create a new array of the correct element length
-			ilg.Emit (OpCodes.Ldloc, sizeLocal);
-			if (knownElemSizePadded > 1) {
-				ilg.Emit (OpCodes.Ldc_I4, alignElem);
-				MethodInfo paddedMethod = typeof (ProtocolInformations).GetMethod ("Padded");
-				ilg.Emit (OpCodes.Call, paddedMethod);
-				// Divide by the known element size
-				ilg.Emit (OpCodes.Ldc_I4, knownElemSizePadded);
-				ilg.Emit (OpCodes.Div_Un);
-			}
-			ilg.Emit (OpCodes.Newarr, tElem);
-			LocalBuilder aryLocal = ilg.DeclareLocal (t);
-			ilg.Emit (OpCodes.Stloc, aryLocal);
-
-			Label nonBlitLabel = ilg.DefineLabel ();
-			Label endLabel = ilg.DefineLabel ();
-
-			// Skip read or blit for zero-length arrays.
-			ilg.Emit (OpCodes.Ldloc, sizeLocal);
-			ilg.Emit (OpCodes.Brfalse, endLabel);
-
-			// WARNING: This may skew pos when we later increment it!
-			if (alignElem > 4) {
-				// Align to element if alignment requirement is higher than 4 (since we just read a uint)
-				ilg.Emit (OpCodes.Ldloc, readerLocal);
-				ilg.Emit (OpCodes.Ldc_I4, alignElem);
-				ilg.Emit (OpCodes.Call, messageReaderReadPad);
-			}
-
-			// Blit where possible
-
-			// shouldBlit: Blit if endian is native
-			// mustBlit: Blit regardless of endian (ie. byte or structs containing only bytes)
-
-			bool shouldBlit = tElem.IsValueType && knownElemSizePadded == managedElemSize && !sigElem.IsStruct;
-
-			// bool and char are not reliably blittable, so we don't allow blitting in these cases.
-			// Their exact layout varies between runtimes, platforms and even data types.
-			shouldBlit &= tElem != typeof (bool) && tElem != typeof (char);
-
-			bool mustBlit = shouldBlit && knownElemSizePadded == 1;
-
-			if (shouldBlit) {
-				if (!mustBlit) {
-					// Check to see if we can blit the data structures
-					FieldInfo nativeEndianField = typeof (MessageReader).GetField ("IsNativeEndian");
-					ilg.Emit (OpCodes.Ldloc, readerLocal);
-					ilg.Emit (OpCodes.Ldfld, nativeEndianField);
-					ilg.Emit (OpCodes.Brfalse_S, nonBlitLabel);
-				}
-
-				// Get the destination address
-				ilg.Emit (OpCodes.Ldloc, aryLocal);
-				ilg.Emit (OpCodes.Ldc_I4_0);
-				ilg.Emit (OpCodes.Ldelema, tElem);
-
-				// Get the source address
-				FieldInfo dataField = typeof (MessageReader).GetField ("data");
-				FieldInfo posField = typeof (MessageReader).GetField ("pos");
-				ilg.Emit (OpCodes.Ldloc, readerLocal);
-				ilg.Emit (OpCodes.Ldfld, dataField);
-				{
-					ilg.Emit (OpCodes.Ldloc, readerLocal);
-					ilg.Emit (OpCodes.Ldfld, posField);
-				}
-				ilg.Emit (OpCodes.Ldelema, typeof (byte));
-
-				// The number of bytes to copy
-				ilg.Emit (OpCodes.Ldloc, sizeLocal);
-
-				// Blit the array
-				ilg.Emit (OpCodes.Cpblk);
-
-				// pos += bytesRead
-				ilg.Emit (OpCodes.Ldloc, readerLocal);
-				ilg.Emit (OpCodes.Ldloc, readerLocal);
-				ilg.Emit (OpCodes.Ldfld, posField);
-				ilg.Emit (OpCodes.Ldloc, sizeLocal);
-				ilg.Emit (OpCodes.Add);
-				ilg.Emit (OpCodes.Stfld, posField);
-
-				ilg.Emit (OpCodes.Br, endLabel);
-			}
-
-			if (!mustBlit) {
-				ilg.MarkLabel (nonBlitLabel);
-
-				// for (int i = 0 ; i < ary.Length ; i++)
-				LocalBuilder indexLocal = ilg.DeclareLocal (typeof (int));
-				ilg.Emit (OpCodes.Ldc_I4_0);
-				ilg.Emit (OpCodes.Stloc, indexLocal);
-
-				Label loopStartLabel = ilg.DefineLabel ();
-				Label loopEndLabel = ilg.DefineLabel ();
-
-				ilg.Emit (OpCodes.Br, loopEndLabel);
-
-				ilg.MarkLabel (loopStartLabel);
-
-				{
-					// Read and store an element to the array
-					ilg.Emit (OpCodes.Ldloc, aryLocal);
-					ilg.Emit (OpCodes.Ldloc, indexLocal);
-
-					ilg.Emit (OpCodes.Ldloc, readerLocal);
-					GenReader (ilg, tElem);
-
-					ilg.Emit (OpCodes.Stelem, tElem);
-				}
-
-				// i++
-				ilg.Emit (OpCodes.Ldloc, indexLocal);
-				ilg.Emit (OpCodes.Ldc_I4_1);
-				ilg.Emit (OpCodes.Add);
-				ilg.Emit (OpCodes.Stloc, indexLocal);
-
-				ilg.MarkLabel (loopEndLabel);
-				ilg.Emit (OpCodes.Ldloc, indexLocal);
-				ilg.Emit (OpCodes.Ldloc, aryLocal);
-				ilg.Emit (OpCodes.Ldlen);
-				ilg.Emit (OpCodes.Blt, loopStartLabel);
-			}
-
-			ilg.MarkLabel (endLabel);
-
-			// Return the new array
-			ilg.Emit (OpCodes.Ldloc, aryLocal);
-		}
-
-		public static void GenReadCollection (ILGenerator ilg, Type type)
-		{
-			int fixedSize = 0;
-			if (type.IsArray && Signature.GetSig (type.GetElementType ()).GetFixedSize (ref fixedSize)) {
-				GenReadArrayFixed (ilg, type, fixedSize);
-				return;
-			}
-
-			LocalBuilder readerLocal = ilg.DeclareLocal (typeof (MessageReader));
-			ilg.Emit (OpCodes.Stloc, readerLocal);
-
-			Type[] genArgs = type.IsArray ? new Type[] { type.GetElementType () } : type.GetGenericArguments ();
-
-			Type collType = Mapper.GetGenericType (genArgs.Length == 2 ? typeof (Dictionary<,>) : typeof (List<>), genArgs);
-
-			ConstructorInfo ctor = collType.GetConstructor (Type.EmptyTypes);
-			ilg.Emit (OpCodes.Newobj, ctor);
-
-			LocalBuilder collLocal = ilg.DeclareLocal (collType);
-			ilg.Emit (OpCodes.Stloc, collLocal);
-
-			MethodInfo addMethod = collType.GetMethod ("Add", genArgs);
-
-
-			// Read the array's byte length
-			MethodInfo readUInt32Method = GetReadMethod (typeof (uint));
-			ilg.Emit (OpCodes.Ldloc, readerLocal);
-			ilg.Emit (readUInt32Method.IsFinal ? OpCodes.Call : OpCodes.Callvirt, readUInt32Method);
-
-			{
-				// Align to 8 for structs
-				ilg.Emit (OpCodes.Ldloc, readerLocal);
-				// TODO: This padding logic is sketchy
-				ilg.Emit (OpCodes.Ldc_I4, genArgs.Length > 1 ? 8 : Signature.GetSig (genArgs[0]).Alignment);
-				ilg.Emit (OpCodes.Call, messageReaderReadPad);
-			}
-
-			// Similar to the fixed array loop code
-
-			FieldInfo posField = typeof (MessageReader).GetField ("pos");
-			LocalBuilder endPosLocal = ilg.DeclareLocal (typeof (int));
-			ilg.Emit (OpCodes.Ldloc, readerLocal);
-			ilg.Emit (OpCodes.Ldfld, posField);
-
-			// Add the current position and byte length to determine endPos
-			// TODO: Consider padding?
-			ilg.Emit (OpCodes.Add);
-			ilg.Emit (OpCodes.Stloc, endPosLocal);
-
-			{
-				Label loopStartLabel = ilg.DefineLabel ();
-				Label loopEndLabel = ilg.DefineLabel ();
-
-				ilg.Emit (OpCodes.Br, loopEndLabel);
-
-				ilg.MarkLabel (loopStartLabel);
-
-				{
-					if (genArgs.Length > 1) {
-						// Align to 8 for structs
-						ilg.Emit (OpCodes.Ldloc, readerLocal);
-						ilg.Emit (OpCodes.Ldc_I4, 8);
-						ilg.Emit (OpCodes.Call, messageReaderReadPad);
-					}
-
-					// Read and store an element to the array
-					ilg.Emit (OpCodes.Ldloc, collLocal);
-
-					foreach (Type genArg in genArgs) {
-						ilg.Emit (OpCodes.Ldloc, readerLocal);
-						GenReader (ilg, genArg);
-					}
-
-					ilg.Emit (OpCodes.Call, addMethod);
-				}
-
-				ilg.MarkLabel (loopEndLabel);
-
-				ilg.Emit (OpCodes.Ldloc, readerLocal);
-				ilg.Emit (OpCodes.Ldfld, posField);
-
-				ilg.Emit (OpCodes.Ldloc, endPosLocal);
-				ilg.Emit (OpCodes.Blt, loopStartLabel);
-			}
-
-			// Return the new collection
-			ilg.Emit (OpCodes.Ldloc, collLocal);
-
-			if (type.IsArray) {
-				MethodInfo toArrayMethod = collType.GetMethod ("ToArray", Type.EmptyTypes);
-				ilg.Emit (OpCodes.Call, toArrayMethod);
-			}
+			ilg.Emit (OpCodes.Ldtoken, t);
+			ilg.Emit (OpCodes.Call, getTypeFromHandleMethod);
 		}
 	}
 

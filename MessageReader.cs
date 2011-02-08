@@ -70,32 +70,41 @@ namespace DBus.Protocol
 			}
 		}
 
+		Dictionary<Type, Func<object>> readValueCache = new Dictionary<Type, Func<object>> ();
+
 		public object ReadValue (Type type)
 		{
 			if (type == typeof (void))
 				return null;
 
+			Func<object> fastAccess;
+			if (readValueCache.TryGetValue (type, out fastAccess))
+				return fastAccess ();
+
 			if (type.IsArray) {
+				readValueCache[type] = () => ReadArray (type.GetElementType ());
 				return ReadArray (type.GetElementType ());
 			} else if (type == typeof (ObjectPath)) {
+				readValueCache[type] = () => ReadObjectPath ();
 				return ReadObjectPath ();
 			} else if (type == typeof (Signature)) {
+				readValueCache[type] = () => ReadSignature ();
 				return ReadSignature ();
 			} else if (type == typeof (object)) {
+				readValueCache[type] = () => ReadVariant ();
 				return ReadVariant ();
 			} else if (type == typeof (string)) {
+				readValueCache[type] = () => ReadString ();
 				return ReadString ();
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
-				//Type dictType = typeof (Dictionary<,>).MakeGenericType (genArgs);
-				//workaround for Mono bug #81035 (memory leak)
-				Type dictType = Mapper.GetGenericType (typeof (Dictionary<,>), genArgs);
-				System.Collections.IDictionary idict = (System.Collections.IDictionary)Activator.CreateInstance(dictType, new object[0]);
-				GetValueToDict (genArgs[0], genArgs[1], idict);
-				return idict;
+				readValueCache[type] = () => ReadDictionary (genArgs[0], genArgs[1]);
+				return ReadDictionary (genArgs[0], genArgs[1]);
 			} else if (Mapper.IsPublic (type)) {
+				readValueCache[type] = () => GetObject (type);
 				return GetObject (type);
 			} else if (!type.IsPrimitive && !type.IsEnum) {
+				readValueCache[type] = () => ReadStruct (type);
 				return ReadStruct (type);
 			} else {
 				object val;

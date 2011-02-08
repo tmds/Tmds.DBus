@@ -10,9 +10,23 @@ using DBus.Protocol;
 
 namespace DBus.Transports
 {
-	
 	abstract class Transport
 	{
+		readonly object writeLock = new object ();
+
+		protected Connection connection;
+
+		public Stream Stream;
+		public long SocketHandle;
+		internal Queue<Message> Inbound = new Queue<Message> ();
+		byte[] mmbuf = null;
+
+		int mmpos = 0;
+		int mmneeded = 16;
+		IEnumerator<MsgState> msgRdr;
+
+		public event EventHandler WakeUp;
+
 		public static Transport Create (AddressEntry entry)
 		{
 			switch (entry.Method) {
@@ -42,7 +56,9 @@ namespace DBus.Transports
 			}
 		}
 
-		protected Connection connection;
+		public abstract void Open (AddressEntry entry);
+		public abstract string AuthString ();
+		public abstract void WriteCred ();
 
 		public Connection Connection
 		{
@@ -53,35 +69,18 @@ namespace DBus.Transports
 			}
 		}
 
-		//TODO: design this properly
-
-		//this is just a temporary solution
-		public Stream Stream;
-		public long SocketHandle;
-		public abstract void Open (AddressEntry entry);
-		public abstract string AuthString ();
-		public abstract void WriteCred ();
-
 		public virtual bool TryGetPeerPid (out uint pid)
 		{
 			pid = 0;
 			return false;
 		}
 
-		Stream ns {
-			get {
-				return this.Stream;
-			}
-		}
 
 		public virtual void Disconnect ()
 		{
-			ns.Dispose ();
+			Stream.Dispose ();
 		}
 
-		internal Queue<Message> Inbound = new Queue<Message> ();
-
-		public event EventHandler WakeUp;
 		protected void FireWakeUp ()
 		{
 			if (WakeUp != null)
@@ -131,7 +130,7 @@ namespace DBus.Transports
 					continue;
 				}
 				*/
-				int nread = ns.Read (buffer, offset + read, count - read);
+				int nread = Stream.Read (buffer, offset + read, count - read);
 				if (nread == 0)
 					break;
 				read += nread;
@@ -145,12 +144,6 @@ namespace DBus.Transports
 
 			return read;
 		}
-
-		byte[] mmbuf = null;
-
-		int mmpos = 0;
-		int mmneeded = 16;
-		IEnumerator<MsgState> msgRdr;
 
 		public void GetData ()
 		{
@@ -295,12 +288,8 @@ namespace DBus.Transports
 			EndianFlag endianness = (EndianFlag)hbuf[0];
 			MessageReader reader = new MessageReader (endianness, hbuf);
 
-			//discard the endian byte as we've already read it
-			reader.ReadByte ();
-
-			//discard message type and flags, which we don't care about here
-			reader.ReadByte ();
-			reader.ReadByte ();
+			//discard endian byte, message type and flags, which we don't care about here
+			reader.Seek (3);
 
 			byte version = reader.ReadByte ();
 
@@ -355,25 +344,14 @@ namespace DBus.Transports
 			return msg;
 		}
 
-		readonly object writeLock = new object ();
 		internal virtual void WriteMessage (Message msg)
 		{
-			/*
-			byte[] HeaderData = msg.GetHeaderData ();
-
-			long msgLength = HeaderData.Length + (msg.Body != null ? msg.Body.Length : 0);
-			if (msgLength > Protocol.MaxMessageLength)
-				throw new Exception ("Message length " + msgLength + " exceeds maximum allowed " + Protocol.MaxMessageLength + " bytes");
-			*/
-
 			lock (writeLock) {
-				//ns.Write (HeaderData, 0, HeaderData.Length);
-				msg.GetHeaderDataToStream (ns);
+				msg.Header.GetHeaderDataToStream (Stream);
 				if (msg.Body != null && msg.Body.Length != 0)
-					ns.Write (msg.Body, 0, msg.Body.Length);
-				ns.Flush ();
+					Stream.Write (msg.Body, 0, msg.Body.Length);
+				Stream.Flush ();
 			}
-
 		}
 	}
 }

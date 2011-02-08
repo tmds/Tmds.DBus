@@ -453,12 +453,14 @@ namespace DBus.Protocol
 					return MarshalBoolArray (ln);
 		    }
 
-			Array array = Array.CreateInstance (elemType, (int)ln);
+			IList list = (IList)Activator.CreateInstance (typeof (List<>).MakeGenericType (elemType));
+
 			int endPos = pos + (int)ln;
-			int index = -1;
 
 			while (pos < endPos)
-				array.SetValue (ReadValue (elemType), ++index);
+				list.Add (ReadValue (elemType));
+			Array array = Array.CreateInstance (elemType, list.Count);
+			list.CopyTo (array, 0);
 
 			if (pos != endPos)
 				throw new Exception ("Read pos " + pos + " != ep " + endPos);

@@ -37,7 +37,6 @@ namespace DBus.Protocol
 					if (waitHandle == null)
 						Interlocked.CompareExchange (ref waitHandle, new ManualResetEvent (false), null);
 
-					// TODO: Possible race condition?
 					while (reply == null)
 						waitHandle.WaitOne ();
 

@@ -16,8 +16,8 @@ namespace DBus.Transports
 
 		protected Connection connection;
 
-		public Stream Stream;
-		public long SocketHandle;
+		public Stream stream;
+		public long socketHandle;
 		internal Queue<Message> Inbound = new Queue<Message> ();
 		byte[] mmbuf = null;
 
@@ -69,6 +69,24 @@ namespace DBus.Transports
 			}
 		}
 
+		public Stream Stream {
+			get {
+				return stream;
+			}
+			set {
+				stream = value;
+			}
+		}
+
+		public long SocketHandle {
+			get {
+				return socketHandle;
+			}
+			set {
+				socketHandle = value;
+			}
+		}
+
 		public virtual bool TryGetPeerPid (out uint pid)
 		{
 			pid = 0;
@@ -78,7 +96,7 @@ namespace DBus.Transports
 
 		public virtual void Disconnect ()
 		{
-			Stream.Dispose ();
+			stream.Dispose ();
 		}
 
 		protected void FireWakeUp ()
@@ -119,7 +137,7 @@ namespace DBus.Transports
 		int Read (byte[] buffer, int offset, int count)
 		{
 			int read = 0;
-			//System.Net.Sockets.NetworkStream nns = ns as System.Net.Sockets.NetworkStream;
+			//System.Net.Sockets.Networkstream nns = ns as System.Net.Sockets.Networkstream;
 			//SocketTransport st = this as SocketTransport;
 			while (read < count) {
 				// FIXME: Remove this hack to support non-blocking sockets on Windows
@@ -130,7 +148,7 @@ namespace DBus.Transports
 					continue;
 				}
 				*/
-				int nread = Stream.Read (buffer, offset + read, count - read);
+				int nread = stream.Read (buffer, offset + read, count - read);
 				if (nread == 0)
 					break;
 				read += nread;
@@ -347,10 +365,10 @@ namespace DBus.Transports
 		internal virtual void WriteMessage (Message msg)
 		{
 			lock (writeLock) {
-				msg.Header.GetHeaderDataToStream (Stream);
+				msg.Header.GetHeaderDataToStream (stream);
 				if (msg.Body != null && msg.Body.Length != 0)
-					Stream.Write (msg.Body, 0, msg.Body.Length);
-				Stream.Flush ();
+					stream.Write (msg.Body, 0, msg.Body.Length);
+				stream.Flush ();
 			}
 		}
 	}

@@ -169,7 +169,7 @@ namespace DBus.Protocol
 
 			foreach (KeyValuePair<FieldCode,MatchTest> pair in Fields) {
 				object value;
-				if (!msg.Header.Fields.TryGetValue ((byte)pair.Key, out value))
+				if (!msg.Header.TryGetField (pair.Key, out value))
 					return false;
 				if (!pair.Value.Value.Equals (value))
 					return false;

@@ -470,9 +470,15 @@ namespace DBus.Protocol
 		{
 			int sof = Marshal.SizeOf (primitiveType);
 			Array array = Array.CreateInstance (primitiveType, (int)length);
-			GCHandle handle = GCHandle.Alloc (array, GCHandleType.Pinned);
-			DirectCopy (sof, length, handle);
-			handle.Free ();
+
+			if (endianness == Connection.NativeEndianness) {
+				Buffer.BlockCopy (data, pos, array, 0, (int)(length * sof));
+				pos += (int)length * sof;
+			} else {
+				GCHandle handle = GCHandle.Alloc (array, GCHandleType.Pinned);
+				DirectCopy (sof, length, handle);
+				handle.Free ();
+			}
 
 			return array;
 		}

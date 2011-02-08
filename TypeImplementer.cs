@@ -153,7 +153,8 @@ namespace DBus
 			ParameterInfo[] delegateParms = declMethod.GetParameters ();
 			Type[] hookupParms = new Type[delegateParms.Length+1];
 			hookupParms[0] = typeof (BusObject);
-			Array.Copy (delegateParms, 0, hookupParms, 1, delegateParms.Length);
+			for (int i = 0; i < delegateParms.Length; ++i)
+				hookupParms[i + 1] = delegateParms[i].ParameterType;
 
 			DynamicMethod hookupMethod = new DynamicMethod ("Handle" + member, declMethod.ReturnType, hookupParms, typeof (MessageWriter));
 

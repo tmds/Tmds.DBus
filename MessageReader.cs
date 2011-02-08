@@ -98,8 +98,8 @@ namespace DBus.Protocol
 				return ReadString ();
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
-				readValueCache[type] = () => ReadDictionary (genArgs[0], genArgs[1]);
-				return ReadDictionary (genArgs[0], genArgs[1]);
+				Type dictType = null;
+				return (readValueCache[type] = () => dictType == null ? ReadDictionary (genArgs[0], genArgs[1], out dictType) : ReadDictionary (dictType, genArgs[0], genArgs[1]))();
 			} else if (Mapper.IsPublic (type)) {
 				readValueCache[type] = () => GetObject (type);
 				return GetObject (type);
@@ -400,9 +400,9 @@ namespace DBus.Protocol
 			return null;
 		}
 
-		public object ReadDictionary (Type keyType, Type valType)
+		public object ReadDictionary (Type keyType, Type valType, out Type dictType)
 		{
-			var dictType = typeof (Dictionary<,>).MakeGenericType (new[] { keyType, valType });
+			dictType = typeof (Dictionary<,>).MakeGenericType (new[] { keyType, valType });
 
 			return ReadDictionary (dictType);
 		}

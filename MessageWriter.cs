@@ -379,7 +379,7 @@ namespace DBus.Protocol
 		}
 
 		//this requires a seekable stream for now
-		public unsafe void WriteArray<T> (T[] val)
+		public void WriteArray<T> (T[] val)
 		{
 			Type elemType = typeof (T);
 
@@ -406,11 +406,9 @@ namespace DBus.Protocol
 				Write ((uint)byteLength);
 				WritePad (sigElem.Alignment);
 
-				GCHandle valHandle = GCHandle.Alloc (val, GCHandleType.Pinned);
-				IntPtr p = valHandle.AddrOfPinnedObject ();
 				byte[] data = new byte[byteLength];
-				Marshal.Copy (p, data, 0, byteLength);
-				valHandle.Free ();
+				Buffer.BlockCopy (val, 0, data, 0, data.Length);
+				stream.Write (data, 0, data.Length);
 
 				return;
 			}

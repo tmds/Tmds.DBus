@@ -81,6 +81,7 @@ namespace DBus.Protocol
 		public void AttachBodyTo (MessageWriter writer)
 		{
 			body = writer.ToArray ();
+			header.Length = (uint)body.Length;
 		}
 
 		public void HandleHeader (Header headerIn)
@@ -95,9 +96,6 @@ namespace DBus.Protocol
 
 		public byte[] GetHeaderData ()
 		{
-			if (Body != null)
-				header.Length = (uint)Body.Length;
-
 			MessageWriter writer = new MessageWriter (header.Endianness);
 			header.WriteHeaderToMessage (writer);
 			return writer.ToArray ();

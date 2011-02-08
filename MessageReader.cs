@@ -480,11 +480,11 @@ namespace DBus.Protocol
 		Array MarshalArray (Type primitiveType, uint length)
 		{
 			int sof = Marshal.SizeOf (primitiveType);
-			Array array = Array.CreateInstance (primitiveType, (int)length);
+			Array array = Array.CreateInstance (primitiveType, (int)(length / sof));
 
 			if (endianness == Connection.NativeEndianness) {
-				Buffer.BlockCopy (data, pos, array, 0, (int)(length * sof));
-				pos += (int)length * sof;
+				Buffer.BlockCopy (data, pos, array, 0, (int)length);
+				pos += (int)length;
 			} else {
 				GCHandle handle = GCHandle.Alloc (array, GCHandleType.Pinned);
 				DirectCopy (sof, length, handle);
@@ -497,10 +497,10 @@ namespace DBus.Protocol
 		unsafe void DirectCopy (int sof, uint length, GCHandle handle)
 		{
 			if (endianness == Connection.NativeEndianness) {
-				Marshal.Copy (data, pos, handle.AddrOfPinnedObject (), (int)length * sof);
+				Marshal.Copy (data, pos, handle.AddrOfPinnedObject (), (int)length);
 			} else {
 				byte* ptr = (byte*)(void*)handle.AddrOfPinnedObject ();
-				for (int i = pos; i < pos + length * sof; i += sof)
+				for (int i = pos; i < pos + length; i += sof)
 					for (int j = i; j < i + sof; j++)
 						ptr[2 * i - pos + (sof - 1) - j] = data[j];
 			}
@@ -543,7 +543,7 @@ namespace DBus.Protocol
 			object strct = Activator.CreateInstance (structType);
 			int sof = Marshal.SizeOf (fis[0].FieldType);
 			GCHandle handle = GCHandle.Alloc (strct, GCHandleType.Pinned);
-			DirectCopy (sof, (uint)fis.Length, handle);
+			DirectCopy (sof, (uint)(fis.Length * sof), handle);
 			handle.Free ();
 
 			return strct;

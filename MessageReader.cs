@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Collections;
 
 namespace DBus.Protocol
 {
@@ -387,63 +388,50 @@ namespace DBus.Protocol
 			if (sig.IsPrimitive)
 				return ReadValue (sig[0]);
 
-			Type t = null;
-			try {
-				t = sig.ToType ();
-			} catch (NotSupportedException e) {
-				// We don't catch other exceptions as they indicate a malformed signature
-				if (ProtocolInformations.Verbose)
-					Console.Error.WriteLine (e.Message);
-			}
-
-			/*
-			if (t == null) {
-				StepOver (sig);
-				return null;
-			}
-			*/
-
-			if (t == null) {
-				ReadPad (sig.Alignment);
-				int startPos = pos;
-				StepOver (sig);
-				int ln = pos - startPos;
-
-				DValue dv = new DValue();
-				dv.endianness = endianness;
-				dv.signature = sig;
-				dv.data = new byte[ln];
-				Array.Copy (data, startPos, dv.data, 0, ln);
-				return dv;
-			}
-
-			return ReadValue (t);
+			return null;
 		}
 
-		//not pretty or efficient but works
-		public void GetValueToDict (Type keyType, Type valType, System.Collections.IDictionary val)
+		public object ReadDictionary (Type keyType, Type valType)
+		{
+			var dictType = typeof (Dictionary<,>).MakeGenericType (new[] { keyType, valType });
+
+			return ReadDictionary (dictType);
+		}
+
+		public object ReadDictionary (Type dictType)
+		{
+			var tArr = dictType.GetGenericArguments ();
+			return ReadDictionary (dictType, tArr[0], tArr[1]);
+		}
+
+		public object ReadDictionary (Type dictType, Type keyType, Type valType)
 		{
 			uint ln = ReadUInt32 ();
 
 			if (ln > ProtocolInformations.MaxArrayLength)
 				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 
-			//advance to the alignment of the element
-			//ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
+			System.Collections.IDictionary val
+				= (System.Collections.IDictionary)Activator.CreateInstance (dictType);
+
 			ReadPad (8);
+			// Do we really need to align the element? 8 bytes boundaries should be good for everyone
+			// ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 
 			int endPos = pos + (int)ln;
 
 			//while (stream.Position != endPos)
-			while (pos < endPos)
-			{
+			while (pos < endPos) {
 				ReadPad (8);
-
-				val.Add (ReadValue (keyType), ReadValue (valType));
+				var k = ReadValue (keyType);
+				var v = ReadValue (valType);
+				val.Add (k, v);
 			}
 
 			if (pos != endPos)
 				throw new Exception ("Read pos " + pos + " != ep " + endPos);
+
+			return val;
 		}
 
 		//this could be made generic to avoid boxing

@@ -17,6 +17,9 @@ namespace DBus.Protocol
 		internal MemoryStream stream;
 		Connection connection;
 
+		static readonly MethodInfo arrayWriter = typeof (MessageWriter).GetMethod ("WriteArray");
+		static readonly MethodInfo dictWriter = typeof (MessageWriter).GetMethod ("WriteFromDict");
+
 		//a default constructor is a bad idea for now as we want to make sure the header and content-type match
 		public MessageWriter () : this (Connection.NativeEndianness) {}
 
@@ -221,8 +224,7 @@ namespace DBus.Protocol
 				return;
 
 			if (type.IsArray) {
-				MethodInfo miDict = typeof (MessageWriter).GetMethod ("WriteArray");
-				MethodInfo mi = miDict.MakeGenericMethod (type.GetElementType ());
+				MethodInfo mi = arrayWriter.MakeGenericMethod (type.GetElementType ());
 				mi.Invoke (this, new object[] {val});
 			} else if (type == typeof (ObjectPath)) {
 				Write ((ObjectPath)val);
@@ -234,8 +236,7 @@ namespace DBus.Protocol
 				Write ((string)val);
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
-				MethodInfo miDict = typeof (MessageWriter).GetMethod ("WriteFromDict");
-				MethodInfo mi = miDict.MakeGenericMethod (genArgs);
+				MethodInfo mi = dictWriter.MakeGenericMethod (genArgs);
 				mi.Invoke (this, new object[] {val});
 			} else if (Mapper.IsPublic (type)) {
 				WriteObject (type, val);

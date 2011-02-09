@@ -388,16 +388,19 @@ namespace DBus.Protocol
 
 		public object ReadVariant ()
 		{
-			return ReadValue (ReadSignature ());
+			var sig = ReadSignature ();
+			if (!sig.IsSingleCompleteType)
+				throw new InvalidOperationException (string.Format ("ReadVariant need a single complete type signature, {0} was given", sig.ToString ()));
+			return ReadValue (sig);
 		}
 
 		// Used primarily for reading variant values
-		object ReadValue (Signature sig)
+		public object ReadValue (Signature sig)
 		{
-			if (sig.IsPrimitive)
-				return ReadValue (sig[0]);
+			if (!sig.IsSingleCompleteType)
+				throw new ArgumentException (string.Format ("ReadVariant need a single complete type signature, {0} was given", sig.ToString ()));
 
-			return null;
+			return ReadValue (sig.ToType ());
 		}
 
 		public object ReadDictionary (Type keyType, Type valType, out Type dictType)

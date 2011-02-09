@@ -797,9 +797,7 @@ namespace DBus.Protocol
 						Type valueType = ToType (ref pos);
 						//skip over the }
 						pos++;
-						//return typeof (IDictionary<,>).MakeGenericType (new Type[] {keyType, valueType});
-						//workaround for Mono bug #81035 (memory leak)
-						return Mapper.GetGenericType (typeof (IDictionary<,>), new Type[] {keyType, valueType});
+						return typeof(Dictionary<,>).MakeGenericType (new [] { keyType, valueType});
 					} else {
 						return ToType (ref pos).MakeArrayType ();
 					}

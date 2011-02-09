@@ -27,7 +27,7 @@ namespace DBus
 		static MethodInfo messageReaderReadValue = typeof (MessageReader).GetMethod ("ReadValue", new Type[] { typeof (System.Type) });
 		static MethodInfo messageReaderReadArray = typeof (MessageReader).GetMethod ("ReadArray", new[] { typeof (Type) });
 		static MethodInfo messageReaderReadDictionary = typeof (MessageReader).GetMethod ("ReadDictionary", new[] { typeof (Type) });
-		static MethodInfo messageReaderReadStruct = typeof (MessageReader).GetMethod ("ReadStruct", new[] { typeof (Type) });
+		static MethodInfo messageReaderReadStruct = typeof (MessageReader).GetMethod ("ReadStruct", Type.EmptyTypes);
 
 		static Dictionary<Type,MethodInfo> writeMethods = new Dictionary<Type,MethodInfo> ();
 		static Dictionary<Type,object> typeWriters = new Dictionary<Type,object> ();
@@ -596,8 +596,7 @@ namespace DBus
 			} else if (t.IsInterface)
 				GenFallbackReader (ilg, tUnder);
 			else if (!tUnder.IsValueType) {
-				GenTypeOf (ilg, tUnder);
-				ilg.Emit (OpCodes.Callvirt, messageReaderReadStruct);
+				ilg.Emit (OpCodes.Callvirt, messageReaderReadStruct.MakeGenericMethod (tUnder));
 			} else
 				GenFallbackReader (ilg, tUnder);
 		}

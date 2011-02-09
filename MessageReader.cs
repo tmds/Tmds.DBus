@@ -497,12 +497,17 @@ namespace DBus.Protocol
 			return array;
 		}
 
-		unsafe void DirectCopy (int sof, uint length, GCHandle handle)
+		void DirectCopy (int sof, uint length, GCHandle handle)
+		{
+			DirectCopy (sof, length, handle.AddrOfPinnedObject ());
+		}
+
+		unsafe void DirectCopy (int sof, uint length, IntPtr handle)
 		{
 			if (endianness == Connection.NativeEndianness) {
-				Marshal.Copy (data, pos, handle.AddrOfPinnedObject (), (int)length);
+				Marshal.Copy (data, pos, handle, (int)length);
 			} else {
-				byte* ptr = (byte*)(void*)handle.AddrOfPinnedObject ();
+				byte* ptr = (byte*)(void*)handle;
 				for (int i = pos; i < pos + length; i += sof)
 					for (int j = i; j < i + sof; j++)
 						ptr[2 * i - pos + (sof - 1) - j] = data[j];
@@ -541,6 +546,28 @@ namespace DBus.Protocol
 			return val;
 		}
 
+		public T ReadStruct<T> ()
+			where T : struct
+		{
+			ReadPad (8);
+
+			FieldInfo[] fis = typeof (T).GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+			// Empty struct? No need for processing
+			if (fis.Length == 0)
+				return default (T);
+
+			if (IsEligibleStruct (typeof (T), fis))
+				return NewMarshalStruct<T> (fis);
+
+			object val = Activator.CreateInstance<T> ();
+
+			foreach (System.Reflection.FieldInfo fi in fis)
+				fi.SetValue (val, ReadValue (fi.FieldType));
+
+			return (T)val;
+		}
+
 		object MarshalStruct (Type structType, FieldInfo[] fis)
 		{
 			object strct = Activator.CreateInstance (structType);
@@ -550,6 +577,20 @@ namespace DBus.Protocol
 			handle.Free ();
 
 			return strct;
+		}
+
+		T NewMarshalStruct<T> (FieldInfo[] fis)
+			where T : struct
+		{
+			T val = default (T);
+			int sof = Marshal.SizeOf (fis[0].FieldType);
+
+			unsafe {
+				byte* pVal = (byte*)&val;
+				DirectCopy (sof, (uint)(fis.Length * sof), (IntPtr)pVal);
+			}
+
+			return val;
 		}
 
 		public void ReadNull ()

@@ -586,7 +586,12 @@ namespace DBus
 				GenTypeOf (ilg, t.GetElementType ());
 				ilg.Emit (OpCodes.Callvirt, messageReaderReadArray);
 			} else if (gDef != null && (gDef == typeof (IDictionary<,>) || gDef == typeof (Dictionary<,>))) {
-				GenTypeOf (ilg, t);
+				if (gDef == typeof (Dictionary<,>))
+					GenTypeOf (ilg, t);
+				else {
+					var tmpTypes = t.GetGenericArguments ();
+					GenTypeOf (ilg, typeof (Dictionary<,>).MakeGenericType (tmpTypes[0], tmpTypes[1]));
+				}
 				ilg.Emit (OpCodes.Callvirt, messageReaderReadDictionary);
 			} else if (t.IsInterface)
 				GenFallbackReader (ilg, tUnder);

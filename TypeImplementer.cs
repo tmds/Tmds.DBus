@@ -24,6 +24,9 @@ namespace DBus
 		static ConstructorInfo argumentNullExceptionConstructor = typeof (ArgumentNullException).GetConstructor (new Type[] {typeof (string)});
 		static ConstructorInfo messageWriterConstructor = typeof (MessageWriter).GetConstructor (Type.EmptyTypes);
 		static MethodInfo messageWriterWritePad = typeof (MessageWriter).GetMethod ("WritePad", new Type[] {typeof (int)});
+		static MethodInfo messageWriterWriteArray = typeof (MessageWriter).GetMethod ("WriteArray");
+		static MethodInfo messageWriterWriteDict = typeof (MessageWriter).GetMethod ("WriteFromDict");
+		static MethodInfo messageWriterWriteStruct = typeof (MessageWriter).GetMethod ("WriteStructure");
 		static MethodInfo messageReaderReadValue = typeof (MessageReader).GetMethod ("ReadValue", new Type[] { typeof (System.Type) });
 		static MethodInfo messageReaderReadArray = typeof (MessageReader).GetMethod ("ReadArray", new[] { typeof (Type) });
 		static MethodInfo messageReaderReadDictionary = typeof (MessageReader).GetMethod ("ReadDictionary", new[] { typeof (Type) });
@@ -222,16 +225,15 @@ namespace DBus
 			if (exactWriteMethod != null) {
 				ilg.Emit (OpCodes.Call, exactWriteMethod);
 			} else if (t.IsArray) {
-				MethodInfo mi = typeof (MessageWriter).GetMethod ("WriteArray");
-				exactWriteMethod = mi.MakeGenericMethod (type.GetElementType ());
+				exactWriteMethod = messageWriterWriteArray.MakeGenericMethod (type.GetElementType ());
 				ilg.Emit (OpCodes.Call, exactWriteMethod);
 			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
 				Type[] genArgs = type.GetGenericArguments ();
-				MethodInfo mi = typeof (MessageWriter).GetMethod ("WriteFromDict");
-				exactWriteMethod = mi.MakeGenericMethod (genArgs);
+				exactWriteMethod = messageWriterWriteDict.MakeGenericMethod (genArgs);
 				ilg.Emit (OpCodes.Call, exactWriteMethod);
 			} else {
-				GenStructWriter (ilg, t);
+				MethodInfo mi = messageWriterWriteStruct.MakeGenericMethod (t);
+				ilg.Emit (OpCodes.Call, mi);
 			}
 		}
 
@@ -239,56 +241,6 @@ namespace DBus
 		{
 			// FIXME: Field order!
 			return type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-		}
-
-		//takes a writer and a reference to an object off the stack
-		public static void GenStructWriter (ILGenerator ilg, Type type)
-		{
-			LocalBuilder val = ilg.DeclareLocal (type);
-			ilg.Emit (OpCodes.Stloc, val);
-
-			LocalBuilder writer = ilg.DeclareLocal (typeof (MessageWriter));
-			ilg.Emit (OpCodes.Stloc, writer);
-
-			//align to 8 for structs
-			ilg.Emit (OpCodes.Ldloc, writer);
-			ilg.Emit (OpCodes.Ldc_I4, 8);
-			ilg.Emit (OpCodes.Call, messageWriterWritePad);
-
-			foreach (FieldInfo fi in GetMarshalFields (type)) {
-				Type t = fi.FieldType;
-
-				// null checking of fields
-				if (!t.IsValueType) {
-					Label notNull = ilg.DefineLabel ();
-
-					//if the value is null...
-					//ilg.Emit (OpCodes.Ldarg, i);
-					ilg.Emit (OpCodes.Ldloc, val);
-					ilg.Emit (OpCodes.Ldfld, fi);
-
-					ilg.Emit (OpCodes.Brtrue_S, notNull);
-
-					//...throw Exception
-					string paramName = fi.Name;
-					ilg.Emit (OpCodes.Ldstr, paramName);
-					// TODO: Should not really be argumentNullException
-					ilg.Emit (OpCodes.Newobj, argumentNullExceptionConstructor);
-					ilg.Emit (OpCodes.Throw);
-
-					//was not null, so all is well
-					ilg.MarkLabel (notNull);
-				}
-
-				//the Writer to write to
-				ilg.Emit (OpCodes.Ldloc, writer);
-
-				//the object to read from
-				ilg.Emit (OpCodes.Ldloc, val);
-				ilg.Emit (OpCodes.Ldfld, fi);
-
-				GenWriter (ilg, t);
-			}
 		}
 
 		public static void GenHookupMethod (ILGenerator ilg, MethodInfo declMethod, MethodInfo invokeMethod, string @interface, string member)

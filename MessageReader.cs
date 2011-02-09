@@ -45,7 +45,7 @@ namespace DBus.Protocol
 		readonly Message message;
 
 		int pos = 0;
-		Dictionary<Type, bool> isPrimitiveStruct = new Dictionary<Type, bool> ();
+		static Dictionary<Type, bool> isPrimitiveStruct = new Dictionary<Type, bool> ();
 
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
@@ -713,7 +713,7 @@ namespace DBus.Protocol
 
 		// If a struct is only composed of primitive type fields (i.e. blittable types)
 		// then this method return true. Result is cached in isPrimitiveStruct dictionary.
-		bool IsEligibleStruct (Type structType, FieldInfo[] fields)
+		internal static bool IsEligibleStruct (Type structType, FieldInfo[] fields)
 		{
 			bool result;
 			if (isPrimitiveStruct.TryGetValue (structType, out result))

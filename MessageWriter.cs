@@ -19,6 +19,7 @@ namespace DBus.Protocol
 
 		static readonly MethodInfo arrayWriter = typeof (MessageWriter).GetMethod ("WriteArray");
 		static readonly MethodInfo dictWriter = typeof (MessageWriter).GetMethod ("WriteFromDict");
+		static readonly MethodInfo structWriter = typeof (MessageWriter).GetMethod ("WriteStructure");
 
 		//a default constructor is a bad idea for now as we want to make sure the header and content-type match
 		public MessageWriter () : this (Connection.NativeEndianness) {}
@@ -211,7 +212,8 @@ namespace DBus.Protocol
 			} else if (Mapper.IsPublic (type)) {
 				WriteObject (type, val);
 			} else if (!type.IsPrimitive && !type.IsEnum) {
-				WriteValueType (val, type);
+				MethodInfo mi = structWriter.MakeGenericMethod (type);
+				mi.Invoke (this, new[] { val });
 			} else {
 				Write (Signature.TypeToDType (type), val);
 			}
@@ -410,12 +412,6 @@ namespace DBus.Protocol
 		static void ThrowArrayLengthException (uint ln)
 		{
 			throw new Exception ("Array length " + ln.ToString () + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
-		}
-
-		public void WriteValueType (object val, Type type)
-		{
-			MethodInfo mi = TypeImplementer.GetWriteMethod (type);
-			mi.Invoke (null, new object[] {this, val});
 		}
 
 		public void WriteStructure<T> (T value) where T : struct

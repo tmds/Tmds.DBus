@@ -188,36 +188,6 @@ namespace DBus.Protocol
 			WriteNull ();
 		}
 
-		[Obsolete]
-		public void WriteComplex (object val, Type type)
-		{
-			if (type == typeof (void))
-				return;
-
-			if (type.IsArray) {
-				MethodInfo miDict = typeof (MessageWriter).GetMethod ("WriteArray");
-				MethodInfo mi = miDict.MakeGenericMethod (type.GetElementType ());
-				mi.Invoke (this, new object[] {val});
-			} else if (type.IsGenericType && (type.GetGenericTypeDefinition () == typeof (IDictionary<,>) || type.GetGenericTypeDefinition () == typeof (Dictionary<,>))) {
-				Type[] genArgs = type.GetGenericArguments ();
-				MethodInfo miDict = typeof (MessageWriter).GetMethod ("WriteFromDict");
-				MethodInfo mi = miDict.MakeGenericMethod (genArgs);
-				mi.Invoke (this, new object[] {val});
-			} else if (Mapper.IsPublic (type)) {
-				WriteObject (type, val);
-			} else if (!type.IsPrimitive && !type.IsEnum) {
-				WriteValueType (val, type);
-				/*
-			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (Nullable<>)) {
-				//is it possible to support nullable types?
-				Type[] genArgs = type.GetGenericArguments ();
-				WriteVariant (genArgs[0], val);
-				*/
-			} else {
-				throw new Exception ("Can't write");
-			}
-		}
-
 		public void Write (Type type, object val)
 		{
 			if (type == typeof (void))
@@ -501,46 +471,6 @@ namespace DBus.Protocol
 			Write (ln);
 			stream.Position = endPos;
 		}
-
-		/*
-		public void Write (IDictionary<FieldCode, object> val)
-		{
-			WriteHeaderDict(val);
-		}
-
-		public void Write (Dictionary<FieldCode, object> val)
-		{
-			WriteHeaderDict (val);
-		}
-		*/
-
-		/*
-		public void Write (Dictionary<byte, object> val)
-		{
-			long origPos = stream.Position;
-			Write ((uint)0);
-
-			WritePad (8);
-
-			long startPos = stream.Position;
-
-			foreach (KeyValuePair<byte, object> entry in val) {
-				WritePad (8);
-				Write (entry.Key);
-				Write (entry.Value);
-			}
-
-			long endPos = stream.Position;
-			uint ln = (uint)(endPos - startPos);
-			stream.Position = origPos;
-
-			if (ln > Protocol.MaxArrayLength)
-				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + Protocol.MaxArrayLength + " bytes");
-
-			Write (ln);
-			stream.Position = endPos;
-		}
-		*/
 
 		internal void WriteHeaderFields (Dictionary<byte, object> val)
 		{

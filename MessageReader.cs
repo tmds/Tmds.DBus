@@ -46,6 +46,7 @@ namespace DBus.Protocol
 
 		int pos = 0;
 		static Dictionary<Type, bool> isPrimitiveStruct = new Dictionary<Type, bool> ();
+		static readonly Encoding stringEncoding = Encoding.UTF8;
 
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
@@ -351,7 +352,7 @@ namespace DBus.Protocol
 		{
 			uint ln = ReadUInt32 ();
 
-			string val = Encoding.UTF8.GetString (data, pos, (int)ln);
+			string val = stringEncoding.GetString (data, pos, (int)ln);
 			pos += (int)ln;
 			ReadNull ();
 

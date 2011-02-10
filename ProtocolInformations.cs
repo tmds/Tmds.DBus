@@ -28,9 +28,7 @@ namespace DBus.Protocol
 		public static int PadNeeded (int pos, int alignment)
 		{
 			int pad = pos % alignment;
-			pad = pad == 0 ? 0 : alignment - pad;
-
-			return pad;
+			return pad == 0 ? 0 : alignment - pad;
 		}
 
 		public static int Padded (int pos, int alignment)

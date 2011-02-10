@@ -21,6 +21,8 @@ namespace DBus.Protocol
 		static readonly MethodInfo dictWriter = typeof (MessageWriter).GetMethod ("WriteFromDict");
 		static readonly MethodInfo structWriter = typeof (MessageWriter).GetMethod ("WriteStructure");
 
+		static readonly Encoding stringEncoding = Encoding.UTF8;
+
 		//a default constructor is a bad idea for now as we want to make sure the header and content-type match
 		public MessageWriter () : this (Connection.NativeEndianness) {}
 
@@ -166,7 +168,7 @@ namespace DBus.Protocol
 
 		public void Write (string val)
 		{
-			byte[] utf8_data = Encoding.UTF8.GetBytes (val);
+			byte[] utf8_data = stringEncoding.GetBytes (val);
 			Write ((uint)utf8_data.Length);
 			stream.Write (utf8_data, 0, utf8_data.Length);
 			WriteNull ();
@@ -369,7 +371,7 @@ namespace DBus.Protocol
 
 			Signature sigElem = Signature.GetSig (elemType);
 			int fixedSize = 0;
-			// TODO: similar to MessageReader's ReadArray, make the fast path available to both endianess
+
 			if (endianness == Connection.NativeEndianness && elemType.IsValueType && !sigElem.IsStruct && elemType != typeof(bool) && sigElem.GetFixedSize (ref fixedSize)) {
 				int byteLength = fixedSize * val.Length;
 				if (byteLength > ProtocolInformations.MaxArrayLength)

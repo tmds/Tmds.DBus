@@ -14,6 +14,9 @@ namespace DBus.Transports
 	{
 		readonly object writeLock = new object ();
 
+		[ThreadStatic]
+		static byte[] readBuffer;
+
 		protected Connection connection;
 
 		public Stream stream;
@@ -129,13 +132,15 @@ namespace DBus.Transports
 
 		Message ReadMessageReal ()
 		{
-			byte[] header;
+			byte[] header = null;
 			byte[] body = null;
 
 			int read;
 
 			//16 bytes is the size of the fixed part of the header
-			byte[] hbuf = new byte[16];
+			if (readBuffer == null)
+				readBuffer = new byte[16];
+			byte[] hbuf = readBuffer;
 
 			read = Read (hbuf, 0, 16);
 

@@ -443,17 +443,15 @@ namespace DBus.Protocol
 		public void WriteFromDict<TKey,TValue> (IDictionary<TKey,TValue> val)
 		{
 			long origPos = stream.Position;
+			// Pre-write array length field, we overwrite it at the end with the correct value
 			Write ((uint)0);
-
 			WritePad (8);
-
 			long startPos = stream.Position;
 
 			TypeWriter<TKey> keyWriter = TypeImplementer.GetTypeWriter<TKey> ();
 			TypeWriter<TValue> valueWriter = TypeImplementer.GetTypeWriter<TValue> ();
 
-			foreach (KeyValuePair<TKey,TValue> entry in val)
-			{
+			foreach (KeyValuePair<TKey,TValue> entry in val) {
 				WritePad (8);
 				keyWriter (this, entry.Key);
 				valueWriter (this, entry.Value);

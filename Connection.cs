@@ -212,21 +212,11 @@ namespace DBus
 			}
 		}
 
-		//temporary hack
 		public void Iterate ()
 		{
 			Message msg = transport.ReadMessage ();
 
 			HandleMessage (msg);
-			DispatchSignals ();
-		}
-
-		internal void Dispatch ()
-		{
-			while (transport.Inbound.Count != 0) {
-				Message msg = transport.Inbound.Dequeue ();
-				HandleMessage (msg);
-			}
 			DispatchSignals ();
 		}
 

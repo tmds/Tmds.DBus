@@ -23,7 +23,6 @@ namespace DBus
 		static MethodInfo getTypeFromHandleMethod = typeof (Type).GetMethod ("GetTypeFromHandle", new Type[] {typeof (RuntimeTypeHandle)});
 		static ConstructorInfo argumentNullExceptionConstructor = typeof (ArgumentNullException).GetConstructor (new Type[] {typeof (string)});
 		static ConstructorInfo messageWriterConstructor = typeof (MessageWriter).GetConstructor (Type.EmptyTypes);
-		static MethodInfo messageWriterWritePad = typeof (MessageWriter).GetMethod ("WritePad", new Type[] {typeof (int)});
 		static MethodInfo messageWriterWriteArray = typeof (MessageWriter).GetMethod ("WriteArray");
 		static MethodInfo messageWriterWriteDict = typeof (MessageWriter).GetMethod ("WriteFromDict");
 		static MethodInfo messageWriterWriteStruct = typeof (MessageWriter).GetMethod ("WriteStructure");

@@ -70,12 +70,10 @@ namespace DBus.Protocol
 					return 1;
 				case DType.Array:
 					return 4;
-				case DType.Struct:
 				case DType.StructBegin:
 					return 8;
 				case DType.Variant:
 					return 1;
-				case DType.DictEntry:
 				case DType.DictEntryBegin:
 					return 8;
 				case DType.Invalid:

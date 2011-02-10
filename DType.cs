@@ -26,10 +26,6 @@ namespace DBus.Protocol
 		Signature = (byte)'g',
 
 		Array = (byte)'a',
-		[Obsolete ("Not in protocol")]
-		Struct = (byte)'r',
-		[Obsolete ("Not in protocol")]
-		DictEntry = (byte)'e',
 		Variant = (byte)'v',
 
 		StructBegin = (byte)'(',

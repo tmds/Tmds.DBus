@@ -15,10 +15,8 @@ namespace DBus
 	{
 		protected Connection conn;
 		string bus_name;
-		string alt_bus_name;
 		ObjectPath object_path;
 
-		//protected BusObject ()
 		public BusObject ()
 		{
 		}
@@ -131,13 +129,10 @@ namespace DBus
 
 			//handle the reply message
 			switch (retMsg.Header.MessageType) {
-				case MessageType.MethodReturn:
-				if ((string)retMsg.Header[FieldCode.Sender] != bus_name)
-					alt_bus_name = (string)retMsg.Header[FieldCode.Sender];
-					retVal = new MessageReader (retMsg);
+			case MessageType.MethodReturn:
+				retVal = new MessageReader (retMsg);
 				break;
-				case MessageType.Error:
-				//TODO: typed exceptions
+			case MessageType.Error:
 				Error error = new Error (retMsg);
 				string errMsg = String.Empty;
 				if (retMsg.Signature.Value.StartsWith ("s")) {
@@ -146,7 +141,7 @@ namespace DBus
 				}
 				exception = new Exception (error.ErrorName + ": " + errMsg);
 				break;
-				default:
+			default:
 				throw new Exception ("Got unexpected message of type " + retMsg.Header.MessageType + " while waiting for a MethodReturn or Error");
 			}
 
@@ -201,7 +196,6 @@ namespace DBus
 		{
 			Type proxyType = TypeImplementer.Root.GetImplementation (declType);
 
-			//BusObject inst = (BusObject)Activator.CreateInstance (proxyType);
 			object instObj = Activator.CreateInstance (proxyType);
 			BusObject inst = GetBusObject (instObj);
 			inst.conn = conn;

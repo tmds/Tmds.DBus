@@ -636,7 +636,7 @@ namespace DBus.Protocol
 				return DType.ObjectPath;
 
 			if (!type.IsPrimitive && !type.IsEnum)
-				return DType.Struct;
+				return DType.StructBegin;
 
 			//TODO: maybe throw an exception here
 			return DType.Invalid;
@@ -801,9 +801,9 @@ namespace DBus.Protocol
 					} else {
 						return ToType (ref pos).MakeArrayType ();
 					}
-				case DType.Struct:
+				case DType.StructBegin:
 					return typeof (ValueType);
-				case DType.DictEntry:
+				case DType.DictEntryBegin:
 					return typeof (System.Collections.Generic.KeyValuePair<,>);
 				case DType.Variant:
 					return typeof (object);

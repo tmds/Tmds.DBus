@@ -18,6 +18,12 @@ namespace DBus.Protocol
 		internal Signature signature;
 		internal byte[] data;
 
+		public DValue (EndianFlag endianness, byte[] data)
+		{
+			this.endianness = endianness;
+			this.data = data;
+		}
+
 		public bool CanConvertTo (Type conversionType)
 		{
 			Signature typeSig = Signature.GetSig (conversionType);

@@ -14,7 +14,7 @@ namespace DBus.Protocol
 	public sealed class MessageWriter
 	{
 		EndianFlag endianness;
-		internal MemoryStream stream;
+		MemoryStream stream;
 		Connection connection;
 
 		static readonly MethodInfo arrayWriter = typeof (MessageWriter).GetMethod ("WriteArray");
@@ -524,6 +524,8 @@ namespace DBus.Protocol
 		public void WritePad (int alignment)
 		{
 			int needed = ProtocolInformations.PadNeeded ((int)stream.Position, alignment);
+			if (needed == 0)
+				return;
 			stream.Write (nullBytes, 0, needed);
 		}
 	}

@@ -419,8 +419,6 @@ namespace DBus.Protocol
 
 			var val = new Dictionary<TKey, TValue> ((int)(ln / 8));
 			ReadPad (8);
-			// Do we really need to align the element? 8 bytes boundaries should be good for everyone
-			// ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 
 			int endPos = pos + (int)ln;
 
@@ -540,8 +538,7 @@ namespace DBus.Protocol
 			return val;
 		}
 
-		public T ReadStruct<T> ()
-			where T : struct
+		public T ReadStruct<T> () where T : struct
 		{
 			ReadPad (8);
 
@@ -573,8 +570,7 @@ namespace DBus.Protocol
 			return strct;
 		}
 
-		T NewMarshalStruct<T> (FieldInfo[] fis)
-			where T : struct
+		T NewMarshalStruct<T> (FieldInfo[] fis) where T : struct
 		{
 			T val = default (T);
 			int sof = Marshal.SizeOf (fis[0].FieldType);

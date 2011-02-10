@@ -447,10 +447,16 @@ namespace DBus.Protocol
 			return val;
 		}
 
-		//this could be made generic to avoid boxing
 		public Array ReadArray (Type elemType)
 		{
+			MethodInfo mi = this.GetType ().GetMethod ("ReadArray", Type.EmptyTypes).MakeGenericMethod (new [] { elemType });
+			return (Array)mi.Invoke (this, null);
+		}
+
+		public TArray[] ReadArray<TArray> ()
+		{
 			uint ln = ReadUInt32 ();
+			Type elemType = typeof (TArray);
 
 			if (ln > ProtocolInformations.MaxArrayLength)
 				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
@@ -461,30 +467,27 @@ namespace DBus.Protocol
 			if (elemType.IsPrimitive) {
 				// Fast path for primitive types (except bool which isn't blittable and take another path)
 				if (elemType != typeof (bool))
-					return MarshalArray (elemType, ln);
+					return MarshalArray<TArray> (ln);
 				else
-					return MarshalBoolArray (ln);
+					return (TArray[])(Array)MarshalBoolArray (ln);
 		    }
 
-			IList list = (IList)Activator.CreateInstance (typeof (List<>).MakeGenericType (elemType));
-
+			var list = new List<TArray> ();
 			int endPos = pos + (int)ln;
 
 			while (pos < endPos)
-				list.Add (ReadValue (elemType));
-			Array array = Array.CreateInstance (elemType, list.Count);
-			list.CopyTo (array, 0);
+				list.Add ((TArray)ReadValue (elemType));
 
 			if (pos != endPos)
 				throw new Exception ("Read pos " + pos + " != ep " + endPos);
 
-			return array;
+			return list.ToArray ();
 		}
 
-		Array MarshalArray (Type primitiveType, uint length)
+		TArray[] MarshalArray<TArray> (uint length)
 		{
-			int sof = Marshal.SizeOf (primitiveType);
-			Array array = Array.CreateInstance (primitiveType, (int)(length / sof));
+			int sof = Marshal.SizeOf (typeof (TArray));
+			TArray[] array = new TArray[(int)(length / sof)];
 
 			if (endianness == Connection.NativeEndianness) {
 				Buffer.BlockCopy (data, pos, array, 0, (int)length);
@@ -517,7 +520,7 @@ namespace DBus.Protocol
 			pos += (int)length * sof;
 		}
 
-		Array MarshalBoolArray (uint length)
+		bool[] MarshalBoolArray (uint length)
 		{
 			bool[] array = new bool [length];
 			for (int i = 0; i < length; i++)

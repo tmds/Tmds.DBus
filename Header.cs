@@ -61,7 +61,7 @@ namespace DBus.Protocol
 			header.Length = reader.ReadUInt32 ();
 			header.Serial = reader.ReadUInt32 ();
 
-			FieldCodeEntry[] fields = (FieldCodeEntry[])reader.ReadArray (typeof (FieldCodeEntry));
+			FieldCodeEntry[] fields = reader.ReadArray<FieldCodeEntry> ();
 			foreach (var f in fields) {
 				header[(FieldCode)f.Code] = f.Value;
 			}

@@ -28,8 +28,8 @@ namespace DBus
 		static MethodInfo messageWriterWriteDict = typeof (MessageWriter).GetMethod ("WriteFromDict");
 		static MethodInfo messageWriterWriteStruct = typeof (MessageWriter).GetMethod ("WriteStructure");
 		static MethodInfo messageReaderReadValue = typeof (MessageReader).GetMethod ("ReadValue", new Type[] { typeof (System.Type) });
-		static MethodInfo messageReaderReadArray = typeof (MessageReader).GetMethod ("ReadArray", new[] { typeof (Type) });
-		static MethodInfo messageReaderReadDictionary = typeof (MessageReader).GetMethod ("ReadDictionary", new[] { typeof (Type) });
+		static MethodInfo messageReaderReadArray = typeof (MessageReader).GetMethod ("ReadArray", Type.EmptyTypes);
+		static MethodInfo messageReaderReadDictionary = typeof (MessageReader).GetMethod ("ReadDictionary", Type.EmptyTypes);
 		static MethodInfo messageReaderReadStruct = typeof (MessageReader).GetMethod ("ReadStruct", Type.EmptyTypes);
 
 		static Dictionary<Type,MethodInfo> writeMethods = new Dictionary<Type,MethodInfo> ();
@@ -535,16 +535,12 @@ namespace DBus
 			if (exactMethod != null) {
 				ilg.Emit (OpCodes.Callvirt, exactMethod);
 			} else if (t.IsArray) {
-				GenTypeOf (ilg, t.GetElementType ());
-				ilg.Emit (OpCodes.Callvirt, messageReaderReadArray);
+				var tarray = t.GetElementType ();
+				ilg.Emit (OpCodes.Call, messageReaderReadArray.MakeGenericMethod (new[] { tarray }));
 			} else if (gDef != null && (gDef == typeof (IDictionary<,>) || gDef == typeof (Dictionary<,>))) {
-				if (gDef == typeof (Dictionary<,>))
-					GenTypeOf (ilg, t);
-				else {
-					var tmpTypes = t.GetGenericArguments ();
-					GenTypeOf (ilg, typeof (Dictionary<,>).MakeGenericType (tmpTypes[0], tmpTypes[1]));
-				}
-				ilg.Emit (OpCodes.Callvirt, messageReaderReadDictionary);
+				var tmpTypes = t.GetGenericArguments ();
+				MethodInfo mi = messageReaderReadDictionary.MakeGenericMethod (new[] { tmpTypes[0], tmpTypes[1] });
+				ilg.Emit (OpCodes.Callvirt, mi);
 			} else if (t.IsInterface)
 				GenFallbackReader (ilg, tUnder);
 			else if (!tUnder.IsValueType) {

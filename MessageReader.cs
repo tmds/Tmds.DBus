@@ -99,8 +99,8 @@ namespace DBus.Protocol
 				return ReadString ();
 			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
-				Type dictType = null;
-				return (readValueCache[type] = () => dictType == null ? ReadDictionary (genArgs[0], genArgs[1], out dictType) : ReadDictionary (dictType, genArgs[0], genArgs[1]))();
+				readValueCache[type] = () => ReadDictionary (genArgs[0], genArgs[1]);
+				return ReadDictionary (genArgs[0], genArgs[1]);
 			} else if (Mapper.IsPublic (type)) {
 				readValueCache[type] = () => GetObject (type);
 				return GetObject (type);
@@ -404,40 +404,30 @@ namespace DBus.Protocol
 			return ReadValue (sig.ToType ());
 		}
 
-		public object ReadDictionary (Type keyType, Type valType, out Type dictType)
+		public IDictionary ReadDictionary (Type keyType, Type valType)
 		{
-			dictType = typeof (Dictionary<,>).MakeGenericType (new[] { keyType, valType });
-
-			return ReadDictionary (dictType);
+			MethodInfo mi = this.GetType ().GetMethod ("ReadDictionary", Type.EmptyTypes).MakeGenericMethod (new [] { keyType, valType });
+			return (IDictionary)mi.Invoke (this, null);
 		}
 
-		public object ReadDictionary (Type dictType)
-		{
-			var tArr = dictType.GetGenericArguments ();
-			return ReadDictionary (dictType, tArr[0], tArr[1]);
-		}
-
-		public object ReadDictionary (Type dictType, Type keyType, Type valType)
+		public Dictionary<TKey, TValue> ReadDictionary<TKey, TValue> ()
 		{
 			uint ln = ReadUInt32 ();
 
 			if (ln > ProtocolInformations.MaxArrayLength)
 				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
 
-			System.Collections.IDictionary val
-				= (System.Collections.IDictionary)Activator.CreateInstance (dictType);
-
+			var val = new Dictionary<TKey, TValue> ((int)(ln / 8));
 			ReadPad (8);
 			// Do we really need to align the element? 8 bytes boundaries should be good for everyone
 			// ReadPad (Protocol.GetAlignment (Signature.TypeToDType (type)));
 
 			int endPos = pos + (int)ln;
 
-			//while (stream.Position != endPos)
 			while (pos < endPos) {
 				ReadPad (8);
-				var k = ReadValue (keyType);
-				var v = ReadValue (valType);
+				TKey k = (TKey)ReadValue (typeof (TKey));
+				TValue v = (TValue)ReadValue (typeof (TValue));
 				val.Add (k, v);
 			}
 

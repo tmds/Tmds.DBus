@@ -64,11 +64,12 @@ namespace DBus
 		}
 
 		IBus bus;
-
+		string address;
 
 		public Bus (string address) : base (address)
 		{
-			bus = GetObject<IBus> (DBusName, DBusPath);
+			this.bus = GetObject<IBus> (DBusName, DBusPath);
+			this.address = address;
 			Register ();
 		}
 

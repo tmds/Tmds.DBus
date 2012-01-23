@@ -197,7 +197,7 @@ namespace DBus.Unix
 
 		// Solaris provides socket functionality in libsocket rather than libc.
 		// We use a dllmap in the .config to deal with this.
-		internal const string LIBSOCKET = "libsocket";
+		internal const string LIBSOCKET = "libc";
 
 		public const short AF_UNIX = 1;
 		// FIXME: SOCK_STREAM is 2 on Solaris

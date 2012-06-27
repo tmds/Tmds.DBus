@@ -444,7 +444,7 @@ namespace DBus
 			return null;
 		}
 
-		internal static OpenMethodCaller GenCaller2 (MethodInfo target)
+		internal static OpenMethodCaller GenOpenCaller (MethodInfo target)
 		{
 			DynamicMethod hookupMethod = GenReadMethod (target);
 			OpenMethodCaller caller = hookupMethod.CreateDelegate (typeof (OpenMethodCaller)) as OpenMethodCaller;

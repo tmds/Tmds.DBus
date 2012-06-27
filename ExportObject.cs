@@ -71,7 +71,7 @@ namespace DBus
 			OpenMethodCaller mCaller;
 			if (!mCallers.TryGetValue (mi, out mCaller)) {
 				//mCaller = TypeImplementer.GenCaller (mi, obj);
-				mCaller = TypeImplementer.GenCaller2 (mi);
+				mCaller = TypeImplementer.GenOpenCaller (mi);
 				mCallers[mi] = mCaller;
 			}
 			return mCaller;
@@ -107,7 +107,7 @@ namespace DBus
 			OpenMethodCaller mCaller;
 			if (!mCallers.TryGetValue (mi, out mCaller)) {
 				//mCaller = TypeImplementer.GenCaller (mi, obj);
-				mCaller = TypeImplementer.GenCaller2 (mi);
+				mCaller = TypeImplementer.GenOpenCaller (mi);
 				mCallers[mi] = mCaller;
 			}
 

@@ -103,29 +103,6 @@ namespace DBus.Unix
 		}
 	}
 
-	static class UnixUid
-	{
-		internal const string LIBC = "libc";
-
-		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=false)]
-		static extern uint getuid ();
-
-		[DllImport (LIBC, CallingConvention=CallingConvention.Cdecl, SetLastError=false)]
-		static extern uint geteuid ();
-
-		public static long GetUID ()
-		{
-			long uid = getuid ();
-			return uid;
-		}
-
-		public static long GetEUID ()
-		{
-			long euid = geteuid ();
-			return euid;
-		}
-	}
-
 	static class UnixError
 	{
 		internal const string LIBC = "libc";

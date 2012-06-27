@@ -21,7 +21,7 @@ namespace DBus.Transports
 
 		public override string AuthString ()
 		{
-			long uid = UnixUid.GetEUID ();
+			long uid = Mono.Unix.Native.Syscall.geteuid ();
 			return uid.ToString ();
 		}
 

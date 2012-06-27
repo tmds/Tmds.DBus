@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -14,22 +15,18 @@ namespace DBus
 	using Protocol;
 
 	//TODO: perhaps ExportObject should not derive from BusObject
-	internal class ExportObject : BusObject, IDisposable //, Peer
+	internal class ExportObject : BusObject, IDisposable
 	{
 		//maybe add checks to make sure this is not called more than once
 		//it's a bit silly as a property
 		bool isRegistered = false;
+		Dictionary<MessageContainer, MethodInfo> methodInfoCache = new Dictionary<MessageContainer, MethodInfo> ();
 
-		static readonly Dictionary<MethodInfo,OpenMethodCaller> mCallers = new Dictionary<MethodInfo,OpenMethodCaller> ();
+		static readonly Dictionary<MethodInfo, OpenMethodCaller> mCallers = new Dictionary<MethodInfo, OpenMethodCaller> ();
 
 		public ExportObject (Connection conn, ObjectPath object_path, object obj) : base (conn, null, object_path)
 		{
 			Object = obj;
-		}
-
-		public object Object {
-			get;
-			private set;
 		}
 
 		public virtual bool Registered
@@ -70,7 +67,6 @@ namespace DBus
 		{
 			OpenMethodCaller mCaller;
 			if (!mCallers.TryGetValue (mi, out mCaller)) {
-				//mCaller = TypeImplementer.GenCaller (mi, obj);
 				mCaller = TypeImplementer.GenOpenCaller (mi);
 				mCallers[mi] = mCaller;
 			}
@@ -88,16 +84,11 @@ namespace DBus
 			return new ExportObject (conn, object_path, obj);
 		}
 
-		public virtual void HandleMethodCall (MethodCall method_call)
+		public virtual void HandleMethodCall (MessageContainer method_call)
 		{
-			Type type = Object.GetType ();
-
-			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
-
-			//TODO: there is no member name mapping for properties etc. yet
-
-			// FIXME: Inefficient to do this on every call
-			MethodInfo mi = Mapper.GetMethod (type, method_call);
+			MethodInfo mi;
+			if (!methodInfoCache.TryGetValue (method_call, out mi))
+				methodInfoCache[method_call] = mi = Mapper.GetMethod (Object.GetType (), method_call);
 
 			if (mi == null) {
 				conn.MaybeSendUnknownMethodError (method_call);
@@ -106,7 +97,6 @@ namespace DBus
 
 			OpenMethodCaller mCaller;
 			if (!mCallers.TryGetValue (mi, out mCaller)) {
-				//mCaller = TypeImplementer.GenCaller (mi, obj);
 				mCaller = TypeImplementer.GenOpenCaller (mi);
 				mCallers[mi] = mCaller;
 			}
@@ -114,20 +104,13 @@ namespace DBus
 			Signature inSig, outSig;
 			TypeImplementer.SigsForMethod (mi, out inSig, out outSig);
 
-			Message msg = method_call.message;
-			MessageReader msgReader = new MessageReader (method_call.message);
+			Message msg = method_call.Message;
+			MessageReader msgReader = new MessageReader (msg);
 			MessageWriter retWriter = new MessageWriter ();
-
-			/*
-			MessageWriter retWriter = null;
-			if (msg.ReplyExpected)
-				retWriter = new MessageWriter ();
-			*/
 
 			Exception raisedException = null;
 			try {
-				//mCaller (msgReader, method_call.message, retWriter);
-				mCaller (Object, msgReader, method_call.message, retWriter);
+				mCaller (Object, msgReader, msg, retWriter);
 			} catch (Exception e) {
 				raisedException = e;
 			}
@@ -138,32 +121,37 @@ namespace DBus
 			Message replyMsg;
 
 			if (raisedException == null) {
-				MethodReturn method_return = new MethodReturn (msg.Header.Serial);
-				replyMsg = method_return.message;
+				MessageContainer method_return = new MessageContainer {
+					Type = MessageType.MethodReturn,
+					ReplySerial = msg.Header.Serial
+				};
+				replyMsg = method_return.Message;
 				replyMsg.AttachBodyTo (retWriter);
 				replyMsg.Signature = outSig;
 			} else {
-				Error error;
 				// BusException allows precisely formatted Error messages.
 				BusException busException = raisedException as BusException;
 				if (busException != null)
-					error = method_call.CreateError (busException.ErrorName, busException.ErrorMessage);
+					replyMsg = method_call.CreateError (busException.ErrorName, busException.ErrorMessage);
 				else if (raisedException is ArgumentException && raisedException.TargetSite.Name == mi.Name) {
 					// Name match trick above is a hack since we don't have the resolved MethodInfo.
 					ArgumentException argException = (ArgumentException)raisedException;
 					using (System.IO.StringReader sr = new System.IO.StringReader (argException.Message)) {
-						error = method_call.CreateError ("org.freedesktop.DBus.Error.InvalidArgs", sr.ReadLine ());
+						replyMsg = method_call.CreateError ("org.freedesktop.DBus.Error.InvalidArgs", sr.ReadLine ());
 					}
 				} else
-					error = method_call.CreateError (Mapper.GetInterfaceName (raisedException.GetType ()), raisedException.Message);
-
-				replyMsg = error.Message;
+					replyMsg = method_call.CreateError (Mapper.GetInterfaceName (raisedException.GetType ()), raisedException.Message);
 			}
 
 			if (method_call.Sender != null)
 				replyMsg.Header[FieldCode.Destination] = method_call.Sender;
 
 			conn.Send (replyMsg);
+		}
+
+		public object Object {
+			get;
+			private set;
 		}
 
 		/*
@@ -178,7 +166,6 @@ namespace DBus
 		}
 		*/
 
-#region IDisposable
 		public void Dispose ()
 		{
 			Dispose (true);
@@ -199,6 +186,5 @@ namespace DBus
 				}
 			}
 		}
-#endregion
 	}
 }

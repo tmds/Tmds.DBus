@@ -85,7 +85,13 @@ namespace DBus
 
 			Signature outSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
 
-			Signal signal = new Signal (object_path, iface, member, outSig);
+			MessageContainer signal = new MessageContainer {
+				Type = MessageType.Signal,
+				Path = object_path,
+				Interface = iface,
+				Member = member,
+				Signature = outSig,
+			};
 
 			Message signalMsg = signal.Message;
 			signalMsg.AttachBodyTo (writer);
@@ -103,9 +109,15 @@ namespace DBus
 			exception = null;
 			Signature inSig = String.IsNullOrEmpty (inSigStr) ? Signature.Empty : new Signature (inSigStr);
 
-			MethodCall method_call = new MethodCall (object_path, iface, member, bus_name, inSig);
+			MessageContainer method_call = new MessageContainer {
+				Path = object_path,
+				Interface = iface,
+				Member = member,
+				Destination = bus_name,
+				Signature = inSig
+			};
 
-			Message callMsg = method_call.message;
+			Message callMsg = method_call.Message;
 			callMsg.AttachBodyTo (writer);
 
 			bool needsReply = true;
@@ -135,7 +147,7 @@ namespace DBus
 				retVal = new MessageReader (retMsg);
 				break;
 			case MessageType.Error:
-				Error error = new Error (retMsg);
+				MessageContainer error = MessageContainer.FromMessage (retMsg);
 				string errMsg = String.Empty;
 				if (retMsg.Signature.Value.StartsWith ("s")) {
 					MessageReader reader = new MessageReader (retMsg);

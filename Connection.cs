@@ -257,7 +257,7 @@ namespace DBus
 
 			switch (msg.Header.MessageType) {
 				case MessageType.MethodCall:
-					MethodCall method_call = new MethodCall (msg);
+					MessageContainer method_call = MessageContainer.FromMessage (msg);
 					HandleMethodCall (method_call);
 					break;
 				case MessageType.Signal:
@@ -267,7 +267,7 @@ namespace DBus
 					break;
 				case MessageType.Error:
 					//TODO: better exception handling
-					Error error = new Error (msg);
+					MessageContainer error = MessageContainer.FromMessage (msg);
 					string errMsg = String.Empty;
 					if (msg.Signature.Value.StartsWith ("s")) {
 						MessageReader reader = new MessageReader (msg);
@@ -284,7 +284,7 @@ namespace DBus
 		//this might need reworking with MulticastDelegate
 		internal void HandleSignal (Message msg)
 		{
-			Signal signal = new Signal (msg);
+			var signal = MessageContainer.FromMessage (msg);
 
 			//TODO: this is a hack, not necessary when MatchRule is complete
 			MatchRule rule = new MatchRule ();
@@ -323,7 +323,7 @@ namespace DBus
 		internal Dictionary<MatchRule,Delegate> Handlers = new Dictionary<MatchRule,Delegate> ();
 
 		//very messy
-		internal void MaybeSendUnknownMethodError (MethodCall method_call)
+		internal void MaybeSendUnknownMethodError (MessageContainer method_call)
 		{
 			Message msg = MessageHelper.CreateUnknownMethodError (method_call);
 			if (msg != null)
@@ -331,7 +331,7 @@ namespace DBus
 		}
 
 		//not particularly efficient and needs to be generalized
-		internal void HandleMethodCall (MethodCall method_call)
+		internal void HandleMethodCall (MessageContainer method_call)
 		{
 			//TODO: Ping and Introspect need to be abstracted and moved somewhere more appropriate once message filter infrastructure is complete
 

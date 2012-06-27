@@ -58,7 +58,7 @@ namespace DBus
 		//this method walks the interface tree in an undefined manner and returns the first match, or if no matches are found, null
 		//the logic needs review and cleanup
 		//TODO: unify member name mapping as is already done with interfaces and args
-		public static MethodInfo GetMethod (Type type, MethodCall method_call)
+		public static MethodInfo GetMethod (Type type, MessageContainer method_call)
 		{
 			foreach (MemberInfo member in Mapper.GetPublicMembers (type)) {
 				//this could be made more efficient by using the given interface name earlier and avoiding walking through all public interfaces
@@ -184,25 +184,33 @@ namespace DBus
 	//TODO: this class is messy, move the methods somewhere more appropriate
 	static class MessageHelper
 	{
-		public static Message CreateUnknownMethodError (MethodCall method_call)
+		public static Message CreateUnknownMethodError (MessageContainer method_call)
 		{
-			if (!method_call.message.ReplyExpected)
+			Message msg = method_call.Message;
+			if (!msg.ReplyExpected)
 				return null;
 
-			string errMsg = String.Format ("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist", method_call.Member, method_call.Signature.Value, method_call.Interface);
+			string errMsg = String.Format ("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist",
+			                               method_call.Member,
+			                               method_call.Signature.Value,
+			                               method_call.Interface);
 
-			Error error = new Error ("org.freedesktop.DBus.Error.UnknownMethod", method_call.message.Header.Serial);
-			error.Message.Signature = Signature.StringSig;
+			var error = new MessageContainer {
+				ErrorName = "org.freedesktop.DBus.Error.UnknownMethod",
+				Serial = msg.Header.Serial,
+				Signature = Signature.StringSig,
+			};
 
 			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
 			writer.Write (errMsg);
-			error.Message.AttachBodyTo (writer);
+			msg = error.Message;
+			msg.AttachBodyTo (writer);
 
 			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
 			if (method_call.Sender != null)
-				error.Message.Header[FieldCode.Destination] = method_call.Sender;
+				msg.Header[FieldCode.Destination] = method_call.Sender;
 
-			return error.Message;
+			return msg;
 		}
 
 		public static void WriteDynamicValues (MessageWriter mw, ParameterInfo[] parms, object[] vals)
@@ -271,10 +279,13 @@ namespace DBus
 			return GetDynamicValues (msg, types);
 		}
 
-		public static Message ConstructReply (MethodCall method_call, params object[] vals)
+		public static Message ConstructReply (MessageContainer method_call, params object[] vals)
 		{
-			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
-			Message replyMsg = method_return.message;
+			var msg = method_call.Message;
+			MessageContainer method_return = new MessageContainer {
+				Serial = msg.Header.Serial
+			};
+			Message replyMsg = method_return.Message;
 
 			Signature inSig = Signature.GetSig (vals);
 
@@ -298,12 +309,14 @@ namespace DBus
 			return replyMsg;
 		}
 
-		public static Message ConstructDynamicReply (MethodCall method_call, MethodInfo mi, object retVal, object[] vals)
+		public static Message ConstructDynamicReply (MessageContainer method_call, MethodInfo mi, object retVal, object[] vals)
 		{
 			Type retType = mi.ReturnType;
 
-			MethodReturn method_return = new MethodReturn (method_call.message.Header.Serial);
-			Message replyMsg = method_return.message;
+			MessageContainer method_return = new MessageContainer {
+				Serial = method_call.Serial,
+			};
+			Message replyMsg = method_return.Message;
 
 			Signature outSig = Signature.GetSig (retType);
 			outSig += Signature.GetSig (Mapper.GetTypes (ArgDirection.Out, mi.GetParameters ()));

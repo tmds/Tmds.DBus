@@ -13,6 +13,8 @@ namespace DBus
 
 	public class BusObject
 	{
+		static Dictionary<object,BusObject> boCache = new Dictionary<object,BusObject>();
+
 		protected Connection conn;
 		string bus_name;
 		ObjectPath object_path;
@@ -205,7 +207,6 @@ namespace DBus
 			return instObj;
 		}
 
-		static Dictionary<object,BusObject> boCache = new Dictionary<object,BusObject>();
 		public static BusObject GetBusObject (object instObj)
 		{
 			if (instObj is BusObject)

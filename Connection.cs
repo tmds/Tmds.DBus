@@ -161,7 +161,8 @@ namespace DBus
 			isAuthenticated = true;
 		}
 
-		//Interlocked.Increment() handles the overflow condition for uint correctly, so it's ok to store the value as an int but cast it to uint
+		// Interlocked.Increment() handles the overflow condition for uint correctly,
+		// so it's ok to store the value as an int but cast it to uint
 		internal uint GenerateSerial ()
 		{
 			return (uint)Interlocked.Increment (ref serial);

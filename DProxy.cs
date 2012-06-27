@@ -64,13 +64,6 @@ namespace DBus
 			return returnMessage;
 		}
 
-		/*
-		public override ObjRef CreateObjRef (Type ServerType)
-		{
-			throw new System.NotImplementedException ();
-		}
-		*/
-
 		~DProxy ()
 		{
 			//FIXME: remove handlers/match rules here

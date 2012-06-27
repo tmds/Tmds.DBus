@@ -34,9 +34,9 @@ namespace org.freedesktop.DBus
 
 	public enum StartReply : uint
 	{
-		//The service was successfully started.
+		// The service was successfully started.
 		Success = 1,
-		//A connection already owns the given name.
+		// A connection already owns the given name.
 		AlreadyRunning,
 	}
 

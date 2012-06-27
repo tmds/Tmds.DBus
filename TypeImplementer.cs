@@ -43,7 +43,8 @@ namespace DBus
 
 		public TypeImplementer (string name, bool canSave)
 		{
-			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName (name), canSave ? AssemblyBuilderAccess.RunAndSave : AssemblyBuilderAccess.Run);
+			asmB = AppDomain.CurrentDomain.DefineDynamicAssembly (new AssemblyName (name),
+			                                                      canSave ? AssemblyBuilderAccess.RunAndSave : AssemblyBuilderAccess.Run);
 			modB = asmB.DefineDynamicModule (name);
 		}
 
@@ -520,7 +521,6 @@ namespace DBus
 			ilg.Emit (OpCodes.Ret);
 		}
 
-		//takes the Reader instance off the stack, puts value of type t on the stack
 		public static void GenReader (ILGenerator ilg, Type t)
 		{
 			Type tUnder = t;

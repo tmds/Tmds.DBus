@@ -20,7 +20,7 @@ namespace DBus
 		//it's a bit silly as a property
 		bool isRegistered = false;
 
-		static readonly Dictionary<MethodInfo,MethodCaller2> mCallers = new Dictionary<MethodInfo,MethodCaller2> ();
+		static readonly Dictionary<MethodInfo,OpenMethodCaller> mCallers = new Dictionary<MethodInfo,OpenMethodCaller> ();
 
 		public ExportObject (Connection conn, ObjectPath object_path, object obj) : base (conn, null, object_path)
 		{
@@ -66,9 +66,9 @@ namespace DBus
 			intro.WriteType (Object.GetType ());
 		}
 
-		internal static MethodCaller2 GetMCaller (MethodInfo mi)
+		internal static OpenMethodCaller GetMCaller (MethodInfo mi)
 		{
-			MethodCaller2 mCaller;
+			OpenMethodCaller mCaller;
 			if (!mCallers.TryGetValue (mi, out mCaller)) {
 				//mCaller = TypeImplementer.GenCaller (mi, obj);
 				mCaller = TypeImplementer.GenCaller2 (mi);
@@ -104,7 +104,7 @@ namespace DBus
 				return;
 			}
 
-			MethodCaller2 mCaller;
+			OpenMethodCaller mCaller;
 			if (!mCallers.TryGetValue (mi, out mCaller)) {
 				//mCaller = TypeImplementer.GenCaller (mi, obj);
 				mCaller = TypeImplementer.GenCaller2 (mi);

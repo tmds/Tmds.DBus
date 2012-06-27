@@ -19,6 +19,10 @@ namespace DBus
 		static Bus systemBus = Address.StarterBusType == "system" ? Starter : Bus.Open (Address.System);
 		static Bus sessionBus = Address.StarterBusType == "session" ? Starter : Bus.Open (Address.Session);
 
+		IBus bus;
+		string address;
+		string uniqueName;
+
 		public static Bus System
 		{
 			get {
@@ -63,9 +67,6 @@ namespace DBus
 			return bus;
 		}
 
-		IBus bus;
-		string address;
-
 		public Bus (string address) : base (address)
 		{
 			this.bus = GetObject<IBus> (DBusName, DBusPath);
@@ -77,10 +78,10 @@ namespace DBus
 		//as long as Bus subclasses Connection, having a Register with a completely different meaning is bad
 		void Register ()
 		{
-			if (unique_name != null)
+			if (uniqueName != null)
 				throw new Exception ("Bus already has a unique name");
 
-			unique_name = bus.Hello ();
+			uniqueName = bus.Hello ();
 		}
 
 		protected override void CloseInternal ()
@@ -142,15 +143,14 @@ namespace DBus
 			return bus.GetId ();
 		}
 
-		string unique_name = null;
 		public string UniqueName
 		{
 			get {
-				return unique_name;
+				return uniqueName;
 			} set {
-				if (unique_name != null)
+				if (uniqueName != null)
 					throw new Exception ("Unique name can only be set once");
-				unique_name = value;
+				uniqueName = value;
 			}
 		}
 	}

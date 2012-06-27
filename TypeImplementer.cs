@@ -445,17 +445,10 @@ namespace DBus
 			return null;
 		}
 
-		internal static OpenMethodCaller GenOpenCaller (MethodInfo target)
+		internal static MethodCaller GenCaller (MethodInfo target)
 		{
 			DynamicMethod hookupMethod = GenReadMethod (target);
-			OpenMethodCaller caller = hookupMethod.CreateDelegate (typeof (OpenMethodCaller)) as OpenMethodCaller;
-			return caller;
-		}
-
-		internal static MethodCaller GenCaller (MethodInfo target, object targetInstance)
-		{
-			DynamicMethod hookupMethod = GenReadMethod (target);
-			MethodCaller caller = hookupMethod.CreateDelegate (typeof (MethodCaller), targetInstance) as MethodCaller;
+			MethodCaller caller = hookupMethod.CreateDelegate (typeof (MethodCaller)) as MethodCaller;
 			return caller;
 		}
 
@@ -574,6 +567,5 @@ namespace DBus
 
 	internal delegate void TypeWriter<T> (MessageWriter writer, T value);
 
-	internal delegate void MethodCaller (MessageReader rdr, Message msg, MessageWriter ret);
-	internal delegate void OpenMethodCaller (object instance, MessageReader rdr, Message msg, MessageWriter ret);
+	internal delegate void MethodCaller (object instance, MessageReader rdr, Message msg, MessageWriter ret);
 }

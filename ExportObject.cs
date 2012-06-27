@@ -20,9 +20,9 @@ namespace DBus
 		//maybe add checks to make sure this is not called more than once
 		//it's a bit silly as a property
 		bool isRegistered = false;
-		Dictionary<MessageContainer, MethodInfo> methodInfoCache = new Dictionary<MessageContainer, MethodInfo> ();
+		Dictionary<string, MethodInfo> methodInfoCache = new Dictionary<string, MethodInfo> ();
 
-		static readonly Dictionary<MethodInfo, OpenMethodCaller> mCallers = new Dictionary<MethodInfo, OpenMethodCaller> ();
+		static readonly Dictionary<MethodInfo, MethodCaller> mCallers = new Dictionary<MethodInfo, MethodCaller> ();
 
 		public ExportObject (Connection conn, ObjectPath object_path, object obj) : base (conn, null, object_path)
 		{
@@ -63,11 +63,11 @@ namespace DBus
 			intro.WriteType (Object.GetType ());
 		}
 
-		internal static OpenMethodCaller GetMCaller (MethodInfo mi)
+		internal static MethodCaller GetMCaller (MethodInfo mi)
 		{
-			OpenMethodCaller mCaller;
+			MethodCaller mCaller;
 			if (!mCallers.TryGetValue (mi, out mCaller)) {
-				mCaller = TypeImplementer.GenOpenCaller (mi);
+				mCaller = TypeImplementer.GenCaller (mi);
 				mCallers[mi] = mCaller;
 			}
 			return mCaller;
@@ -87,17 +87,17 @@ namespace DBus
 		public virtual void HandleMethodCall (MessageContainer method_call)
 		{
 			MethodInfo mi;
-			if (!methodInfoCache.TryGetValue (method_call, out mi))
-				methodInfoCache[method_call] = mi = Mapper.GetMethod (Object.GetType (), method_call);
+			if (!methodInfoCache.TryGetValue (method_call.Member, out mi))
+				methodInfoCache[method_call.Member] = mi = Mapper.GetMethod (Object.GetType (), method_call);
 
 			if (mi == null) {
 				conn.MaybeSendUnknownMethodError (method_call);
 				return;
 			}
 
-			OpenMethodCaller mCaller;
+			MethodCaller mCaller;
 			if (!mCallers.TryGetValue (mi, out mCaller)) {
-				mCaller = TypeImplementer.GenOpenCaller (mi);
+				mCaller = TypeImplementer.GenCaller (mi);
 				mCallers[mi] = mCaller;
 			}
 

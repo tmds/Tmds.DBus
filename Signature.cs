@@ -404,6 +404,7 @@ namespace DBus.Protocol
 		
 		public bool IsSingleCompleteType
 		{
+			// TODO: should recurse
 			get {
 				if (data.Length == 0)
 					return false;
@@ -411,7 +412,7 @@ namespace DBus.Protocol
 				// If the length is 1, it must be
 				// a single complete type
 				if (data.Length == 1)
-					return true;
+					return Enum.IsDefined (typeof (DType), data[0]);
 				
 				// The type of an array must be a single complete
 				// type, therefore if it's an array we know this is

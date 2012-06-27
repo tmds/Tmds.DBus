@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -134,15 +135,11 @@ namespace DBus
 
 		public static string GetInterfaceName (Type type)
 		{
-			string interfaceName = type.FullName;
-
-			//TODO: better fallbacks and namespace mangling when no InterfaceAttribute is available
-
-			//TODO: no need for foreach
-			foreach (InterfaceAttribute ia in type.GetCustomAttributes (typeof (InterfaceAttribute), true))
-				interfaceName = ia.Name;
-
-			return interfaceName;
+			return type.GetCustomAttributes (typeof (InterfaceAttribute), true)
+				.Cast<InterfaceAttribute> ()
+				.Select (i => i.Name)
+				.DefaultIfEmpty (type.FullName)
+				.FirstOrDefault ();
 		}
 
 		public static Type[] GetTypes (ArgDirection dir, ParameterInfo[] parms)

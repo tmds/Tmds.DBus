@@ -177,39 +177,10 @@ namespace DBus
 			return attrProvider.IsDefined (typeof (ObsoleteAttribute), true);
 		}
 
-		static bool AreEqual (Type[] a, Type[] b)
-		{
-			if (a.Length != b.Length)
-				return false;
-
-			for (int i = 0 ; i != a.Length ; i++)
-				if (a[i] != b[i])
-					return false;
-
-			return true;
-		}
-
-		//workaround for Mono bug #81035 (memory leak)
-		static List<Type> genTypes = new List<Type> ();
 		internal static Type GetGenericType (Type defType, Type[] parms)
 		{
-			lock (genTypes) {
-				foreach (Type genType in genTypes) {
-					if (genType.GetGenericTypeDefinition () != defType)
-						continue;
-
-					Type[] genParms = genType.GetGenericArguments ();
-
-					if (!AreEqual (genParms, parms))
-						continue;
-
-					return genType;
-				}
-
-				Type type = defType.MakeGenericType (parms);
-				genTypes.Add (type);
-				return type;
-			}
+			Type type = defType.MakeGenericType (parms);
+			return type;
 		}
 	}
 

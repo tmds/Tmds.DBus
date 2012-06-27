@@ -67,11 +67,12 @@ namespace DBus
 
 			TypeBuilder typeB = modB.DefineType (proxyName, TypeAttributes.Class | TypeAttributes.Public, parentType);
 
+			string interfaceName = null;
 			if (declType.IsInterface)
-				Implement (typeB, declType);
+				Implement (typeB, declType, interfaceName = Mapper.GetInterfaceName (declType));
 
 			foreach (Type iface in declType.GetInterfaces ())
-				Implement (typeB, iface);
+				Implement (typeB, iface, interfaceName == null ? Mapper.GetInterfaceName (iface) : interfaceName);
 
 			retT = typeB.CreateType ();
 
@@ -81,7 +82,7 @@ namespace DBus
 			return retT;
 		}
 
-		static void Implement (TypeBuilder typeB, Type iface)
+		static void Implement (TypeBuilder typeB, Type iface, string interfaceName)
 		{
 			typeB.AddInterfaceImplementation (iface);
 
@@ -105,7 +106,7 @@ namespace DBus
 					method_builder.DefineParameter (i + 1, parms[i].Attributes, parms[i].Name);
 
 				ILGenerator ilg = method_builder.GetILGenerator ();
-				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, Mapper.GetInterfaceName (iface), declMethod.Name);
+				GenHookupMethod (ilg, declMethod, sendMethodCallMethod, interfaceName, declMethod.Name);
 
 				if (declMethod.IsSpecialName)
 					builders[declMethod.Name] = method_builder;

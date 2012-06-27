@@ -395,6 +395,9 @@ namespace DBus
 
 		public object GetObject (Type type, string bus_name, ObjectPath path)
 		{
+			if (!CheckBusNameExists (bus_name))
+				return null;
+
 			//if the requested type is an interface, we can implement it efficiently
 			//otherwise we fall back to using a transparent proxy
 			if (type.IsInterface || type.IsAbstract) {
@@ -412,6 +415,11 @@ namespace DBus
 		public T GetObject<T> (string bus_name, ObjectPath path)
 		{
 			return (T)GetObject (typeof (T), bus_name, path);
+		}
+
+		protected virtual bool CheckBusNameExists (string busName)
+		{
+			return true;
 		}
 
 		public void Register (ObjectPath path, object obj)

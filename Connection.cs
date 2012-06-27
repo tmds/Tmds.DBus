@@ -444,7 +444,7 @@ namespace DBus
 			ExportObject eo = (ExportObject)bo;
 			eo.Registered = false;
 
-			return eo.obj;
+			return eo.Object;
 		}
 
 		//these look out of place, but are useful

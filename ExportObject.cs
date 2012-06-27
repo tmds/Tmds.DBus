@@ -16,16 +16,22 @@ namespace DBus
 	//TODO: perhaps ExportObject should not derive from BusObject
 	internal class ExportObject : BusObject, IDisposable //, Peer
 	{
-		public object obj;
-
-		public ExportObject (Connection conn, ObjectPath object_path, object obj) : base (conn, null, object_path)
-		{
-			this.obj = obj;
-		}
-
 		//maybe add checks to make sure this is not called more than once
 		//it's a bit silly as a property
 		bool isRegistered = false;
+
+		static readonly Dictionary<MethodInfo,MethodCaller2> mCallers = new Dictionary<MethodInfo,MethodCaller2> ();
+
+		public ExportObject (Connection conn, ObjectPath object_path, object obj) : base (conn, null, object_path)
+		{
+			Object = obj;
+		}
+
+		public object Object {
+			get;
+			private set;
+		}
+
 		public virtual bool Registered
 		{
 			get {
@@ -35,7 +41,7 @@ namespace DBus
 				if (value == isRegistered)
 					return;
 
-				Type type = obj.GetType ();
+				Type type = Object.GetType ();
 
 				foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
 					EventInfo ei = mi as EventInfo;
@@ -46,9 +52,9 @@ namespace DBus
 					Delegate dlg = GetHookupDelegate (ei);
 
 					if (value)
-						ei.AddEventHandler (obj, dlg);
+						ei.AddEventHandler (Object, dlg);
 					else
-						ei.RemoveEventHandler (obj, dlg);
+						ei.RemoveEventHandler (Object, dlg);
 				}
 
 				isRegistered = value;
@@ -57,7 +63,7 @@ namespace DBus
 
 		internal virtual void WriteIntrospect (Introspector intro)
 		{
-			intro.WriteType (obj.GetType ());
+			intro.WriteType (Object.GetType ());
 		}
 
 		internal static MethodCaller2 GetMCaller (MethodInfo mi)
@@ -82,10 +88,9 @@ namespace DBus
 			return new ExportObject (conn, object_path, obj);
 		}
 
-		static internal readonly Dictionary<MethodInfo,MethodCaller2> mCallers = new Dictionary<MethodInfo,MethodCaller2> ();
 		public virtual void HandleMethodCall (MethodCall method_call)
 		{
-			Type type = obj.GetType ();
+			Type type = Object.GetType ();
 
 			//object retObj = type.InvokeMember (msg.Member, BindingFlags.InvokeMethod, null, obj, MessageHelper.GetDynamicValues (msg));
 
@@ -122,7 +127,7 @@ namespace DBus
 			Exception raisedException = null;
 			try {
 				//mCaller (msgReader, method_call.message, retWriter);
-				mCaller (obj, msgReader, method_call.message, retWriter);
+				mCaller (Object, msgReader, method_call.message, retWriter);
 			} catch (Exception e) {
 				raisedException = e;
 			}
@@ -187,12 +192,10 @@ namespace DBus
 
 		protected virtual void Dispose (bool disposing)
 		{
-			if (disposing)
-			{
-				if (obj != null)
-				{
+			if (disposing) {
+				if (Object != null) {
 					Registered = false;
-					obj = null;
+					Object = null;
 				}
 			}
 		}

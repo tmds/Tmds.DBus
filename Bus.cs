@@ -95,6 +95,8 @@ namespace DBus
 
 		protected override bool CheckBusNameExists (string busName)
 		{
+			if (busName == DBusName)
+				return true;
 			return NameHasOwner (busName);
 		}
 

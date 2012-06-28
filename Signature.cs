@@ -103,6 +103,8 @@ namespace DBus.Protocol
 		{
 			if (value == null)
 				throw new ArgumentNullException ("value");
+			if (!IsValid (value))
+				throw new ArgumentException (string.Format ("'{0}' is not a valid signature", value), "value");
 			
 			foreach (var c in value)
 				if (!Enum.IsDefined (typeof (DType), (byte) c))
@@ -115,6 +117,32 @@ namespace DBus.Protocol
 			} else {
 				data = Encoding.ASCII.GetBytes (value);
 			}
+		}
+
+		// Basic validity is to check that every "opening" DType has a corresponding closing DType
+		static bool IsValid (string strSig)
+		{
+			int structCount = 0;
+			int dictCount = 0;
+
+			foreach (char c in strSig) {
+				switch ((DType)c) {
+				case DType.StructBegin:
+					structCount++;
+					break;
+				case DType.StructEnd:
+					structCount--;
+					break;
+				case DType.DictEntryBegin:
+					dictCount++;
+					break;
+				case DType.DictEntryEnd:
+					dictCount--;
+					break;
+				}
+			}
+
+			return structCount == 0 && dictCount == 0;
 		}
 
 		internal static Signature Take (byte[] value)
@@ -404,40 +432,11 @@ namespace DBus.Protocol
 		
 		public bool IsSingleCompleteType
 		{
-			// TODO: should recurse
 			get {
 				if (data.Length == 0)
-					return false;
-				
-				// If the length is 1, it must be
-				// a single complete type
-				if (data.Length == 1)
-					return Enum.IsDefined (typeof (DType), data[0]);
-				
-				// The type of an array must be a single complete
-				// type, therefore if it's an array we know this is
-				// a single complete type
-				if (data [0] == 'a')
 					return true;
-				
-				// Single complete types can be structs: (ii)
-				// or they can be dict entries: {ii}.
-				var start = data [0];
-				if (start == '(' || start == '{') {
-					if (data.Length < 3)
-						return false;
-					
-					// Search for exactly 1 instance of the corresponding closing brace
-					// and make sure it's at the end of the signature
-					int found = 0;
-					var seeking = start == '(' ? ')' : '}';
-					for (int i = 1; i < data.Length; i++)
-						if (data[i] == seeking)
-							found++;
-					
-					return found == 1 && data [data.Length - 1] == seeking;
-				}
-				return false;
+				var checker = new SignatureChecker (data);
+				return checker.CheckSignature ();
 			}
 		}
 		
@@ -803,6 +802,7 @@ namespace DBus.Protocol
 						return ToType (ref pos).MakeArrayType ();
 					}
 				case DType.StructBegin:
+					//pos = data.Length;
 					return typeof (ValueType);
 				case DType.DictEntryBegin:
 					return typeof (System.Collections.Generic.KeyValuePair<,>);
@@ -876,6 +876,89 @@ namespace DBus.Protocol
 
 			DType dtype = Signature.TypeToDType (type);
 			return new Signature (dtype);
+		}
+
+		class SignatureChecker
+		{
+			byte[] data;
+			int pos;
+
+			internal SignatureChecker (byte[] data)
+			{
+				this.data = data;
+			}
+
+			internal bool CheckSignature ()
+			{
+				return SingleType () ? pos == data.Length : false;
+			}
+
+			bool SingleType ()
+			{
+				if (pos >= data.Length)
+					return false;
+
+				//Console.WriteLine ((DType)data[pos]);
+
+				switch ((DType)data[pos]) {
+				// Simple Type
+				case DType.Byte:
+				case DType.Boolean:
+				case DType.Int16:
+				case DType.UInt16:
+				case DType.Int32:
+				case DType.UInt32:
+				case DType.Int64:
+				case DType.UInt64:
+				case DType.Single:
+				case DType.Double:
+				case DType.String:
+				case DType.ObjectPath:
+				case DType.Signature:
+				case DType.Variant:
+					pos += 1;
+					return true;
+				case DType.Array:
+					pos += 1;
+					return ArrayType ();
+				case DType.StructBegin:
+					pos += 1;
+					return StructType ();
+				case DType.DictEntryBegin:
+					pos += 1;
+					return DictType ();
+				}
+
+				return false;
+			}
+
+			bool ArrayType ()
+			{
+				return SingleType ();
+			}
+
+			bool DictType ()
+			{
+				bool result = SingleType () && SingleType () && ((DType)data[pos]) == DType.DictEntryEnd;
+				if (result)
+					pos += 1;
+				return result;
+			}
+
+			bool StructType ()
+			{
+				if (pos >= data.Length)
+					return false;
+				while (((DType)data[pos]) != DType.StructEnd) {
+					if (!SingleType ())
+						return false;
+					if (pos >= data.Length)
+						return false;
+				}
+				pos += 1;
+
+				return true;
+			}
 		}
 	}
 }

@@ -75,12 +75,6 @@ namespace DBus
 
 		public static ExportObject CreateExportObject (Connection conn, ObjectPath object_path, object obj)
 		{
-#if DLR
-			Type type = obj.GetType ();
-			if (type.Name == "RubyObject" || type.FullName == "IronPython.Runtime.Types.OldInstance")
-				return new DynamicExportObject (conn, object_path, obj);
-#endif
-
 			return new ExportObject (conn, object_path, obj);
 		}
 
@@ -153,18 +147,6 @@ namespace DBus
 			get;
 			private set;
 		}
-
-		/*
-		public void Ping ()
-		{
-		}
-
-		public string GetMachineId ()
-		{
-			//TODO: implement this
-			return String.Empty;
-		}
-		*/
 
 		public void Dispose ()
 		{

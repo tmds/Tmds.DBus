@@ -12,25 +12,27 @@
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <RootNamespace>DBus</RootNamespace>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>..\dbus-sharp.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
+    <DebugSymbols>True</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
+    <Optimize>False</Optimize>
     <OutputPath>.</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;STRONG_NAME</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
+    <Optimize>True</Optimize>
     <OutputPath>.</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;STRONG_NAME</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -63,7 +65,6 @@
     <Compile Include="Unix.cs" />
     <Compile Include="UnixNativeTransport.cs" />
     <Compile Include="UnixTransport.cs" />
-    <Compile Include="TypeRental.cs" />
     <Compile Include="DType.cs" />
     <Compile Include="ArgDirection.cs" />
     <Compile Include="ObjectPath.cs" />
@@ -74,17 +75,10 @@
     <Compile Include="HeaderFlag.cs" />
     <Compile Include="BusException.cs" />
     <Compile Include="AddressEntry.cs" />
-    <Compile Include="Signal.cs" />
-    <Compile Include="Error.cs" />
-    <Compile Include="MethodReturn.cs" />
-    <Compile Include="MethodCall.cs" />
     <Compile Include="DValue.cs" />
-    <Compile Include="DynamicExportObject.cs" />
-    <Compile Include="IntrospectionSchema.cs" />
     <Compile Include="MessageDumper.cs" />
-    <Compile Include="PipeTransport.cs" />
-    <Compile Include="TypeDefiner.cs" />
     <Compile Include="ProtocolInformations.cs" />
+    <Compile Include="MessageContainer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
@@ -92,6 +86,8 @@
     <VisualStudio AllowExistingFolder="true" />
   </ProjectExtensions>
   <ItemGroup>
-    <None Include="dbus-sharp.dll.config" />
+    <Content Include="dbus-sharp.dll.config">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

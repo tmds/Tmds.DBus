@@ -760,56 +760,62 @@ namespace DBus.Protocol
 			DType dtype = (DType)data[pos++];
 
 			switch (dtype) {
-				case DType.Invalid:
-					return typeof (void);
-				case DType.Byte:
-					return typeof (byte);
-				case DType.Boolean:
-					return typeof (bool);
-				case DType.Int16:
-					return typeof (short);
-				case DType.UInt16:
-					return typeof (ushort);
-				case DType.Int32:
-					return typeof (int);
-				case DType.UInt32:
-					return typeof (uint);
-				case DType.Int64:
-					return typeof (long);
-				case DType.UInt64:
-					return typeof (ulong);
-				case DType.Single: ////not supported by libdbus at time of writing
-					return typeof (float);
-				case DType.Double:
-					return typeof (double);
-				case DType.String:
-					return typeof (string);
-				case DType.ObjectPath:
-					return typeof (ObjectPath);
-				case DType.Signature:
-					return typeof (Signature);
-				case DType.Array:
-					//peek to see if this is in fact a dictionary
-					if ((DType)data[pos] == DType.DictEntryBegin) {
-						//skip over the {
-						pos++;
-						Type keyType = ToType (ref pos);
-						Type valueType = ToType (ref pos);
-						//skip over the }
-						pos++;
-						return typeof(Dictionary<,>).MakeGenericType (new [] { keyType, valueType});
-					} else {
-						return ToType (ref pos).MakeArrayType ();
-					}
-				case DType.StructBegin:
-					//pos = data.Length;
-					return typeof (ValueType);
-				case DType.DictEntryBegin:
-					return typeof (System.Collections.Generic.KeyValuePair<,>);
-				case DType.Variant:
-					return typeof (object);
-				default:
-					throw new NotSupportedException ("Parsing or converting this signature is not yet supported (signature was '" + this + "'), at DType." + dtype);
+			case DType.Invalid:
+				return typeof (void);
+			case DType.Byte:
+				return typeof (byte);
+			case DType.Boolean:
+				return typeof (bool);
+			case DType.Int16:
+				return typeof (short);
+			case DType.UInt16:
+				return typeof (ushort);
+			case DType.Int32:
+				return typeof (int);
+			case DType.UInt32:
+				return typeof (uint);
+			case DType.Int64:
+				return typeof (long);
+			case DType.UInt64:
+				return typeof (ulong);
+			case DType.Single: ////not supported by libdbus at time of writing
+				return typeof (float);
+			case DType.Double:
+				return typeof (double);
+			case DType.String:
+				return typeof (string);
+			case DType.ObjectPath:
+				return typeof (ObjectPath);
+			case DType.Signature:
+				return typeof (Signature);
+			case DType.Array:
+				//peek to see if this is in fact a dictionary
+				if ((DType)data[pos] == DType.DictEntryBegin) {
+					//skip over the {
+					pos++;
+					Type keyType = ToType (ref pos);
+					Type valueType = ToType (ref pos);
+					//skip over the }
+					pos++;
+					return typeof(Dictionary<,>).MakeGenericType (new [] { keyType, valueType});
+				} else {
+					return ToType (ref pos).MakeArrayType ();
+				}
+			case DType.StructBegin:
+				// Go over to the first type
+				pos++;
+				List<Type> innerTypes = new List<Type> ();
+				while (((DType)data[pos]) != DType.StructEnd)
+					innerTypes.Add (ToType (ref pos));
+				// go over the struct end
+				pos++;
+				return DBusStruct.FromInnerTypes (innerTypes.ToArray ());
+			case DType.DictEntryBegin:
+				return typeof (System.Collections.Generic.KeyValuePair<,>);
+			case DType.Variant:
+				return typeof (object);
+			default:
+				throw new NotSupportedException ("Parsing or converting this signature is not yet supported (signature was '" + this + "'), at DType." + dtype);
 			}
 		}
 

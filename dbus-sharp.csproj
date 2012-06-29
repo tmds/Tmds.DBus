@@ -79,6 +79,7 @@
     <Compile Include="MessageDumper.cs" />
     <Compile Include="ProtocolInformations.cs" />
     <Compile Include="MessageContainer.cs" />
+    <Compile Include="DBusStruct.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

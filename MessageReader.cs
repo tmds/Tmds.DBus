@@ -47,6 +47,7 @@ namespace DBus.Protocol
 		int pos = 0;
 		static Dictionary<Type, bool> isPrimitiveStruct = new Dictionary<Type, bool> ();
 		static readonly Encoding stringEncoding = Encoding.UTF8;
+		Dictionary<Type, Func<object>> readValueCache = new Dictionary<Type, Func<object>> ();
 
 		public MessageReader (EndianFlag endianness, byte[] data)
 		{
@@ -70,8 +71,6 @@ namespace DBus.Protocol
 				return pos < data.Length;
 			}
 		}
-
-		Dictionary<Type, Func<object>> readValueCache = new Dictionary<Type, Func<object>> ();
 
 		public object ReadValue (Type type)
 		{
@@ -97,7 +96,7 @@ namespace DBus.Protocol
 			} else if (type == typeof (string)) {
 				readValueCache[type] = () => ReadString ();
 				return ReadString ();
-			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (IDictionary<,>)) {
+			} else if (type.IsGenericType && type.GetGenericTypeDefinition () == typeof (Dictionary<,>)) {
 				Type[] genArgs = type.GetGenericArguments ();
 				readValueCache[type] = () => ReadDictionary (genArgs[0], genArgs[1]);
 				return ReadDictionary (genArgs[0], genArgs[1]);
@@ -401,7 +400,8 @@ namespace DBus.Protocol
 			if (!sig.IsSingleCompleteType)
 				throw new ArgumentException (string.Format ("ReadVariant need a single complete type signature, {0} was given", sig.ToString ()));
 
-			return ReadValue (sig.ToType ());
+			var val = ReadValue (sig.ToType ());
+			return val;
 		}
 
 		public IDictionary ReadDictionary (Type keyType, Type valType)

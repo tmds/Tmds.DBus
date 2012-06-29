@@ -40,7 +40,8 @@ namespace DBus
 
 				Type type = Object.GetType ();
 
-				foreach (MemberInfo mi in Mapper.GetPublicMembers (type)) {
+				foreach (var memberForType in Mapper.GetPublicMembers (type)) {
+					MemberInfo mi = memberForType.Value;
 					EventInfo ei = mi as EventInfo;
 
 					if (ei == null)

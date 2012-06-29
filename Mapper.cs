@@ -35,24 +35,37 @@ namespace DBus
 			return argName;
 		}
 
-		//TODO: these two methods are quite messy and need review
-		public static IEnumerable<MemberInfo> GetPublicMembers (Type type)
+		public static IEnumerable<KeyValuePair<Type, MemberInfo>> GetPublicMembers (Type type)
 		{
 			//note that Type.GetInterfaces() returns all interfaces with flattened hierarchy
-			foreach (Type ifType in type.GetInterfaces ())
-				foreach (MemberInfo mi in GetDeclaredPublicMembers (ifType))
-					yield return mi;
+			foreach (Type ifType in type.GetInterfaces ()) {
+				if (!IsPublic (ifType))
+					continue;
+				foreach (MemberInfo mi in WalkInterfaceHierarchy (ifType))
+					yield return new KeyValuePair<Type, MemberInfo> (ifType, mi);
+			}
 
 			if (IsPublic (type))
 				foreach (MemberInfo mi in GetDeclaredPublicMembers (type))
+					yield return new KeyValuePair<Type, MemberInfo> (type, mi);
+		}
+
+		static IEnumerable<MemberInfo> WalkInterfaceHierarchy (Type iface)
+		{
+			foreach (MemberInfo mi in GetDeclaredPublicMembers (iface))
+				yield return mi;
+
+			// We recurse to get the method the interface inherited from other interface
+			var internalIfaces = iface.GetInterfaces ();
+			foreach (var internalIface in internalIfaces)
+				foreach (var mi in WalkInterfaceHierarchy (internalIface))
 					yield return mi;
 		}
 
 		static IEnumerable<MemberInfo> GetDeclaredPublicMembers (Type type)
 		{
-			if (IsPublic (type))
-				foreach (MemberInfo mi in type.GetMembers (BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
-					yield return mi;
+			foreach (MemberInfo mi in type.GetMembers (BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+				yield return mi;
 		}
 
 		//this method walks the interface tree in an undefined manner and returns the first match, or if no matches are found, null
@@ -60,12 +73,14 @@ namespace DBus
 		//TODO: unify member name mapping as is already done with interfaces and args
 		public static MethodInfo GetMethod (Type type, MessageContainer method_call)
 		{
-			foreach (MemberInfo member in Mapper.GetPublicMembers (type)) {
+			var mems = Mapper.GetPublicMembers (type).ToArray ();
+			foreach (var memberForType in mems) {
 				//this could be made more efficient by using the given interface name earlier and avoiding walking through all public interfaces
 				if (method_call.Interface != null)
-					if (GetInterfaceName (member) != method_call.Interface)
+					if (GetInterfaceName (memberForType.Key) != method_call.Interface)
 						continue;
 
+				MemberInfo member = memberForType.Value;
 				MethodInfo meth = null;
 				Type[] inTypes = null;
 

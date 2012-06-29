@@ -802,8 +802,6 @@ namespace DBus.Protocol
 					return ToType (ref pos).MakeArrayType ();
 				}
 			case DType.StructBegin:
-				// Go over to the first type
-				pos++;
 				List<Type> innerTypes = new List<Type> ();
 				while (((DType)data[pos]) != DType.StructEnd)
 					innerTypes.Add (ToType (ref pos));

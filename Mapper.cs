@@ -298,7 +298,8 @@ namespace DBus
 		{
 			var msg = method_call.Message;
 			MessageContainer method_return = new MessageContainer {
-				Serial = msg.Header.Serial
+				Type = MessageType.MethodReturn,
+				ReplySerial = msg.Header.Serial
 			};
 			Message replyMsg = method_return.Message;
 

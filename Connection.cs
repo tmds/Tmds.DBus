@@ -380,7 +380,7 @@ namespace DBus
 
 				intro.WriteEnd ();
 
-				Message reply = MessageHelper.ConstructReply (method_call, intro.xml);
+				Message reply = MessageHelper.ConstructReply (method_call, intro.Xml);
 				Send (reply);
 				return;
 			}

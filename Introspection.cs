@@ -21,7 +21,6 @@ namespace DBus
 		const string SYSTEM_IDENTIFIER = "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd";
 
 		public StringBuilder sb;
-		public string xml;
 		public ObjectPath root_path = ObjectPath.Root;
 		public bool ExtendedAnnotations = false;
 
@@ -37,6 +36,11 @@ namespace DBus
 			sb = new StringBuilder ();
 
 			writer = XmlWriter.Create (sb, settings);
+		}
+
+		public string Xml {
+			get;
+			private set;
 		}
 
 		static string GetProductDescription ()
@@ -86,7 +90,7 @@ namespace DBus
 			writer.WriteEndElement ();
 
 			writer.Flush ();
-			xml = sb.ToString ();
+			Xml = sb.ToString ();
 		}
 
 		//public void WriteNode ()

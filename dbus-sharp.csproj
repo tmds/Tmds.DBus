@@ -77,7 +77,7 @@
     <Compile Include="AddressEntry.cs" />
     <Compile Include="DValue.cs" />
     <Compile Include="MessageDumper.cs" />
-    <Compile Include="ProtocolInformations.cs" />
+    <Compile Include="ProtocolInformation.cs" />
     <Compile Include="MessageContainer.cs" />
     <Compile Include="DBusStruct.cs" />
   </ItemGroup>

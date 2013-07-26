@@ -180,8 +180,8 @@ namespace DBus.Protocol
 
 		public static MatchRule Parse (string text)
 		{
-			if (text.Length > ProtocolInformations.MaxMatchRuleLength)
-				throw new Exception ("Match rule length exceeds maximum " + ProtocolInformations.MaxMatchRuleLength + " characters");
+			if (text.Length > ProtocolInformation.MaxMatchRuleLength)
+				throw new Exception ("Match rule length exceeds maximum " + ProtocolInformation.MaxMatchRuleLength + " characters");
 
 			MatchRule r = new MatchRule ();
 
@@ -201,8 +201,8 @@ namespace DBus.Protocol
 						return null;
 					int argNum = (int)UInt32.Parse (mArg.Groups[1].Value);
 
-					if (argNum < 0 || argNum >= ProtocolInformations.MaxMatchRuleArgs)
-						throw new Exception ("arg match must be between 0 and " + (ProtocolInformations.MaxMatchRuleArgs - 1) + " inclusive");
+					if (argNum < 0 || argNum >= ProtocolInformation.MaxMatchRuleArgs)
+						throw new Exception ("arg match must be between 0 and " + (ProtocolInformation.MaxMatchRuleArgs - 1) + " inclusive");
 
 					//if (r.Args.ContainsKey (argNum))
 					//	return null;
@@ -240,7 +240,7 @@ namespace DBus.Protocol
 						r.Fields[FieldCode.Destination] = new MatchTest (value);
 						break;
 					default:
-						if (ProtocolInformations.Verbose)
+						if (ProtocolInformation.Verbose)
 							Console.Error.WriteLine ("Warning: Unrecognized match rule key: " + key);
 						break;
 				}

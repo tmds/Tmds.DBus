@@ -375,8 +375,8 @@ namespace DBus.Protocol
 				return new Signature (dtype);
 			}
 
-			if (ln > ProtocolInformations.MaxSignatureLength)
-				throw new Exception ("Signature length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxSignatureLength + " bytes");
+			if (ln > ProtocolInformation.MaxSignatureLength)
+				throw new Exception ("Signature length " + ln + " exceeds maximum allowed " + ProtocolInformation.MaxSignatureLength + " bytes");
 
 			byte[] sigData = new byte[ln];
 			Array.Copy (data, pos, sigData, 0, (int)ln);
@@ -414,8 +414,8 @@ namespace DBus.Protocol
 		{
 			uint ln = ReadUInt32 ();
 
-			if (ln > ProtocolInformations.MaxArrayLength)
-				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
+			if (ln > ProtocolInformation.MaxArrayLength)
+				throw new Exception ("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformation.MaxArrayLength + " bytes");
 
 			var val = new Dictionary<TKey, TValue> ((int)(ln / 8));
 			ReadPad (8);
@@ -446,11 +446,11 @@ namespace DBus.Protocol
 			uint ln = ReadUInt32 ();
 			Type elemType = typeof (TArray);
 
-			if (ln > ProtocolInformations.MaxArrayLength)
-				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + ProtocolInformations.MaxArrayLength + " bytes");
+			if (ln > ProtocolInformation.MaxArrayLength)
+				throw new Exception ("Array length " + ln + " exceeds maximum allowed " + ProtocolInformation.MaxArrayLength + " bytes");
 
 			//advance to the alignment of the element
-			ReadPad (ProtocolInformations.GetAlignment (Signature.TypeToDType (elemType)));
+			ReadPad (ProtocolInformation.GetAlignment (Signature.TypeToDType (elemType)));
 
 			if (elemType.IsPrimitive) {
 				// Fast path for primitive types (except bool which isn't blittable and take another path)
@@ -592,7 +592,7 @@ namespace DBus.Protocol
 
 		public void ReadPad (int alignment)
 		{
-			for (int endPos = ProtocolInformations.Padded (pos, alignment) ; pos != endPos ; pos++)
+			for (int endPos = ProtocolInformation.Padded (pos, alignment) ; pos != endPos ; pos++)
 				if (data[pos] != 0)
 					throw new PaddingException (pos, data[pos]);
 		}
@@ -630,7 +630,7 @@ namespace DBus.Protocol
 			if (sig.IsArray) {
 				Signature elemSig = sig.GetElementSignature ();
 				uint ln = ReadUInt32 ();
-				pos = ProtocolInformations.Padded (pos, elemSig.Alignment);
+				pos = ProtocolInformation.Padded (pos, elemSig.Alignment);
 				pos += (int)ln;
 				return true;
 			}
@@ -642,7 +642,7 @@ namespace DBus.Protocol
 			}
 
 			if (sig.IsDictEntry) {
-				pos = ProtocolInformations.Padded (pos, sig.Alignment);
+				pos = ProtocolInformation.Padded (pos, sig.Alignment);
 				Signature sigKey, sigValue;
 				sig.GetDictEntrySignatures (out sigKey, out sigValue);
 				if (!StepOver (sigKey))
@@ -653,7 +653,7 @@ namespace DBus.Protocol
 			}
 
 			if (sig.IsStruct) {
-				pos = ProtocolInformations.Padded (pos, sig.Alignment);
+				pos = ProtocolInformation.Padded (pos, sig.Alignment);
 				foreach (Signature fieldSig in sig.GetFieldSignatures ())
 					if (!StepOver (fieldSig))
 						return false;
@@ -683,7 +683,7 @@ namespace DBus.Protocol
 			}
 
 			if (sig.IsDictEntry) {
-				pos = ProtocolInformations.Padded (pos, sig.Alignment);
+				pos = ProtocolInformation.Padded (pos, sig.Alignment);
 				Signature sigKey, sigValue;
 				sig.GetDictEntrySignatures (out sigKey, out sigValue);
 				yield return sigKey;
@@ -692,7 +692,7 @@ namespace DBus.Protocol
 			}
 
 			if (sig.IsStruct) {
-				pos = ProtocolInformations.Padded (pos, sig.Alignment);
+				pos = ProtocolInformation.Padded (pos, sig.Alignment);
 				foreach (Signature fieldSig in sig.GetFieldSignatures ())
 					yield return fieldSig;
 				yield break;
@@ -719,7 +719,7 @@ namespace DBus.Protocol
 
 		static int GetAlignmentFromPrimitiveType (Type type)
 		{
-			return ProtocolInformations.GetAlignment (Signature.TypeCodeToDType (Type.GetTypeCode (type)));
+			return ProtocolInformation.GetAlignment (Signature.TypeCodeToDType (Type.GetTypeCode (type)));
 		}
 	}
 }

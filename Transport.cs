@@ -107,7 +107,7 @@ namespace DBus.Transports
 			try {
 				return ReadMessageReal ();
 			} catch (IOException e) {
-				if (ProtocolInformations.Verbose)
+				if (ProtocolInformation.Verbose)
 					Console.Error.WriteLine (e.Message);
 				connection.IsConnected = false;
 				return null;
@@ -158,11 +158,11 @@ namespace DBus.Transports
 
 			byte version = reader.ReadByte ();
 
-			if (version < ProtocolInformations.MinVersion || version > ProtocolInformations.MaxVersion)
+			if (version < ProtocolInformation.MinVersion || version > ProtocolInformation.MaxVersion)
 				throw new NotSupportedException ("Protocol version '" + version.ToString () + "' is not supported");
 
-			if (ProtocolInformations.Verbose)
-				if (version != ProtocolInformations.Version)
+			if (ProtocolInformation.Verbose)
+				if (version != ProtocolInformation.Version)
 					Console.Error.WriteLine ("Warning: Protocol version '" + version.ToString () + "' is not explicitly supported but may be compatible");
 
 			uint bodyLength = reader.ReadUInt32 ();
@@ -174,11 +174,11 @@ namespace DBus.Transports
 			int toRead = (int)headerLength;
 
 			//we fixup to include the padding following the header
-			toRead = ProtocolInformations.Padded (toRead, 8);
+			toRead = ProtocolInformation.Padded (toRead, 8);
 
 			long msgLength = toRead + bodyLen;
-			if (msgLength > ProtocolInformations.MaxMessageLength)
-				throw new Exception ("Message length " + msgLength + " exceeds maximum allowed " + ProtocolInformations.MaxMessageLength + " bytes");
+			if (msgLength > ProtocolInformation.MaxMessageLength)
+				throw new Exception ("Message length " + msgLength + " exceeds maximum allowed " + ProtocolInformation.MaxMessageLength + " bytes");
 
 			header = new byte[16 + toRead];
 			Array.Copy (hbuf, header, 16);

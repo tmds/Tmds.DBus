@@ -19,7 +19,7 @@ namespace DBus.Protocol
 			header.Endianness = Connection.NativeEndianness;
 			header.MessageType = MessageType.MethodCall;
 			header.Flags = HeaderFlag.NoReplyExpected; //TODO: is this the right place to do this?
-			header.MajorVersion = ProtocolInformations.Version;
+			header.MajorVersion = ProtocolInformation.Version;
 		}
 
 		public static Message FromReceivedBytes (Connection connection, byte[] header, byte[] body)

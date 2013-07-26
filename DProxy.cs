@@ -67,7 +67,7 @@ namespace DBus
 		~DProxy ()
 		{
 			//FIXME: remove handlers/match rules here
-			if (ProtocolInformations.Verbose)
+			if (ProtocolInformation.Verbose)
 				Console.Error.WriteLine ("Warning: Finalization of " + busObject.Path + " not yet supported");
 		}
 	}

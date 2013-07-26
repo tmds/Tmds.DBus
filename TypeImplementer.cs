@@ -545,7 +545,7 @@ namespace DBus
 		public static void GenFallbackReader (ILGenerator ilg, Type t)
 		{
 			// TODO: do we want non-tUnder here for Castclass use?
-			if (ProtocolInformations.Verbose)
+			if (ProtocolInformation.Verbose)
 				Console.Error.WriteLine ("Bad! Generating fallback reader for " + t);
 
 			// The Type parameter

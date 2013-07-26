@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace DBus.Protocol
 {
-	static class ProtocolInformations
+	static class ProtocolInformation
 	{
 		//protocol versions that we support
 		public const byte MinVersion = 0;

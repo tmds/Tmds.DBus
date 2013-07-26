@@ -298,7 +298,7 @@ namespace DBus.Protocol
 				if (data.Length == 0)
 					return 0;
 
-				return ProtocolInformations.GetAlignment (this[0]);
+				return ProtocolInformation.GetAlignment (this[0]);
 			}
 		}
 
@@ -347,7 +347,7 @@ namespace DBus.Protocol
 				return true;
 
 			// Sensible?
-			size = ProtocolInformations.Padded (size, Alignment);
+			size = ProtocolInformation.Padded (size, Alignment);
 
 			if (data.Length == 1) {
 				int valueSize = GetSize (this[0]);

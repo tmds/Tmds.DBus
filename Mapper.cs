@@ -269,7 +269,7 @@ namespace DBus
 		public static object[] GetDynamicValues (Message msg, Type[] types)
 		{
 			//TODO: this validation check should provide better information, eg. message dump or a stack trace, or at least the interface/member
-			if (ProtocolInformations.Verbose) {
+			if (ProtocolInformation.Verbose) {
 				Signature expected = Signature.GetSig (types);
 				Signature actual = msg.Signature;
 				if (actual != expected)

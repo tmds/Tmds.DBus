@@ -79,7 +79,7 @@ namespace DBus.Transports
 				WriteBsdCred ();
 				return;
 			} catch {
-				if (ProtocolInformations.Verbose)
+				if (ProtocolInformation.Verbose)
 					Console.Error.WriteLine ("Warning: WriteBsdCred() failed; falling back to ordinary WriteCred()");
 			}
 #endif

@@ -77,9 +77,11 @@
     <Compile Include="Protocol\Signature.cs" />
     <Compile Include="Protocol\SocketTransport.cs" />
     <Compile Include="Protocol\Transport.cs" />
-    <Compile Include="Unix\Unix.cs" />
     <Compile Include="Transports\UnixNativeTransport.cs" />
     <Compile Include="Transports\UnixTransport.cs" />
+    <Compile Include="Unix\UnixStream.cs" />
+    <Compile Include="Unix\UnixError.cs" />
+    <Compile Include="Unix\UnixSocket.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

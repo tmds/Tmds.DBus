@@ -52,34 +52,34 @@
     <Compile Include="ExportObject.cs" />
     <Compile Include="Introspection.cs" />
     <Compile Include="Mapper.cs" />
-    <Compile Include="MatchRule.cs" />
-    <Compile Include="Message.cs" />
-    <Compile Include="MessageFilter.cs" />
-    <Compile Include="MessageReader.cs" />
-    <Compile Include="MessageWriter.cs" />
-    <Compile Include="PendingCall.cs" />
-    <Compile Include="Signature.cs" />
-    <Compile Include="SocketTransport.cs" />
-    <Compile Include="Transport.cs" />
     <Compile Include="TypeImplementer.cs" />
-    <Compile Include="Unix.cs" />
-    <Compile Include="UnixNativeTransport.cs" />
-    <Compile Include="UnixTransport.cs" />
-    <Compile Include="DType.cs" />
     <Compile Include="ArgDirection.cs" />
     <Compile Include="ObjectPath.cs" />
-    <Compile Include="Header.cs" />
-    <Compile Include="MessageType.cs" />
-    <Compile Include="FieldCode.cs" />
-    <Compile Include="EndianFlag.cs" />
-    <Compile Include="HeaderFlag.cs" />
     <Compile Include="BusException.cs" />
     <Compile Include="AddressEntry.cs" />
-    <Compile Include="DValue.cs" />
-    <Compile Include="MessageDumper.cs" />
-    <Compile Include="ProtocolInformation.cs" />
-    <Compile Include="MessageContainer.cs" />
-    <Compile Include="DBusStruct.cs" />
+    <Compile Include="Protocol\DBusStruct.cs" />
+    <Compile Include="Protocol\DType.cs" />
+    <Compile Include="Protocol\DValue.cs" />
+    <Compile Include="Protocol\EndianFlag.cs" />
+    <Compile Include="Protocol\FieldCode.cs" />
+    <Compile Include="Protocol\Header.cs" />
+    <Compile Include="Protocol\HeaderFlag.cs" />
+    <Compile Include="Protocol\MatchRule.cs" />
+    <Compile Include="Protocol\Message.cs" />
+    <Compile Include="Protocol\MessageContainer.cs" />
+    <Compile Include="Protocol\MessageDumper.cs" />
+    <Compile Include="Protocol\MessageFilter.cs" />
+    <Compile Include="Protocol\MessageReader.cs" />
+    <Compile Include="Protocol\MessageType.cs" />
+    <Compile Include="Protocol\MessageWriter.cs" />
+    <Compile Include="Protocol\PendingCall.cs" />
+    <Compile Include="Protocol\ProtocolInformation.cs" />
+    <Compile Include="Protocol\Signature.cs" />
+    <Compile Include="Protocol\SocketTransport.cs" />
+    <Compile Include="Protocol\Transport.cs" />
+    <Compile Include="Unix\Unix.cs" />
+    <Compile Include="Transports\UnixNativeTransport.cs" />
+    <Compile Include="Transports\UnixTransport.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
@@ -90,5 +90,10 @@
     <Content Include="dbus-sharp.dll.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Protocol\" />
+    <Folder Include="Unix\" />
+    <Folder Include="Transports\" />
   </ItemGroup>
 </Project>

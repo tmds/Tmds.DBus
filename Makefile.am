@@ -2,6 +2,49 @@ ASSEMBLY = dbus-sharp
 TARGET = $(ASSEMBLY).dll
 XBUILD_Q = $(XBUILD) /nologo /verbosity:quiet
 
+# Use the gencssources script to generate this list
+CSFILES = Address.cs \
+	Authentication.cs \
+	Bus.cs \
+	BusObject.cs \
+	Connection.cs \
+	DBus.cs \
+	DProxy.cs \
+	ExportObject.cs \
+	Introspection.cs \
+	Mapper.cs \
+	TypeImplementer.cs \
+	ArgDirection.cs \
+	ObjectPath.cs \
+	BusException.cs \
+	AddressEntry.cs \
+	Protocol/DBusStruct.cs \
+	Protocol/DType.cs \
+	Protocol/DValue.cs \
+	Protocol/EndianFlag.cs \
+	Protocol/FieldCode.cs \
+	Protocol/Header.cs \
+	Protocol/HeaderFlag.cs \
+	Protocol/MatchRule.cs \
+	Protocol/Message.cs \
+	Protocol/MessageContainer.cs \
+	Protocol/MessageDumper.cs \
+	Protocol/MessageFilter.cs \
+	Protocol/MessageReader.cs \
+	Protocol/MessageType.cs \
+	Protocol/MessageWriter.cs \
+	Protocol/PendingCall.cs \
+	Protocol/ProtocolInformation.cs \
+	Protocol/Signature.cs \
+	Protocol/SocketTransport.cs \
+	Protocol/Transport.cs \
+	Transports/UnixNativeTransport.cs \
+	Transports/UnixTransport.cs \
+	Unix/UnixStream.cs \
+	Unix/UnixError.cs \
+	Unix/UnixSocket.cs \
+	AssemblyInfo.cs
+
 all: $(TARGET)
 
 $(TARGET): $(CSFILES) AssemblyInfo.cs

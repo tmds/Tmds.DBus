@@ -67,7 +67,8 @@ uninstall-local:
 EXTRA_DIST = \
 	$(CSFILES) \
 	$(srcdir)/dbus-sharp.dll.config \
-	$(srcdir)/AssemblyInfo.cs.in
+	$(srcdir)/AssemblyInfo.cs.in \
+	$(srcdir)/dbus-sharp.csproj
 
 CLEANFILES = \
 	$(TARGET) \

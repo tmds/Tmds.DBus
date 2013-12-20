@@ -576,8 +576,8 @@ namespace DBus.Protocol
 			int sof = Marshal.SizeOf (fis[0].FieldType);
 
 			unsafe {
-				byte* pVal = (byte*)&val;
-				DirectCopy (sof, (uint)(fis.Length * sof), (IntPtr)pVal);
+				GCHandle valueHandle = GCHandle.Alloc(val);
+				DirectCopy (sof, (uint)(fis.Length * sof), (IntPtr)valueHandle);
 			}
 
 			return val;

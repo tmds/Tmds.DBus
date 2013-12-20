@@ -427,9 +427,10 @@ namespace DBus.Protocol
 
 			if (MessageReader.IsEligibleStruct (typeof (T), fis)) {
 				byte[] buffer = new byte[Marshal.SizeOf (fis[0].FieldType) * fis.Length];
+
 				unsafe {
-					byte* pVal = (byte*)&value;
-					Marshal.Copy ((IntPtr)pVal, buffer, 0, buffer.Length);
+					GCHandle valueHandle = GCHandle.Alloc(value);
+					Marshal.Copy ((IntPtr) valueHandle, buffer, 0, buffer.Length);
 				}
 				stream.Write (buffer, 0, buffer.Length);
 				return;

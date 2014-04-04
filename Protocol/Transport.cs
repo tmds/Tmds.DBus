@@ -26,31 +26,39 @@ namespace DBus.Transports
 
 		public static Transport Create (AddressEntry entry)
 		{
-			switch (entry.Method) {
+			switch (entry.Method)
+			{
+
 				case "tcp":
 				{
 					Transport transport = new SocketTransport ();
 					transport.Open (entry);
 					return transport;
 				}
-#if !PORTABLE
+
 				case "unix":
 				{
+				   if(OSHelpers.PlatformIsUnixoid)
+				   {
 					Transport transport = new UnixNativeTransport ();
 					transport.Open (entry);
 					return transport;
+				   }
+				   break;
 				}
-#endif
+
 #if ENABLE_PIPES
-				case "win": {
+				case "win":
+				{
 					Transport transport = new PipeTransport ();
 					transport.Open (entry);
 					return transport;
 				}
 #endif
-				default:
-					throw new NotSupportedException ("Transport method \"" + entry.Method + "\" not supported");
+
 			}
+
+			throw new NotSupportedException ("Transport method \"" + entry.Method + "\" not supported");
 		}
 
 		public abstract void Open (AddressEntry entry);

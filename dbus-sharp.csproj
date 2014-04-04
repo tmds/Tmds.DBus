@@ -21,7 +21,7 @@
     <Optimize>False</Optimize>
     <OutputPath>.</OutputPath>
     <DefineConstants>DEBUG;TRACE;STRONG_NAME</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
+    <ErrorReport>none</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -30,7 +30,7 @@
     <Optimize>True</Optimize>
     <OutputPath>.</OutputPath>
     <DefineConstants>TRACE;STRONG_NAME</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
+    <ErrorReport>none</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
@@ -51,6 +51,7 @@
     <Compile Include="ExportObject.cs" />
     <Compile Include="Introspection.cs" />
     <Compile Include="Mapper.cs" />
+    <Compile Include="OSHelpers.cs" />
     <Compile Include="TypeImplementer.cs" />
     <Compile Include="ArgDirection.cs" />
     <Compile Include="ObjectPath.cs" />
@@ -83,7 +84,6 @@
     <Compile Include="Unix\UnixSocket.cs" />
     <Compile Include="AssemblyInfo.cs" />
   </ItemGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSHARP.Targets" />
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio AllowExistingFolder="true" />
@@ -92,10 +92,5 @@
     <Content Include="dbus-sharp.dll.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Protocol\" />
-    <Folder Include="Unix\" />
-    <Folder Include="Transports\" />
   </ItemGroup>
 </Project>

@@ -16,8 +16,14 @@ namespace DBus
 		static Dictionary<string,Bus> buses = new Dictionary<string,Bus> ();
 
 		static Bus starterBus = null;
-		static Bus systemBus = Address.StarterBusType == "system" ? Starter : Bus.Open (Address.System);
-		static Bus sessionBus = Address.StarterBusType == "session" ? Starter : Bus.Open (Address.Session);
+
+		static Bus systemBus  = OSHelpers.PlatformIsUnixoid // TODO Adjust Address.System for Win32 and remove this platform check
+                                      ? ( Address.StarterBusType == "system"  ? Starter : Bus.Open(Address.System) )
+                                      : null; 
+
+		static Bus sessionBus = OSHelpers.PlatformIsUnixoid // TODO Adjust Address.System for Win32 and remove this platform check
+                                      ? ( Address.StarterBusType == "session" ? Starter : Bus.Open(Address.Session) )
+                                      : null;
 
 		IBus bus;
 		string address;

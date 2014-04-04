@@ -64,7 +64,9 @@ namespace DBus.Transports
 
 		public override string AuthString ()
 		{
-			return String.Empty;
+			return OSHelpers.PlatformIsUnixoid
+			     ? Mono.Unix.Native.Syscall.geteuid().ToString()                      // Unix User ID
+			     : System.Security.Principal.WindowsIdentity.GetCurrent().User.Value; // Windows User ID
 		}
 	}
 }

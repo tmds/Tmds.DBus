@@ -427,10 +427,11 @@ namespace DBus.Protocol
 
 			if (MessageReader.IsEligibleStruct (typeof (T), fis)) {
 				byte[] buffer = new byte[Marshal.SizeOf (fis[0].FieldType) * fis.Length];
-				unsafe {
-					byte* pVal = (byte*)&value;
-					Marshal.Copy ((IntPtr)pVal, buffer, 0, buffer.Length);
-				}
+
+				GCHandle gch = GCHandle.Alloc(value);
+				Marshal.Copy (gch.AddrOfPinnedObject(), buffer, 0, buffer.Length);
+				gch.Free();
+
 				stream.Write (buffer, 0, buffer.Length);
 				return;
 			}

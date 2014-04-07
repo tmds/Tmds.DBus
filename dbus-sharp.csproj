@@ -21,6 +21,7 @@
     <Optimize>False</Optimize>
     <OutputPath>.</OutputPath>
     <DefineConstants>DEBUG;TRACE;STRONG_NAME</DefineConstants>
+    <DefineConstants Condition=" '$(TargetFrameworkVersion)' == 'v3.5' ">NET35</DefineConstants>
     <ErrorReport>none</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -30,6 +31,7 @@
     <Optimize>True</Optimize>
     <OutputPath>.</OutputPath>
     <DefineConstants>TRACE;STRONG_NAME</DefineConstants>
+    <DefineConstants Condition=" '$(TargetFrameworkVersion)' == 'v3.5' ">NET35</DefineConstants>
     <ErrorReport>none</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>

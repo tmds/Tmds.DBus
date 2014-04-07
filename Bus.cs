@@ -17,13 +17,8 @@ namespace DBus
 
 		static Bus starterBus = null;
 
-		static Bus systemBus  = OSHelpers.PlatformIsUnixoid // TODO Adjust Address.System for Win32 and remove this platform check
-                                      ? ( Address.StarterBusType == "system"  ? Starter : Bus.Open(Address.System) )
-                                      : null; 
-
-		static Bus sessionBus = OSHelpers.PlatformIsUnixoid // TODO Adjust Address.System for Win32 and remove this platform check
-                                      ? ( Address.StarterBusType == "session" ? Starter : Bus.Open(Address.Session) )
-                                      : null;
+		static Bus systemBus  = Address.StarterBusType=="system"  ? Starter : (Address.System!=null ? Bus.Open(Address.System) : null);
+		static Bus sessionBus = Address.StarterBusType=="session" ? Starter : Bus.Open(Address.Session);
 
 		IBus bus;
 		string address;

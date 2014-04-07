@@ -1,11 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+
+#if ! NET35
+using System.IO.MemoryMappedFiles;
+#endif
+
 
 namespace DBus
 {
-   class OSHelpers
+   public class OSHelpers
    {
 
       static PlatformID platformid = Environment.OSVersion.Platform;
@@ -26,6 +28,37 @@ namespace DBus
                default:                      return false;
             }
          }
+      }
+
+      // Reads a string from shared memory with the ID "id".
+      // Optionally, a maximum length can be specified. A negative number means "no limit".
+      public static string ReadSharedMemoryString(string id, long maxlen = -1)
+      {
+#if ! NET35
+         MemoryMappedFile shmem;           
+         try { shmem = MemoryMappedFile.OpenExisting(id); }
+         catch(Exception) { shmem = null; }
+         if(shmem==null)
+            return null;
+         MemoryMappedViewStream s = shmem.CreateViewStream();
+         long len = s.Length;
+         if(maxlen>=0)
+            if(len>maxlen)
+               len = maxlen;
+         if(len==0)
+            return "";
+         if(len>Int32.MaxValue)
+            len = Int32.MaxValue;
+         byte[] bytes = new byte[len];
+         int count = s.Read(bytes, 0, (int)len);
+         if(count<=0)
+            return "";
+         count = 0;
+         while(count<len && bytes[count]!=0) count++;
+         return System.Text.Encoding.UTF8.GetString(bytes, 0, count);
+#else
+         return null;
+#endif
       }
 
    }

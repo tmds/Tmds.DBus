@@ -97,25 +97,29 @@ namespace DBus
 				throw new InvalidAddressException ("Too many colons found");
 
 			entry.Method = parts[0];
+         
+			if(parts[1].Length>0)
+			{
+				foreach (string propStr in parts[1].Split (','))
+				{
+					parts = propStr.Split ('=');
 
-			foreach (string propStr in parts[1].Split (',')) {
-				parts = propStr.Split ('=');
+					if (parts.Length < 2)
+						throw new InvalidAddressException ("No equals sign found");
+					if (parts.Length > 2)
+						throw new InvalidAddressException ("Too many equals signs found");
 
-				if (parts.Length < 2)
-					throw new InvalidAddressException ("No equals sign found");
-				if (parts.Length > 2)
-					throw new InvalidAddressException ("Too many equals signs found");
-
-				if (parts[0] == "guid") {
-					try {
-						entry.GUID = UUID.Parse (parts[1]);
-					} catch {
-						throw new InvalidAddressException ("Invalid guid specified");
+					if (parts[0] == "guid") {
+						try {
+							entry.GUID = UUID.Parse (parts[1]);
+						} catch {
+							throw new InvalidAddressException ("Invalid guid specified");
+						}
+						continue;
 					}
-					continue;
-				}
 
-				entry.Properties[parts[0]] = Unescape (parts[1]);
+					entry.Properties[parts[0]] = Unescape (parts[1]);
+				}
 			}
 
 			return entry;

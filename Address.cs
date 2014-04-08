@@ -25,7 +25,9 @@ namespace DBus
 
 	static class Address
 	{
-		//(unix:(path|abstract)=.*,guid=.*|tcp:host=.*(,port=.*)?);? ...
+		// (unix:(path|abstract)=.*,guid=.*|tcp:host=.*(,port=.*)?);? ...
+		// or
+		// autolaunch:
 		public static AddressEntry[] Parse (string addresses)
 		{
 			if (addresses == null)
@@ -50,6 +52,14 @@ namespace DBus
 			}
 		}
 
+		public static string GetSessionBusAddressFromSharedMemory()
+		{
+			string result = OSHelpers.ReadSharedMemoryString("DBusDaemonAddressInfo", 255);
+			if(String.IsNullOrEmpty(result))
+				result = OSHelpers.ReadSharedMemoryString("DBusDaemonAddressInfoDebug", 255); // a DEBUG build of the daemon uses this different address...            
+			return result;
+		}
+
 		public static string Session
 		{
 			get
@@ -63,11 +73,7 @@ namespace DBus
 				// On Windows systems, the dbus-daemon additionally uses shared memory to publish the daemon's address.
 				// See function _dbus_daemon_publish_session_bus_address() inside the daemon.
 				if(String.IsNullOrEmpty(result) && !OSHelpers.PlatformIsUnixoid)
-				{
-					result = OSHelpers.ReadSharedMemoryString("DBusDaemonAddressInfo", 255);
-					if(String.IsNullOrEmpty(result))
-						result = OSHelpers.ReadSharedMemoryString("DBusDaemonAddressInfoDebug", 255); // a DEBUG build of the daemon uses this different address...            
-				}
+					result = GetSessionBusAddressFromSharedMemory();
 
 				return result;
 			}

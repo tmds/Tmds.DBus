@@ -73,7 +73,11 @@ namespace DBus
 				// On Windows systems, the dbus-daemon additionally uses shared memory to publish the daemon's address.
 				// See function _dbus_daemon_publish_session_bus_address() inside the daemon.
 				if(String.IsNullOrEmpty(result) && !OSHelpers.PlatformIsUnixoid)
+				{
 					result = GetSessionBusAddressFromSharedMemory();
+					if(String.IsNullOrEmpty(result))
+						result = "autolaunch:";
+				}
 
 				return result;
 			}

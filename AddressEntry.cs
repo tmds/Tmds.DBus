@@ -98,10 +98,8 @@ namespace DBus
 
 			entry.Method = parts[0];
          
-			if(parts[1].Length>0)
-			{
-				foreach (string propStr in parts[1].Split (','))
-				{
+			if (parts[1].Length>0) {
+				foreach (string propStr in parts[1].Split (',')) {
 					parts = propStr.Split ('=');
 
 					if (parts.Length < 2)

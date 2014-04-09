@@ -575,9 +575,10 @@ namespace DBus.Protocol
 			T val = default (T);
 			int sof = Marshal.SizeOf (fis[0].FieldType);
 
-			GCHandle gch = GCHandle.Alloc(val);
-			DirectCopy (sof, (uint)(fis.Length * sof), gch);
-			gch.Free();
+			unsafe {
+				GCHandle valueHandle = GCHandle.Alloc(val);
+				DirectCopy (sof, (uint)(fis.Length * sof), (IntPtr)valueHandle);
+			}
 
 			return val;
 		}

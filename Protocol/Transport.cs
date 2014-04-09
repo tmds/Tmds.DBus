@@ -9,7 +9,6 @@ using System.Threading;
 using DBus.Protocol;
 using System.Diagnostics;
 
-
 namespace DBus.Transports
 {
 	abstract class Transport
@@ -30,9 +29,7 @@ namespace DBus.Transports
 
 		public static Transport Create (AddressEntry entry)
 		{
-			switch (entry.Method)
-			{
-
+			switch (entry.Method) {
 				case "tcp":
 				{
 					Transport transport = new SocketTransport ();
@@ -42,13 +39,12 @@ namespace DBus.Transports
 
 				case "unix":
 				{
-				   if(OSHelpers.PlatformIsUnixoid)
-				   {
-				   	Transport transport = new UnixNativeTransport ();
-				   	transport.Open (entry);
-				   	return transport;
-				   }
-				   break;
+					if (OSHelpers.PlatformIsUnixoid) {
+						Transport transport = new UnixNativeTransport ();
+						transport.Open (entry);
+						return transport;
+					}
+					break;
 				}
 
 #if ENABLE_PIPES
@@ -63,32 +59,31 @@ namespace DBus.Transports
 				// "autolaunch:" means: the first client user of the dbus library shall spawn the daemon on itself, see dbus 1.7.8 from http://dbus.freedesktop.org/releases/dbus/
 				case "autolaunch":
 				{
-					if(OSHelpers.PlatformIsUnixoid)
+					if (OSHelpers.PlatformIsUnixoid)
 						break;
 
-					string addr = Address.GetSessionBusAddressFromSharedMemory();
-					if(String.IsNullOrEmpty(addr))
+					string addr = Address.GetSessionBusAddressFromSharedMemory ();
+					if (String.IsNullOrEmpty(addr))
 					{   
 						// launch daemon
 						Process process;      
-						process = Process.Start(DBUS_DAEMON_LAUNCH_COMMAND);
-						if(process==null)
-							throw new NotSupportedException("Transport method \"autolaunch:\" - cannot launch dbus daemon '"+DBUS_DAEMON_LAUNCH_COMMAND+"'"); 
+						process = Process.Start (DBUS_DAEMON_LAUNCH_COMMAND);
+						if (process==null)
+							throw new NotSupportedException ("Transport method \"autolaunch:\" - cannot launch dbus daemon '"+DBUS_DAEMON_LAUNCH_COMMAND+"'"); 
 
 						// wait for daemon
-						Stopwatch stopwatch = new Stopwatch();
-						stopwatch.Start();
-						do
-						{
-							addr = Address.GetSessionBusAddressFromSharedMemory();
-							if(String.IsNullOrEmpty(addr))
-								Thread.Sleep(100);
-						} while(String.IsNullOrEmpty(addr) && stopwatch.ElapsedMilliseconds<=5000);
+						Stopwatch stopwatch = new Stopwatch ();
+						stopwatch.Start ();
+						do {
+							addr = Address.GetSessionBusAddressFromSharedMemory ();
+							if (String.IsNullOrEmpty(addr))
+								Thread.Sleep (100);
+						} while (String.IsNullOrEmpty (addr) && stopwatch.ElapsedMilliseconds <= 5000);
 					}
 
-					if(String.IsNullOrEmpty(addr))
-						throw new NotSupportedException("Transport method \"autolaunch:\" - timeout during access to freshly launched dbus daemon"); 
-					return Create(AddressEntry.Parse(addr));
+					if (String.IsNullOrEmpty(addr))
+						throw new NotSupportedException ("Transport method \"autolaunch:\" - timeout during access to freshly launched dbus daemon"); 
+					return Create (AddressEntry.Parse (addr));
 				}
 
 			}

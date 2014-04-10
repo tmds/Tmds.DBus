@@ -38,6 +38,9 @@ namespace DBus
 		Queue<Message> inbound = new Queue<Message> ();
 		Dictionary<ObjectPath,BusObject> registeredObjects = new Dictionary<ObjectPath,BusObject> ();
 
+		public delegate void MonitorEventHandler (Message msg);
+		public MonitorEventHandler Monitors; // subscribe yourself to this list of observers if you want to get notified about each incoming message
+
 		protected Connection ()
 		{
 

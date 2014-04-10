@@ -142,14 +142,21 @@ namespace DBus.Transports
 
 		internal Message ReadMessage ()
 		{
+			Message msg;
+
 			try {
-				return ReadMessageReal ();
+				msg = ReadMessageReal ();
 			} catch (IOException e) {
 				if (ProtocolInformation.Verbose)
 					Console.Error.WriteLine (e.Message);
 				connection.IsConnected = false;
-				return null;
+				msg = null;
 			}
+         
+			if (connection!=null && connection.Monitors!=null)
+				connection.Monitors(msg);
+
+			return msg;
 		}
 
 		int Read (byte[] buffer, int offset, int count)

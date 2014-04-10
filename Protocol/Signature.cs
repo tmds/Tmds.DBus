@@ -430,6 +430,16 @@ namespace DBus.Protocol
 			}
 		}
 		
+		public bool IsVariant
+		{
+			get {
+				if (data.Length >= 1 && this[0] == DType.Variant)
+					return true;
+				else
+					return false;
+			}
+		}
+
 		public bool IsSingleCompleteType
 		{
 			get {

@@ -63,13 +63,20 @@ namespace DBus.Transports
 						break;
 
 					string addr = Address.GetSessionBusAddressFromSharedMemory ();
-					if (String.IsNullOrEmpty(addr))
+
+					if (String.IsNullOrEmpty(addr)) // we have to launch the daemon ourselves
 					{   
-						// launch daemon
+
+						string olddir = Directory.GetCurrentDirectory ();
+						Directory.SetCurrentDirectory (Environment.GetFolderPath (Environment.SpecialFolder.System)); // without this, the "current" folder for the new process will be the one where the current executable resides, and as a consequence, that folder cannot be relocated/deleted unless the daemon is stopped
+
 						Process process;      
 						process = Process.Start (DBUS_DAEMON_LAUNCH_COMMAND);
 						if (process==null)
+						{
+							Directory.SetCurrentDirectory(olddir);
 							throw new NotSupportedException ("Transport method \"autolaunch:\" - cannot launch dbus daemon '"+DBUS_DAEMON_LAUNCH_COMMAND+"'"); 
+						}
 
 						// wait for daemon
 						Stopwatch stopwatch = new Stopwatch ();
@@ -79,6 +86,8 @@ namespace DBus.Transports
 							if (String.IsNullOrEmpty(addr))
 								Thread.Sleep (100);
 						} while (String.IsNullOrEmpty (addr) && stopwatch.ElapsedMilliseconds <= 5000);
+
+						Directory.SetCurrentDirectory(olddir);
 					}
 
 					if (String.IsNullOrEmpty(addr))

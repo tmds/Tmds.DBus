@@ -59,8 +59,7 @@ namespace DBus
 			return result;
 		}
 
-		public static string Session
-		{
+		public static string Session {
 			get {
 				// example: "tcp:host=localhost,port=21955,family=ipv4,guid=b2d47df3207abc3630ee6a71533effb6"
 				// note that also "tcp:host=localhost,port=21955,family=ipv4" is sufficient
@@ -70,9 +69,9 @@ namespace DBus
 
 				// On Windows systems, the dbus-daemon additionally uses shared memory to publish the daemon's address.
 				// See function _dbus_daemon_publish_session_bus_address() inside the daemon.
-				if (String.IsNullOrEmpty(result) && !OSHelpers.PlatformIsUnixoid) {
+				if (string.IsNullOrEmpty (result) && !OSHelpers.PlatformIsUnixoid) {
 					result = GetSessionBusAddressFromSharedMemory ();
-					if (String.IsNullOrEmpty(result))
+					if (string.IsNullOrEmpty (result))
 						result = "autolaunch:";
 				}
 
@@ -80,15 +79,13 @@ namespace DBus
 			}
 		}
 
-		public static string Starter
-		{
+		public static string Starter {
 			get {
 				return Environment.GetEnvironmentVariable ("DBUS_STARTER_ADDRESS");
 			}
 		}
 
-		public static string StarterBusType
-		{
+		public static string StarterBusType {
 			get {
 				return Environment.GetEnvironmentVariable ("DBUS_STARTER_BUS_TYPE");
 			}

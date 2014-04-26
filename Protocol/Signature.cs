@@ -430,13 +430,9 @@ namespace DBus.Protocol
 			}
 		}
 		
-		public bool IsVariant
-		{
+		public bool IsVariant {
 			get {
-				if (data.Length >= 1 && this[0] == DType.Variant)
-					return true;
-				else
-					return false;
+				return data.Length >= 1 && this [0] == DType.Variant;
 			}
 		}
 

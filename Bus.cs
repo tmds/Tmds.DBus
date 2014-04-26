@@ -18,7 +18,7 @@ namespace DBus
 		static Bus starterBus = null;
 
 		static Bus systemBus  = Address.StarterBusType=="system"  ? Starter : (Address.System !=null ? Bus.Open (Address.System ) : null);
-		static Bus sessionBus = Address.StarterBusType=="session" ? Starter : (Address.Session!=null ? Bus.Open (Address.Session) : null);
+		static Bus sessionBus = Address.StarterBusType=="session" ? Starter : (Address.Session != null ? Bus.Open (Address.Session) : null);
 
 		IBus bus;
 		string address;

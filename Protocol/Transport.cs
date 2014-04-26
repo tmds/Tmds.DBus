@@ -64,18 +64,16 @@ namespace DBus.Transports
 
 					string addr = Address.GetSessionBusAddressFromSharedMemory ();
 
-					if (String.IsNullOrEmpty(addr)) // we have to launch the daemon ourselves
-					{   
+					if (string.IsNullOrEmpty (addr)) { // we have to launch the daemon ourselves
+						string oldDir = Directory.GetCurrentDirectory ();
+						// Without this, the "current" folder for the new process will be the one where the current
+						// executable resides, and as a consequence,that folder cannot be relocated/deleted unless the daemon is stopped
+						Directory.SetCurrentDirectory (Environment.GetFolderPath (Environment.SpecialFolder.System));
 
-						string olddir = Directory.GetCurrentDirectory ();
-						Directory.SetCurrentDirectory (Environment.GetFolderPath (Environment.SpecialFolder.System)); // without this, the "current" folder for the new process will be the one where the current executable resides, and as a consequence, that folder cannot be relocated/deleted unless the daemon is stopped
-
-						Process process;      
-						process = Process.Start (DBUS_DAEMON_LAUNCH_COMMAND);
-						if (process==null)
-						{
-							Directory.SetCurrentDirectory(olddir);
-							throw new NotSupportedException ("Transport method \"autolaunch:\" - cannot launch dbus daemon '"+DBUS_DAEMON_LAUNCH_COMMAND+"'"); 
+						Process process = Process.Start (DBUS_DAEMON_LAUNCH_COMMAND);
+						if (process == null) {
+							Directory.SetCurrentDirectory (oldDir);
+							throw new NotSupportedException ("Transport method \"autolaunch:\" - cannot launch dbus daemon '" + DBUS_DAEMON_LAUNCH_COMMAND + "'");
 						}
 
 						// wait for daemon
@@ -83,14 +81,14 @@ namespace DBus.Transports
 						stopwatch.Start ();
 						do {
 							addr = Address.GetSessionBusAddressFromSharedMemory ();
-							if (String.IsNullOrEmpty(addr))
+							if (String.IsNullOrEmpty (addr))
 								Thread.Sleep (100);
 						} while (String.IsNullOrEmpty (addr) && stopwatch.ElapsedMilliseconds <= 5000);
 
-						Directory.SetCurrentDirectory(olddir);
+						Directory.SetCurrentDirectory (oldDir);
 					}
 
-					if (String.IsNullOrEmpty(addr))
+					if (string.IsNullOrEmpty (addr))
 						throw new NotSupportedException ("Transport method \"autolaunch:\" - timeout during access to freshly launched dbus daemon"); 
 					return Create (AddressEntry.Parse (addr));
 				}
@@ -162,8 +160,8 @@ namespace DBus.Transports
 				msg = null;
 			}
          
-			if (connection!=null && connection.Monitors!=null)
-				connection.Monitors(msg);
+			if (connection != null && connection.Monitors != null)
+				connection.Monitors (msg);
 
 			return msg;
 		}

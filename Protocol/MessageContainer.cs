@@ -38,6 +38,7 @@ namespace DBus.Protocol
 				ErrorName = errorName,
 				ReplySerial = message.Header.Serial,
 				Signature = Signature.StringSig,
+				Destination = Sender
 			};
 
 			MessageWriter writer = new MessageWriter (message.Header.Endianness);

@@ -210,22 +210,7 @@ namespace DBus
 			                               method_call.Signature.Value,
 			                               method_call.Interface);
 
-			var error = new MessageContainer {
-				ErrorName = "org.freedesktop.DBus.Error.UnknownMethod",
-				Serial = msg.Header.Serial,
-				Signature = Signature.StringSig,
-			};
-
-			MessageWriter writer = new MessageWriter (Connection.NativeEndianness);
-			writer.Write (errMsg);
-			msg = error.Message;
-			msg.AttachBodyTo (writer);
-
-			//TODO: we should be more strict here, but this fallback was added as a quick fix for p2p
-			if (method_call.Sender != null)
-				msg.Header[FieldCode.Destination] = method_call.Sender;
-
-			return msg;
+			return method_call.CreateError ("org.freedesktop.DBus.Error.UnknownMethod", errMsg);
 		}
 
 		public static void WriteDynamicValues (MessageWriter mw, ParameterInfo[] parms, object[] vals)

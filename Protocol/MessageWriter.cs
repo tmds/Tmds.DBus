@@ -425,18 +425,20 @@ namespace DBus.Protocol
 
 			WritePad (8);
 
+			object boxed = value;
+
 			if (MessageReader.IsEligibleStruct (typeof (T), fis)) {
 				byte[] buffer = new byte[Marshal.SizeOf (fis[0].FieldType) * fis.Length];
 
 				unsafe {
-					GCHandle valueHandle = GCHandle.Alloc(value);
-					Marshal.Copy ((IntPtr) valueHandle, buffer, 0, buffer.Length);
+					GCHandle valueHandle = GCHandle.Alloc (boxed, GCHandleType.Pinned);
+					Marshal.Copy (valueHandle.AddrOfPinnedObject (), buffer, 0, buffer.Length);
+					valueHandle.Free ();
 				}
 				stream.Write (buffer, 0, buffer.Length);
 				return;
 			}
 
-			object boxed = value;
 			foreach (var fi in fis)
 				Write (fi.FieldType, fi.GetValue (boxed));
 		}

@@ -548,8 +548,8 @@ namespace DBus.Protocol
 			if (fis.Length == 0)
 				return default (T);
 
-			if (IsEligibleStruct (typeof (T), fis))
-				return NewMarshalStruct<T> (fis);
+			if (IsEligibleStruct (typeof(T), fis))
+				return (T)MarshalStruct (typeof(T), fis);
 
 			object val = Activator.CreateInstance<T> ();
 
@@ -570,18 +570,21 @@ namespace DBus.Protocol
 			return strct;
 		}
 
-		T NewMarshalStruct<T> (FieldInfo[] fis) where T : struct
+		// Unfortunately in newer Mono, the compiler is not able to infer
+		// that T is a structure for the purpose of acquiring a pointer
+		// causing a compilation error
+		/*T NewMarshalStruct<T> (FieldInfo[] fis) where T : struct
 		{
 			T val = default (T);
 			int sof = Marshal.SizeOf (fis[0].FieldType);
 
 			unsafe {
-				GCHandle valueHandle = GCHandle.Alloc(val);
-				DirectCopy (sof, (uint)(fis.Length * sof), (IntPtr)valueHandle);
+				byte* pVal = (byte*)&val;
+				DirectCopy (sof, (uint)(fis.Length * sof), (IntPtr)pVal);
 			}
 
 			return val;
-		}
+		}*/
 
 		public void ReadNull ()
 		{

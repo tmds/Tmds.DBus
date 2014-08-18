@@ -5,8 +5,8 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-[assembly: AssemblyFileVersion("0.8.1")]
-[assembly: AssemblyInformationalVersion("0.8.1")]
+[assembly: AssemblyFileVersion("0.9")]
+[assembly: AssemblyInformationalVersion("0.9")]
 [assembly: AssemblyVersion("2.0")]
 [assembly: AssemblyTitle ("dbus-sharp")]
 [assembly: AssemblyDescription ("D-Bus IPC protocol library and CLR binding")]

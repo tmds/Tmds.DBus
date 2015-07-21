@@ -16,6 +16,7 @@ CSFILES = Address.cs \
 	TypeImplementer.cs \
 	ArgDirection.cs \
 	ObjectPath.cs \
+	OSHelpers.cs \
 	BusException.cs \
 	AddressEntry.cs \
 	Protocol/DBusStruct.cs \

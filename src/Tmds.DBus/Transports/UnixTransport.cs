@@ -1,181 +1,203 @@
 // Copyright 2006 Alp Toker <alp@atoker.com>
+// Copyright 2016 Tom Deseyn <tom.deseyn@gmail.com>
 // This software is made available under the MIT License
 // See COPYING for details
 
-//We send BSD-style credentials on all platforms
-//Doesn't seem to break Linux (but is redundant there)
-//This may turn out to be a bad idea
-#define HAVE_CMSGCRED
-
 using System;
 using System.IO;
-using System.Text;
+using System.Net.Sockets;
+using System.Reflection;
 using System.Runtime.InteropServices;
-using DBus.Unix;
-using DBus.Protocol;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace DBus.Transports
+namespace Tmds.DBus.Transports
 {
-	class UnixNativeTransport : UnixTransport
-	{
-		internal UnixSocket socket;
+    using SizeT = System.UIntPtr;
+    using SSizeT = System.IntPtr;
+    internal class UnixTransport : Transport
+    {
+        private static readonly byte[] _oneByteArray = new[] { (byte)0 };
+        private static bool s_bsdCredSupported = true;
+        private static PropertyInfo s_safeHandleProperty;
+        private unsafe struct msghdr
+        {
+            public IntPtr msg_name; //optional address
+            public uint msg_namelen; //size of address
+            public IOVector* msg_iov; //scatter/gather array
+            public SizeT msg_iovlen; //# elements in msg_iov
+            public IntPtr msg_control; //ancillary data, see below
+            public SizeT msg_controllen; //ancillary data buffer len
+            public int msg_flags; //flags on received message
+        }
 
-		public override string AuthString ()
-		{
-			long uid = Mono.Unix.Native.Syscall.geteuid ();
-			return uid.ToString ();
-		}
+        unsafe struct IOVector
+        {
+            public IOVector(IntPtr bbase, int length)
+            {
+                this.Base = (void*)bbase;
+                this.length = (SizeT)length;
+            }
 
-		public override void Open (string path, bool @abstract)
-		{
-			if (String.IsNullOrEmpty (path))
-				throw new ArgumentException ("path");
+            //public IntPtr Base;
+            public void* Base;
 
-			if (@abstract)
-				socket = OpenAbstractUnix (path);
-			else
-				socket = OpenUnix (path);
+            public SizeT length;
+            public int Length
+            {
+                get
+                {
+                    return (int)length;
+                }
+                set
+                {
+                    length = (SizeT)value;
+                }
+            }
+        }
 
-			//socket.Blocking = true;
-			SocketHandle = (long)socket.Handle;
-			//Stream = new UnixStream ((int)socket.Handle);
-			Stream = new UnixStream (socket);
-		}
+        private struct cmsghdr
+        {
+            public uint cmsg_len; //data byte count, including header
+            public int cmsg_level; //originating protocol
+            public int cmsg_type; //protocol-specific type
+        }
 
-		//send peer credentials null byte
-		//different platforms do this in different ways
-#if HAVE_CMSGCRED
-		unsafe void WriteBsdCred ()
-		{
-			//null credentials byte
-			byte buf = 0;
+        private unsafe struct cmsgcred
+        {
+            const int CMGROUP_MAX = 16;
 
-			IOVector iov = new IOVector ();
-			//iov.Base = (IntPtr)(&buf);
-			iov.Base = &buf;
-			iov.Length = 1;
+            public int cmcred_pid; //PID of sending process
+            public uint cmcred_uid; //real UID of sending process
+            public uint cmcred_euid; //effective UID of sending process
+            public uint cmcred_gid; //real GID of sending process
+            public short cmcred_ngroups; //number or groups
+            public fixed uint cmcred_groups[CMGROUP_MAX]; //groups
+        }
 
-			msghdr msg = new msghdr ();
-			msg.msg_iov = &iov;
-			msg.msg_iovlen = 1;
+        private struct cmsg
+        {
+            public cmsghdr hdr;
+            public cmsgcred cred;
+        }
 
-			cmsg cm = new cmsg ();
-			msg.msg_control = (IntPtr)(&cm);
-			msg.msg_controllen = (uint)sizeof (cmsg);
-			cm.hdr.cmsg_len = (uint)sizeof (cmsg);
-			cm.hdr.cmsg_level = 0xffff; //SOL_SOCKET
-			cm.hdr.cmsg_type = 0x03; //SCM_CREDS
+        public UnixTransport(AddressEntry entry) :
+            base(entry)
+        {}
 
-			int written = socket.SendMsg (&msg, 0);
-			if (written != 1)
-				throw new Exception ("Failed to write credentials");
-		}
-#endif
+        protected override Task<Stream> OpenAsync (AddressEntry entry, CancellationToken cancellationToken)
+        {
+            string path;
+            bool abstr;
 
-		public override void WriteCred ()
-		{
-#if HAVE_CMSGCRED
-			try {
-				WriteBsdCred ();
-				return;
-			} catch {
-				if (ProtocolInformation.Verbose)
-					Console.Error.WriteLine ("Warning: WriteBsdCred() failed; falling back to ordinary WriteCred()");
-			}
-#endif
-			//null credentials byte
-			byte buf = 0;
-			Stream.WriteByte (buf);
-		}
+            if (entry.Properties.TryGetValue("path", out path))
+                abstr = false;
+            else if (entry.Properties.TryGetValue("abstract", out path))
+                abstr = true;
+            else
+                throw new ArgumentException("No path specified for UNIX transport");
 
-		public static byte[] GetSockAddr (string path)
-		{
-			byte[] p = Encoding.Default.GetBytes (path);
+            return OpenAsync(path, abstr, cancellationToken);
+        }
 
-			byte[] sa = new byte[2 + p.Length + 1];
+        private async Task<Stream> OpenAsync(string path, bool abstr, CancellationToken cancellationToken)
+        {
+            if (String.IsNullOrEmpty(path))
+            {
+                throw new ArgumentException("path");
+            }
 
-			//we use BitConverter to stay endian-safe
-			byte[] afData = BitConverter.GetBytes (UnixSocket.AF_UNIX);
-			sa[0] = afData[0];
-			sa[1] = afData[1];
+            if (abstr)
+            {
+                path = (char)'\0' + path;
+            }
 
-			for (int i = 0 ; i != p.Length ; i++)
-				sa[2 + i] = p[i];
-			sa[2 + p.Length] = 0; //null suffix for domain socket addresses, see unix(7)
+            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var registration = cancellationToken.Register(() => ((IDisposable)socket).Dispose());
+            var endPoint = new Tmds.DBus.Transports.UnixDomainSocketEndPoint(path);
+            try
+            {
+                await socket.ConnectAsync(endPoint);
+                var stream = new NetworkStream(socket, true);
+                try
+                {
+                    var bsdAuthenticated = TryWriteBsdCred(socket);
+                    registration.Dispose();
+                    if (!bsdAuthenticated)
+                    {
+                        await stream.WriteAsync(_oneByteArray, 0, 1, cancellationToken);
+                    }
+                    await DoSaslAuthenticationAsync(stream, cancellationToken);
+                    return stream;
+                }
+                catch (Exception e)
+                {
+                    stream.Dispose();
+                    throw new ConnectionException($"Unable to authenticate: {e.Message}", e);
+                }
+            }
+            catch (System.Exception e)
+            {
+                socket.Dispose();
+                throw new ConnectionException($"Socket error: {e.Message}", e);
+            }
+            finally
+            {
+                registration.Dispose();
+            }
+        }
 
-			return sa;
-		}
+        private static unsafe bool TryWriteBsdCred(Socket socket)
+        {
+            if (!s_bsdCredSupported)
+            {
+                return false;
+            }
+            byte buf = 0;
 
-		public static byte[] GetSockAddrAbstract (string path)
-		{
-			byte[] p = Encoding.Default.GetBytes (path);
+            IOVector iov = new IOVector ();
+            iov.Base = &buf;
+            iov.Length = 1;
 
-			byte[] sa = new byte[2 + 1 + p.Length];
+            msghdr msg = new msghdr ();
+            msg.msg_iov = &iov;
+            msg.msg_iovlen = (SizeT)1;
 
-			//we use BitConverter to stay endian-safe
-			byte[] afData = BitConverter.GetBytes (UnixSocket.AF_UNIX);
-			sa[0] = afData[0];
-			sa[1] = afData[1];
+            cmsg cm = new cmsg ();
+            msg.msg_control = (IntPtr)(&cm);
+            msg.msg_controllen = (SizeT)sizeof (cmsg);
+            cm.hdr.cmsg_len = (uint)sizeof (cmsg);
+            cm.hdr.cmsg_level = 0xffff; //SOL_SOCKET
+            cm.hdr.cmsg_type = 0x03; //SCM_CREDS
 
-			sa[2] = 0; //null prefix for abstract domain socket addresses, see unix(7)
-			for (int i = 0 ; i != p.Length ; i++)
-				sa[3 + i] = p[i];
+            // Issue https://github.com/dotnet/corefx/issues/6807
+            s_safeHandleProperty = s_safeHandleProperty ?? typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
+            var socketSafeHandle = (SafeHandle)s_safeHandleProperty.GetValue(socket, null);
+            int sockFd = (int)socketSafeHandle.DangerousGetHandle();
+            do
+            {
+                var rv = (int)Interop.sendmsg(sockFd, new IntPtr(&msg), 0);
 
-			return sa;
-		}
+                if (rv == 1)
+                {
+                    return true;
+                }
+                else
+                {
+                    var errno = Marshal.GetLastWin32Error();
+                    switch (errno)
+                    {
+                        case 4:  // EINTR
+                            continue;
+                        case 22: // EINVAL
+                            s_bsdCredSupported = false;
+                            return false;
+                        default:
+                            throw new SocketException();
+                    }
+                }
+            } while (true);
+        }
 
-		internal UnixSocket OpenUnix (string path)
-		{
-			byte[] sa = GetSockAddr (path);
-			UnixSocket client = new UnixSocket ();
-			client.Connect (sa);
-			return client;
-		}
-
-		internal UnixSocket OpenAbstractUnix (string path)
-		{
-			byte[] sa = GetSockAddrAbstract (path);
-			UnixSocket client = new UnixSocket ();
-			client.Connect (sa);
-			return client;
-		}
-	}
-
-#if HAVE_CMSGCRED
-	unsafe struct msghdr
-	{
-		public IntPtr msg_name; //optional address
-		public uint msg_namelen; //size of address
-		public IOVector *msg_iov; //scatter/gather array
-		public int msg_iovlen; //# elements in msg_iov
-		public IntPtr msg_control; //ancillary data, see below
-		public uint msg_controllen; //ancillary data buffer len
-		public int msg_flags; //flags on received message
-	}
-
-	struct cmsghdr
-	{
-		public uint cmsg_len; //data byte count, including header
-		public int cmsg_level; //originating protocol
-		public int cmsg_type; //protocol-specific type
-	}
-
-	unsafe struct cmsgcred
-	{
-		const int CMGROUP_MAX = 16;
-
-		public int cmcred_pid; //PID of sending process
-		public uint cmcred_uid; //real UID of sending process
-		public uint cmcred_euid; //effective UID of sending process
-		public uint cmcred_gid; //real GID of sending process
-		public short cmcred_ngroups; //number or groups
-		public fixed uint cmcred_groups[CMGROUP_MAX]; //groups
-	}
-
-	struct cmsg
-	{
-		public cmsghdr hdr;
-		public cmsgcred cred;
-	}
-#endif
+    }
 }

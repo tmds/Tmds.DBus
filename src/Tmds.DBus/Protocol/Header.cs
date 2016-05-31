@@ -1,130 +1,172 @@
 // Copyright 2006 Alp Toker <alp@atoker.com>
 // Copyright 2010 Alan McGovern <alan.mcgovern@gmail.com>
+// Copyright 2016 Tom Deseyn <tom.deseyn@gmail.com>
 // This software is made available under the MIT License
 // See COPYING for details
 
 using System;
-using System.IO;
 using System.Collections.Generic;
 
-namespace DBus.Protocol
+namespace Tmds.DBus.Protocol
 {
-	public class Header
-	{
-		public EndianFlag Endianness;
-		public MessageType MessageType;
-		public HeaderFlag Flags;
-		public byte MajorVersion;
-		public uint Length;
-		public uint Serial;
+    internal class Header
+    {
+        public Header(MessageType type, EndianFlag endianness)
+        {
+            MessageType = type;
+            Endianness = endianness;
+            if (type == MessageType.MethodCall)
+                ReplyExpected = true;
+            else
+                Flags = HeaderFlag.NoReplyExpected | HeaderFlag.NoAutoStart;
+            MajorVersion = ProtocolInformation.Version;
+        }
 
-		Dictionary<byte, object> fields = new Dictionary<byte, object> ();
+        public Header(MessageType type) :
+            this(type, Environment.NativeEndianness)
+        {}
 
-		public object this[FieldCode key]
-		{
-			get {
-				object value = null;
-				fields.TryGetValue ((byte)key, out value);
-				return value;
-			}
-			set {
-				if (value == null)
-					fields.Remove((byte)key);
-				else
-					fields[(byte)key] = value;
-			}
-		}
+        public EndianFlag Endianness { get; private set; }
+        public MessageType MessageType { get; private set; }
+        public HeaderFlag Flags { get; private set; }
+        public byte MajorVersion { get; private set; }
+        public uint Length { get; set; }
 
-		public bool TryGetField (FieldCode code, out object value)
-		{
-			return fields.TryGetValue ((byte)code, out value);
-		}
+        public bool ReplyExpected
+        {
+            get
+            {
+                return (Flags & HeaderFlag.NoReplyExpected) == HeaderFlag.None;
+            }
+            set
+            {
+                if (value)
+                    Flags &= ~HeaderFlag.NoReplyExpected;
+                else
+                    Flags |= HeaderFlag.NoReplyExpected;
+            }
+        }
 
-		public int FieldsCount {
-			get {
-				return fields.Count;
-			}
-		}
+        public uint Serial { get; set; }
+        public ObjectPath? Path { get; set; }
+        public string Interface { get; set; }
+        public string Member { get; set; }
+        public string ErrorName { get; set; }
+        public uint? ReplySerial { get; set; }
+        public string Destination { get; set; }
+        public string Sender { get; set; }
+        public Signature? Signature { get; set; }
 
-		public static Header FromBytes (byte[] data)
-		{
-			Header header = new Header ();
-			EndianFlag endianness = (EndianFlag)data[0];
+        public static Header FromBytes(ArraySegment<byte> data)
+        {
+            Header header = new Header();
+            EndianFlag endianness = (EndianFlag)data.Array[data.Offset + 0];
 
-			header.Endianness = endianness;
-			header.MessageType = (MessageType)data[1];
-			header.Flags = (HeaderFlag)data[2];
-			header.MajorVersion = data[3];
+            header.Endianness = endianness;
+            header.MessageType = (MessageType)data.Array[data.Offset + 1];
+            header.Flags = (HeaderFlag)data.Array[data.Offset + 2];
+            header.MajorVersion = data.Array[data.Offset + 3];
 
-			var reader = new MessageReader (endianness, data);
-			reader.Seek (4);
-			header.Length = reader.ReadUInt32 ();
-			header.Serial = reader.ReadUInt32 ();
+            var reader = new MessageReader(endianness, data);
+            reader.Seek(4);
+            header.Length = reader.ReadUInt32();
+            header.Serial = reader.ReadUInt32();
 
-			FieldCodeEntry[] fields = reader.ReadArray<FieldCodeEntry> ();
-			foreach (var f in fields) {
-				header[(FieldCode)f.Code] = f.Value;
-			}
+            FieldCodeEntry[] fields = reader.ReadArray<FieldCodeEntry>();
+            foreach (var f in fields)
+            {
+                var fieldCode = f.Code;
+                var value = f.Value;
+                switch (fieldCode)
+                {
+                    case FieldCode.Path:
+                        header.Path = (ObjectPath)value;
+                        break;
+                    case FieldCode.Interface:
+                        header.Interface = (string)value;
+                        break;
+                    case FieldCode.Member:
+                        header.Member = (string)value;
+                        break;
+                    case FieldCode.ErrorName:
+                        header.ErrorName = (string)value;
+                        break;
+                    case FieldCode.ReplySerial:
+                        header.ReplySerial = (uint)value;
+                        break;
+                    case FieldCode.Destination:
+                        header.Destination = (string)value;
+                        break;
+                    case FieldCode.Sender:
+                        header.Sender = (string)value;
+                        break;
+                    case FieldCode.Signature:
+                        header.Signature = (Signature)value;
+                        break;
+                }
+            }
 
-			return header;
-		}
+            return header;
+        }
 
-		public void GetHeaderDataToStream (Stream stream)
-		{
-			MessageWriter writer = new MessageWriter (Endianness);
-			WriteHeaderToMessage (writer);
-			writer.ToStream (stream);
-		}
+        public byte[] ToArray()
+        {
+            MessageWriter writer = new MessageWriter(Endianness);
+            writer.WriteByte((byte)Endianness);
+            writer.WriteByte((byte)MessageType);
+            writer.WriteByte((byte)Flags);
+            writer.WriteByte(MajorVersion);
+            writer.WriteUInt32(Length);
+            writer.WriteUInt32(Serial);
+            writer.WriteHeaderFields(GetFields());
+            writer.CloseWrite();
+            return writer.ToArray();
+        }
 
-		internal void WriteHeaderToMessage (MessageWriter writer)
-		{
-			writer.Write ((byte)Endianness);
-			writer.Write ((byte)MessageType);
-			writer.Write ((byte)Flags);
-			writer.Write (MajorVersion);
-			writer.Write (Length);
-			writer.Write (Serial);
-			writer.WriteHeaderFields (fields);
+        public IEnumerable<KeyValuePair<FieldCode, object>> GetFields()
+        {
+            if (Path != null)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.Path, Path.Value);
+            }
+            if (Interface != null)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.Interface, Interface);
+            }
+            if (Member != null)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.Member, Member);
+            }
+            if (ErrorName != null)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.ErrorName, ErrorName);
+            }
+            if (ReplySerial != null)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.ReplySerial, ReplySerial);
+            }
+            if (Destination != null)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.Destination, Destination);
+            }
+            if (Sender != null)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.Sender, Sender);
+            }
+            if (Signature != null)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.Signature, Signature.Value);
+            }
+        }
 
-			writer.CloseWrite ();
-		}
-
-		struct FieldCodeEntry
-		{
-			public byte Code;
-			public object Value;
-		}
-
-		/*
-		public static DType TypeForField (FieldCode f)
-		{
-			switch (f) {
-				case FieldCode.Invalid:
-					return DType.Invalid;
-				case FieldCode.Path:
-					return DType.ObjectPath;
-				case FieldCode.Interface:
-					return DType.String;
-				case FieldCode.Member:
-					return DType.String;
-				case FieldCode.ErrorName:
-					return DType.String;
-				case FieldCode.ReplySerial:
-					return DType.UInt32;
-				case FieldCode.Destination:
-					return DType.String;
-				case FieldCode.Sender:
-					return DType.String;
-				case FieldCode.Signature:
-					return DType.Signature;
-#if PROTO_REPLY_SIGNATURE
-				case FieldCode.ReplySignature: //note: not supported in dbus
-					return DType.Signature;
-#endif
-				default:
-					return DType.Invalid;
-			}
-		}
-		*/
-	}
+        private Header()
+        { }
+#pragma warning disable 0649 // Field is never assigned to, and will always have its default value
+        private struct FieldCodeEntry
+        {
+            public FieldCode Code;
+            public object Value;
+        }
+#pragma warning restore
+    }
 }

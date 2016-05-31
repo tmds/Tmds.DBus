@@ -1,4 +1,5 @@
 // Copyright 2006 Alp Toker <alp@atoker.com>
+// Copyright 2016 Tom Deseyn <tom.deseyn@gmail.com>
 // This software is made available under the MIT License
 // See COPYING for details
 
@@ -6,67 +7,96 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace DBus.Transports
+namespace Tmds.DBus.Transports
 {
-	class SocketTransport : Transport
-	{
-		internal Socket socket;
+    internal class TcpTransport : Transport
+    {
+        private static readonly byte[] _oneByteArray = new[] { (byte)0 };
 
-		public override void Open (AddressEntry entry)
-		{
-			string host, portStr, family;
-			int port;
+        public TcpTransport(AddressEntry entry) :
+            base(entry)
+        {}
 
-			if (!entry.Properties.TryGetValue ("host", out host))
-				host = "localhost";
+        protected override Task<Stream> OpenAsync (AddressEntry entry, CancellationToken cancellationToken)
+        {
+            string host, portStr, family;
+            int port;
 
-			if (!entry.Properties.TryGetValue ("port", out portStr))
-				throw new Exception ("No port specified");
+            if (!entry.Properties.TryGetValue ("host", out host))
+                host = "localhost";
 
-			if (!Int32.TryParse (portStr, out port))
-				throw new Exception ("Invalid port: \"" + port + "\"");
+            if (!entry.Properties.TryGetValue ("port", out portStr))
+                throw new FormatException ("No port specified");
 
-			if (!entry.Properties.TryGetValue ("family", out family))
-				family = null;
+            if (!Int32.TryParse (portStr, out port))
+                throw new FormatException("Invalid port: \"" + port + "\"");
 
-			Open (host, port, family);
-		}
+            if (!entry.Properties.TryGetValue ("family", out family))
+                family = null;
 
-		public void Open (string host, int port, string family)
-		{
-			//TODO: use Socket directly
-			TcpClient client = new TcpClient (host, port);
-			/*
-			client.NoDelay = true;
-			client.ReceiveBufferSize = (int)Protocol.MaxMessageLength;
-			client.SendBufferSize = (int)Protocol.MaxMessageLength;
-			*/
-			this.socket = client.Client;
-			SocketHandle = (long)client.Client.Handle;
-			Stream = client.GetStream ();
-		}
+            return OpenAsync (host, port, family, cancellationToken);
+        }
 
-		public void Open (Socket socket)
-		{
-			this.socket = socket;
+        private async Task<Stream> OpenAsync (string host, int port, string family, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(host))
+            {
+                throw new ArgumentException("host");
+            }
 
-			socket.Blocking = true;
-			SocketHandle = (long)socket.Handle;
-			//Stream = new UnixStream ((int)socket.Handle);
-			Stream = new NetworkStream (socket);
-		}
+            IPAddress[] addresses;
+            try
+            {
+                addresses = await Dns.GetHostAddressesAsync(host);
+            }
+            catch (System.Exception e)
+            {
+                throw new ConnectionException($"No addresses for host '{host}'", e);
+            }
 
-		public override void WriteCred ()
-		{
-			Stream.WriteByte (0);
-		}
-
-		public override string AuthString ()
-		{
-			return OSHelpers.PlatformIsUnixoid ?
-				Mono.Unix.Native.Syscall.geteuid ().ToString ()                       // Unix User ID
-				: System.Security.Principal.WindowsIdentity.GetCurrent ().User.Value; // Windows User ID
-		}
-	}
+            for (int i = 0; i < addresses.Length; i++)
+            {
+                var address = addresses[i];
+                bool lastAddress = i == (addresses.Length - 1);
+                var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                var registration = cancellationToken.Register(() => ((IDisposable)socket).Dispose());
+                try
+                {
+                    await socket.ConnectAsync(address, port);
+                    var stream = new NetworkStream(socket, true);
+                    try
+                    {
+                        registration.Dispose();
+                        await stream.WriteAsync(_oneByteArray, 0, 1, cancellationToken);
+                        await DoSaslAuthenticationAsync(stream, cancellationToken);
+                        return stream;
+                    }
+                    catch (Exception e)
+                    {
+                        stream.Dispose();
+                        if (lastAddress)
+                        {
+                            throw new ConnectionException($"Unable to authenticate: {e.Message}", e);
+                        }
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    socket.Dispose();
+                    if (lastAddress)
+                    {
+                        throw new ConnectionException($"Socket error: {e.Message}", e);
+                    }
+                }
+                finally
+                {
+                    registration.Dispose();
+                }
+            }
+            throw new ConnectionException($"No addresses for host '{host}'");
+        }
+    }
 }

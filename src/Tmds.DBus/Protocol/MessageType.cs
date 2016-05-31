@@ -5,21 +5,21 @@
 
 using System;
 
-namespace DBus.Protocol
+namespace Tmds.DBus.Protocol
 {
-	public enum MessageType : byte
-	{
-		//This is an invalid type.
-		Invalid,
-		//Method call.
-		MethodCall,
-		//Method reply with returned data.
-		MethodReturn,
-		//Error reply. If the first argument exists and is a string, it is an error message.
-		Error,
-		//Signal emission.
-		Signal,
-		All
-		// Correspond to all types
-	}
+    internal enum MessageType : byte
+    {
+        //This is an invalid type.
+        Invalid,
+        //Method call.
+        MethodCall,
+        //Method reply with returned data.
+        MethodReturn,
+        //Error reply. If the first argument exists and is a string, it is an error message.
+        Error,
+        //Signal emission.
+        Signal,
+        All
+        // Correspond to all types
+    }
 }

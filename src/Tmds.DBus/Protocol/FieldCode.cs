@@ -1,25 +1,21 @@
 // Copyright 2006 Alp Toker <alp@atoker.com>
 // Copyright 2010 Alan McGovern <alan.mcgovern@gmail.com>
+// Copyright 2016 Tom Deseyn <tom.deseyn@gmail.com>
 // This software is made available under the MIT License
 // See COPYING for details
 
-using System;
-
-namespace DBus.Protocol
+namespace Tmds.DBus.Protocol
 {
-	public enum FieldCode : byte
-	{
-		Invalid,
-		Path,
-		Interface,
-		Member,
-		ErrorName,
-		ReplySerial,
-		Destination,
-		Sender,
-		Signature,
-#if PROTO_REPLY_SIGNATURE
-		ReplySignature, //note: not supported in dbus
-#endif
-	}
+    internal enum FieldCode : byte
+    {
+        Invalid,
+        Path,
+        Interface,
+        Member,
+        ErrorName,
+        ReplySerial,
+        Destination,
+        Sender,
+        Signature
+    }
 }

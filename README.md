@@ -132,7 +132,7 @@ UNIX_FD	          | h         |	not supported
 STRING	          | s         |	System.String (string)
 OBJECT_PATH	      | o         |	ObjectPath, IDBusObject, D-Bus interface, D-Bus object type interface
 SIGNATURE	      | g         |	N/A
-ARRAY             | a.        | T[], IEnumerable<T>, IList<T>, ICollection<T>
+ARRAY             | a.        | T[], IEnumerable<>, IList<>, ICollection<>
 DICTIONARY        | a{..}     | IDictionary, ARRAY of KeyValuePair<,>
 STRUCT            | (...)     | [StructLayout(LayoutKind.Sequential)] class or struct: public and non-public instance fields
 VARIANT           | v         | object
@@ -140,7 +140,7 @@ VARIANT           | v         | object
 The preferred type to represent an ARRAY is `T[]`.
 A DICTIONARY can be represented as `IDictionary<TKey, TValue>` but also as `KeyValuePair<TKey, TValue>[]`. The latter can be used to avoid the overhead of adding the elements to a dictionary class.
 
-When an `object` is serialized as a VARIANT, it's underlying type is determined as follows. If the instance type exactly matches one of the types in the above table, that is type used. In case the instance implements `IEnumerable<KeyValuePair<,>` it is serialized as a DICTIONARY. In case it implements the more generic `IEnumerable<T>` it is serialized as an ARRAY. If non of the previous match, the object is serialized as a STRUCT.
+When an `object` is serialized as a VARIANT, it's underlying type is determined as follows. If the instance type exactly matches one of the types in the above table, that is type used. In case the instance implements `IEnumerable<KeyValuePair<,>` it is serialized as a DICTIONARY. In case it implements the more generic `IEnumerable<>` it is serialized as an ARRAY. If non of the previous match, the object is serialized as a STRUCT.
 
 When an VARIANT is deserialized as an `object` the matching .NET type is used. ARRAY types are deserialized as `T[]`. DICTIONARY types are deserialized as `IDictionary<TKey,TValue>`. STRUCTS are deserialized as `DBusStruct`.
 
@@ -202,7 +202,7 @@ A D-Bus signal is modeled by a method in the .NET interface which matches the D-
 public interface INetworkManager : IDBusObject
 {
     // DeviceAdded signal with a single ObjectPath argument
-    Task<IDisposable> WatchDeviceAdded(Action<ObjectPath> handler, CancellationToken cancellationToken = default(CancellationToken));nToken));
+    Task<IDisposable> WatchDeviceAddedAsync(Action<ObjectPath> handler, CancellationToken cancellationToken = default(CancellationToken))));
 }
 ```
 

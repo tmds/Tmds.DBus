@@ -120,7 +120,7 @@ namespace Tmds.DBus.Tests
                 var exception = await Assert.ThrowsAsync<DBusException>(() => conn1.ActivateServiceAsync("com.some.service"));
                 Assert.Equal("org.freedesktop.DBus.Error.ServiceUnknown", exception.ErrorName);
 
-                var isRunning = await conn1.IsServiceAvailableAsync("com.some.service");
+                var isRunning = await conn1.IsServiceActiveAsync("com.some.service");
                 Assert.Equal(false, isRunning);
             }
         }

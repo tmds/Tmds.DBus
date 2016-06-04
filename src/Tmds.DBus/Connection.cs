@@ -281,7 +281,7 @@ namespace Tmds.DBus
             return DBus.StartServiceByNameAsync(serviceName, 0, cancellationToken);
         }
 
-        public Task<bool> IsServiceAvailableAsync(string serviceName, CancellationToken cancellationToken)
+        public Task<bool> IsServiceActiveAsync(string serviceName, CancellationToken cancellationToken)
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();

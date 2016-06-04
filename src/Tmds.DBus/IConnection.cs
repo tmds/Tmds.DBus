@@ -24,6 +24,6 @@ namespace Tmds.DBus
         Task<string> ResolveServiceOwnerAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));
         Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, CancellationToken cancellationToken = default(CancellationToken));
         Task<ServiceStartResult> ActivateServiceAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));
-        Task<bool> IsServiceAvailableAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));
+        Task<bool> IsServiceActiveAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));
     }
 }

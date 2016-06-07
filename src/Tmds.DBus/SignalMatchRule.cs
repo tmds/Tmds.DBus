@@ -11,8 +11,8 @@ namespace Tmds.DBus
     {
         public string Interface { get; set; }
         public string Member { get; set; }
-        public ObjectPath Path { get; set; }
-        
+        public ObjectPath? Path { get; set; }
+
         public override int GetHashCode()
         {
             int hash = 17;
@@ -52,7 +52,7 @@ namespace Tmds.DBus
             {
                 Append(sb, "member", Member);
             }
-            if (Member != null)
+            if (Path != null)
             {
                 Append(sb, "path", Path.Value);
             }

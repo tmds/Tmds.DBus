@@ -292,14 +292,38 @@ namespace Tmds.DBus
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();
+            if (serviceName == "*")
+            {
+                serviceName = ".*";
+            }
 
             var synchronizationContext = SynchronizationContext.Current;
             bool eventEmitted = false;
             var wrappedDisposable = new WrappedDisposable();
+            var namespaceLookup = serviceName.EndsWith(".*");
+            var emittedServices = namespaceLookup ? new List<string>() : null;
 
             wrappedDisposable.Disposable = await _dbusConnection.WatchNameOwnerChangedAsync(serviceName,
                 e => {
-                    eventEmitted = true;
+                    bool first = false;
+                    if (namespaceLookup)
+                    {
+                        first = emittedServices?.Contains(e.ServiceName) == false;
+                        emittedServices?.Add(e.ServiceName);
+                    }
+                    else
+                    {
+                        first = eventEmitted == false;
+                        eventEmitted = true;
+                    }
+                    if (first)
+                    {
+                        if (e.NewOwner == null)
+                        {
+                            return;
+                        }
+                        e.OldOwner = null;
+                    }
                     if (synchronizationContext != null)
                     {
                         synchronizationContext.Post(o =>
@@ -318,14 +342,42 @@ namespace Tmds.DBus
                         }
                     }
                 }, cancellationToken);
-
+            if (namespaceLookup)
+            {
+                serviceName = serviceName.Substring(0, serviceName.Length - 2);
+            }
             try
             {
-                var currentName = await ResolveServiceOwnerAsync(serviceName, cancellationToken);
-                if (currentName != null && !eventEmitted)
+                if (namespaceLookup)
                 {
-                    var e = new ServiceOwnerChangedEventArgs(serviceName, null, currentName);
-                    handler(e);
+                    var services = await ListServicesAsync(cancellationToken);
+                    foreach (var service in services)
+                    {
+                        if (service.StartsWith(serviceName)
+                         && (   (service.Length == serviceName.Length)
+                             || (service[serviceName.Length] == '.')
+                             || (serviceName.Length == 0 && service[0] != ':')))
+                        {
+                            var currentName = await ResolveServiceOwnerAsync(service, cancellationToken);
+                            if (currentName != null && !emittedServices.Contains(serviceName))
+                            {
+                                emittedServices.Add(service);
+                                var e = new ServiceOwnerChangedEventArgs(service, null, currentName);
+                                handler(e);
+                            }
+                        }
+                    }
+                    emittedServices = null;
+                }
+                else
+                {
+                    var currentName = await ResolveServiceOwnerAsync(serviceName, cancellationToken);
+                    if (currentName != null && !eventEmitted)
+                    {
+                        eventEmitted = true;
+                        var e = new ServiceOwnerChangedEventArgs(serviceName, null, currentName);
+                        handler(e);
+                    }
                 }
                 return wrappedDisposable;
             }

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Tmds.DBus
 {
-    public class ServiceOwnerChangedEventArgs
+    public struct ServiceOwnerChangedEventArgs
     {
         public ServiceOwnerChangedEventArgs(string serviceName, string oldOwner, string newOwner)
         {
@@ -17,8 +17,8 @@ namespace Tmds.DBus
             OldOwner = oldOwner;
             NewOwner = newOwner;
         }
-        public string ServiceName { get; }
-        public string OldOwner { get; }
-        public string NewOwner { get; }
+        public string ServiceName { get; set; }
+        public string OldOwner { get; set; }
+        public string NewOwner { get; set; }
     }
 }

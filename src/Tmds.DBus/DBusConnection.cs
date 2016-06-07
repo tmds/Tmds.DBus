@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Tmds.DBus.Protocol;
@@ -43,21 +44,23 @@ namespace Tmds.DBus
 
         private class NameOwnerWatcherRegistration : IDisposable
         {
-            public NameOwnerWatcherRegistration(DBusConnection dbusConnection, OwnerChangedMatchRule rule, Action<ServiceOwnerChangedEventArgs> handler)
+            public NameOwnerWatcherRegistration(DBusConnection dbusConnection, string key, OwnerChangedMatchRule rule, Action<ServiceOwnerChangedEventArgs> handler)
             {
                 _connection = dbusConnection;
                 _rule = rule;
                 _handler = handler;
+                _key = key;
             }
 
             public void Dispose()
             {
-                _connection.RemoveNameOwnerWatcher(_rule, _handler);
+                _connection.RemoveNameOwnerWatcher(_key, _rule, _handler);
             }
 
             private DBusConnection _connection;
             private OwnerChangedMatchRule _rule;
             private Action<ServiceOwnerChangedEventArgs> _handler;
+            private string _key;
         }
 
         private class ServiceNameRegistration
@@ -79,6 +82,7 @@ namespace Tmds.DBus
         public static readonly ObjectPath DBusObjectPath = new ObjectPath("/org/freedesktop/DBus");
         public const string DBusServiceName = "org.freedesktop.DBus";
         public const string DBusInterface = "org.freedesktop.DBus";
+        private static readonly char[] s_dot = new[] { '.' };
 
         public static async Task<DBusConnection> OpenAsync(string address, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
@@ -298,6 +302,7 @@ namespace Tmds.DBus
         public async Task<IDisposable> WatchNameOwnerChangedAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, CancellationToken cancellationToken = default(CancellationToken))
         {
             var rule = new OwnerChangedMatchRule(serviceName);
+            string key = serviceName;
 
             Task task = null;
             lock (_gate)
@@ -305,18 +310,18 @@ namespace Tmds.DBus
                 ThrowIfNotConnected();
                 ThrowIfRemoteIsNotBus();
 
-                if (_nameOwnerWatchers.ContainsKey(serviceName))
+                if (_nameOwnerWatchers.ContainsKey(key))
                 {
-                    _nameOwnerWatchers[serviceName] = (Action<ServiceOwnerChangedEventArgs>)Delegate.Combine(_nameOwnerWatchers[serviceName], handler);
+                    _nameOwnerWatchers[key] = (Action<ServiceOwnerChangedEventArgs>)Delegate.Combine(_nameOwnerWatchers[key], handler);
                     task = Task.CompletedTask;
                 }
                 else
                 {
-                    _nameOwnerWatchers[serviceName] = handler;
+                    _nameOwnerWatchers[key] = handler;
                     task = CallAddMatchRuleAsync(rule.ToString(), cancellationToken);
                 }
             }
-            NameOwnerWatcherRegistration registration = new NameOwnerWatcherRegistration(this, rule, handler);
+            NameOwnerWatcherRegistration registration = new NameOwnerWatcherRegistration(this, key, rule, handler);
             try
             {
                 await task;
@@ -473,14 +478,38 @@ namespace Tmds.DBus
                         {
                             MessageReader reader = new MessageReader(msg, null);
                             var serviceName = reader.ReadString();
+                            if (serviceName[0] == ':')
+                            {
+                                return;
+                            }
                             var oldOwner = reader.ReadString();
                             oldOwner = string.IsNullOrEmpty(oldOwner) ? null : oldOwner;
                             var newOwner = reader.ReadString();
                             newOwner = string.IsNullOrEmpty(newOwner) ? null : newOwner;
                             Action<ServiceOwnerChangedEventArgs> watchers = null;
+                            var splitName = serviceName.Split(s_dot);
+                            var keys = new string[splitName.Length + 2];
+                            keys[0] = ".*";
+                            var sb = new StringBuilder();
+                            for (int i = 0; i < splitName.Length; i++)
+                            {
+                                sb.Append(splitName[i]);
+                                sb.Append(".*");
+                                keys[i + 1] = sb.ToString();
+                                sb.Remove(sb.Length - 1, 1);
+                            }
+                            keys[keys.Length - 1] = serviceName;
                             lock (_gate)
                             {
-                                _nameOwnerWatchers.TryGetValue(serviceName, out watchers);
+                                foreach (var key in keys)
+                                {
+                                    Action<ServiceOwnerChangedEventArgs> keyWatchers;
+                                    _nameOwnerWatchers.TryGetValue(key, out keyWatchers);
+                                    if (keyWatchers != null)
+                                    {
+                                        watchers += keyWatchers;
+                                    }
+                                }
                             }
                             watchers?.Invoke(new ServiceOwnerChangedEventArgs(serviceName, oldOwner, newOwner));
                             return;
@@ -810,16 +839,16 @@ namespace Tmds.DBus
             }
         }
 
-        private void RemoveNameOwnerWatcher(OwnerChangedMatchRule rule, Action<ServiceOwnerChangedEventArgs> dlg)
+        private void RemoveNameOwnerWatcher(string key, OwnerChangedMatchRule rule, Action<ServiceOwnerChangedEventArgs> dlg)
         {
             lock (_gate)
             {
-                if (_nameOwnerWatchers.ContainsKey(rule.ServiceName))
+                if (_nameOwnerWatchers.ContainsKey(key))
                 {
-                    _nameOwnerWatchers[rule.ServiceName] = (Action<ServiceOwnerChangedEventArgs>)Delegate.Remove(_nameOwnerWatchers[rule.ServiceName], dlg);
-                    if (_nameOwnerWatchers[rule.ServiceName] == null)
+                    _nameOwnerWatchers[key] = (Action<ServiceOwnerChangedEventArgs>)Delegate.Remove(_nameOwnerWatchers[key], dlg);
+                    if (_nameOwnerWatchers[key] == null)
                     {
-                        _nameOwnerWatchers.Remove(rule.ServiceName);
+                        _nameOwnerWatchers.Remove(key);
                         CallRemoveMatchRule(rule.ToString());
                     }
                 }

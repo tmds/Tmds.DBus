@@ -167,8 +167,14 @@ namespace Tmds.DBus.Tests
             }
         }
 
-        [Fact]
-        public async Task WatchResolveService()
+        [Theory]
+        [InlineData("tmds.dbus.test", false)]
+        [InlineData("tmds.dbus.test.*", false)]
+        [InlineData("tmds.dbus.*", false)]
+        [InlineData("tmds.*", false)]
+        [InlineData(".*", true)]
+        [InlineData("*", true)]
+        public async Task WatchResolveService(string resolvedService, bool filterEvents)
         {
             using (var dbusDaemon = new DBusDaemon())
             {
@@ -187,8 +193,9 @@ namespace Tmds.DBus.Tests
                 await conn2.ConnectAsync();
 
                 var changeEvents = new BlockingCollection<ServiceOwnerChangedEventArgs>(new ConcurrentQueue<ServiceOwnerChangedEventArgs>());
-                var resolver = await conn2.ResolveServiceOwnerAsync(serviceName,
-                    change => changeEvents.Add(change));
+                Action<ServiceOwnerChangedEventArgs> onChange =
+                    change => { if (!filterEvents || (change.ServiceName == serviceName)) changeEvents.Add(change); };
+                var resolver = await conn2.ResolveServiceOwnerAsync(resolvedService, onChange);
 
                 await conn1.RegisterServiceAsync(serviceName);
                 var e = changeEvents.Take(ct);
@@ -204,8 +211,7 @@ namespace Tmds.DBus.Tests
 
                 resolver.Dispose();
                 await conn1.RegisterServiceAsync(serviceName);
-                resolver = await conn2.ResolveServiceOwnerAsync(serviceName,
-                    change => changeEvents.Add(change));
+                resolver = await conn2.ResolveServiceOwnerAsync(resolvedService, onChange);
 
                 e = changeEvents.Take(ct);
                 Assert.Equal(serviceName, e.ServiceName);

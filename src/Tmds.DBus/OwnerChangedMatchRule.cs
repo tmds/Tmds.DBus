@@ -51,13 +51,22 @@ namespace Tmds.DBus
             {
                 Append(sb, "member", Member);
             }
-            if (Member != null)
+            if (Path != null)
             {
                 Append(sb, "path", Path.Value);
             }
             if (ServiceName != null)
             {
-                Append(sb, "arg0", ServiceName);
+                if (ServiceName == ".*")
+                {}
+                else if (ServiceName.EndsWith(".*"))
+                {
+                    Append(sb, "arg0namespace", ServiceName.Substring(0, ServiceName.Length - 2));
+                }
+                else
+                {
+                    Append(sb, "arg0", ServiceName);
+                }
             }
 
             return sb.ToString();

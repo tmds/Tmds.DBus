@@ -242,7 +242,53 @@ static class TrackListPropertyExtensions
 
 In this section we'll write a simple application that retrieves the introspection XML of a D-Bus object. Our program will take 3 arguments. The first argument must be `--session` or `--system` to connect to the session bus or system bus. The next two arguments specify the service name and the object path.
 
-Let's implement our `Main` method:
+If you don't have dotnet on your machine, install it from http://dot.net.
+
+First we create a `project.json` file and list `Tmds.DBus` as a dependency. You can use the latest version for the Tmds.DBus package available on NuGet: https://www.nuget.org/packages/Tmds.DBus/.
+
+```
+{
+  "buildOptions": {
+    "emitEntryPoint": true
+  },
+  "dependencies": {
+    "Tmds.DBus": "0.1.0",
+    "Microsoft.NETCore.App": {
+      "type": "platform",
+      "version": "1.0.0-rc2-3002702"
+    }
+  },
+  "frameworks": {
+    "netcoreapp1.0": { }
+  }
+}
+```
+
+Now we can fetch our dependencies by executing.
+
+```
+dotnet restore
+```
+
+Create a new file `Program.cs` with an empty `Introspect.Program` class.
+
+```
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Tmds.DBus;
+
+namespace Introspect
+{
+    public class Program
+    {
+	}
+}
+```
+
+Let's add our `Main` method to the `Program` class. The `Main` method will parse the command line arguments and pass them to `InspectAsync`.
 
 ```
 public static int Main(string[] args)
@@ -260,7 +306,7 @@ public static int Main(string[] args)
 }
 ```
 
-The  `org.freedesktop.DBus.Introspectable` interface is described in the D-Bus specification:
+The `org.freedesktop.DBus.Introspectable` interface is described in the D-Bus specification:
 
 > This interface has one method:
 >
@@ -269,7 +315,7 @@ The  `org.freedesktop.DBus.Introspectable` interface is described in the D-Bus s
 >
 > Objects instances may implement Introspect which returns an XML description of the object, including its interfaces (with signals and methods), objects below it in the object path tree, and its properties.
 
-As explained in the previous section, we can model this interface as follows:
+As explained in this document, we can model this interface as shown in the next code block. Add the `IIntrospectable` interface in the `Introspect` namespace above the class definition.
 
 ```
 [DBusInterface("org.freedesktop.DBus.Introspectable")]
@@ -279,7 +325,7 @@ public interface IIntrospectable : IDBusObject
 }
 ```
 
-We can now implement `InspectAsync`.
+We'll now add `InspectAsync` to the `Program` class. `InspectAsync` connects to D-Bus and then creates a proxy object that implements the `IIntrospectable` interface. This object is used to call the `Introspect` method and the return value is printed out.
 
 ```
 private static async Task InspectAsync(bool sessionNotSystem, string serviceName, string objectPath)
@@ -294,7 +340,7 @@ private static async Task InspectAsync(bool sessionNotSystem, string serviceName
 }
 ```
 
-In our connect call we specify an `OnDisconnect` callback. This method be called when we disconnect by calling `Dispose` or when we unexpectedly get thrown of the bus. In the latter case the exception argument will be set.
+In our connect call we specify an `OnDisconnect` callback. This method is called when we disconnect by calling `Dispose` or when we unexpectedly get thrown of the bus. In the latter case the exception argument will be set.
 
 ```
 public static void OnDisconnect(Exception e)
@@ -306,9 +352,10 @@ public static void OnDisconnect(Exception e)
 }
 ```
 
-We're done coding. After we've compiled our program, we can invoke it to inspect an object.
+We're done coding. After we've compiled our program, we can run it to inspect an object.
 
 ```
+dotnet build
 dotnet run --system org.freedesktop.NetworkManager /org/freedesktop/NetworkManager
 ```
 

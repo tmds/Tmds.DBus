@@ -17,6 +17,9 @@ namespace Tmds.DBus.Protocol
 {
     internal class MessageReader
     {
+        private static MethodInfo s_createReadDelegateMethod = typeof(ReadMethodFactory)
+            .GetMethod(nameof(ReadMethodFactory.CreateReadMethodDelegate), BindingFlags.Static | BindingFlags.Public);
+
         private readonly EndianFlag _endianness;
         private readonly ArraySegment<byte> _data;
         private readonly Message _message;
@@ -49,7 +52,9 @@ namespace Tmds.DBus.Protocol
         {
             if (type.GetTypeInfo().IsEnum)
             {
-                type = Enum.GetUnderlyingType(type);
+                var delegateMethod = s_createReadDelegateMethod.MakeGenericMethod(type);
+                var readMethodDelegate = (Delegate)delegateMethod.Invoke(null, null);
+                return readMethodDelegate.DynamicInvoke(new object[] { this });
             }
 
             if (type == typeof(bool))
@@ -343,6 +348,65 @@ namespace Tmds.DBus.Protocol
             if (!sig.IsSingleCompleteType)
                 throw new InvalidOperationException (string.Format ("ReadVariant need a single complete type signature, {0} was given", sig.ToString ()));
             return Read(sig.ToType());
+        }
+
+        public T ReadDictionaryObject<T>()
+        {
+            var type = typeof(T);
+            FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+            object val = Activator.CreateInstance (type);
+
+            uint ln = ReadUInt32 ();
+            if (ln > ProtocolInformation.MaxArrayLength)
+                throw new ProtocolException("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformation.MaxArrayLength + " bytes");
+
+            ReadPad (8);
+
+            int endPos = _pos + (int)ln;
+
+            while (_pos < endPos) {
+                ReadPad (8);
+
+                var key = ReadString();
+                var sig = ReadSignature();
+
+                if (!sig.IsSingleCompleteType)
+                    throw new InvalidOperationException (string.Format ("ReadVariant need a single complete type signature, {0} was given", sig.ToString ()));
+
+                var field = fis.Where(f => f.Name.EndsWith(key) &&
+                                            ((f.Name.Length == key.Length) ||
+                                             (f.Name.Length == key.Length + 1 && f.Name[0] == '_'))).SingleOrDefault();
+
+                if (field == null)
+                {
+                    var value = Read(sig.ToType());
+                }
+                else
+                {
+                    var fieldType = field.FieldType;
+                    var typeInfo = fieldType.GetTypeInfo();
+                    bool isNullableType = typeInfo.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Nullable<>);
+                    if (isNullableType)
+                    {
+                        fieldType = Nullable.GetUnderlyingType(fieldType);
+                    }
+
+                    if (sig != Signature.GetSig(fieldType, isCompileTimeType: true))
+                    {
+                        throw new ArgumentException($"Dictionary '{type.FullName}' field '{field.Name}' with type '{fieldType.FullName}' cannot be read from D-Bus type '{sig}'");
+                    }
+
+                    var readValue = Read(fieldType);
+
+                    field.SetValue (val, readValue);
+                }
+            }
+
+            if (_pos != endPos)
+                throw new ProtocolException("Read pos " + _pos + " != ep " + endPos);
+
+            return (T)val;
         }
 
         public Dictionary<TKey, TValue> ReadDictionary<TKey, TValue> ()

@@ -442,6 +442,58 @@ namespace Tmds.DBus.Protocol
             stream.Position = endPos;
         }
 
+        public void WriteDictionaryObject<T>(T val)
+        {
+            var type = typeof(T);
+            FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+
+            long origPos = stream.Position;
+            // Pre-write array length field, we overwrite it at the end with the correct value
+            WriteUInt32 ((uint)0);
+            WritePad (8);
+            long startPos = stream.Position;
+
+            foreach (var fi in fis)
+            {
+                object fieldVal = fi.GetValue(val);
+                if (fieldVal == null)
+                {
+                    continue;
+                }
+
+                var fieldType = fi.FieldType;
+                var typeInfo = fieldType.GetTypeInfo();
+                bool isNullableType = typeInfo.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Nullable<>);
+                if (isNullableType)
+                {
+                    fieldType = Nullable.GetUnderlyingType(fieldType);
+                }
+
+                var fieldName = fi.Name;
+                if (fi.Name.StartsWith("_"))
+                {
+                    fieldName = fieldName.Substring(1);
+                }
+
+                Signature sig = Signature.GetSig(fieldType, isCompileTimeType: true);
+
+                WritePad (8);
+                WriteString(fieldName);
+                WriteSignature(sig);
+                Write(fieldType, fieldVal, isCompileTimeType: true);
+            }
+
+            long endPos = stream.Position;
+            uint ln = (uint)(endPos - startPos);
+            stream.Position = origPos;
+
+            if (ln > ProtocolInformation.MaxArrayLength)
+                throw new ProtocolException("Dict length " + ln + " exceeds maximum allowed " + ProtocolInformation.MaxArrayLength + " bytes");
+
+            WriteUInt32 (ln);
+            stream.Position = endPos;
+        }
+
         public void WriteHeader(Header header)
         {
             WriteByte((byte)header.Endianness);

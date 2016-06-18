@@ -6,11 +6,57 @@ using Tmds.DBus;
 
 namespace NetworkManager
 {
+    public enum NetworkManagerState : uint
+    {
+        Unknown = 0,
+        ASleep = 10,
+        Disconnected = 20,
+        Disconnecting = 30,
+        Connecting = 40,
+        ConnectedLocal = 50,
+        ConnectedSite = 60,
+        ConnectedGlobal = 70
+    }
+    public enum NetworkManagerConnectivity : uint
+    {
+        Unknown = 0,
+        None = 1,
+        Portal = 2,
+        Limited = 3,
+        Full = 4
+    }
+
+    [Dictionary]
+    public class NetworkManagerProperties : IEnumerable<KeyValuePair<string,object>>
+    {
+        public bool NetworkingEnabled;
+        public bool WirelessEnabled;
+        public ObjectPath[] ActiveConnections;
+        public string Version;
+        public NetworkManagerState State;
+        public NetworkManagerConnectivity Connectivity;
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        {
+            return this.GetEnumerator();
+        }
+
+        public IEnumerator<KeyValuePair<string,object>> GetEnumerator()
+        {
+            yield return new KeyValuePair<string, object>(nameof(NetworkingEnabled), NetworkingEnabled);
+            yield return new KeyValuePair<string, object>(nameof(WirelessEnabled), WirelessEnabled);
+            yield return new KeyValuePair<string, object>(nameof(ActiveConnections), ActiveConnections);
+            yield return new KeyValuePair<string, object>(nameof(Version), Version);
+            yield return new KeyValuePair<string, object>(nameof(State), State);
+            yield return new KeyValuePair<string, object>(nameof(Connectivity), Connectivity);
+        }
+    }
+
     [DBusInterface("org.freedesktop.NetworkManager")]
     public interface INetworkManager : IDBusObject
     {
         Task<ObjectPath[]> GetDevicesAsync(CancellationToken cancellationToken = default(CancellationToken));
-        Task<IDictionary<string, object>> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task<NetworkManagerProperties> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
 
         Task<object> GetAsync(string prop, CancellationToken cancellationToken = default(CancellationToken));
         Task SetAsync(string prop, object val, CancellationToken cancellationToken = default(CancellationToken));

@@ -115,8 +115,8 @@ namespace Tmds.DBus.Protocol
             }
 
             Type elementType;
-            bool isDictionaryType;
-            if (ArgTypeInspector.IsEnumerableType(type, out elementType, out isDictionaryType, isCompileTimeType: true))
+            if (ArgTypeInspector.InspectEnumerableType(type, out elementType, isCompileTimeType: true)
+                != ArgTypeInspector.EnumerableType.NotEnumerable)
             {
                 return GetAlignment(DType.Array);
             }

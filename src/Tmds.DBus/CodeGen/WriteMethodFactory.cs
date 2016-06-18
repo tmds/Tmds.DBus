@@ -94,14 +94,19 @@ namespace Tmds.DBus.CodeGen
             }
 
             Type elementType;
-            bool isDictionaryType;
-            if (ArgTypeInspector.IsEnumerableType(type, out elementType, out isDictionaryType, isCompileTimeType))
+            var enumerableType = ArgTypeInspector.InspectEnumerableType(type, out elementType, isCompileTimeType);
+            if (enumerableType != ArgTypeInspector.EnumerableType.NotEnumerable)
             {
-                if (ArgTypeInspector.IsKeyValuePairType(elementType))
+                if ((enumerableType == ArgTypeInspector.EnumerableType.EnumerableKeyValuePair) ||
+                    (enumerableType == ArgTypeInspector.EnumerableType.GenericDictionary))
                 {
                     return s_messageWriterWriteDict.MakeGenericMethod(elementType.GenericTypeArguments);
                 }
-                else
+                else if (enumerableType == ArgTypeInspector.EnumerableType.AttributeDictionary)
+                {
+                    return s_messageWriterWriteDictionaryObject.MakeGenericMethod(type);
+                }
+                else // Enumerable
                 {
                     return s_messageWriterWriteArray.MakeGenericMethod(new[] { elementType });
                 }
@@ -132,6 +137,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_messageWriterWriteBusObject = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteBusObject));
         private static readonly MethodInfo s_messageWriterWriteArray = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteArray));
         private static readonly MethodInfo s_messageWriterWriteDict = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteFromDict));
+        private static readonly MethodInfo s_messageWriterWriteDictionaryObject = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteDictionaryObject));
         private static readonly MethodInfo s_messageWriterWriteStruct = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteStructure));
     }
 }

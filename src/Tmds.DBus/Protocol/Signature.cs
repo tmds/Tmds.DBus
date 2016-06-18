@@ -697,16 +697,18 @@ namespace Tmds.DBus.Protocol
             }
 
             Type elementType;
-            bool isDictionaryType;
-            if (ArgTypeInspector.IsEnumerableType(type, out elementType, out isDictionaryType, isCompileTimeType))
+            var enumerableType = ArgTypeInspector.InspectEnumerableType(type, out elementType, isCompileTimeType);
+            if (enumerableType != ArgTypeInspector.EnumerableType.NotEnumerable)
             {
-                if (ArgTypeInspector.IsKeyValuePairType(elementType))
+                if ((enumerableType == ArgTypeInspector.EnumerableType.EnumerableKeyValuePair) ||
+                    (enumerableType == ArgTypeInspector.EnumerableType.GenericDictionary) ||
+                    (enumerableType == ArgTypeInspector.EnumerableType.AttributeDictionary))
                 {
                     Type keyType = elementType.GenericTypeArguments[0];
                     Type valueType = elementType.GenericTypeArguments[1];
                     return Signature.MakeDict(GetSig(keyType, isCompileTimeType: true), GetSig(valueType, isCompileTimeType: true));
                 }
-                else
+                else // Enumerable
                 {
                     return MakeArray(GetSig(elementType, isCompileTimeType: true));
                 }

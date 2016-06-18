@@ -20,6 +20,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly Type s_valueType = typeof(ValueType);
         private static readonly Type s_ilistGenricType = typeof(IList<>);
         private static readonly Type s_icollectionGenricType = typeof(ICollection<>);
+        private static readonly Type s_stringObjectKeyValuePairType = typeof(KeyValuePair<string, object>);
 
         public static bool IsDBusObjectType(Type type, bool isCompileTimeType)
         {
@@ -38,10 +39,18 @@ namespace Tmds.DBus.CodeGen
             }
         }
 
-        public static bool IsEnumerableType(Type type, out Type elementType, out bool isDictionaryType, bool isCompileTimeType)
+        public enum EnumerableType
+        {
+            NotEnumerable,
+            Enumerable,             // IEnumerable
+            EnumerableKeyValuePair, // IEnumerable<KeyValuePair>
+            GenericDictionary,      // IDictionary
+            AttributeDictionary     // AttributeDictionary
+        }
+
+        public static EnumerableType InspectEnumerableType(Type type, out Type elementType, bool isCompileTimeType)
         {
             elementType = null;
-            isDictionaryType = false; // we only set this when isCompileTimeType==true
             var typeInfo = type.GetTypeInfo();
 
             if (isCompileTimeType)
@@ -49,50 +58,53 @@ namespace Tmds.DBus.CodeGen
                 if (typeInfo.IsArray)
                 {
                     elementType = typeInfo.GetElementType();
-                    return true;
+                    return InspectElementType(elementType);
                 }
                 if (typeInfo.IsInterface && typeInfo.IsGenericType)
                 {
                     var genericTypeDefinition = typeInfo.GetGenericTypeDefinition();
                     if (genericTypeDefinition == s_idictionaryGenericType)
                     {
-                        isDictionaryType = true;
                         elementType = s_keyValueGenericPairType.MakeGenericType(typeInfo.GenericTypeArguments);
-                        return true;
+                        return EnumerableType.GenericDictionary;
                     }
                     else if (genericTypeDefinition == s_ienumerableGenricType ||
                              genericTypeDefinition == s_ilistGenricType ||
                              genericTypeDefinition == s_icollectionGenricType)
                     {
                         elementType = typeInfo.GenericTypeArguments[0];
-                        return true;
+                        return InspectElementType(elementType);
                     }
                     else
                     {
-                        return false;
+                        return EnumerableType.NotEnumerable;
                     }
                 }
-                else
+                var dictionaryAttribute = typeInfo.GetCustomAttribute<DictionaryAttribute>(false);
+                if (dictionaryAttribute != null)
                 {
-                    return false;
+                    elementType = s_stringObjectKeyValuePairType;
+                    return EnumerableType.AttributeDictionary;
                 }
+                return EnumerableType.NotEnumerable;
             }
             else
             {
                 if (typeInfo.ImplementedInterfaces.Contains(s_idbusObjectType))
                 {
-                    return false;
+                    return EnumerableType.NotEnumerable;
+                }
+
+                var dictionaryAttribute = typeInfo.GetCustomAttribute<DictionaryAttribute>(false);
+                if (dictionaryAttribute != null)
+                {
+                    elementType = s_stringObjectKeyValuePairType;
+                    return EnumerableType.AttributeDictionary;
                 }
 
                 if (!typeInfo.ImplementedInterfaces.Contains(s_ienumerableType))
                 {
-                    return false;
-                }
-
-                if (typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == s_ienumerableGenricType)
-                {
-                    elementType = typeInfo.GenericTypeArguments[0];
-                    return true;
+                    return EnumerableType.NotEnumerable;
                 }
 
                 var enumerableTypes = from interf in typeInfo.ImplementedInterfaces
@@ -105,7 +117,7 @@ namespace Tmds.DBus.CodeGen
                 if (enumerableCount == 1)
                 {
                     elementType = enumerableTypes.First().GenericTypeArguments[0];
-                    return true;
+                    return InspectElementType(elementType);
                 }
                 else
                 {
@@ -153,10 +165,18 @@ namespace Tmds.DBus.CodeGen
             return true;
         }
 
-        public static bool IsKeyValuePairType(Type elementType)
+        private static EnumerableType InspectElementType(Type elementType)
         {
             var typeInfo = elementType.GetTypeInfo();
-            return typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == s_keyValueGenericPairType;
+            bool isKeyValuePair = typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == s_keyValueGenericPairType;
+            if (isKeyValuePair)
+            {
+                return EnumerableType.EnumerableKeyValuePair;
+            }
+            else
+            {
+                return EnumerableType.Enumerable;
+            }
         }
     }
 }

@@ -94,17 +94,21 @@ namespace Tmds.DBus.CodeGen
             }
 
             Type elementType;
-            bool isDictionaryType;
-            if (ArgTypeInspector.IsEnumerableType(type, out elementType, out isDictionaryType, isCompileTimeType: true))
+            var enumerableType = ArgTypeInspector.InspectEnumerableType(type, out elementType, isCompileTimeType: true);
+            if (enumerableType != ArgTypeInspector.EnumerableType.NotEnumerable)
             {
-                if (isDictionaryType)
+                if (enumerableType == ArgTypeInspector.EnumerableType.GenericDictionary)
                 {
                     TypeInfo elementTypeInfo = elementType.GetTypeInfo();
                     Type keyType = elementTypeInfo.GenericTypeArguments[0];
                     Type valueType = elementTypeInfo.GenericTypeArguments[1];
                     return s_messageReaderReadDictionary.MakeGenericMethod(new[] { keyType, valueType });
                 }
-                else
+                else if (enumerableType == ArgTypeInspector.EnumerableType.AttributeDictionary)
+                {
+                    return s_messageReaderReadDictionaryObject.MakeGenericMethod(new[] { type });
+                }
+                else // Enumerable, EnumerableKeyValuePair
                 {
                     return s_messageReaderReadArray.MakeGenericMethod(new[] { elementType });
                 }
@@ -134,6 +138,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_messageReaderReadVariant = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadVariant));
         private static readonly MethodInfo s_messageReaderReadBusObject = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadBusObject));
         private static readonly MethodInfo s_messageReaderReadDictionary = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadDictionary), Type.EmptyTypes);
+        private static readonly MethodInfo s_messageReaderReadDictionaryObject = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadDictionaryObject), Type.EmptyTypes);
         private static readonly MethodInfo s_messageReaderReadArray = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadArray), Type.EmptyTypes);
         private static readonly MethodInfo s_messageReaderReadStruct = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadStruct), Type.EmptyTypes);
         private static readonly MethodInfo s_messageReaderReadDBusInterface = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadDBusInterface));

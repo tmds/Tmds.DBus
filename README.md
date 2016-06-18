@@ -134,11 +134,13 @@ OBJECT_PATH	      | o         |	ObjectPath, IDBusObject, D-Bus interface, D-Bus 
 SIGNATURE	      | g         |	N/A
 ARRAY             | a.        | T[], IEnumerable<>, IList<>, ICollection<>
 DICTIONARY        | a{..}     | IDictionary, ARRAY of KeyValuePair<,>
+SV DICTIONARY     | a{sv}     | [Dictionary] class or struct: public and non-public instance fields
 STRUCT            | (...)     | [StructLayout(LayoutKind.Sequential)] class or struct: public and non-public instance fields
 VARIANT           | v         | object
 
 The preferred type to represent an ARRAY is `T[]`.
 A DICTIONARY can be represented as `IDictionary<TKey, TValue>` but also as `KeyValuePair<TKey, TValue>[]`. The latter can be used to avoid the overhead of adding the elements to a dictionary class.
+A STRING to VARIANT DICTIONARY can also be modelled by a class/struct which is decorated with the `Dictionary` attribute. Each field maps to a dictionary entry. The fields may be `null` (nullable structures are also supported). When the dictionary is written, `null` values are skipped. When the dictionary is read, fields without a matching entry will remain at their default value. Fields not mapped in the class/struct are ignored. See the Properties section below for an example.
 
 When an `object` is serialized as a VARIANT, it's underlying type is determined as follows. If the instance type exactly matches one of the types in the above table, that is type used. In case the instance implements `IEnumerable<KeyValuePair<,>` it is serialized as a DICTIONARY. In case it implements the more generic `IEnumerable<>` it is serialized as an ARRAY. If non of the previous match, the object is serialized as a STRUCT.
 
@@ -235,6 +237,24 @@ static class TrackListPropertyExtensions
     {
         return trackList.GetAsync<ObjectPath[]>(nameof(TrackListProperties.Tracks), cancellationToken);
     }
+}
+```
+
+By adding the `Dictionary` attribute to the properties class, we can use it as the return type of `GetAllAsync`.
+
+```
+[Dictionary]
+class TrackListProperties
+{
+    // ...
+}
+
+[DBusInterface("org.mpris.MediaPlayer2.TrackList")]
+public interface ITrackList
+{
+    // ...
+    Task<TrackListProperties> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
+    // ...
 }
 ```
 

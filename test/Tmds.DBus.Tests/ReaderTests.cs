@@ -262,6 +262,59 @@ namespace Tmds.DBus.Tests
             }
         }
 
+        public enum Gender
+        {
+            Male,
+            Femable
+        }
+
+        [Dictionary]
+        public class PersonProperties
+        {
+            public string Name;
+            public int? Age;
+            public Gender? Gender;
+            public bool IsMarried;
+            public override bool Equals(object rhs)
+            {
+                var other = rhs as PersonProperties;
+                if (other == null)
+                {
+                    return false;
+                }
+                return (Name == other.Name) &&
+                       (Age == other.Age) &&
+                       (Gender == other.Gender);
+            }
+            public override int GetHashCode()
+            {
+                return Name?.GetHashCode() ?? 0;
+            }
+        }
+
+        [Dictionary]
+        public class PersonProperties2
+        {
+            public string Name;
+            public string City;
+            public int? PostalCode;
+            public override bool Equals(object rhs)
+            {
+                var other = rhs as PersonProperties2;
+                if (other == null)
+                {
+                    return false;
+                }
+                return (Name == other.Name) &&
+                       (City == other.City) &&
+                       (PostalCode == other.PostalCode);
+            }
+            public override int GetHashCode()
+            {
+                return Name?.GetHashCode() ?? 0;
+            }
+        }
+
         public static IEnumerable<object[]> ReadTestData
         {
             get
@@ -272,7 +325,18 @@ namespace Tmds.DBus.Tests
                     { 2, "two" }
                 };
                 var myArray = myDictionary.ToArray();
-
+                var john = new PersonProperties()
+                {
+                    Name = "John",
+                    Age = 32,
+                    Gender = Gender.Male,
+                    IsMarried = true
+                };
+                var john2 = new PersonProperties2()
+                {
+                    Name = john.Name,
+                    City = null
+                };
                 return new []
                 {
                     new object[] {typeof(MyEnum), MyEnum.Value,     2, new byte[] { 0x31, 0x45 },
@@ -331,6 +395,10 @@ namespace Tmds.DBus.Tests
                     new object[] {typeof(IStringOperations), new MyDBusObject(StringOperations.Path), 4, new byte[] { 0, 0, 0, 4, (byte)'/', (byte)'a', (byte)'/', (byte)'b', 0 },
                                                                                                         new byte[] { 4, 0, 0, 0, (byte)'/', (byte)'a', (byte)'/', (byte)'b', 0 },
                                                                                                         new DBusObjectComparer()},
+                    new object[] {typeof(PersonProperties), john, 4, new byte[] {0, 0, 0, 88, 0, 0, 0, 0, 0, 0, 0, 4, 78, 97, 109, 101, 0, 1, 115, 0, 0, 0, 0, 4, 74, 111, 104, 110, 0, 0, 0, 0, 0, 0, 0, 3, 65, 103, 101, 0, 1, 105, 0, 0, 0, 0, 0, 32, 0, 0, 0, 6, 71, 101, 110, 100, 101, 114, 0, 1, 105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 73, 115, 77, 97, 114, 114, 105, 101, 100, 0, 1, 98, 0, 0, 0, 0, 0, 0, 0, 1},
+                                                                     new byte[] {88, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 78, 97, 109, 101, 0, 1, 115, 0, 4, 0, 0, 0, 74, 111, 104, 110, 0, 0, 0, 0, 3, 0, 0, 0, 65, 103, 101, 0, 1, 105, 0, 0, 32, 0, 0, 0, 6, 0, 0, 0, 71, 101, 110, 100, 101, 114, 0, 1, 105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 73, 115, 77, 97, 114, 114, 105, 101, 100, 0, 1, 98, 0, 0, 0, 0, 1, 0, 0, 0}, null},
+                    new object[] {typeof(PersonProperties2), john2, 4, new byte[] {0, 0, 0, 88, 0, 0, 0, 0, 0, 0, 0, 4, 78, 97, 109, 101, 0, 1, 115, 0, 0, 0, 0, 4, 74, 111, 104, 110, 0, 0, 0, 0, 0, 0, 0, 3, 65, 103, 101, 0, 1, 105, 0, 0, 0, 0, 0, 32, 0, 0, 0, 6, 71, 101, 110, 100, 101, 114, 0, 1, 105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 73, 115, 77, 97, 114, 114, 105, 101, 100, 0, 1, 98, 0, 0, 0, 0, 0, 0, 0, 1},
+                                                                       new byte[] {88, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 78, 97, 109, 101, 0, 1, 115, 0, 4, 0, 0, 0, 74, 111, 104, 110, 0, 0, 0, 0, 3, 0, 0, 0, 65, 103, 101, 0, 1, 105, 0, 0, 32, 0, 0, 0, 6, 0, 0, 0, 71, 101, 110, 100, 101, 114, 0, 1, 105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 73, 115, 77, 97, 114, 114, 105, 101, 100, 0, 1, 98, 0, 0, 0, 0, 1, 0, 0, 0}, null},
                     new object[] {typeof(object), true,             4, new byte[] {1, 98, 0, 0, 0, 0, 0, 1},
                                                                     new byte[] {1, 98, 0, 0, 1, 0, 0, 0}, null},
                     new object[] {typeof(object), (byte)5,          1, new byte[] {1, 121, 0, 5},

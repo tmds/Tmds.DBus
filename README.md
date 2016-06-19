@@ -1,3 +1,5 @@
+[![Travis](https://api.travis-ci.org/tmds/Tmds.DBus.svg?branch=master)](https://travis-ci.org/tmds/Tmds.DBus)
+
 # Introduction
 
 From https://www.freedesktop.org/wiki/Software/dbus/

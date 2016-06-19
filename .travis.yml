@@ -1,0 +1,24 @@
+language: generic
+
+sudo: required
+dist: trusty
+
+addons:
+  apt:
+    packages:
+    - gettext
+    - libunwind8
+    - libicu52
+    - dbus
+
+before_install:
+  - export DOTNET_INSTALL_DIR="$PWD/.dotnetcli"
+  - curl -L https://raw.githubusercontent.com/dotnet/cli/v1.0.0-rc2/scripts/obtain/install.sh -o /tmp/install-dotnet.sh
+  - chmod +x /tmp/install-dotnet.sh
+  - /tmp/install-dotnet.sh -v 1.0.0-preview1-002702 -i "$DOTNET_INSTALL_DIR"
+  - export PATH="$DOTNET_INSTALL_DIR:$PATH"
+
+script:
+  - dotnet restore
+  - pushd src/Tmds.DBus && dotnet pack -c Release && popd
+  - pushd test/Tmds.DBus.Tests && dotnet test && popd

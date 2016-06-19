@@ -1,0 +1,21 @@
+language: c++
+
+sudo: required
+dist: trusty
+
+addons:
+  apt:
+    packages:
+    - gettext
+    - libunwind8
+    - libicu52
+    - dbus
+
+before_install:
+  - curl -L --create-dirs https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0-rc2/scripts/obtain/install.sh -o install.sh
+  - chmod +x install.sh
+  - ./install.sh -v 1.0.0-preview1-002702 -i dotnet
+  - export PATH=$PATH:$PWD/dotnet/
+
+script:
+  - dotnet --info

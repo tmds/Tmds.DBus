@@ -190,19 +190,26 @@ namespace Tmds.DBus
             SendMessageAsync(message, CancellationToken.None);
         }
 
-        public void AddMethodHandler(ObjectPath path, MethodHandler handler)
+        public void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers)
         {
+
             lock (_gate)
             {
-                _methodHandlers.Add(path, handler);
+                foreach (var handler in handlers)
+                {
+                    _methodHandlers.Add(handler.Key, handler.Value);
+                }
             }
         }
 
-        public void RemoveMethodHandler(ObjectPath path)
+        public void RemoveMethodHandlers(IEnumerable<ObjectPath> paths)
         {
             lock (_gate)
             {
-                _methodHandlers.Remove(path);
+                foreach (var path in paths)
+                {
+                    _methodHandlers.Remove(path);
+                }
             }
         }
 

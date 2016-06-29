@@ -44,6 +44,8 @@ namespace Tmds.DBus.CodeGen
             _methodHandlers = new Dictionary<string, MethodCallHandler>();
         }
 
+        public ObjectPath Path => _objectPath;
+
         public void Unregister()
         {
             lock (_gate)

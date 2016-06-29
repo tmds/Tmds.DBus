@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Tmds.DBus.CodeGen;
@@ -190,35 +191,47 @@ namespace Tmds.DBus
             }
         }
 
-        public async Task RegisterObjectAsync(IDBusObject o, CancellationToken cancellationToken = default(CancellationToken))
+        public Task RegisterObjectAsync(IDBusObject o, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            return RegisterObjectsAsync(new[] { o }, cancellationToken);
+        }
+        
+        public async Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects, CancellationToken cancellationToken = default(CancellationToken))
         {
             var assembly = DynamicAssembly.Instance;
-            var implementationType = assembly.GetExportTypeInfo(o.GetType());
-            var objectPath = o.ObjectPath;
+            var registrations = new List<DBusAdapter>();
+            foreach (var o in objects)
+            {
+                var implementationType = assembly.GetExportTypeInfo(o.GetType());
+                var objectPath = o.ObjectPath;
+                var registration = (DBusAdapter)Activator.CreateInstance(implementationType.AsType(), _dbusConnection, objectPath, o, _factory, SynchronizationContext.Current);
+                registrations.Add(registration);
+            }
 
-            var registration = (DBusAdapter)Activator.CreateInstance(implementationType.AsType(), _dbusConnection, objectPath, o, _factory, SynchronizationContext.Current);
             lock (_gate)
             {
                 ThrowIfNotConnected();
 
-                _dbusConnection.AddMethodHandler(objectPath, registration.HandleMethodCall);
-                _registeredObjects.Add(objectPath, registration);
+                _dbusConnection.AddMethodHandlers(registrations.Select(r => new KeyValuePair<ObjectPath, MethodHandler>(r.Path, r.HandleMethodCall)));
+
+                foreach (var registration in registrations)
+                {
+                    _registeredObjects.Add(registration.Path, registration);
+                }
             }
             try
             {
-                await registration.WatchSignalsAsync(cancellationToken);
+                foreach (var registration in registrations)
+                {
+                    await registration.WatchSignalsAsync(cancellationToken);
+                }
                 lock (_gate)
                 {
-                    try
-                    {
-                        ThrowIfNotConnected();
+                    ThrowIfNotConnected();
 
-                        registration.CompleteRegistration();
-                    }
-                    catch
+                    foreach (var registration in registrations)
                     {
-                        registration.Unregister();
-                        throw;
+                        registration.CompleteRegistration();
                     }
                 }
             }
@@ -226,8 +239,12 @@ namespace Tmds.DBus
             {
                 lock (_gate)
                 {
-                    _dbusConnection.RemoveMethodHandler(objectPath);
-                    _registeredObjects.Remove(objectPath);
+                    foreach (var registration in registrations)
+                    {
+                        registration.Unregister();
+                        _registeredObjects.Remove(registration.Path);
+                    }
+                    _dbusConnection.RemoveMethodHandlers(registrations.Select(r => r.Path));
                 }
                 throw;
             }
@@ -235,17 +252,26 @@ namespace Tmds.DBus
 
         public void UnregisterObject(ObjectPath objectPath)
         {
+            UnregisterObjects(new[] { objectPath });
+        }
+
+        public void UnregisterObjects(IEnumerable<ObjectPath> paths)
+        {
             lock (_gate)
             {
                 ThrowIfNotConnected();
 
-                DBusAdapter registration;
-                if (_registeredObjects.TryGetValue(objectPath, out registration))
+                foreach(var objectPath in paths)
                 {
-                    registration.Unregister();
-                    _registeredObjects.Remove(objectPath);
-                    _dbusConnection.RemoveMethodHandler(objectPath);
+                    DBusAdapter registration;
+                    if (_registeredObjects.TryGetValue(objectPath, out registration))
+                    {
+                        registration.Unregister();
+                        _registeredObjects.Remove(objectPath);
+                    }
                 }
+                
+                _dbusConnection.RemoveMethodHandlers(paths);
             }
         }
 

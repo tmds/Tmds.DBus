@@ -118,7 +118,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(null, signalDescription.SignalType);
             Assert.Equal(typeof(Action), signalDescription.ActionType);
             Assert.Equal((Signature?)null, signalDescription.SignalSignature);
-            Assert.Equal(null, signalDescription.SignalArguments);
+            Assert.Equal(0, signalDescription.SignalArguments.Count);
             Assert.Equal(typeof(IValidSignal1).GetTypeInfo().GetMethod("WatchSomethingAsync"), signalDescription.MethodInfo);
 
             // Task<IDisposable> WatchSomethingAsync(Action<int> a, CancellationToken cancellationToken);
@@ -181,8 +181,8 @@ namespace Tmds.DBus.Tests
             Assert.Equal(null, methodDescription.OutType);
             Assert.Equal((Signature?)null, methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
-            Assert.Equal(null, methodDescription.InArguments);
-            Assert.Equal(null, methodDescription.OutArguments);
+            Assert.Equal(0, methodDescription.InArguments.Count);
+            Assert.Equal(0, methodDescription.OutArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod1).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
 
             // Task FooAsync(int arg1, CancellationToken cancellationToken);
@@ -192,7 +192,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(null, methodDescription.OutType);
             Assert.Equal("i", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
-            Assert.Equal(null, methodDescription.OutArguments);
+            Assert.Equal(0, methodDescription.OutArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod2).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
             Assert.NotNull(methodDescription.InArguments);
             Assert.Equal(1, methodDescription.InArguments.Count);
@@ -208,7 +208,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(null, methodDescription.OutType);
             Assert.Equal("ii", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
-            Assert.Equal(null, methodDescription.OutArguments);
+            Assert.Equal(0, methodDescription.OutArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod3).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
             Assert.NotNull(methodDescription.InArguments);
             Assert.Equal(2, methodDescription.InArguments.Count);
@@ -228,7 +228,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(null, methodDescription.OutType);
             Assert.Equal("(ii)", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
-            Assert.Equal(null, methodDescription.OutArguments);
+            Assert.Equal(0, methodDescription.OutArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod4).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
             Assert.NotNull(methodDescription.InArguments);
             Assert.Equal(1, methodDescription.InArguments.Count);
@@ -244,7 +244,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(null, methodDescription.OutType);
             Assert.Equal("(ii)", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
-            Assert.Equal(null, methodDescription.OutArguments);
+            Assert.Equal(0, methodDescription.OutArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod5).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
             Assert.NotNull(methodDescription.InArguments);
             Assert.Equal(1, methodDescription.InArguments.Count);
@@ -260,7 +260,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(int), methodDescription.OutType);
             Assert.Equal((Signature?)null, methodDescription.InSignature);
             Assert.Equal("i", methodDescription.OutSignature);
-            Assert.Equal(null, methodDescription.InArguments);
+            Assert.Equal(0, methodDescription.InArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod6).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
             Assert.NotNull(methodDescription.OutArguments);
             Assert.Equal(1, methodDescription.OutArguments.Count);
@@ -276,7 +276,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(IntPair), methodDescription.OutType);
             Assert.Equal((Signature?)null, methodDescription.InSignature);
             Assert.Equal("ii", methodDescription.OutSignature);
-            Assert.Equal(null, methodDescription.InArguments);
+            Assert.Equal(0, methodDescription.InArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod7).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
             Assert.NotNull(methodDescription.OutArguments);
             Assert.Equal(2, methodDescription.OutArguments.Count);
@@ -297,7 +297,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(IntPair), methodDescription.OutType);
             Assert.Equal((Signature?)null, methodDescription.InSignature);
             Assert.Equal("(ii)", methodDescription.OutSignature);
-            Assert.Equal(null, methodDescription.InArguments);
+            Assert.Equal(0, methodDescription.InArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod8).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
             Assert.NotNull(methodDescription.OutArguments);
             Assert.Equal(1, methodDescription.OutArguments.Count);

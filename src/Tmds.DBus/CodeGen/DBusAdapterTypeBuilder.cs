@@ -294,7 +294,7 @@ namespace Tmds.DBus.CodeGen
                 ilg.Emit(OpCodes.Castclass, dbusMethod.Interface.Type);
 
                 // Arguments
-                if (dbusMethod.InArguments != null)
+                if (dbusMethod.InArguments.Count != 0)
                 {
                     // create reader for reading the arguments
                     ilg.Emit(OpCodes.Ldarg_2); // message
@@ -309,14 +309,11 @@ namespace Tmds.DBus.CodeGen
                         ilg.Emit(OpCodes.Call, s_readerSkipString);
                     }
 
-                    if (dbusMethod.InArguments != null)
+                    foreach (var argument in dbusMethod.InArguments)
                     {
-                        foreach (var argument in dbusMethod.InArguments)
-                        {
-                            Type parameterType = argument.Type;
-                            ilg.Emit(OpCodes.Ldloc, reader);
-                            ilg.Emit(OpCodes.Call, ReadMethodFactory.CreateReadMethodForType(parameterType));
-                        }
+                        Type parameterType = argument.Type;
+                        ilg.Emit(OpCodes.Ldloc, reader);
+                        ilg.Emit(OpCodes.Call, ReadMethodFactory.CreateReadMethodForType(parameterType));
                     }
                 }
 

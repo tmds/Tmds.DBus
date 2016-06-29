@@ -15,30 +15,24 @@ namespace Tmds.DBus.CodeGen
         {
             Type = type;
             Name = name;
-            Methods = methods;
-            Signals = signals;
+            _methods = methods;
+            _signals = signals;
             GetAllPropertiesMethod = propertyGetAllMethod;
             SetPropertyMethod = propertySetMethod;
             GetPropertyMethod = propertyGetMethod;
             PropertiesChangedSignal = propertiesChangedSignal;
 
-            if (Signals != null)
+            foreach (var signal in Signals)
             {
-                foreach (var signal in Signals)
-                {
-                    signal.Interface = this;
-                }
+                signal.Interface = this;
             }
             if (propertiesChangedSignal != null)
             {
                 PropertiesChangedSignal.Interface = this;
             }
-            if (Methods != null)
+            foreach (var method in Methods)
             {
-                foreach (var method in Methods)
-                {
-                    method.Interface = this;
-                }
+                method.Interface = this;
             }
             foreach (var method in new[] { GetPropertyMethod,
                                            SetPropertyMethod,
@@ -53,8 +47,10 @@ namespace Tmds.DBus.CodeGen
 
         public Type Type { get; }
         public string Name { get; }
-        public IList<MethodDescription> Methods { get; }
-        public IList<SignalDescription> Signals { get; }
+        private IList<MethodDescription> _methods;
+        public IList<MethodDescription> Methods { get { return _methods ?? Array.Empty<MethodDescription>(); } }
+        private IList<SignalDescription> _signals;
+        public IList<SignalDescription> Signals { get { return _signals ?? Array.Empty<SignalDescription>(); } }
         public MethodDescription GetPropertyMethod { get; }
         public MethodDescription GetAllPropertiesMethod { get; }
         public MethodDescription SetPropertyMethod { get; }

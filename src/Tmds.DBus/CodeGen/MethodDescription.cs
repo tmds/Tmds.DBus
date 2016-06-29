@@ -15,12 +15,12 @@ namespace Tmds.DBus.CodeGen
         {
             MethodInfo = member;
             Name = name;
-            InArguments = inArguments;
+            _inArguments = inArguments;
             InSignature = inSignature;
             OutType = outType;
             IsGenericOut = isGenericOut;
             OutSignature = outSignature;
-            OutArguments = outArguments;
+            _outArguments = outArguments;
         }
 
         public InterfaceDescription Interface { get; internal set; }
@@ -28,8 +28,10 @@ namespace Tmds.DBus.CodeGen
         public string Name { get; }
         public Type OutType { get; }
         public Signature? OutSignature { get; }
-        public IList<ArgumentDescription> OutArguments { get; }
-        public IList<ArgumentDescription> InArguments { get; }
+        private IList<ArgumentDescription> _outArguments;
+        public IList<ArgumentDescription> OutArguments { get { return _outArguments ?? Array.Empty<ArgumentDescription>(); } }
+        private IList<ArgumentDescription> _inArguments;
+        public IList<ArgumentDescription> InArguments { get { return _inArguments ?? Array.Empty<ArgumentDescription>(); } }
         public Signature? InSignature { get; }
         public bool IsGenericOut { get; }
 

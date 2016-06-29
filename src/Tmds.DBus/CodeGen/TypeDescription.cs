@@ -30,7 +30,9 @@ namespace Tmds.DBus.CodeGen
             typeof(object), typeof(IDBusObject)};
 
         public Type Type { get; }
-        public IList<InterfaceDescription> Interfaces { get; }
+
+        private IList<InterfaceDescription> _interfaces;
+        public IList<InterfaceDescription> Interfaces { get { return _interfaces ?? Array.Empty<InterfaceDescription>(); } }
 
         public static TypeDescription DescribeObject(Type type)
         {
@@ -45,7 +47,7 @@ namespace Tmds.DBus.CodeGen
         private TypeDescription(Type type, IList<InterfaceDescription> interfaces)
         {
             Type = type;
-            Interfaces = interfaces;
+            _interfaces = interfaces;
         }
 
         private static TypeDescription Describe(Type type, bool isInterfaceType)
@@ -181,7 +183,7 @@ namespace Tmds.DBus.CodeGen
                         }
                     }
                     if (!valid || parameters.Length != 2 || parameters[1].ParameterType != s_cancellationTokenType)
-                    {;
+                    {
                         throw new ArgumentException($"Signal {memberName} must accept a first argument of Type 'Action'/'Action<>' and a second argument of Type 'CancellationToken'");
                     }
 
@@ -291,7 +293,7 @@ namespace Tmds.DBus.CodeGen
                             throw new ArgumentException($"Multiple property GetAll are declared: {memberName}, {propertyGetAllMethod.MethodInfo.ToString()}");
                         }
                         propertyGetAllMethod = methodDescription;
-                        if ((propertyGetAllMethod.InArguments != null) ||
+                        if ((propertyGetAllMethod.InArguments.Count != 0) ||
                             (propertyGetAllMethod.OutSignature != s_getAllOutSignature))
                         {
                             throw new ArgumentException($"Property GetAll method {memberName} must accept no parameters and return 'Task<IDictionary<string, object>>'");
@@ -305,7 +307,7 @@ namespace Tmds.DBus.CodeGen
                         }
                         propertySetMethod = methodDescription;
                         if ((propertySetMethod.InArguments?.Count != 2 || propertySetMethod.InArguments[0].Type != s_stringType || propertySetMethod.InArguments[1].Type != s_objectType) ||
-                            (propertySetMethod.OutArguments != null))
+                            (propertySetMethod.OutArguments.Count != 0))
                         {
                             throw new ArgumentException($"Property Set method {memberName} must accept a 'string' and 'object' parameter and return 'Task'");
                         }
@@ -327,7 +329,7 @@ namespace Tmds.DBus.CodeGen
             if (argumentAttribute != null)
             {
                 signature = Signature.GetSig(parameterType, isCompileTimeType: true);
-                arguments.Add(new ArgumentDescription(argumentAttribute.Name, signature, parameterType));
+                arguments.Add(new ArgumentDescription(argumentAttribute.Name, signature.Value, parameterType));
             }
             else if (IsStructType(parameterType))
             {
@@ -350,7 +352,7 @@ namespace Tmds.DBus.CodeGen
             else
             {
                 signature = Signature.GetSig(parameterType, isCompileTimeType: true);
-                arguments.Add(new ArgumentDescription("value", signature, parameterType));
+                arguments.Add(new ArgumentDescription("value", signature.Value, parameterType));
             }
         }
 

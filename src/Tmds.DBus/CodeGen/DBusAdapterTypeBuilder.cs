@@ -33,6 +33,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_readerSkipString = typeof(MessageReader).GetMethod(nameof(MessageReader.SkipString), BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo s_writerWriteString = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteString), BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo s_writerSetSkipNextStructPadding = typeof(MessageWriter).GetMethod(nameof(MessageWriter.SetSkipNextStructPadding), BindingFlags.Instance | BindingFlags.Public);
+        private static readonly FieldInfo s_setTypeIntrospectionField = typeof(DBusAdapter).GetField(nameof(DBusAdapter._typeIntrospection), BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly Type s_cancellationTokenType = typeof(CancellationToken);
         private static readonly Type s_taskOfMessageType = typeof(Task<Message>);
         private static readonly Type s_nullableSignatureType = typeof(Signature?);
@@ -63,7 +64,7 @@ namespace Tmds.DBus.CodeGen
 
             var description = TypeDescription.DescribeObject(objectType);
 
-            ImplementConstructor(description.Interfaces);
+            ImplementConstructor(description);
             ImplementStartWatchingSignals(description.Interfaces);
 
             return _typeBuilder.CreateTypeInfo();
@@ -135,8 +136,9 @@ namespace Tmds.DBus.CodeGen
             ilg.Emit(OpCodes.Ret);
         }
 
-        private void ImplementConstructor(IList<InterfaceDescription> dbusInterfaces)
+        private void ImplementConstructor(TypeDescription typeDescription)
         {
+            var dbusInterfaces = typeDescription.Interfaces;
             // IDBusConnection connection, ObjectPath objectPath, object o, IProxyFactory factory
             var constructor = _typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, s_dbusAdaptorConstructorParameterTypes);
             var ilg = constructor.GetILGenerator();
@@ -151,6 +153,11 @@ namespace Tmds.DBus.CodeGen
                 ilg.Emit(OpCodes.Ldarg, 5); // SynchronizationContext
                 ilg.Emit(OpCodes.Call, s_baseConstructor);
             }
+            
+            var introspectionXml = GenerateIntrospectionXml(typeDescription);
+            ilg.Emit(OpCodes.Ldarg_0);
+            ilg.Emit(OpCodes.Ldstr, introspectionXml);
+            ilg.Emit(OpCodes.Stfld, s_setTypeIntrospectionField);
 
             foreach (var dbusInterface in dbusInterfaces)
             {
@@ -362,6 +369,47 @@ namespace Tmds.DBus.CodeGen
             ilg.Emit(OpCodes.Ret);
 
             return method;
+        }
+
+        private string GenerateIntrospectionXml(TypeDescription description)
+        {
+            var writer = new IntrospectionWriter();
+
+            foreach (var interf in description.Interfaces)
+            {
+                writer.WriteInterfaceStart(interf.Name);
+                foreach (var method in interf.Methods)
+                {
+                    writer.WriteMethodStart(method.Name);
+                    foreach (var arg in method.InArguments)
+                    {
+                        writer.WriteInArg(arg.Name, arg.Signature);
+                    }
+                    foreach (var arg in method.OutArguments)
+                    {
+                        writer.WriteOutArg(arg.Name, arg.Signature);
+                    }
+                    writer.WriteMethodEnd();
+                }
+
+                foreach (var signal in interf.Signals)
+                {
+                    writer.WriteSignalStart(signal.Name);
+                    foreach (var arg in signal.SignalArguments)
+                    {
+                        writer.WriteArg(arg.Name, arg.Signature);
+                    }
+                    writer.WriteSignalEnd();
+                }
+
+                foreach (var prop in interf.Properties)
+                {
+                    writer.WriteProperty(prop.Name, prop.Signature, prop.Access);
+                }
+                writer.WriteInterfaceEnd();
+            }
+
+            return writer.ToString();
         }
     }
 }

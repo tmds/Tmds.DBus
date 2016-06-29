@@ -14,6 +14,7 @@ namespace Tmds.DBus
         public string SetPropertyMethod;
         public string GetAllPropertiesMethod;
         public string WatchPropertiesMethod;
+        public Type PropertyType;
 
         public DBusInterfaceAttribute(string name)
         {
@@ -22,6 +23,7 @@ namespace Tmds.DBus
             SetPropertyMethod = "SetAsync";
             GetPropertyMethod = "GetAsync";
             WatchPropertiesMethod = "WatchPropertiesAsync";
+            PropertyType = null;
         }
     }
 }

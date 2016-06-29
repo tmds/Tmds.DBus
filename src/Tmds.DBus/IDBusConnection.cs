@@ -22,5 +22,6 @@ namespace Tmds.DBus
         void EmitSignal(Message message);
         string LocalName { get; }
         bool? RemoteIsBus { get; }
+        string[] GetChildNames(ObjectPath path);
     }
 }

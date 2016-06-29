@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -307,6 +308,43 @@ namespace Tmds.DBus.Tests
             Assert.Equal("(ii)", argDescription.Signature);
         }
 
+        [Dictionary]
+        public class PersonProperties
+        {
+            public string Name;
+            public int? Age;
+            public bool IsMarried;
+        }
+
+
+        [Theory]
+        [InlineData(typeof(IPersonProperties1))]
+        [InlineData(typeof(IPersonProperties2))]
+        public void Properties(Type type)
+        {
+            var description = TypeDescription.DescribeInterface(type);
+            var interf = description.Interfaces[0];
+            Assert.NotNull(interf.Properties);
+            var nameProperty = interf.Properties.Where(p => p.Name == "Name").SingleOrDefault();
+            Assert.NotNull(nameProperty);
+            Assert.Equal("s", nameProperty.Signature);
+            var ageProperty = interf.Properties.Where(p => p.Name == "Age").SingleOrDefault();
+            Assert.NotNull(ageProperty);
+            Assert.Equal("i", ageProperty.Signature);
+            var isMarriedProperty = interf.Properties.Where(p => p.Name == "IsMarried").SingleOrDefault();
+            Assert.NotNull(isMarriedProperty);
+            Assert.Equal("b", isMarriedProperty.Signature);
+        }
+
+        [DBusInterface("tmds.dbus.tests.personproperties1")]
+        interface IPersonProperties1 : IDBusObject
+        {
+            Task<PersonProperties> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
+        }
+
+        [DBusInterface("tmds.dbus.tests.personproperties2", PropertyType = typeof(PersonProperties))]
+        interface IPersonProperties2 : IDBusObject
+        {}
 
         [DBusInterface("tmds.dbus.tests.empty")]
         interface IEmptyDBusInterface : IDBusObject

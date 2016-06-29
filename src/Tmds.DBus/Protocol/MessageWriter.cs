@@ -461,20 +461,9 @@ namespace Tmds.DBus.Protocol
                     continue;
                 }
 
-                var fieldType = fi.FieldType;
-                var typeInfo = fieldType.GetTypeInfo();
-                bool isNullableType = typeInfo.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Nullable<>);
-                if (isNullableType)
-                {
-                    fieldType = Nullable.GetUnderlyingType(fieldType);
-                }
-
-                var fieldName = fi.Name;
-                if (fi.Name.StartsWith("_"))
-                {
-                    fieldName = fieldName.Substring(1);
-                }
-
+                Type fieldType;
+                string fieldName;
+                PropertyTypeInspector.InspectField(fi, out fieldName, out fieldType);
                 Signature sig = Signature.GetSig(fieldType, isCompileTimeType: true);
 
                 WritePad (8);

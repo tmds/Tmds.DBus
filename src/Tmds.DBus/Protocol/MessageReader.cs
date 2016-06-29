@@ -384,13 +384,9 @@ namespace Tmds.DBus.Protocol
                 }
                 else
                 {
-                    var fieldType = field.FieldType;
-                    var typeInfo = fieldType.GetTypeInfo();
-                    bool isNullableType = typeInfo.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(Nullable<>);
-                    if (isNullableType)
-                    {
-                        fieldType = Nullable.GetUnderlyingType(fieldType);
-                    }
+                    Type fieldType;
+                    string propertyName;
+                    PropertyTypeInspector.InspectField(field, out propertyName, out fieldType);
 
                     if (sig != Signature.GetSig(fieldType, isCompileTimeType: true))
                     {

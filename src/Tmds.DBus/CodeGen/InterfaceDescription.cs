@@ -10,7 +10,7 @@ namespace Tmds.DBus.CodeGen
     internal class InterfaceDescription
     {
         public InterfaceDescription(Type type, string name, IList<MethodDescription> methods, IList<SignalDescription> signals,
-            MethodDescription propertyGetMethod, MethodDescription propertyGetAllMethod, MethodDescription propertySetMethod,
+            IList<PropertyDescription> properties, MethodDescription propertyGetMethod, MethodDescription propertyGetAllMethod, MethodDescription propertySetMethod,
             SignalDescription propertiesChangedSignal)
         {
             Type = type;
@@ -21,6 +21,7 @@ namespace Tmds.DBus.CodeGen
             SetPropertyMethod = propertySetMethod;
             GetPropertyMethod = propertyGetMethod;
             PropertiesChangedSignal = propertiesChangedSignal;
+            _properties = properties;
 
             foreach (var signal in Signals)
             {
@@ -55,5 +56,7 @@ namespace Tmds.DBus.CodeGen
         public MethodDescription GetAllPropertiesMethod { get; }
         public MethodDescription SetPropertyMethod { get; }
         public SignalDescription PropertiesChangedSignal { get; }
+        private IList<PropertyDescription> _properties;
+        public IList<PropertyDescription> Properties { get { return _properties ?? Array.Empty<PropertyDescription>(); } }
     }
 }

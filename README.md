@@ -274,7 +274,7 @@ First we create a `project.json` file and list `Tmds.DBus` as a dependency. You 
     "emitEntryPoint": true
   },
   "dependencies": {
-    "Tmds.DBus": "0.1.0",
+    "Tmds.DBus": "0.2.0",
     "Microsoft.NETCore.App": {
       "type": "platform",
       "version": "1.0.0-rc2-3002702"

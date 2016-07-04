@@ -27,6 +27,7 @@ namespace Tmds.DBus.CodeGen
         private readonly IProxyFactory _factory;
         private readonly ObjectPath _objectPath;
         private readonly SynchronizationContext _synchronizationContext;
+        protected internal string _typeIntrospection;
         protected internal readonly Dictionary<string, MethodCallHandler> _methodHandlers;
         protected internal readonly object _object;
 
@@ -42,7 +43,10 @@ namespace Tmds.DBus.CodeGen
             _factory = factory;
             _synchronizationContext = synchronizationContext;
             _methodHandlers = new Dictionary<string, MethodCallHandler>();
+            _methodHandlers.Add(GetMethodLookupKey("org.freedesktop.DBus.Introspectable", "Introspect", null), HandleIntrospect);
         }
+
+        public ObjectPath Path => _objectPath;
 
         public void Unregister()
         {
@@ -255,6 +259,24 @@ namespace Tmds.DBus.CodeGen
                 Header = new Header(MessageType.MethodReturn)
             };
             return replyMsg;
+        }
+
+        private Task<Message> HandleIntrospect(object o, Message methodCall, IProxyFactory factory)
+        {
+            IntrospectionWriter writer = new IntrospectionWriter();
+
+            writer.WriteDocType();
+            writer.WriteNodeStart(_objectPath.Value);
+            writer.WriteLiteral(_typeIntrospection);
+            foreach (var child in _connection.GetChildNames(_objectPath))
+            {
+                writer.WriteChildNode(child);
+            }
+            writer.WriteNodeEnd();
+
+            var xml = writer.ToString();
+            var response = MessageHelper.ConstructReply(methodCall, xml);
+            return Task.FromResult(response);
         }
 
         private bool IsRegistered

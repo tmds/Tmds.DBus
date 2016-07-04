@@ -125,6 +125,7 @@ namespace Tmds.DBus
         private readonly Dictionary<string, Action<ServiceOwnerChangedEventArgs>> _nameOwnerWatchers = new Dictionary<string, Action<ServiceOwnerChangedEventArgs>>();
         private Dictionary<uint, TaskCompletionSource<Message>> _pendingMethods = new Dictionary<uint, TaskCompletionSource<Message>>();
         private readonly Dictionary<ObjectPath, MethodHandler> _methodHandlers = new Dictionary<ObjectPath, MethodHandler>();
+        private readonly Dictionary<ObjectPath, string[]> _childNames = new Dictionary<ObjectPath, string[]>();
         private readonly Dictionary<string, ServiceNameRegistration> _serviceNameRegistrations = new Dictionary<string, ServiceNameRegistration>();
 
         private State _state = State.Created;
@@ -190,19 +191,105 @@ namespace Tmds.DBus
             SendMessageAsync(message, CancellationToken.None);
         }
 
-        public void AddMethodHandler(ObjectPath path, MethodHandler handler)
+        public void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers)
         {
+
             lock (_gate)
             {
-                _methodHandlers.Add(path, handler);
+                foreach (var handler in handlers)
+                {
+                    _methodHandlers.Add(handler.Key, handler.Value);
+
+                    AddChildName(handler.Key, checkChildNames: false);
+                }
             }
         }
 
-        public void RemoveMethodHandler(ObjectPath path)
+        private void AddChildName(ObjectPath path, bool checkChildNames)
+        {
+            if (path == ObjectPath.Root)
+            {
+                return;
+            }
+            var parent = path.Parent;
+            var decomposed = path.Decomposed;
+            var name = decomposed[decomposed.Length - 1];
+            string[] childNames = null;
+            if (_childNames.TryGetValue(parent, out childNames) && checkChildNames)
+            {
+                for (var i = 0; i < childNames.Length; i++)
+                {
+                    if (childNames[i] == name)
+                    {
+                        return;
+                    }
+                }
+            }
+            var newChildNames = new string[(childNames?.Length ?? 0) + 1];
+            if (childNames != null)
+            {
+                for (var i = 0; i < childNames.Length; i++)
+                {
+                    newChildNames[i] = childNames[i];
+                }
+            }
+            newChildNames[newChildNames.Length - 1] = name;
+            _childNames[parent] = newChildNames;
+
+            AddChildName(parent, checkChildNames: true);
+        }
+
+        public void RemoveMethodHandlers(IEnumerable<ObjectPath> paths)
         {
             lock (_gate)
             {
-                _methodHandlers.Remove(path);
+                foreach (var path in paths)
+                {
+                    var removed = _methodHandlers.Remove(path);
+                    var hasChildren = _childNames.ContainsKey(path);
+                    if (removed && !hasChildren)
+                    {
+                        RemoveChildName(path);
+                    }
+                }
+            }
+        }
+
+        private void RemoveChildName(ObjectPath path)
+        {
+            if (path == ObjectPath.Root)
+            {
+                return;
+            }
+            var parent = path.Parent;
+            var decomposed = path.Decomposed;
+            var name = decomposed[decomposed.Length - 1];
+            string[] childNames = _childNames[parent];
+            if (childNames.Length == 1)
+            {
+                _childNames.Remove(parent);
+                if (!_methodHandlers.ContainsKey(parent))
+                {
+                    RemoveChildName(parent);
+                }
+            }
+            else
+            {
+                int writeAt = 0;
+                bool found = false;
+                var newChildNames = new string[childNames.Length - 1];
+                for (int i = 0; i < childNames.Length; i++)
+                {
+                    if (!found && childNames[i] == name)
+                    {
+                        found = true;
+                    }
+                    else
+                    {
+                        newChildNames[writeAt++] = childNames[i];
+                    }
+                }
+                _childNames[parent] = newChildNames;
             }
         }
 
@@ -653,6 +740,28 @@ namespace Tmds.DBus
             }
             else
             {
+                if (methodCall.Header.Interface == "org.freedesktop.DBus.Introspectable"
+                    && methodCall.Header.Member == "Introspect"
+                    && methodCall.Header.Path.HasValue)
+                {
+                    var path = methodCall.Header.Path.Value;
+                    var childNames = GetChildNames(path);
+                    if (childNames.Length > 0)
+                    {
+                        var writer = new IntrospectionWriter();
+
+                        writer.WriteDocType();
+                        writer.WriteNodeStart(path.Value);
+                        foreach (var child in childNames)
+                        {
+                            writer.WriteChildNode(child);
+                        }
+                        writer.WriteNodeEnd();
+                        
+                        var xml = writer.ToString();
+                        SendMessage(MessageHelper.ConstructReply(methodCall, xml));
+                    }
+                }
                 SendUnknownMethodError(methodCall);
             }
         }
@@ -922,6 +1031,22 @@ namespace Tmds.DBus
             else if (_state == State.Disposed)
             {
                 throw new ObjectDisposedException(typeof(Connection).FullName);
+            }
+        }
+
+        public string[] GetChildNames(ObjectPath path)
+        {
+            lock (_gate)
+            {
+                string[] childNames = null;
+                if (_childNames.TryGetValue(path, out childNames))
+                {
+                    return childNames;
+                }
+                else
+                {
+                    return Array.Empty<string>();
+                }
             }
         }
     }

@@ -18,7 +18,7 @@ namespace Tmds.DBus.CodeGen
             ActionType = actionType;
             SignalType = signalType;
             SignalSignature = signature;
-            SignalArguments = arguments;
+            _signalArguments = arguments;
         }
 
         public InterfaceDescription Interface { get; internal set; }
@@ -26,7 +26,8 @@ namespace Tmds.DBus.CodeGen
         public string Name { get; }
         public Type SignalType { get; }
         public Signature? SignalSignature { get; }
-        public IList<ArgumentDescription> SignalArguments { get; }
+        private IList<ArgumentDescription> _signalArguments;
+        public IList<ArgumentDescription> SignalArguments { get { return _signalArguments ?? Array.Empty<ArgumentDescription>(); } }
         public Type ActionType { get; }
     }
 }

@@ -9,7 +9,7 @@ namespace Tmds.DBus.CodeGen
 {
     internal class ArgumentDescription
     {
-        public ArgumentDescription(string name, Signature? signature, Type type)
+        public ArgumentDescription(string name, Signature signature, Type type)
         {
             Name = name;
             Signature = signature;
@@ -17,7 +17,7 @@ namespace Tmds.DBus.CodeGen
         }
 
         public string Name { get; }
-        public Signature? Signature { get; }
+        public Signature Signature { get; }
         public Type Type { get; }
     }
 }

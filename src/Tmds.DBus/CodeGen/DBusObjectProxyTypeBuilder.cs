@@ -84,12 +84,9 @@ namespace Tmds.DBus.CodeGen
         {
             _typeBuilder.AddInterfaceImplementation(dbusInterface.Type);
 
-            if (dbusInterface.Methods != null)
+            foreach (var method in dbusInterface.Methods)
             {
-                foreach (var method in dbusInterface.Methods)
-                {
-                    ImplementMethod(method, false);
-                }
+                ImplementMethod(method, false);
             }
 
             foreach (var method in new[] { dbusInterface.GetAllPropertiesMethod,
@@ -104,12 +101,9 @@ namespace Tmds.DBus.CodeGen
                 ImplementMethod(method, true);
             }
 
-            if (dbusInterface.Signals != null)
+            foreach (var signal in dbusInterface.Signals)
             {
-                foreach (var signal in dbusInterface.Signals)
-                {
-                    ImplementSignal(signal, false);
-                }
+                ImplementSignal(signal, false);
             }
 
             if (dbusInterface.PropertiesChangedSignal != null)
@@ -214,7 +208,7 @@ namespace Tmds.DBus.CodeGen
 
             // MessageWriter
             var argumentOffset = 1; //offset by one to account for "this"
-            if (methodDescription.InArguments != null || propertyMethod)
+            if (methodDescription.InArguments.Count != 0 || propertyMethod)
             {
                 LocalBuilder writer = ilg.DeclareLocal(s_messageWriterType);
                 ilg.Emit(OpCodes.Newobj, s_messageWriterConstructor);
@@ -229,18 +223,15 @@ namespace Tmds.DBus.CodeGen
                     ilg.Emit(OpCodes.Call, WriteMethodFactory.CreateWriteMethodForType(parameterType, isCompileTimeType: true));
                 }
 
-                if (methodDescription.InArguments != null)
+                foreach (var argument in methodDescription.InArguments)
                 {
-                    foreach (var argument in methodDescription.InArguments)
-                    {
-                        // Write parameter
-                        Type parameterType = argument.Type;
-                        ilg.Emit(OpCodes.Ldloc, writer);
-                        ilg.Emit(OpCodes.Ldarg, argumentOffset);
-                        ilg.Emit(OpCodes.Call, WriteMethodFactory.CreateWriteMethodForType(parameterType, isCompileTimeType: true));
+                    // Write parameter
+                    Type parameterType = argument.Type;
+                    ilg.Emit(OpCodes.Ldloc, writer);
+                    ilg.Emit(OpCodes.Ldarg, argumentOffset);
+                    ilg.Emit(OpCodes.Call, WriteMethodFactory.CreateWriteMethodForType(parameterType, isCompileTimeType: true));
 
-                        argumentOffset++;
-                    }
+                    argumentOffset++;
                 }
 
                 ilg.Emit(OpCodes.Ldloc, writer);

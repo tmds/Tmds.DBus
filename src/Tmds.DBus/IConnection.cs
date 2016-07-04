@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -18,7 +19,9 @@ namespace Tmds.DBus
         Task<string[]> ListServicesAsync(CancellationToken cancellationToken = default(CancellationToken));
         T CreateProxy<T>(string serviceName, ObjectPath path);
         Task RegisterObjectAsync(IDBusObject o, CancellationToken cancellationToken = default(CancellationToken));
+        Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects, CancellationToken cancellationToken = default(CancellationToken));
         void UnregisterObject(ObjectPath path);
+        void UnregisterObjects(IEnumerable<ObjectPath> paths);
         Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken));
         Task<string[]> ListActivatableServicesAsync(CancellationToken cancellationToken = default(CancellationToken));
         Task<string> ResolveServiceOwnerAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));

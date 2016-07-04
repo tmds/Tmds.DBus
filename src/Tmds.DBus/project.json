@@ -1,5 +1,5 @@
 {
-  "version": "0.2.0",
+  "version": "0.3.0-*",
   "packOptions": {
     "projectUrl": "https://github.com/tmds/Tmds.DBus",
     "licenseUrl": "https://raw.githubusercontent.com/tmds/Tmds.DBus/master/COPYING",

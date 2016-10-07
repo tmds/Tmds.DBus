@@ -104,7 +104,7 @@ namespace Tmds.DBus.Tests
                 await conn2.ConnectAsync();
                 await conn2.RegisterServiceAsync(serviceName, ServiceRegistrationOptions.ReplaceExisting);
 
-                Assert.Equal(1, onLost.NumberOfCalls);
+                await onLost.AssertNumberOfCallsAsync(1);
             }
         }
 
@@ -123,18 +123,18 @@ namespace Tmds.DBus.Tests
                 var conn1OnLost = new ObservableAction();
                 var conn1OnAquired = new ObservableAction();
                 await conn1.QueueServiceRegistrationAsync(serviceName, conn1OnAquired.Action, conn1OnLost.Action, ServiceRegistrationOptions.AllowReplacement);
-                Assert.Equal(1, conn1OnAquired.NumberOfCalls);
-                Assert.Equal(0, conn1OnLost.NumberOfCalls);
+                await conn1OnAquired.AssertNumberOfCallsAsync(1);
+                await conn1OnLost.AssertNumberOfCallsAsync(0);
 
                 var conn2 = new Connection(address);
                 await conn2.ConnectAsync();
                 var conn2OnLost = new ObservableAction();
                 var conn2OnAquired = new ObservableAction();
                 await conn2.QueueServiceRegistrationAsync(serviceName, conn2OnAquired.Action, conn2OnLost.Action);
-                Assert.Equal(1, conn1OnAquired.NumberOfCalls);
-                Assert.Equal(1, conn1OnLost.NumberOfCalls);
-                Assert.Equal(1, conn2OnAquired.NumberOfCalls);
-                Assert.Equal(0, conn2OnLost.NumberOfCalls);
+                await conn1OnAquired.AssertNumberOfCallsAsync(1);
+                await conn1OnLost.AssertNumberOfCallsAsync(1);
+                await conn2OnAquired.AssertNumberOfCallsAsync(1);
+                await conn2OnLost.AssertNumberOfCallsAsync(0);
             }
         }
 

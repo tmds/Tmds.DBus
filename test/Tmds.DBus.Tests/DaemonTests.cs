@@ -14,7 +14,7 @@ namespace Tmds.DBus.Tests
         {
             using (var dbusDaemon = new DBusDaemon())
             {
-                await dbusDaemon.StartAsync(DBusDaemonProtocol.Tcp);
+                await dbusDaemon.StartAsync();
                 var address = dbusDaemon.Address;
 
                 var conn1 = new Connection(address);
@@ -39,7 +39,7 @@ namespace Tmds.DBus.Tests
         {
             using (var dbusDaemon = new DBusDaemon())
             {
-                await dbusDaemon.StartAsync(DBusDaemonProtocol.Tcp);
+                await dbusDaemon.StartAsync();
                 var address = dbusDaemon.Address;
 
                 var conn1 = new Connection(address);
@@ -69,7 +69,7 @@ namespace Tmds.DBus.Tests
         {
             using (var dbusDaemon = new DBusDaemon())
             {
-                await dbusDaemon.StartAsync(DBusDaemonProtocol.Tcp);
+                await dbusDaemon.StartAsync();
                 var address = dbusDaemon.Address;
 
                 var conn1 = new Connection(address);
@@ -109,7 +109,7 @@ namespace Tmds.DBus.Tests
         {
             using (var dbusDaemon = new DBusDaemon())
             {
-                await dbusDaemon.StartAsync(DBusDaemonProtocol.Tcp);
+                await dbusDaemon.StartAsync();
                 var address = dbusDaemon.Address;
 
                 IConnection conn1 = new Connection(address);
@@ -154,7 +154,7 @@ namespace Tmds.DBus.Tests
         {
             using (var dbusDaemon = new DBusDaemon())
             {
-                await dbusDaemon.StartAsync(DBusDaemonProtocol.Tcp);
+                await dbusDaemon.StartAsync();
                 var address = dbusDaemon.Address;
 
                 IConnection conn2 = new Connection(address);
@@ -183,7 +183,7 @@ namespace Tmds.DBus.Tests
         {
             var dbusDaemon = new DBusDaemon();
             {
-                await dbusDaemon.StartAsync(DBusDaemonProtocol.Tcp);
+                await dbusDaemon.StartAsync();
                 var address = dbusDaemon.Address;
 
                 IConnection conn2 = new Connection(address);

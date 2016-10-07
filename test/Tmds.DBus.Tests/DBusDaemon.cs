@@ -9,7 +9,8 @@ namespace Tmds.DBus.Tests
     {
         Unix,
         UnixAbstract,
-        Tcp
+        Tcp,
+        Default = Unix
     }
     class DBusDaemon : IDisposable
     {
@@ -64,7 +65,7 @@ namespace Tmds.DBus.Tests
             _process?.Dispose();
         }
 
-        public Task StartAsync(DBusDaemonProtocol protocol = DBusDaemonProtocol.Tcp)
+        public Task StartAsync(DBusDaemonProtocol protocol = DBusDaemonProtocol.Default)
         {
             if (_state != State.Created)
             {

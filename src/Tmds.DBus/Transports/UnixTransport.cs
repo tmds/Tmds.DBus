@@ -17,9 +17,16 @@ namespace Tmds.DBus.Transports
     using SSizeT = System.IntPtr;
     internal class UnixTransport : Transport
     {
+        enum BsdCredSupport
+        {
+            Unknown,
+            ViaHandle,
+            ViaSafeHandle,
+            Not
+        }
         private static readonly byte[] _oneByteArray = new[] { (byte)0 };
-        private static bool s_bsdCredSupported = true;
-        private static PropertyInfo s_safeHandleProperty;
+        private static BsdCredSupport s_bsdCredSupport = BsdCredSupport.Unknown;
+        private static PropertyInfo s_handleProperty;
         private unsafe struct msghdr
         {
             public IntPtr msg_name; //optional address
@@ -149,7 +156,7 @@ namespace Tmds.DBus.Transports
 
         private static unsafe bool TryWriteBsdCred(Socket socket)
         {
-            if (!s_bsdCredSupported)
+            if (s_bsdCredSupport == BsdCredSupport.Not)
             {
                 return false;
             }
@@ -171,9 +178,39 @@ namespace Tmds.DBus.Transports
             cm.hdr.cmsg_type = 0x03; //SCM_CREDS
 
             // Issue https://github.com/dotnet/corefx/issues/6807
-            s_safeHandleProperty = s_safeHandleProperty ?? typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
-            var socketSafeHandle = (SafeHandle)s_safeHandleProperty.GetValue(socket, null);
-            int sockFd = (int)socketSafeHandle.DangerousGetHandle();
+            // Handle is not netstandard
+            if (s_bsdCredSupport == BsdCredSupport.Unknown)
+            {
+                s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
+                if (s_handleProperty != null)
+                {
+                    s_bsdCredSupport = BsdCredSupport.ViaHandle;
+                }
+                else
+                {
+                    s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
+                    if (s_handleProperty != null)
+                    {
+                        s_bsdCredSupport = BsdCredSupport.ViaSafeHandle;
+                    }
+                    else
+                    {
+                        s_bsdCredSupport = BsdCredSupport.Not;
+                        return false;
+                    }
+                }
+            }
+            int sockFd = -1;
+            if (s_bsdCredSupport == BsdCredSupport.ViaHandle)
+            {
+                var socketHandle = (IntPtr)s_handleProperty.GetValue(socket, null);
+                sockFd = (int)socketHandle;
+            }
+            else // BsdCredSupport.ViaSafeHandle
+            {
+                var socketSafeHandle = (SafeHandle)s_handleProperty.GetValue(socket, null);
+                sockFd = (int)socketSafeHandle.DangerousGetHandle();
+            }
             do
             {
                 var rv = (int)Interop.sendmsg(sockFd, new IntPtr(&msg), 0);
@@ -190,7 +227,7 @@ namespace Tmds.DBus.Transports
                         case 4:  // EINTR
                             continue;
                         case 22: // EINVAL
-                            s_bsdCredSupported = false;
+                            s_bsdCredSupport = BsdCredSupport.Not;
                             return false;
                         default:
                             throw new SocketException();

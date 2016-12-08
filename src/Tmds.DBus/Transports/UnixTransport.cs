@@ -160,81 +160,88 @@ namespace Tmds.DBus.Transports
             {
                 return false;
             }
-            byte buf = 0;
-
-            IOVector iov = new IOVector ();
-            iov.Base = &buf;
-            iov.Length = 1;
-
-            msghdr msg = new msghdr ();
-            msg.msg_iov = &iov;
-            msg.msg_iovlen = (SizeT)1;
-
-            cmsg cm = new cmsg ();
-            msg.msg_control = (IntPtr)(&cm);
-            msg.msg_controllen = (SizeT)sizeof (cmsg);
-            cm.hdr.cmsg_len = (uint)sizeof (cmsg);
-            cm.hdr.cmsg_level = 0xffff; //SOL_SOCKET
-            cm.hdr.cmsg_type = 0x03; //SCM_CREDS
-
-            // Issue https://github.com/dotnet/corefx/issues/6807
-            // Handle is not netstandard
-            if (s_bsdCredSupport == BsdCredSupport.Unknown)
+            try
             {
-                s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
-                if (s_handleProperty != null)
+                byte buf = 0;
+
+                IOVector iov = new IOVector ();
+                iov.Base = &buf;
+                iov.Length = 1;
+
+                msghdr msg = new msghdr ();
+                msg.msg_iov = &iov;
+                msg.msg_iovlen = (SizeT)1;
+
+                cmsg cm = new cmsg ();
+                msg.msg_control = (IntPtr)(&cm);
+                msg.msg_controllen = (SizeT)sizeof (cmsg);
+                cm.hdr.cmsg_len = (uint)sizeof (cmsg);
+                cm.hdr.cmsg_level = 0xffff; //SOL_SOCKET
+                cm.hdr.cmsg_type = 0x03; //SCM_CREDS
+
+                // Issue https://github.com/dotnet/corefx/issues/6807
+                // Handle is not netstandard
+                if (s_bsdCredSupport == BsdCredSupport.Unknown)
                 {
-                    s_bsdCredSupport = BsdCredSupport.ViaHandle;
-                }
-                else
-                {
-                    s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
+                    s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
                     if (s_handleProperty != null)
                     {
-                        s_bsdCredSupport = BsdCredSupport.ViaSafeHandle;
+                        s_bsdCredSupport = BsdCredSupport.ViaHandle;
                     }
                     else
                     {
-                        s_bsdCredSupport = BsdCredSupport.Not;
-                        return false;
-                    }
-                }
-            }
-            int sockFd = -1;
-            if (s_bsdCredSupport == BsdCredSupport.ViaHandle)
-            {
-                var socketHandle = (IntPtr)s_handleProperty.GetValue(socket, null);
-                sockFd = (int)socketHandle;
-            }
-            else // BsdCredSupport.ViaSafeHandle
-            {
-                var socketSafeHandle = (SafeHandle)s_handleProperty.GetValue(socket, null);
-                sockFd = (int)socketSafeHandle.DangerousGetHandle();
-            }
-            do
-            {
-                var rv = (int)Interop.sendmsg(sockFd, new IntPtr(&msg), 0);
-
-                if (rv == 1)
-                {
-                    return true;
-                }
-                else
-                {
-                    var errno = Marshal.GetLastWin32Error();
-                    switch (errno)
-                    {
-                        case 4:  // EINTR
-                            continue;
-                        case 22: // EINVAL
+                        s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
+                        if (s_handleProperty != null)
+                        {
+                            s_bsdCredSupport = BsdCredSupport.ViaSafeHandle;
+                        }
+                        else
+                        {
                             s_bsdCredSupport = BsdCredSupport.Not;
                             return false;
-                        default:
-                            throw new SocketException();
+                        }
                     }
                 }
-            } while (true);
-        }
+                int sockFd = -1;
+                if (s_bsdCredSupport == BsdCredSupport.ViaHandle)
+                {
+                    var socketHandle = (IntPtr)s_handleProperty.GetValue(socket, null);
+                    sockFd = (int)socketHandle;
+                }
+                else // BsdCredSupport.ViaSafeHandle
+                {
+                    var socketSafeHandle = (SafeHandle)s_handleProperty.GetValue(socket, null);
+                    sockFd = (int)socketSafeHandle.DangerousGetHandle();
+                }
+                do
+                {
+                    var rv = (int)Interop.sendmsg(sockFd, new IntPtr(&msg), 0);
 
+                    if (rv == 1)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        var errno = Marshal.GetLastWin32Error();
+                        switch (errno)
+                        {
+                            case 4:  // EINTR
+                                continue;
+                            case 22: // EINVAL
+                                s_bsdCredSupport = BsdCredSupport.Not;
+                                return false;
+                            default:
+                                throw new SocketException();
+                        }
+                    }
+                } while (true);
+            }
+            catch
+            {
+                s_bsdCredSupport = BsdCredSupport.Not;
+                return false;
+            }
+        }
     }
 }

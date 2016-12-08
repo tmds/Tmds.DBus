@@ -518,7 +518,7 @@ namespace Tmds.DBus
                 }
                 else
                 {
-                    pending.SetException(new ProtocolException("Unexpected reply message received: MessageType = '" + msg.Header.MessageType + "', ReplySerial = " + serialValue));
+                    throw new ProtocolException("Unexpected reply message received: MessageType = '" + msg.Header.MessageType + "', ReplySerial = " + serialValue);
                 }
                 return;
             }

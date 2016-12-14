@@ -65,7 +65,7 @@ namespace Tmds.DBus.Transports
                 var registration = cancellationToken.Register(() => ((IDisposable)socket).Dispose());
                 try
                 {
-                    await socket.ConnectAsync(address, port);
+                    await SocketUtils.ConnectAsync(socket, new IPEndPoint(address, port));
                     var stream = new NetworkStream(socket, true);
                     try
                     {

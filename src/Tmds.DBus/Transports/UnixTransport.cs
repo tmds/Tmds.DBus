@@ -124,7 +124,7 @@ namespace Tmds.DBus.Transports
             var endPoint = new Tmds.DBus.Transports.UnixDomainSocketEndPoint(path);
             try
             {
-                await socket.ConnectAsync(endPoint);
+                await SocketUtils.ConnectAsync(socket, endPoint);
                 var stream = new NetworkStream(socket, true);
                 try
                 {

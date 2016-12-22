@@ -592,7 +592,7 @@ namespace Tmds.DBus.Protocol
                     innerTypes.Add (ToType (ref pos));
                 // go over the struct end
                 pos++;
-                return DBusStruct.FromInnerTypes (innerTypes.ToArray ());
+                return TypeOfValueTupleOf(innerTypes.ToArray ());
             case DType.DictEntryBegin:
                 return typeof (System.Collections.Generic.KeyValuePair<,>);
             case DType.Variant:
@@ -714,11 +714,12 @@ namespace Tmds.DBus.Protocol
                 }
             }
 
-            if (ArgTypeInspector.IsStructType(type))
+            bool isValueTuple;
+            if (ArgTypeInspector.IsStructType(type, out isValueTuple))
             {
                 Signature sig = Signature.Empty;
-
-                foreach (FieldInfo fi in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                var fields = ArgTypeInspector.GetStructFields(type, isValueTuple);
+                foreach (FieldInfo fi in fields)
                 {
                     sig += GetSig(fi.FieldType, isCompileTimeType: true);
                 }
@@ -727,6 +728,40 @@ namespace Tmds.DBus.Protocol
             }
 
             throw new ArgumentException($"Cannot (de)serialize Type '{type.FullName}'");
+        }
+
+
+        private static Type TypeOfValueTupleOf(Type[] innerTypes)
+        {
+            // We only support up to 7 inner types
+            if (innerTypes == null || innerTypes.Length == 0 || innerTypes.Length > 7)
+                throw new NotSupportedException($"ValueTuple of length {innerTypes.Length} is not supported");
+
+            Type structType = null;
+            switch (innerTypes.Length) {
+            case 1:
+                structType = typeof(ValueTuple<>);
+                break;
+            case 2:
+                structType = typeof(ValueTuple<,>);
+                break;
+            case 3:
+                structType = typeof(ValueTuple<,,>);
+                break;
+            case 4:
+                structType = typeof(ValueTuple<,,,>);
+                break;
+            case 5:
+                structType = typeof(ValueTuple<,,,,>);
+                break;
+            case 6:
+                structType = typeof(ValueTuple<,,,,,>);
+                break;
+            case 7:
+                structType = typeof(ValueTuple<,,,,,,>);
+                break;
+            }
+            return structType.MakeGenericType(innerTypes);
         }
 
         class SignatureChecker

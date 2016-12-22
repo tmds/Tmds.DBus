@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Tmds.DBus.Protocol;
@@ -185,8 +186,7 @@ namespace Tmds.DBus.CodeGen
                         {
                             valid = true;
                             parameterType = actionParameter.ParameterType.GetGenericArguments()[0];
-                            var argumentAttribute = actionParameter.GetCustomAttribute<ArgumentAttribute>(false);
-                            InspectParameterType(parameterType, argumentAttribute, out parameterSignature, out arguments);
+                            InspectParameterType(parameterType, actionParameter, out parameterSignature, out arguments);
                         }
                     }
                     if (!valid || parameters.Length != 2 || parameters[1].ParameterType != s_cancellationTokenType)
@@ -239,13 +239,12 @@ namespace Tmds.DBus.CodeGen
                         {
                             valid = true;
                             outType = taskParameter.GetGenericArguments()[0];
-                            var argumentAttribute = member.ReturnParameter.GetCustomAttribute<ArgumentAttribute>(false);
                             if (outType.IsGenericParameter)
                             {
                                 outType = s_objectType;
                                 isGenericOut = true;
                             }
-                            InspectParameterType(outType, argumentAttribute, out outSignature, out outArguments);
+                            InspectParameterType(outType, member.ReturnParameter, out outSignature, out outArguments);
                         }
                     }
                     if (!valid)
@@ -351,22 +350,36 @@ namespace Tmds.DBus.CodeGen
                                 propertyGetMethod, propertyGetAllMethod, propertySetMethod, propertiesChangedSignal));
         }
 
-        private static void InspectParameterType(Type parameterType, ArgumentAttribute argumentAttribute, out Signature? signature, out IList<ArgumentDescription> arguments)
+        private static void InspectParameterType(Type parameterType, ParameterInfo parameter, out Signature? signature, out IList<ArgumentDescription> arguments)
         {
+            var argumentAttribute = parameter.GetCustomAttribute<ArgumentAttribute>(false);
+            bool isValueTuple;
             arguments = new List<ArgumentDescription>();
             if (argumentAttribute != null)
             {
                 signature = Signature.GetSig(parameterType, isCompileTimeType: true);
                 arguments.Add(new ArgumentDescription(argumentAttribute.Name, signature.Value, parameterType));
             }
-            else if (IsStructType(parameterType))
+            else if (IsStructType(parameterType, out isValueTuple))
             {
                 signature = null;
-                foreach (var field in parameterType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+                var fields = ArgTypeInspector.GetStructFields(parameterType, isValueTuple);
+                IList<string> tupleElementNames = null;
+                if (isValueTuple)
                 {
+                    var tupleElementNamesAttribute = parameter.GetCustomAttribute<TupleElementNamesAttribute>(false);
+                    if (tupleElementNamesAttribute != null)
+                    {
+                        tupleElementNames = tupleElementNamesAttribute.TransformNames;
+                    }
+                }
+                for (int i = 0; i < fields.Length; i++)
+                {
+                    var field = fields[i];
                     var fieldType = field.FieldType;
                     var argumentSignature = Signature.GetSig(fieldType, isCompileTimeType: true);
-                    arguments.Add(new ArgumentDescription(field.Name, argumentSignature, fieldType));
+                    var name = tupleElementNames != null && tupleElementNames.Count > i ? tupleElementNames[i] : field.Name;
+                    arguments.Add(new ArgumentDescription(name, argumentSignature, fieldType));
                     if (signature == null)
                     {
                         signature = argumentSignature;
@@ -384,8 +397,9 @@ namespace Tmds.DBus.CodeGen
             }
         }
 
-        private static bool IsStructType(Type type)
+        private static bool IsStructType(Type type, out bool isValueTuple)
         {
+            isValueTuple = false;
             if (type.GetTypeInfo().IsEnum)
             {
                 return false;
@@ -406,7 +420,7 @@ namespace Tmds.DBus.CodeGen
                 return false;
             }
 
-            return ArgTypeInspector.IsStructType(type);
+            return ArgTypeInspector.IsStructType(type, out isValueTuple);
         }
     }
 }

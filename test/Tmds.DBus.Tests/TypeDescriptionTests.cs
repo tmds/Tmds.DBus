@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 using Tmds.DBus.CodeGen;
 using Tmds.DBus.Protocol;
 using Xunit;
@@ -170,6 +171,59 @@ namespace Tmds.DBus.Tests
             Assert.Equal("myArg", argDescription.Name);
             Assert.Equal(typeof(IntPair), argDescription.Type);
             Assert.Equal("(ii)", argDescription.Signature);
+
+            // Task<IDisposable> WatchSomethingAsync([TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+            description = TypeDescription.DescribeInterface(typeof(IValidSignal5));
+            signalDescription = description.Interfaces[0].Signals[0];
+            Assert.Equal("Something", signalDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), signalDescription.SignalType);
+            Assert.Equal(typeof(Action<ValueTuple<int, string>>), signalDescription.ActionType);
+            Assert.Equal("is", signalDescription.SignalSignature);
+            Assert.Equal(typeof(IValidSignal5).GetTypeInfo().GetMethod("WatchSomethingAsync"), signalDescription.MethodInfo);
+            Assert.NotNull(signalDescription.SignalArguments);
+            Assert.Equal(2, signalDescription.SignalArguments.Count);
+            argDescription = signalDescription.SignalArguments[0];
+            Assert.Equal("arg1", argDescription.Name);
+            Assert.Equal(typeof(int), argDescription.Type);
+            Assert.Equal("i", argDescription.Signature);
+            argDescription = signalDescription.SignalArguments[1];
+            Assert.Equal("arg2", argDescription.Name);
+            Assert.Equal(typeof(string), argDescription.Type);
+            Assert.Equal("s", argDescription.Signature);
+
+            // Task<IDisposable> WatchSomethingAsync(Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+            description = TypeDescription.DescribeInterface(typeof(IValidSignal6));
+            signalDescription = description.Interfaces[0].Signals[0];
+            Assert.Equal("Something", signalDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), signalDescription.SignalType);
+            Assert.Equal(typeof(Action<ValueTuple<int, string>>), signalDescription.ActionType);
+            Assert.Equal("is", signalDescription.SignalSignature);
+            Assert.Equal(typeof(IValidSignal6).GetTypeInfo().GetMethod("WatchSomethingAsync"), signalDescription.MethodInfo);
+            Assert.NotNull(signalDescription.SignalArguments);
+            Assert.Equal(2, signalDescription.SignalArguments.Count);
+            argDescription = signalDescription.SignalArguments[0];
+            Assert.Equal("Item1", argDescription.Name);
+            Assert.Equal(typeof(int), argDescription.Type);
+            Assert.Equal("i", argDescription.Signature);
+            argDescription = signalDescription.SignalArguments[1];
+            Assert.Equal("Item2", argDescription.Name);
+            Assert.Equal(typeof(string), argDescription.Type);
+            Assert.Equal("s", argDescription.Signature);
+
+            // Task<IDisposable> WatchSomethingAsync([Argument("myArg")][TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+            description = TypeDescription.DescribeInterface(typeof(IValidSignal7));
+            signalDescription = description.Interfaces[0].Signals[0];
+            Assert.Equal("Something", signalDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), signalDescription.SignalType);
+            Assert.Equal(typeof(Action<ValueTuple<int, string>>), signalDescription.ActionType);
+            Assert.Equal("(is)", signalDescription.SignalSignature);
+            Assert.Equal(typeof(IValidSignal7).GetTypeInfo().GetMethod("WatchSomethingAsync"), signalDescription.MethodInfo);
+            Assert.NotNull(signalDescription.SignalArguments);
+            Assert.Equal(1, signalDescription.SignalArguments.Count);
+            argDescription = signalDescription.SignalArguments[0];
+            Assert.Equal("myArg", argDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), argDescription.Type);
+            Assert.Equal("(is)", argDescription.Signature);
         }
 
         [Fact]
@@ -306,6 +360,97 @@ namespace Tmds.DBus.Tests
             Assert.Equal("arg", argDescription.Name);
             Assert.Equal(typeof(IntPair), argDescription.Type);
             Assert.Equal("(ii)", argDescription.Signature);
+
+            // [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
+            // Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod9));
+            methodDescription = description.Interfaces[0].Methods[0];
+            Assert.Equal("Foo",  methodDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), methodDescription.OutType);
+            Assert.Equal((Signature?)null, methodDescription.InSignature);
+            Assert.Equal("is", methodDescription.OutSignature);
+            Assert.Equal(0, methodDescription.InArguments.Count);
+            Assert.Equal(typeof(IValidDBusMethod9).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
+            Assert.NotNull(methodDescription.OutArguments);
+            Assert.Equal(2, methodDescription.OutArguments.Count);
+            argDescription = methodDescription.OutArguments[0];
+            Assert.Equal("arg1", argDescription.Name);
+            Assert.Equal(typeof(int), argDescription.Type);
+            Assert.Equal("i", argDescription.Signature);
+            argDescription = methodDescription.OutArguments[1];
+            Assert.Equal("arg2", argDescription.Name);
+            Assert.Equal(typeof(string), argDescription.Type);
+            Assert.Equal("s", argDescription.Signature);
+
+            // Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod10));
+            methodDescription = description.Interfaces[0].Methods[0];
+            Assert.Equal("Foo",  methodDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), methodDescription.OutType);
+            Assert.Equal((Signature?)null, methodDescription.InSignature);
+            Assert.Equal("is", methodDescription.OutSignature);
+            Assert.Equal(0, methodDescription.InArguments.Count);
+            Assert.Equal(typeof(IValidDBusMethod10).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
+            Assert.NotNull(methodDescription.OutArguments);
+            Assert.Equal(2, methodDescription.OutArguments.Count);
+            argDescription = methodDescription.OutArguments[0];
+            Assert.Equal("Item1", argDescription.Name);
+            Assert.Equal(typeof(int), argDescription.Type);
+            Assert.Equal("i", argDescription.Signature);
+            argDescription = methodDescription.OutArguments[1];
+            Assert.Equal("Item2", argDescription.Name);
+            Assert.Equal(typeof(string), argDescription.Type);
+            Assert.Equal("s", argDescription.Signature);
+
+            // [return: Argument("arg")]
+            // [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
+            // Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod11));
+            methodDescription = description.Interfaces[0].Methods[0];
+            Assert.Equal("Foo",  methodDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), methodDescription.OutType);
+            Assert.Equal((Signature?)null, methodDescription.InSignature);
+            Assert.Equal("(is)", methodDescription.OutSignature);
+            Assert.Equal(0, methodDescription.InArguments.Count);
+            Assert.Equal(typeof(IValidDBusMethod11).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
+            Assert.NotNull(methodDescription.OutArguments);
+            Assert.Equal(1, methodDescription.OutArguments.Count);
+            argDescription = methodDescription.OutArguments[0];
+            Assert.Equal("arg", argDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), argDescription.Type);
+            Assert.Equal("(is)", argDescription.Signature);
+
+            // Task FooAsync(ValueTuple<int, string> val, CancellationToken cancellationToken);
+            description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod12));
+            methodDescription = description.Interfaces[0].Methods[0];
+            Assert.Equal("Foo",  methodDescription.Name);
+            Assert.Equal(null, methodDescription.OutType);
+            Assert.Equal("(is)", methodDescription.InSignature);
+            Assert.Equal((Signature?)null, methodDescription.OutSignature);
+            Assert.Equal(0, methodDescription.OutArguments.Count);
+            Assert.Equal(typeof(IValidDBusMethod12).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
+            Assert.NotNull(methodDescription.InArguments);
+            Assert.Equal(1, methodDescription.InArguments.Count);
+            argDescription = methodDescription.InArguments[0];
+            Assert.Equal("val", argDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), argDescription.Type);
+            Assert.Equal("(is)", argDescription.Signature);
+
+            // Task FooAsync([Argument("arg")]ValueTuple<int, string> val, CancellationToken cancellationToken);
+            description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod13));
+            methodDescription = description.Interfaces[0].Methods[0];
+            Assert.Equal("Foo",  methodDescription.Name);
+            Assert.Equal(null, methodDescription.OutType);
+            Assert.Equal("(is)", methodDescription.InSignature);
+            Assert.Equal((Signature?)null, methodDescription.OutSignature);
+            Assert.Equal(0, methodDescription.OutArguments.Count);
+            Assert.Equal(typeof(IValidDBusMethod13).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
+            Assert.NotNull(methodDescription.InArguments);
+            Assert.Equal(1, methodDescription.InArguments.Count);
+            argDescription = methodDescription.InArguments[0];
+            Assert.Equal("arg", argDescription.Name);
+            Assert.Equal(typeof(ValueTuple<int, string>), argDescription.Type);
+            Assert.Equal("(is)", argDescription.Signature);
         }
 
         [Dictionary]
@@ -416,6 +561,35 @@ namespace Tmds.DBus.Tests
             [return: Argument("arg")]
             Task<IntPair> FooAsync(CancellationToken cancellationToken);
         }
+        [DBusInterface("tmds.dbus.tests.validmethod")]
+        interface IValidDBusMethod9 : IDBusObject
+        {
+            [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
+            Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+        }
+        [DBusInterface("tmds.dbus.tests.validmethod")]
+        interface IValidDBusMethod10 : IDBusObject
+        {
+            Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+        }
+        [DBusInterface("tmds.dbus.tests.validmethod")]
+        interface IValidDBusMethod11 : IDBusObject
+        {
+            [return: Argument("arg")]
+            [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
+            Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+        }
+        [DBusInterface("tmds.dbus.tests.validmethod")]
+        interface IValidDBusMethod12 : IDBusObject
+        {
+            Task FooAsync(ValueTuple<int, string> val, CancellationToken cancellationToken);
+        }
+        [DBusInterface("tmds.dbus.tests.validmethod")]
+        interface IValidDBusMethod13 : IDBusObject
+        {
+            Task FooAsync([Argument("arg")]ValueTuple<int, string> val, CancellationToken cancellationToken);
+        }
+
         [DBusInterface("tmds.dbus.tests.invalidmethod")]
         interface IInvalidDBusMethod1 : IDBusObject
         {
@@ -467,6 +641,21 @@ namespace Tmds.DBus.Tests
         interface IValidSignal4 : IDBusObject
         {
             Task<IDisposable> WatchSomethingAsync([Argument("myArg")]Action<IntPair> a, CancellationToken cancellationToken);
+        }
+        [DBusInterface("tmds.dbus.tests.validsignal")]
+        interface IValidSignal5 : IDBusObject
+        {
+            Task<IDisposable> WatchSomethingAsync([TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+        }
+        [DBusInterface("tmds.dbus.tests.validsignal")]
+        interface IValidSignal6 : IDBusObject
+        {
+            Task<IDisposable> WatchSomethingAsync(Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+        }
+        [DBusInterface("tmds.dbus.tests.validsignal")]
+        interface IValidSignal7 : IDBusObject
+        {
+            Task<IDisposable> WatchSomethingAsync([Argument("myArg")][TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal1 : IDBusObject

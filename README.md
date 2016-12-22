@@ -139,7 +139,7 @@ SIGNATURE	      | g         |	N/A
 ARRAY             | a.        | T[], IEnumerable<>, IList<>, ICollection<>
 DICTIONARY        | a{..}     | IDictionary, ARRAY of KeyValuePair<,>
 SV DICTIONARY     | a{sv}     | [Dictionary] class or struct: public and non-public instance fields
-STRUCT            | (...)     | [StructLayout(LayoutKind.Sequential)] class or struct: public and non-public instance fields
+STRUCT            | (...)     | [StructLayout(LayoutKind.Sequential)] class or struct: public and non-public instance fields, C# 7 tuple
 VARIANT           | v         | object
 
 The preferred type to represent an ARRAY is `T[]`.
@@ -148,13 +148,13 @@ A STRING to VARIANT DICTIONARY can also be modelled by a class/struct which is d
 
 When an `object` is serialized as a VARIANT, it's underlying type is determined as follows. If the instance type exactly matches one of the types in the above table, that is type used. In case the instance implements `IEnumerable<KeyValuePair<,>` it is serialized as a DICTIONARY. In case it implements the more generic `IEnumerable<>` it is serialized as an ARRAY. If non of the previous match, the object is serialized as a STRUCT.
 
-When an VARIANT is deserialized as an `object` the matching .NET type is used. ARRAY types are deserialized as `T[]`. DICTIONARY types are deserialized as `IDictionary<TKey,TValue>`. STRUCTS are deserialized as `DBusStruct`.
+When an VARIANT is deserialized as an `object` the matching .NET type is used. ARRAY types are deserialized as `T[]`. DICTIONARY types are deserialized as `IDictionary<TKey,TValue>`. STRUCTS are deserialized as `System.ValueTuple`.
 
 The `float` type is not part of the D-Bus specification. It was implemented as part of ndesk-dbus and is supported by Tmds.DBus. The UNIX_FD type is not supported by Tmds.DBus.
 
 ## Methods
 
-A D-Bus method is modeled by a method in the .NET interface. The method must to return `Task` for methods without a return value and `Task<T>` for methods with a return value. Following async naming conventions, we add `Async` to the method name. In case a method has multiple out-arguments, these must be combined in a struct/class as public fields. The input arguments of the D-Bus method are combined with a final `CancellationToken` parameter.
+A D-Bus method is modeled by a method in the .NET interface. The method must to return `Task` for methods without a return value and `Task<T>` for methods with a return value. Following async naming conventions, we add `Async` to the method name. In case a method has multiple out-arguments, these must be combined in a struct/class as public fields or a C# 7 tuple. The input arguments of the D-Bus method are combined with a final `CancellationToken` parameter.
 
 ```
 [DBusInterface("org.mpris.MediaPlayer2.TrackList")]
@@ -171,10 +171,9 @@ To differentiate between a single output parameter of type STRUCT and multiple o
 ```
 struct RetVal
 {
-    public string Item1;
-    public int Item2;
+    public string arg1;
+    public int    arg2;
 }
-
 [DBusInterface("tmds.dbus.example.structret")]
 public interface ITrackList
 {
@@ -183,6 +182,17 @@ public interface ITrackList
     // 1 output parameter with signatures `(si)`
     [ret:Argument]
     Task<RetVal> SingleStructOutAsync(CancellationToken cancellationToken = default(CancellationToken));
+}
+
+// or using C# 7 tuples
+[DBusInterface("tmds.dbus.example.structret")]
+public interface ITrackList
+{
+    // 2 output parameter with signatures `s` and `i`
+    Task<(string arg1, int arg2)> MultipleOutAsync(CancellationToken cancellationToken = default(CancellationToken));
+    // 1 output parameter with signatures `(si)`
+    [ret:Argument]
+    Task<(string arg1, int arg2)> SingleStructOutAsync(CancellationToken cancellationToken = default(CancellationToken));
 }
 ```
 
@@ -201,7 +211,7 @@ public interface ITrackList
 
 ## Signals
 
-A D-Bus signal is modeled by a method in the .NET interface which matches the D-Bus signal name prefixed with `Watch` and sufixed with `Async` suffix. The method needs to return `Task<IDisposable>`. The returned `IDisposable` can be used to unsubscribe from the signal. The method has a handler and a `CancellationToken` parameter. The handler must be of type `Action` for signals without parameters and of type `Action<T>` for methods which do have parameters. In case there are multiple parameters, they must be wrapped in a struct/class as public fields. Similar to the method output parameter, the `ArgumentAttribute` can be set on the `Action` to distinguish between a single STRUCT being returned (attribute set) or multiple arguments (no attribute).
+A D-Bus signal is modeled by a method in the .NET interface which matches the D-Bus signal name prefixed with `Watch` and sufixed with `Async` suffix. The method needs to return `Task<IDisposable>`. The returned `IDisposable` can be used to unsubscribe from the signal. The method has a handler and a `CancellationToken` parameter. The handler must be of type `Action` for signals without parameters and of type `Action<T>` for methods which do have parameters. In case there are multiple parameters, they must be wrapped in a struct/class as public fields or use a C# 7 tuple. Similar to the method output parameter, the `ArgumentAttribute` can be set on the `Action` to distinguish between a single STRUCT being returned (attribute set) or multiple arguments (no attribute).
 
 ```
 [DBusInterface("org.freedesktop.NetworkManager")]

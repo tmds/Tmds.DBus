@@ -21,6 +21,17 @@ namespace Tmds.DBus.CodeGen
         private static readonly Type s_ilistGenricType = typeof(IList<>);
         private static readonly Type s_icollectionGenricType = typeof(ICollection<>);
         private static readonly Type s_stringObjectKeyValuePairType = typeof(KeyValuePair<string, object>);
+        private static readonly Type[] s_valueTupleTypes = new [] {
+            typeof(ValueTuple<>),
+            typeof(ValueTuple<,>),
+            typeof(ValueTuple<,,>),
+            typeof(ValueTuple<,,,>),
+            typeof(ValueTuple<,,,,>),
+            typeof(ValueTuple<,,,,,>),
+            typeof(ValueTuple<,,,,,,>)
+        };
+        private static readonly IComparer<FieldInfo> s_valueTupleFieldComparer = new StructFieldInfoComparer(true);
+        private static readonly IComparer<FieldInfo> s_otherFieldComparer = new StructFieldInfoComparer(false);
 
         public static bool IsDBusObjectType(Type type, bool isCompileTimeType)
         {
@@ -128,17 +139,34 @@ namespace Tmds.DBus.CodeGen
 
         public static bool IsStructType(Type type)
         {
+            bool isValueTuple;
+            return IsStructType(type, out isValueTuple);
+        }
+
+        public static bool IsStructType(Type type, out bool isValueTuple)
+        {
+            isValueTuple = false;
             var typeInfo = type.GetTypeInfo();
             if (typeInfo.IsPointer ||
                 typeInfo.IsInterface ||
                 typeInfo.IsArray ||
                 typeInfo.IsPrimitive ||
-                typeInfo.IsAbstract ||
-                !typeInfo.IsLayoutSequential)
+                typeInfo.IsAbstract)
             {
                 return false;
             }
-
+            if (!typeInfo.IsLayoutSequential)
+            {
+                if (IsValueTuple(typeInfo))
+                {
+                    isValueTuple = true;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
 
             if (typeInfo.ImplementedInterfaces.Contains(s_idbusObjectType))
             {
@@ -165,6 +193,18 @@ namespace Tmds.DBus.CodeGen
             return true;
         }
 
+        public static FieldInfo[] GetStructFields(Type structType)
+        {
+            return GetStructFields(structType, IsValueTuple(structType.GetTypeInfo()));
+        }
+
+        public static FieldInfo[] GetStructFields(Type structType, bool isValueTuple)
+        {
+            var fields = structType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            Array.Sort<FieldInfo, object>(fields, null, isValueTuple ? s_valueTupleFieldComparer : s_otherFieldComparer);
+            return fields;
+        }
+
         private static EnumerableType InspectElementType(Type elementType)
         {
             var typeInfo = elementType.GetTypeInfo();
@@ -176,6 +216,42 @@ namespace Tmds.DBus.CodeGen
             else
             {
                 return EnumerableType.Enumerable;
+            }
+        }
+
+        private static bool IsValueTuple(TypeInfo typeInfo)
+        {
+            if (typeInfo.IsGenericType)
+            {
+                var genericTypeDefinition = typeInfo.GetGenericTypeDefinition();
+                return s_valueTupleTypes.Contains(genericTypeDefinition);
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private class StructFieldInfoComparer : IComparer<FieldInfo>
+        {
+            private bool _isValueTypleComparer;
+            public StructFieldInfoComparer(bool isValueTypleComparer)
+            {
+                _isValueTypleComparer = isValueTypleComparer;
+            }
+
+            public int Compare(FieldInfo x, FieldInfo y)
+            {
+                if (_isValueTypleComparer)
+                {
+                    // ValueTuples are not layout sequentially
+                    // The fields are named Item[1-7]
+                    return x.Name[x.Name.Length - 1].CompareTo(y.Name[y.Name.Length - 1]);
+                }
+                else
+                {
+                    return x.MetadataToken.CompareTo(y.MetadataToken);
+                }
             }
         }
     }

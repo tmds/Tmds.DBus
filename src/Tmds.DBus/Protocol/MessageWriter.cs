@@ -385,7 +385,7 @@ namespace Tmds.DBus.Protocol
 
         public void WriteStructure<T> (T value)
         {
-            FieldInfo[] fis = typeof (T).GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo[] fis = ArgTypeInspector.GetStructFields(typeof(T));
 
             if (fis.Length == 0)
                 return;

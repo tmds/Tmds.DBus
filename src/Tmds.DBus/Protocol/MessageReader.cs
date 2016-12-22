@@ -519,7 +519,7 @@ namespace Tmds.DBus.Protocol
             }
             _skipNextStructPadding = false;
 
-            FieldInfo[] fis = type.GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo[] fis = ArgTypeInspector.GetStructFields(type);
 
             // Empty struct? No need for processing
             if (fis.Length == 0)
@@ -544,7 +544,7 @@ namespace Tmds.DBus.Protocol
             }
             _skipNextStructPadding = false;
 
-            FieldInfo[] fis = typeof (T).GetFields (BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo[] fis = ArgTypeInspector.GetStructFields(typeof(T));
 
             // Empty struct? No need for processing
             if (fis.Length == 0)

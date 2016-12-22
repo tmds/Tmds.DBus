@@ -10,6 +10,10 @@
   },
   "testRunner": "xunit",
   "frameworks": {
-    "netcoreapp1.0": { }
+    "netcoreapp1.0": {
+      "dependencies": {
+        "System.ValueTuple": "4.3.0"
+      }
+    }
   }
 }

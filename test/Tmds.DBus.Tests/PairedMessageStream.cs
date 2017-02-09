@@ -34,15 +34,15 @@ namespace Tmds.DBus.Tests
             _readQueue = readQueue;
         }
         
-        public async Task<Message> ReceiveMessageAsync(CancellationToken cancellationToken)
+        public async Task<Message> ReceiveMessageAsync()
         {
-            await _readSemaphore.WaitAsync(cancellationToken);
+            await _readSemaphore.WaitAsync();
             Message message;
             _readQueue.TryDequeue(out message);
             return message;
         }
         
-        public Task SendMessageAsync(Message message, CancellationToken cancellationToken)
+        public Task SendMessageAsync(Message message)
         {
             _writeQueue.Enqueue(message);
             _writeSemaphore.Release();

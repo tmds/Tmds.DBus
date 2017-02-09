@@ -10,7 +10,7 @@ namespace Tmds.DBus.Tests
         [DBusInterface("org.freedesktop.DBus.Introspectable")]
         public interface IIntrospectable : IDBusObject
         {
-            Task<string> IntrospectAsync(CancellationToken cancellationToken = default(CancellationToken));
+            Task<string> IntrospectAsync();
         }
 
         [Dictionary]
@@ -24,7 +24,7 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.personproperties1")]
         interface IPersonProperties1 : IDBusObject
         {
-            Task<PersonProperties> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
+            Task<PersonProperties> GetAllAsync();
         }
 
         class PropertyObject : IPersonProperties1
@@ -38,7 +38,7 @@ namespace Tmds.DBus.Tests
                 }
             }
 
-            public Task<PersonProperties> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken))
+            public Task<PersonProperties> GetAllAsync()
             {
                 return Task.FromResult(new PersonProperties());
             }

@@ -36,7 +36,7 @@ namespace Tmds.DBus.Protocol
             _stream.Dispose();
         }
 
-        public async Task<Message> ReceiveMessageAsync(CancellationToken cancellationToken)
+        public async Task<Message> ReceiveMessageAsync()
         {
             int bytesRead = await ReadAsync(_headerReadBuffer, 0, 16);
             if (bytesRead == 0)
@@ -98,10 +98,10 @@ namespace Tmds.DBus.Protocol
             return msg;
         }
 
-        public virtual async Task SendMessageAsync(Message msg, CancellationToken cancellationToken)
+        public virtual async Task SendMessageAsync(Message msg)
         {
             var headerBytes = msg.Header.ToArray();
-            await _stream.WriteAsync(headerBytes, 0, headerBytes.Length, cancellationToken);
+            await _stream.WriteAsync(headerBytes, 0, headerBytes.Length, CancellationToken.None);
 
             if (msg.Body != null && msg.Body.Length != 0)
             {

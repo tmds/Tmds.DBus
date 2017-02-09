@@ -7,5 +7,5 @@ using System.Threading.Tasks;
 
 namespace Tmds.DBus.Protocol
 {
-    delegate Task<Message> MethodHandler(Message message, CancellationToken cancellationToken);
+    delegate Task<Message> MethodHandler(Message message);
 }

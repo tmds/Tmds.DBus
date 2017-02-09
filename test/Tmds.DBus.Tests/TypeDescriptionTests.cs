@@ -68,13 +68,11 @@ namespace Tmds.DBus.Tests
         [InlineData(typeof(IValidDBusMethod2), true)]
         [InlineData(typeof(IValidDBusMethod3), true)]
         [InlineData(typeof(IInvalidDBusMethod1), false)]
-        [InlineData(typeof(IInvalidDBusMethod2), false)]
         [InlineData(typeof(IInvalidDBusMethod3), false)]
         [InlineData(typeof(IInvalidDBusMethod4), false)]
         [InlineData(typeof(IInvalidDBusMethod5), false)]
         [InlineData(typeof(IValidSignal1), true)]
         [InlineData(typeof(IValidSignal2), true)]
-        [InlineData(typeof(IInvalidSignal1), false)]
         [InlineData(typeof(IInvalidSignal2), false)]
         [InlineData(typeof(IInvalidSignal3), false)]
         [InlineData(typeof(IInvalidSignal4), false)]
@@ -113,7 +111,7 @@ namespace Tmds.DBus.Tests
         [Fact]
         public void SignalDescription()
         {
-            // Task<IDisposable> WatchSomethingAsync(Action a, CancellationToken cancellationToken);
+            // Task<IDisposable> WatchSomethingAsync(Action a);
             var description = TypeDescription.DescribeInterface(typeof(IValidSignal1));
             var signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -123,7 +121,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(0, signalDescription.SignalArguments.Count);
             Assert.Equal(typeof(IValidSignal1).GetTypeInfo().GetMethod("WatchSomethingAsync"), signalDescription.MethodInfo);
 
-            // Task<IDisposable> WatchSomethingAsync(Action<int> a, CancellationToken cancellationToken);
+            // Task<IDisposable> WatchSomethingAsync(Action<int> a);
             description = TypeDescription.DescribeInterface(typeof(IValidSignal2));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -138,7 +136,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(int), argDescription.Type);
             Assert.Equal("i", argDescription.Signature);
 
-            // Task<IDisposable> WatchSomethingAsync(Action<IntPair> a, CancellationToken cancellationToken);
+            // Task<IDisposable> WatchSomethingAsync(Action<IntPair> a);
             description = TypeDescription.DescribeInterface(typeof(IValidSignal3));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -157,7 +155,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(int), argDescription.Type);
             Assert.Equal("i", argDescription.Signature);
 
-            //Task<IDisposable> WatchSomethingAsync([Argument("myArg")]Action<IntPair> a, CancellationToken cancellationToken);
+            //Task<IDisposable> WatchSomethingAsync([Argument("myArg")]Action<IntPair> a);
             description = TypeDescription.DescribeInterface(typeof(IValidSignal4));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -172,7 +170,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(IntPair), argDescription.Type);
             Assert.Equal("(ii)", argDescription.Signature);
 
-            // Task<IDisposable> WatchSomethingAsync([TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+            // Task<IDisposable> WatchSomethingAsync([TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a);
             description = TypeDescription.DescribeInterface(typeof(IValidSignal5));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -191,7 +189,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(string), argDescription.Type);
             Assert.Equal("s", argDescription.Signature);
 
-            // Task<IDisposable> WatchSomethingAsync(Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+            // Task<IDisposable> WatchSomethingAsync(Action<ValueTuple<int, string>> a);
             description = TypeDescription.DescribeInterface(typeof(IValidSignal6));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -210,7 +208,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(string), argDescription.Type);
             Assert.Equal("s", argDescription.Signature);
 
-            // Task<IDisposable> WatchSomethingAsync([Argument("myArg")][TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+            // Task<IDisposable> WatchSomethingAsync([Argument("myArg")][TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a);
             description = TypeDescription.DescribeInterface(typeof(IValidSignal7));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -229,7 +227,7 @@ namespace Tmds.DBus.Tests
         [Fact]
         public void MethodDescription()
         {
-            // Task FooAsync(CancellationToken cancellationToken);
+            // Task FooAsync();
             var description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod1));
             var methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -240,7 +238,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(0, methodDescription.OutArguments.Count);
             Assert.Equal(typeof(IValidDBusMethod1).GetTypeInfo().GetMethod("FooAsync"), methodDescription.MethodInfo);
 
-            // Task FooAsync(int arg1, CancellationToken cancellationToken);
+            // Task FooAsync(int arg1);
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod2));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -256,7 +254,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(int), argDescription.Type);
             Assert.Equal("i", argDescription.Signature);
 
-            // Task FooAsync(int arg1, int arg2, CancellationToken cancellationToken);
+            // Task FooAsync(int arg1, int arg2);
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod3));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -276,7 +274,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(int), argDescription.Type);
             Assert.Equal("i", argDescription.Signature);
 
-            // Task FooAsync(IntPair val, CancellationToken cancellationToken);
+            // Task FooAsync(IntPair val);
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod4));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -292,7 +290,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(IntPair), argDescription.Type);
             Assert.Equal("(ii)", argDescription.Signature);
 
-            // Task FooAsync([Argument("arg")]IntPair val, CancellationToken cancellationToken);
+            // Task FooAsync([Argument("arg")]IntPair val);
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod5));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -308,7 +306,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(IntPair), argDescription.Type);
             Assert.Equal("(ii)", argDescription.Signature);
 
-            // Task<int> FooAsync(CancellationToken cancellationToken);
+            // Task<int> FooAsync();
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod6));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -324,7 +322,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(int), argDescription.Type);
             Assert.Equal("i", argDescription.Signature);
 
-            // Task<IntPair> FooAsync(CancellationToken cancellationToken);
+            // Task<IntPair> FooAsync();
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod7));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -345,7 +343,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal("i", argDescription.Signature);
 
             // [return: Argument("arg")]
-            // Task<IntPair> FooAsync(CancellationToken cancellationToken);
+            // Task<IntPair> FooAsync();
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod8));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -362,7 +360,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal("(ii)", argDescription.Signature);
 
             // [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
-            // Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            // Task<ValueTuple<int, string>> FooAsync();
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod9));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -382,7 +380,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(string), argDescription.Type);
             Assert.Equal("s", argDescription.Signature);
 
-            // Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            // Task<ValueTuple<int, string>> FooAsync();
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod10));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -404,7 +402,7 @@ namespace Tmds.DBus.Tests
 
             // [return: Argument("arg")]
             // [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
-            // Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            // Task<ValueTuple<int, string>> FooAsync();
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod11));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -420,7 +418,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(ValueTuple<int, string>), argDescription.Type);
             Assert.Equal("(is)", argDescription.Signature);
 
-            // Task FooAsync(ValueTuple<int, string> val, CancellationToken cancellationToken);
+            // Task FooAsync(ValueTuple<int, string> val);
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod12));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -436,7 +434,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(ValueTuple<int, string>), argDescription.Type);
             Assert.Equal("(is)", argDescription.Signature);
 
-            // Task FooAsync([Argument("arg")]ValueTuple<int, string> val, CancellationToken cancellationToken);
+            // Task FooAsync([Argument("arg")]ValueTuple<int, string> val);
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod13));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -484,7 +482,7 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.personproperties1")]
         interface IPersonProperties1 : IDBusObject
         {
-            Task<PersonProperties> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
+            Task<PersonProperties> GetAllAsync();
         }
 
         [DBusInterface("tmds.dbus.tests.personproperties2", PropertyType = typeof(PersonProperties))]
@@ -523,92 +521,87 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod1 : IDBusObject
         {
-            Task FooAsync(CancellationToken cancellationToken);
+            Task FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod2 : IDBusObject
         {
-            Task FooAsync(int arg1, CancellationToken cancellationToken);
+            Task FooAsync(int arg1);
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod3 : IDBusObject
         {
-            Task FooAsync(int arg1, int arg2, CancellationToken cancellationToken);
+            Task FooAsync(int arg1, int arg2);
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod4 : IDBusObject
         {
-            Task FooAsync(IntPair val, CancellationToken cancellationToken);
+            Task FooAsync(IntPair val);
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod5 : IDBusObject
         {
-            Task FooAsync([Argument("arg")]IntPair val, CancellationToken cancellationToken);
+            Task FooAsync([Argument("arg")]IntPair val);
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod6 : IDBusObject
         {
-            Task<int> FooAsync(CancellationToken cancellationToken);
+            Task<int> FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod7 : IDBusObject
         {
-            Task<IntPair> FooAsync(CancellationToken cancellationToken);
+            Task<IntPair> FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod8 : IDBusObject
         {
             [return: Argument("arg")]
-            Task<IntPair> FooAsync(CancellationToken cancellationToken);
+            Task<IntPair> FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod9 : IDBusObject
         {
             [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
-            Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            Task<ValueTuple<int, string>> FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod10 : IDBusObject
         {
-            Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            Task<ValueTuple<int, string>> FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod11 : IDBusObject
         {
             [return: Argument("arg")]
             [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
-            Task<ValueTuple<int, string>> FooAsync(CancellationToken cancellationToken);
+            Task<ValueTuple<int, string>> FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod12 : IDBusObject
         {
-            Task FooAsync(ValueTuple<int, string> val, CancellationToken cancellationToken);
+            Task FooAsync(ValueTuple<int, string> val);
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod13 : IDBusObject
         {
-            Task FooAsync([Argument("arg")]ValueTuple<int, string> val, CancellationToken cancellationToken);
+            Task FooAsync([Argument("arg")]ValueTuple<int, string> val);
         }
 
         [DBusInterface("tmds.dbus.tests.invalidmethod")]
         interface IInvalidDBusMethod1 : IDBusObject
         {
-            Task Foo(CancellationToken cancellationToken);
-        }
-        [DBusInterface("tmds.dbus.tests.invalidmethod")]
-        interface IInvalidDBusMethod2 : IDBusObject
-        {
-            Task FooAsync();
+            Task Foo();
         }
         [DBusInterface("tmds.dbus.tests.invalidmethod")]
         interface IInvalidDBusMethod3 : IDBusObject
         {
-            int FooAsync(CancellationToken cancellationToken);
+            int FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.invalidmethod")]
         interface IInvalidDBusMethod4 : IDBusObject
         {
-            void FooAsync(CancellationToken cancellationToken);
+            void FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.invalidmethod")]
         interface IInvalidDBusMethod5 : IDBusObject
@@ -618,12 +611,12 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal1 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync(Action a, CancellationToken cancellationToken);
+            Task<IDisposable> WatchSomethingAsync(Action a);
         }
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal2 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync(Action<int> a, CancellationToken cancellationToken);
+            Task<IDisposable> WatchSomethingAsync(Action<int> a);
         }
 #pragma warning disable 0649 // Field 'is never assigned to, and will always have its default value 0
         struct IntPair
@@ -635,67 +628,62 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal3 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync(Action<IntPair> a, CancellationToken cancellationToken);
+            Task<IDisposable> WatchSomethingAsync(Action<IntPair> a);
         }
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal4 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync([Argument("myArg")]Action<IntPair> a, CancellationToken cancellationToken);
+            Task<IDisposable> WatchSomethingAsync([Argument("myArg")]Action<IntPair> a);
         }
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal5 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync([TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+            Task<IDisposable> WatchSomethingAsync([TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a);
         }
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal6 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync(Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
+            Task<IDisposable> WatchSomethingAsync(Action<ValueTuple<int, string>> a);
         }
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal7 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync([Argument("myArg")][TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a, CancellationToken cancellationToken);
-        }
-        [DBusInterface("tmds.dbus.tests.invalidsignal")]
-        interface IInvalidSignal1 : IDBusObject
-        {
-            Task<IDisposable> WatchSomethingAsync(Action<int> a);
+            Task<IDisposable> WatchSomethingAsync([Argument("myArg")][TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a);
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal2 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync(CancellationToken cancellationToken);
+            Task<IDisposable> WatchSomethingAsync();
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal3 : IDBusObject
         {
-            Task<IDisposable> WatchSomething(Action a, CancellationToken cancellationToken);
+            Task<IDisposable> WatchSomething(Action a);
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal4 : IDBusObject
         {
-            Task<IDisposable> WatchAsync(Action a, CancellationToken cancellationToken);
+            Task<IDisposable> WatchAsync(Action a);
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal5 : IDBusObject
         {
-            Task<IDisposable> SomethingAsync(Action a, CancellationToken cancellationToken);
+            Task<IDisposable> SomethingAsync(Action a);
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal6 : IDBusObject
         {
-            Task WatchSomethingAsync(Action a, CancellationToken cancellationToken);
+            Task WatchSomethingAsync(Action a);
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal7 : IDBusObject
         {
-            void WatchSomethingAsync(Action a, CancellationToken cancellationToken);
+            void WatchSomethingAsync(Action a);
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal8 : IDBusObject
         {
-            int WatchSomethingAsync(Action a, CancellationToken cancellationToken);
+            int WatchSomethingAsync(Action a);
         }
         interface IInvalidDBusObjectInterface1 : IEmptyDBusInterface, IEmptyDBusInterfaceDuplicate, IDBusObject
         {}

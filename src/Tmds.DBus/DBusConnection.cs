@@ -18,9 +18,7 @@ namespace Tmds.DBus
         private struct PendingSend
         {
             public Message Message;
-            public CancellationTokenRegistration CancellationRegistration;
             public TaskCompletionSource<bool> CompletionSource;
-            public CancellationToken CancellationToken;
         }
 
         private class SignalHandlerRegistration : IDisposable
@@ -160,7 +158,7 @@ namespace Tmds.DBus
 
             ReceiveMessages();
 
-            _localName = await CallHelloAsync(cancellationToken);
+            _localName = await CallHelloAsync();
             _remoteIsBus = !string.IsNullOrEmpty(_localName);
 
             lock (_gate)
@@ -180,15 +178,15 @@ namespace Tmds.DBus
             DoDisconnect(State.Disposed, null);
         }
 
-        public Task<Message> CallMethodAsync(Message msg, CancellationToken cancellationToken)
+        public Task<Message> CallMethodAsync(Message msg)
         {
-            return CallMethodAsync(msg, cancellationToken, checkConnected: true, checkReplyType: true);
+            return CallMethodAsync(msg, checkConnected: true, checkReplyType: true);
         }
 
         public void EmitSignal(Message message)
         {
             message.Header.Serial = GenerateSerial();
-            SendMessageAsync(message, CancellationToken.None);
+            SendMessageAsync(message);
         }
 
         public void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers)
@@ -293,7 +291,7 @@ namespace Tmds.DBus
             }
         }
 
-        public async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler, CancellationToken cancellationToken)
+        public async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
         {
             SignalMatchRule rule = new SignalMatchRule()
             {
@@ -316,7 +314,7 @@ namespace Tmds.DBus
                     _signalHandlers[rule] = handler;
                     if (_remoteIsBus == true)
                     {
-                        task = CallAddMatchRuleAsync(rule.ToString(), cancellationToken);
+                        task = CallAddMatchRuleAsync(rule.ToString());
                     }
                 }
             }
@@ -336,7 +334,7 @@ namespace Tmds.DBus
             return registration;
         }
 
-        public async Task<RequestNameReply> RequestNameAsync(string name, RequestNameOptions options, Action onAquired, Action onLost, SynchronizationContext synchronzationContext, CancellationToken cancellationToken)
+        public async Task<RequestNameReply> RequestNameAsync(string name, RequestNameOptions options, Action onAquired, Action onLost, SynchronizationContext synchronzationContext)
         {
             lock (_gate)
             {
@@ -356,7 +354,7 @@ namespace Tmds.DBus
             }
             try
             {
-                var reply = await CallRequestNameAsync(name, options, cancellationToken);
+                var reply = await CallRequestNameAsync(name, options);
                 return reply;
             }
             catch
@@ -369,7 +367,7 @@ namespace Tmds.DBus
             }
         }
 
-        public Task<ReleaseNameReply> ReleaseNameAsync(string name, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<ReleaseNameReply> ReleaseNameAsync(string name)
         {
             lock (_gate)
             {
@@ -383,10 +381,10 @@ namespace Tmds.DBus
 
                 ThrowIfNotConnected();
             }
-            return CallReleaseNameAsync(name, cancellationToken);
+            return CallReleaseNameAsync(name);
         }
 
-        public async Task<IDisposable> WatchNameOwnerChangedAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<IDisposable> WatchNameOwnerChangedAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler)
         {
             var rule = new OwnerChangedMatchRule(serviceName);
             string key = serviceName;
@@ -405,7 +403,7 @@ namespace Tmds.DBus
                 else
                 {
                     _nameOwnerWatchers[key] = handler;
-                    task = CallAddMatchRuleAsync(rule.ToString(), cancellationToken);
+                    task = CallAddMatchRuleAsync(rule.ToString());
                 }
             }
             NameOwnerWatcherRegistration registration = new NameOwnerWatcherRegistration(this, key, rule, handler);
@@ -437,22 +435,14 @@ namespace Tmds.DBus
                 PendingSend pendingSend;
                 while (_sendQueue.TryDequeue(out pendingSend))
                 {
-                    pendingSend.CancellationRegistration.Dispose();
-                    if (pendingSend.CancellationToken.IsCancellationRequested)
+                    try
                     {
-                        pendingSend.CompletionSource.TrySetCanceled();
+                        await _stream.SendMessageAsync(pendingSend.Message);
+                        pendingSend.CompletionSource.SetResult(true);
                     }
-                    else
+                    catch (System.Exception e)
                     {
-                        try
-                        {
-                            await _stream.SendMessageAsync(pendingSend.Message, CancellationToken.None);
-                            pendingSend.CompletionSource.SetResult(true);
-                        }
-                        catch (System.Exception e)
-                        {
-                            pendingSend.CompletionSource.SetException(e);
-                        }
+                        pendingSend.CompletionSource.SetException(e);
                     }
                 }
             }
@@ -462,16 +452,13 @@ namespace Tmds.DBus
             }
         }
 
-        private Task SendMessageAsync(Message message, CancellationToken cancellationToken)
+        private Task SendMessageAsync(Message message)
         {
             var tcs = new TaskCompletionSource<bool>();
-            var ctRegistration = cancellationToken.Register(() => tcs.SetCanceled());
             var pendingSend = new PendingSend()
             {
                 Message = message,
-                CompletionSource = tcs,
-                CancellationRegistration = ctRegistration,
-                CancellationToken = cancellationToken
+                CompletionSource = tcs
             };
             _sendQueue.Enqueue(pendingSend);
             SendPendingMessages();
@@ -484,7 +471,7 @@ namespace Tmds.DBus
             {
                 while (true)
                 {
-                    Message msg = await _stream.ReceiveMessageAsync(CancellationToken.None);
+                    Message msg = await _stream.ReceiveMessageAsync();
                     if (msg == null)
                     {
                         throw new IOException("Connection closed by peer");
@@ -706,7 +693,7 @@ namespace Tmds.DBus
             {
                 message.Header.Serial = GenerateSerial();
             }
-            SendMessageAsync(message, CancellationToken.None);
+            SendMessageAsync(message);
         }
 
         private async void HandleMethodCall(Message methodCall)
@@ -733,7 +720,7 @@ namespace Tmds.DBus
             MethodHandler methodHandler;
             if (_methodHandlers.TryGetValue(methodCall.Header.Path.Value, out methodHandler))
             {
-                var reply = await methodHandler(methodCall, CancellationToken.None);
+                var reply = await methodHandler(methodCall);
                 reply.Header.ReplySerial = methodCall.Header.Serial;
                 reply.Header.Destination = methodCall.Header.Sender;
                 SendMessage(reply);
@@ -766,7 +753,7 @@ namespace Tmds.DBus
             }
         }
 
-        private async Task<string> CallHelloAsync(CancellationToken cancellationToken)
+        private async Task<string> CallHelloAsync()
         {
             Message callMsg = new Message()
             {
@@ -779,7 +766,7 @@ namespace Tmds.DBus
                 }
             };
 
-            Message reply = await CallMethodAsync(callMsg, cancellationToken, checkConnected: false, checkReplyType: false);
+            Message reply = await CallMethodAsync(callMsg, checkConnected: false, checkReplyType: false);
 
             if (reply.Header.MessageType == MessageType.Error)
             {
@@ -796,7 +783,7 @@ namespace Tmds.DBus
             }
         }
 
-        private async Task<RequestNameReply> CallRequestNameAsync(string name, RequestNameOptions options, CancellationToken cancellationToken)
+        private async Task<RequestNameReply> CallRequestNameAsync(string name, RequestNameOptions options)
         {
             var writer = new MessageWriter();
             writer.WriteString(name);
@@ -815,14 +802,14 @@ namespace Tmds.DBus
                 Body = writer.ToArray()
             };
 
-            Message reply = await CallMethodAsync(callMsg, cancellationToken, checkConnected: true, checkReplyType: true);
+            Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true);
 
             var reader = new MessageReader(reply, null);
             var rv = reader.ReadUInt32();
             return (RequestNameReply)rv;
         }
 
-        private async Task<ReleaseNameReply> CallReleaseNameAsync(string name, CancellationToken cancellationToken)
+        private async Task<ReleaseNameReply> CallReleaseNameAsync(string name)
         {
             var writer = new MessageWriter();
             writer.WriteString(name);
@@ -840,7 +827,7 @@ namespace Tmds.DBus
                 Body = writer.ToArray()
             };
 
-            Message reply = await CallMethodAsync(callMsg, cancellationToken, checkConnected: true, checkReplyType: true);
+            Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true);
 
             var reader = new MessageReader(reply, null);
             var rv = reader.ReadUInt32();
@@ -872,7 +859,7 @@ namespace Tmds.DBus
             return (uint)Interlocked.Increment(ref _methodSerial);
         }
 
-        private async Task<Message> CallMethodAsync(Message msg, CancellationToken cancellationToken, bool checkConnected, bool checkReplyType)
+        private async Task<Message> CallMethodAsync(Message msg, bool checkConnected, bool checkReplyType)
         {
             msg.Header.ReplyExpected = true;
             var serial = GenerateSerial();
@@ -894,7 +881,7 @@ namespace Tmds.DBus
 
             try
             {
-                await SendMessageAsync(msg, cancellationToken);
+                await SendMessageAsync(msg);
             }
             catch
             {
@@ -966,15 +953,15 @@ namespace Tmds.DBus
 
         private void CallRemoveMatchRule(string rule)
         {
-            var reply = CallMethodAsync(DBusServiceName, DBusObjectPath, DBusInterface, "RemoveMatch", rule, CancellationToken.None);
+            var reply = CallMethodAsync(DBusServiceName, DBusObjectPath, DBusInterface, "RemoveMatch", rule);
         }
 
-        private Task CallAddMatchRuleAsync(string rule, CancellationToken cancellationToken)
+        private Task CallAddMatchRuleAsync(string rule)
         {
-            return CallMethodAsync(DBusServiceName, DBusObjectPath, DBusInterface, "AddMatch", rule, cancellationToken);
+            return CallMethodAsync(DBusServiceName, DBusObjectPath, DBusInterface, "AddMatch", rule);
         }
 
-        private Task CallMethodAsync(string destination, ObjectPath objectPath, string @interface, string method, string arg, CancellationToken cancellationToken)
+        private Task CallMethodAsync(string destination, ObjectPath objectPath, string @interface, string method, string arg)
         {
             var header = new Header(MessageType.MethodCall)
             {
@@ -991,7 +978,7 @@ namespace Tmds.DBus
                 Header = header,
                 Body = writer.ToArray()
             };
-            return CallMethodAsync(message, cancellationToken);
+            return CallMethodAsync(message);
         }
 
         private void ThrowIfNotConnected()

@@ -10,7 +10,7 @@ namespace Introspect
     [DBusInterface("org.freedesktop.DBus.Introspectable")]
     public interface IIntrospectable : IDBusObject
     {
-        Task<string> IntrospectAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task<string> IntrospectAsync();
     }
 
     public class Program

@@ -143,17 +143,11 @@ namespace Tmds.DBus.CodeGen
                 // isPropertiesChanged
                 ilg.Emit(isPropertiesChanged ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
 
-                // CancellationToken
-                ilg.Emit(OpCodes.Ldarg_2);
-
                 // Watch
                 ilg.Emit(OpCodes.Call, s_watchNonVoidSignal.MakeGenericMethod(new[] { signalDescription.SignalType }));
             }
             else
             {
-                // CancellationToken
-                ilg.Emit(OpCodes.Ldarg_2);
-
                 // Watch
                 ilg.Emit(OpCodes.Call, s_watchVoidSignal);
             }
@@ -249,9 +243,6 @@ namespace Tmds.DBus.CodeGen
                 var readDelegateConstructor = s_readMethodDelegateGenericType.MakeGenericType(new[] { methodDescription.OutType }).GetConstructors()[0];
                 ilg.Emit(OpCodes.Newobj, readDelegateConstructor);
 
-                // CancellationToken
-                ilg.Emit(OpCodes.Ldarg, argumentOffset);
-
                 // CallMethod
                 if (methodDescription.IsGenericOut)
                 {
@@ -265,9 +256,6 @@ namespace Tmds.DBus.CodeGen
             }
             else
             {
-                // CancellationToken
-                ilg.Emit(OpCodes.Ldarg, argumentOffset);
-
                 // CallMethod
                 ilg.Emit(OpCodes.Call, s_callVoidMethod);
             }

@@ -154,7 +154,7 @@ The `float` type is not part of the D-Bus specification. It was implemented as p
 
 ## Methods
 
-A D-Bus method is modeled by a method in the .NET interface. The method must to return `Task` for methods without a return value and `Task<T>` for methods with a return value. Following async naming conventions, we add `Async` to the method name. In case a method has multiple out-arguments, these must be combined in a struct/class as public fields or a C# 7 tuple. The input arguments of the D-Bus method are combined with a final `CancellationToken` parameter.
+A D-Bus method is modeled by a method in the .NET interface. The method must to return `Task` for methods without a return value and `Task<T>` for methods with a return value. Following async naming conventions, we add `Async` to the method name. In case a method has multiple out-arguments, these must be combined in a struct/class as public fields or a C# 7 tuple. The input arguments of the D-Bus method are the method parameters.
 
 ```
 [DBusInterface("org.mpris.MediaPlayer2.TrackList")]
@@ -162,7 +162,7 @@ public interface ITrackList
 {
     // 1 input argument with signature: `ao`
     // 1 output parameter with signature `aa{sv}`
-    Task<IDictionary<string, object>[]> GetTracksMetadataAsync(ObjectPath[] trackIds, CancellationToken cancellationToken = default(CancellationToken));
+    Task<IDictionary<string, object>[]> GetTracksMetadataAsync(ObjectPath[] trackIds);
 }
 ```
 
@@ -178,10 +178,10 @@ struct RetVal
 public interface ITrackList
 {
     // 2 output parameter with signatures `s` and `i`
-    Task<RetVal> MultipleOutAsync(CancellationToken cancellationToken = default(CancellationToken));
+    Task<RetVal> MultipleOutAsync();
     // 1 output parameter with signatures `(si)`
     [ret:Argument]
-    Task<RetVal> SingleStructOutAsync(CancellationToken cancellationToken = default(CancellationToken));
+    Task<RetVal> SingleStructOutAsync();
 }
 
 // or using C# 7 tuples
@@ -189,10 +189,10 @@ public interface ITrackList
 public interface ITrackList
 {
     // 2 output parameter with signatures `s` and `i`
-    Task<(string arg1, int arg2)> MultipleOutAsync(CancellationToken cancellationToken = default(CancellationToken));
+    Task<(string arg1, int arg2)> MultipleOutAsync();
     // 1 output parameter with signatures `(si)`
     [ret:Argument]
-    Task<(string arg1, int arg2)> SingleStructOutAsync(CancellationToken cancellationToken = default(CancellationToken));
+    Task<(string arg1, int arg2)> SingleStructOutAsync();
 }
 ```
 
@@ -203,22 +203,22 @@ In case the return type of a method is `Task<object>` the method may me modeled 
 public interface ITrackList
 {
     // user needs to cast, e.g. (ObjectPath)(await FooAsync())
-    Task<object> FooAsync(CancellationToken cancellationToken = default(CancellationToken));
+    Task<object> FooAsync();
     // return value already casted, e.g. await BarAsync<ObjectPath>()
-    Task<T> BarAsync<T>(CancellationToken cancellationToken = default(CancellationToken));
+    Task<T> BarAsync<T>();
 }
 ```
 
 ## Signals
 
-A D-Bus signal is modeled by a method in the .NET interface which matches the D-Bus signal name prefixed with `Watch` and sufixed with `Async` suffix. The method needs to return `Task<IDisposable>`. The returned `IDisposable` can be used to unsubscribe from the signal. The method has a handler and a `CancellationToken` parameter. The handler must be of type `Action` for signals without parameters and of type `Action<T>` for methods which do have parameters. In case there are multiple parameters, they must be wrapped in a struct/class as public fields or use a C# 7 tuple. Similar to the method output parameter, the `ArgumentAttribute` can be set on the `Action` to distinguish between a single STRUCT being returned (attribute set) or multiple arguments (no attribute).
+A D-Bus signal is modeled by a method in the .NET interface which matches the D-Bus signal name prefixed with `Watch` and sufixed with `Async` suffix. The method needs to return `Task<IDisposable>`. The returned `IDisposable` can be used to unsubscribe from the signal. The method has a handler parameter. The handler must be of type `Action` for signals without parameters and of type `Action<T>` for methods which do have parameters. In case there are multiple parameters, they must be wrapped in a struct/class as public fields or use a C# 7 tuple. Similar to the method output parameter, the `ArgumentAttribute` can be set on the `Action` to distinguish between a single STRUCT being returned (attribute set) or multiple arguments (no attribute).
 
 ```
 [DBusInterface("org.freedesktop.NetworkManager")]
 public interface INetworkManager : IDBusObject
 {
     // DeviceAdded signal with a single ObjectPath argument
-    Task<IDisposable> WatchDeviceAddedAsync(Action<ObjectPath> handler, CancellationToken cancellationToken = default(CancellationToken))));
+    Task<IDisposable> WatchDeviceAddedAsync(Action<ObjectPath> handler)));
 }
 ```
 
@@ -230,10 +230,10 @@ Properties are defined per interface and accessed using `org.freedesktop.DBus.Pr
 [DBusInterface("org.mpris.MediaPlayer2.TrackList")]
 public interface ITrackList
 {
-    Task<T> GetAsync<T>(string prop, CancellationToken cancellationToken = default(CancellationToken));
-    Task<IDictionary<string, object>> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
-    Task SetAsync(string prop, object val, CancellationToken cancellationToken = default(CancellationToken));
-    Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler, CancellationToken cancellationToken = default(CancellationToken));
+    Task<T> GetAsync<T>(string prop);
+    Task<IDictionary<string, object>> GetAllAsync();
+    Task SetAsync(string prop, object val);
+    Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler);
 }
 ```
 
@@ -247,9 +247,9 @@ class TrackListProperties
 
 static class TrackListPropertyExtensions
 {
-    public static Task<ObjectPath[]> GetTracksAsync(this ITrackList trackList, CancellationToken cancellationToken = default(CancellationToken))
+    public static Task<ObjectPath[]> GetTracksAsync(this ITrackList trackList)
     {
-        return trackList.GetAsync<ObjectPath[]>(nameof(TrackListProperties.Tracks), cancellationToken);
+        return trackList.GetAsync<ObjectPath[]>(nameof(TrackListProperties.Tracks));
     }
 }
 ```
@@ -267,7 +267,7 @@ class TrackListProperties
 public interface ITrackList
 {
     // ...
-    Task<TrackListProperties> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
+    Task<TrackListProperties> GetAllAsync();
     // ...
 }
 ```
@@ -355,7 +355,7 @@ As explained in this document, we can model this interface as shown in the next 
 [DBusInterface("org.freedesktop.DBus.Introspectable")]
 public interface IIntrospectable : IDBusObject
 {
-    Task<string> IntrospectAsync(CancellationToken cancellationToken = default(CancellationToken));
+    Task<string> IntrospectAsync();
 }
 ```
 

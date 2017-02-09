@@ -10,14 +10,14 @@ namespace Tmds.DBus
 {
     public static class ConnectionExtensions
     {
-        public static Task QueueServiceRegistrationAsync(this IConnection connection, string serviceName, ServiceRegistrationOptions options , CancellationToken cancellationToken = default(CancellationToken))
+        public static Task QueueServiceRegistrationAsync(this IConnection connection, string serviceName, ServiceRegistrationOptions options)
         {
-            return connection.QueueServiceRegistrationAsync(serviceName, null, null, options, cancellationToken);
+            return connection.QueueServiceRegistrationAsync(serviceName, null, null, options);
         }
         
-        public static Task RegisterServiceAsync(this IConnection connection, string serviceName, ServiceRegistrationOptions options, CancellationToken cancellationToken = default(CancellationToken))
+        public static Task RegisterServiceAsync(this IConnection connection, string serviceName, ServiceRegistrationOptions options)
         {
-            return connection.RegisterServiceAsync(serviceName, null, options, cancellationToken);
+            return connection.RegisterServiceAsync(serviceName, null, options);
         }
         
         public static void UnregisterObject(this IConnection connection, IDBusObject dbusObject)

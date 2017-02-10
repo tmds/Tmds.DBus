@@ -21,6 +21,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly Type s_singleParameterActionType = typeof(Action<>);
         private static readonly Type s_emptyTaskType = typeof(Task);
         private static readonly Type s_parameterTaskType = typeof(Task<>);
+        private static readonly Type s_cancellationTokenType = typeof(CancellationToken);
         private static readonly Type s_stringType = typeof(string);
         private static readonly Type s_objectType = typeof(object);
         private static readonly Signature s_propertiesChangedSignature = new Signature("a{sv}as");
@@ -188,6 +189,10 @@ namespace Tmds.DBus.CodeGen
                             InspectParameterType(parameterType, actionParameter, out parameterSignature, out arguments);
                         }
                     }
+                    if (parameters.Length > 0 && parameters[parameters.Length - 1].ParameterType == s_cancellationTokenType)
+                    {
+                        throw new NotSupportedException($"Signal {memberName} does not support cancellation. See https://github.com/tmds/Tmds.DBus/issues/15.");
+                    }
                     if (!valid || parameters.Length != 1)
                     {
                         throw new ArgumentException($"Signal {memberName} must accept a single argument of Type 'Action'/'Action<>'");
@@ -254,6 +259,11 @@ namespace Tmds.DBus.CodeGen
                     IList<ArgumentDescription> inArguments = null;
                     Signature? inSignature = null;
                     var parameters = member.GetParameters();
+                    if (parameters.Length > 0 && parameters[parameters.Length - 1].ParameterType == s_cancellationTokenType)
+                    {
+                        throw new NotSupportedException($"DBus Method {memberName} does not support cancellation. See https://github.com/tmds/Tmds.DBus/issues/15.");
+                    }
+
                     for (int i = 0; i < parameters.Length; i++)
                     {
                         var param = parameters[i];

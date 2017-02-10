@@ -451,6 +451,14 @@ namespace Tmds.DBus.Tests
             Assert.Equal("(is)", argDescription.Signature);
         }
 
+        [Theory]
+        [InlineData(typeof(IUnsupportedDBusMethod1))]
+        [InlineData(typeof(IUnsupportedSignal1))]
+        public void UnsupportedInterfaces(Type type)
+        {
+            Assert.Throws<NotSupportedException>(() => TypeDescription.DescribeInterface(type));
+        }
+
         [Dictionary]
         public class PersonProperties
         {
@@ -687,5 +695,15 @@ namespace Tmds.DBus.Tests
         }
         interface IInvalidDBusObjectInterface1 : IEmptyDBusInterface, IEmptyDBusInterfaceDuplicate, IDBusObject
         {}
+        [DBusInterface("tmds.dbus.tests.unsupportedmethod")]
+        interface IUnsupportedDBusMethod1 : IDBusObject
+        {
+            Task FooAsync(int arg1, int arg2, CancellationToken cancellationToken);
+        }
+        [DBusInterface("tmds.dbus.tests.unsupportedsignal")]
+        interface IUnsupportedSignal1 : IDBusObject
+        {
+            Task<IDisposable> WatchSomethingAsync(Action a, CancellationToken cancellationToken);
+        }
     }
 }

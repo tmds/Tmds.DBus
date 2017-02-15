@@ -34,7 +34,6 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_writerWriteString = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteString), BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo s_writerSetSkipNextStructPadding = typeof(MessageWriter).GetMethod(nameof(MessageWriter.SetSkipNextStructPadding), BindingFlags.Instance | BindingFlags.Public);
         private static readonly FieldInfo s_setTypeIntrospectionField = typeof(DBusAdapter).GetField(nameof(DBusAdapter._typeIntrospection), BindingFlags.Instance | BindingFlags.NonPublic);
-        private static readonly Type s_cancellationTokenType = typeof(CancellationToken);
         private static readonly Type s_taskOfMessageType = typeof(Task<Message>);
         private static readonly Type s_nullableSignatureType = typeof(Signature?);
         private static readonly Type s_action2GenericType = typeof(Action<,>);
@@ -99,7 +98,7 @@ namespace Tmds.DBus.CodeGen
 
                 foreach (var signal in signals)
                 {
-                    // signals[i] = Watch((IDbusInterface)this, SendSignalAction, CancellationToken)
+                    // signals[i] = Watch((IDbusInterface)this, SendSignalAction)
                     ilg.Emit(OpCodes.Dup);          // signals
                     ilg.Emit(OpCodes.Ldc_I4, idx);  // i
 
@@ -117,11 +116,6 @@ namespace Tmds.DBus.CodeGen
                             ilg.Emit(OpCodes.Ldarg_0);
                             ilg.Emit(OpCodes.Ldftn, GenSendSignal(signal, signal == dbusInterface.PropertiesChangedSignal));
                             ilg.Emit(OpCodes.Newobj, signal.ActionType.GetConstructors()[0]);
-                        }
-
-                        {
-                            // CancellationToken
-                            ilg.Emit(OpCodes.Ldarg_1);
                         }
 
                         ilg.Emit(OpCodes.Callvirt, signal.MethodInfo);
@@ -294,7 +288,7 @@ namespace Tmds.DBus.CodeGen
             ilg.Emit(OpCodes.Ldarg_0);
             // Message
             ilg.Emit(OpCodes.Ldarg_2);
-            // Task = (IDbusInterface)object.CallMethod(arguments, new CancellationToken)
+            // Task = (IDbusInterface)object.CallMethod(arguments)
             {
                 // (IIinterface)object
                 ilg.Emit(OpCodes.Ldarg_1);
@@ -323,12 +317,6 @@ namespace Tmds.DBus.CodeGen
                         ilg.Emit(OpCodes.Call, ReadMethodFactory.CreateReadMethodForType(parameterType));
                     }
                 }
-
-                // CancellationToken
-                LocalBuilder cancellationToken = ilg.DeclareLocal(s_cancellationTokenType);
-                ilg.Emit(OpCodes.Ldloca_S, cancellationToken);
-                ilg.Emit(OpCodes.Initobj, s_cancellationTokenType);
-                ilg.Emit(OpCodes.Ldloc, cancellationToken);
 
                 // Call method
                 ilg.Emit(OpCodes.Callvirt, dbusMethod.MethodInfo);

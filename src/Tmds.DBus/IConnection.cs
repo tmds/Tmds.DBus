@@ -13,20 +13,20 @@ namespace Tmds.DBus
     {
         string LocalName { get; }
         bool? RemoteIsBus { get; }
-        Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default , CancellationToken cancellationToken = default(CancellationToken));
-        Task RegisterServiceAsync(string serviceName, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default, CancellationToken cancellationToken = default(CancellationToken));
-        Task<bool> UnregisterServiceAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));
-        Task<string[]> ListServicesAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default);
+        Task RegisterServiceAsync(string serviceName, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default);
+        Task<bool> UnregisterServiceAsync(string serviceName);
+        Task<string[]> ListServicesAsync();
         T CreateProxy<T>(string serviceName, ObjectPath path);
-        Task RegisterObjectAsync(IDBusObject o, CancellationToken cancellationToken = default(CancellationToken));
-        Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects, CancellationToken cancellationToken = default(CancellationToken));
+        Task RegisterObjectAsync(IDBusObject o);
+        Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects);
         void UnregisterObject(ObjectPath path);
         void UnregisterObjects(IEnumerable<ObjectPath> paths);
         Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken));
-        Task<string[]> ListActivatableServicesAsync(CancellationToken cancellationToken = default(CancellationToken));
-        Task<string> ResolveServiceOwnerAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));
-        Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, CancellationToken cancellationToken = default(CancellationToken));
-        Task<ServiceStartResult> ActivateServiceAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));
-        Task<bool> IsServiceActiveAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken));
+        Task<string[]> ListActivatableServicesAsync();
+        Task<string> ResolveServiceOwnerAsync(string serviceName);
+        Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler);
+        Task<ServiceStartResult> ActivateServiceAsync(string serviceName);
+        Task<bool> IsServiceActiveAsync(string serviceName);
     }
 }

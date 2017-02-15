@@ -10,7 +10,7 @@ namespace Tmds.DBus.Protocol
 {
     interface IMessageStream : IDisposable
     {
-        Task<Message> ReceiveMessageAsync(CancellationToken cancellationToken);
-        Task SendMessageAsync(Message message, CancellationToken cancellationToken);
+        Task<Message> ReceiveMessageAsync();
+        Task SendMessageAsync(Message message);
     }
 }

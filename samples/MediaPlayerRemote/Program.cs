@@ -17,12 +17,12 @@ namespace MediaPlayerRemote
     [DBusInterface("org.mpris.MediaPlayer2.TrackList")]
     public interface ITrackList : IDBusObject
     {
-        Task<IDictionary<string, object>[]> GetTracksMetadataAsync(ObjectPath[] trackIds, CancellationToken cancellationToken = default(CancellationToken));
+        Task<IDictionary<string, object>[]> GetTracksMetadataAsync(ObjectPath[] trackIds);
 
-        Task<IDictionary<string, object>> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
-        Task<T> GetAsync<T>(string prop, CancellationToken cancellationToken = default(CancellationToken));
-        Task SetAsync(string prop, object val, CancellationToken cancellationToken = default(CancellationToken));
-        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler, CancellationToken cancellationToken = default(CancellationToken));
+        Task<IDictionary<string, object>> GetAllAsync();
+        Task<T> GetAsync<T>(string prop);
+        Task SetAsync(string prop, object val);
+        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler);
     }
 
     class PlayerProperties
@@ -35,20 +35,20 @@ namespace MediaPlayerRemote
     [DBusInterface("org.mpris.MediaPlayer2.Player")]
     public interface IPlayer : IDBusObject
     {
-        Task PlayPauseAsync(CancellationToken cancellationToken = default(CancellationToken));
-        Task NextAsync(CancellationToken cancellationToken = default(CancellationToken));
-        Task PreviousAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task PlayPauseAsync();
+        Task NextAsync();
+        Task PreviousAsync();
 
-        Task<IDictionary<string, object>> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
-        Task<T> GetAsync<T>(string prop, CancellationToken cancellationToken = default(CancellationToken));
-        Task SetAsync(string prop, object val, CancellationToken cancellationToken = default(CancellationToken));
-        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler, CancellationToken cancellationToken = default(CancellationToken));
+        Task<IDictionary<string, object>> GetAllAsync();
+        Task<T> GetAsync<T>(string prop);
+        Task SetAsync(string prop, object val);
+        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler);
     }
 
     [DBusInterface("org.mpris.MediaPlayer2")]
     public interface IMediaPlayer : IPlayer, ITrackList
     {
-        Task QuitAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task QuitAsync();
     }
 
     public class Program

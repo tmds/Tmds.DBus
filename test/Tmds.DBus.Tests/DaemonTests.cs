@@ -29,7 +29,7 @@ namespace Tmds.DBus.Tests
 
                 await conn2.RegisterObjectAsync(new StringOperations());
 
-                var reply = await proxy.ConcatAsync("hello ", "world", CancellationToken.None);
+                var reply = await proxy.ConcatAsync("hello ", "world");
                 Assert.Equal("hello world", reply);
             }
         }
@@ -53,8 +53,8 @@ namespace Tmds.DBus.Tests
                 var path = PingPong.Path;
                 var proxy = conn1.CreateProxy<IPingPong>(conn2Name, path);
                 var tcs = new TaskCompletionSource<string>();
-                await proxy.WatchPongAsync(message => tcs.SetResult(message), CancellationToken.None);
-                await proxy.PingAsync("hello world", CancellationToken.None);
+                await proxy.WatchPongAsync(message => tcs.SetResult(message));
+                await proxy.PingAsync("hello world");
 
                 var reply = await tcs.Task;
                 Assert.Equal("hello world", reply);
@@ -128,7 +128,7 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.slow")]
         public interface ISlow : IDBusObject
         {
-            Task SlowAsync(CancellationToken cancellationToken = default(CancellationToken));
+            Task SlowAsync();
         }
 
         public class Slow : ISlow
@@ -143,7 +143,7 @@ namespace Tmds.DBus.Tests
                 }
             }
 
-            public Task SlowAsync(CancellationToken cancellationToken = default(CancellationToken))
+            public Task SlowAsync()
             {
                 return Task.Delay(30000);
             }

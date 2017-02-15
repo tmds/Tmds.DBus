@@ -55,12 +55,12 @@ namespace NetworkManager
     [DBusInterface("org.freedesktop.NetworkManager")]
     public interface INetworkManager : IDBusObject
     {
-        Task<ObjectPath[]> GetDevicesAsync(CancellationToken cancellationToken = default(CancellationToken));
-        Task<NetworkManagerProperties> GetAllAsync(CancellationToken cancellationToken = default(CancellationToken));
+        Task<ObjectPath[]> GetDevicesAsync();
+        Task<NetworkManagerProperties> GetAllAsync();
 
-        Task<object> GetAsync(string prop, CancellationToken cancellationToken = default(CancellationToken));
-        Task SetAsync(string prop, object val, CancellationToken cancellationToken = default(CancellationToken));
-        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler, CancellationToken cancellationToken = default(CancellationToken));
+        Task<object> GetAsync(string prop);
+        Task SetAsync(string prop, object val);
+        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler);
     }
 
     public class Program

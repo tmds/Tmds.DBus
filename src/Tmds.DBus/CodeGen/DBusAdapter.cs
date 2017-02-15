@@ -87,14 +87,14 @@ namespace Tmds.DBus.CodeGen
             }
         }
 
-        public async Task WatchSignalsAsync(CancellationToken cancellationToken)
+        public async Task WatchSignalsAsync()
         {
-            var tasks = StartWatchingSignals(cancellationToken);
+            var tasks = StartWatchingSignals();
             IEnumerable<IDisposable> signalDisposables = null;
 
             try
             {
-                Task.WaitAll(tasks, cancellationToken);
+                Task.WaitAll(tasks);
                 signalDisposables = tasks.Select(task => task.Result);
 
                 if (signalDisposables.Contains(null))
@@ -149,7 +149,7 @@ namespace Tmds.DBus.CodeGen
             return $"org.freedesktop.DBus.Properties.{iface}.{member}.s{signature?.Value}";
         }
 
-        public Task<Message> HandleMethodCall(Message methodCall, CancellationToken cancellationToken)
+        public Task<Message> HandleMethodCall(Message methodCall)
         {
             var key = GetMethodLookupKey(methodCall.Header.Interface, methodCall.Header.Member, methodCall.Header.Signature);
             MethodCallHandler handler = null;
@@ -199,7 +199,7 @@ namespace Tmds.DBus.CodeGen
             }
         }
 
-        protected internal virtual Task<IDisposable>[] StartWatchingSignals(CancellationToken cancellationToken)
+        protected internal virtual Task<IDisposable>[] StartWatchingSignals()
         {
             return Array.Empty<Task<IDisposable>>();
         }

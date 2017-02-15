@@ -189,9 +189,13 @@ namespace Tmds.DBus.CodeGen
                             InspectParameterType(parameterType, actionParameter, out parameterSignature, out arguments);
                         }
                     }
-                    if (!valid || parameters.Length != 2 || parameters[1].ParameterType != s_cancellationTokenType)
+                    if (parameters.Length > 0 && parameters[parameters.Length - 1].ParameterType == s_cancellationTokenType)
                     {
-                        throw new ArgumentException($"Signal {memberName} must accept a first argument of Type 'Action'/'Action<>' and a second argument of Type 'CancellationToken'");
+                        throw new NotSupportedException($"Signal {memberName} does not support cancellation. See https://github.com/tmds/Tmds.DBus/issues/15.");
+                    }
+                    if (!valid || parameters.Length != 1)
+                    {
+                        throw new ArgumentException($"Signal {memberName} must accept a single argument of Type 'Action'/'Action<>'");
                     }
 
                     var signal = new SignalDescription(member, name, actionParameter.ParameterType, parameterType, parameterSignature, arguments);
@@ -255,11 +259,12 @@ namespace Tmds.DBus.CodeGen
                     IList<ArgumentDescription> inArguments = null;
                     Signature? inSignature = null;
                     var parameters = member.GetParameters();
-                    if (parameters.Length == 0 || parameters[parameters.Length - 1].ParameterType != s_cancellationTokenType)
+                    if (parameters.Length > 0 && parameters[parameters.Length - 1].ParameterType == s_cancellationTokenType)
                     {
-                        throw new ArgumentException($"DBus Method {memberName} must accept 'CancellationToken' as a last argument");
+                        throw new NotSupportedException($"DBus Method {memberName} does not support cancellation. See https://github.com/tmds/Tmds.DBus/issues/15.");
                     }
-                    for (int i = 0; i < (parameters.Length - 1); i++)
+
+                    for (int i = 0; i < parameters.Length; i++)
                     {
                         var param = parameters[i];
                         var parameterType = param.ParameterType;

@@ -17,7 +17,7 @@ namespace Tmds.DBus.Tests
             var conn2 = connections.Item2;
             var proxy = conn1.CreateProxy<IStringOperations>("servicename", StringOperations.Path);
             await conn2.RegisterObjectAsync(new StringOperations());
-            var reply = await proxy.ConcatAsync("hello ", "world", CancellationToken.None);
+            var reply = await proxy.ConcatAsync("hello ", "world");
             Assert.Equal("hello world", reply);
         }
 
@@ -29,24 +29,11 @@ namespace Tmds.DBus.Tests
             var conn2 = connections.Item2;
             var proxy = conn1.CreateProxy<IPingPong>("servicename", PingPong.Path);
             var tcs = new TaskCompletionSource<string>();
-            await proxy.WatchPongAsync(message => tcs.SetResult(message), CancellationToken.None);
+            await proxy.WatchPongAsync(message => tcs.SetResult(message));
             await conn2.RegisterObjectAsync(new PingPong());
-            await proxy.PingAsync("hello world", CancellationToken.None);
+            await proxy.PingAsync("hello world");
             var reply = await tcs.Task;
             Assert.Equal("hello world", reply);
-        }
-
-        [Fact]
-        public async Task CancelMethod()
-        {
-            var connections = await PairedConnection.CreateConnectedPairAsync();
-            var conn1 = connections.Item1;
-            var conn2 = connections.Item2;
-            var proxy = conn1.CreateProxy<IStringOperations>("servicename", StringOperations.Path);
-            await conn2.RegisterObjectAsync(new StringOperations());
-            var cts = new CancellationTokenSource();
-            cts.Cancel();
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => proxy.ConcatAsync("hello ", "world", cts.Token));
         }
 
         [Fact]

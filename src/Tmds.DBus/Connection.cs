@@ -125,13 +125,13 @@ namespace Tmds.DBus
             return (T)CreateProxy(typeof(T), busName, path);
         }
 
-        public async Task<bool> UnregisterServiceAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<bool> UnregisterServiceAsync(string serviceName)
         {
-            var reply = await _dbusConnection.ReleaseNameAsync(serviceName, cancellationToken);
+            var reply = await _dbusConnection.ReleaseNameAsync(serviceName);
             return reply == ReleaseNameReply.ReplyReleased;
         }
 
-        public async Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
             if (!options.HasFlag(ServiceRegistrationOptions.AllowReplacement) && (onLost != null))
             {
@@ -147,7 +147,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await _dbusConnection.RequestNameAsync(serviceName, requestOptions, onAquired, onLost, SynchronizationContext.Current, cancellationToken);
+            var reply = await _dbusConnection.RequestNameAsync(serviceName, requestOptions, onAquired, onLost, SynchronizationContext.Current);
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -160,7 +160,7 @@ namespace Tmds.DBus
             }
         }
 
-        public async Task RegisterServiceAsync(string name, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task RegisterServiceAsync(string name, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
             if (!options.HasFlag(ServiceRegistrationOptions.AllowReplacement) && (onLost != null))
             {
@@ -176,7 +176,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await _dbusConnection.RequestNameAsync(name, requestOptions, null, onLost, SynchronizationContext.Current, cancellationToken);
+            var reply = await _dbusConnection.RequestNameAsync(name, requestOptions, null, onLost, SynchronizationContext.Current);
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -191,12 +191,12 @@ namespace Tmds.DBus
             }
         }
 
-        public Task RegisterObjectAsync(IDBusObject o, CancellationToken cancellationToken = default(CancellationToken))
+        public Task RegisterObjectAsync(IDBusObject o)
         {
-            return RegisterObjectsAsync(new[] { o }, cancellationToken);
+            return RegisterObjectsAsync(new[] { o });
         }
         
-        public async Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects)
         {
             var assembly = DynamicAssembly.Instance;
             var registrations = new List<DBusAdapter>();
@@ -223,7 +223,7 @@ namespace Tmds.DBus
             {
                 foreach (var registration in registrations)
                 {
-                    await registration.WatchSignalsAsync(cancellationToken);
+                    await registration.WatchSignalsAsync();
                 }
                 lock (_gate)
                 {
@@ -275,20 +275,20 @@ namespace Tmds.DBus
             }
         }
 
-        public Task<string[]> ListActivatableServicesAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<string[]> ListActivatableServicesAsync()
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();
-            return DBus.ListActivatableNamesAsync(cancellationToken);
+            return DBus.ListActivatableNamesAsync();
         }
 
-        public async Task<string> ResolveServiceOwnerAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<string> ResolveServiceOwnerAsync(string serviceName)
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();
             try
             {
-                return await DBus.GetNameOwnerAsync(serviceName, cancellationToken);
+                return await DBus.GetNameOwnerAsync(serviceName);
             }
             catch (DBusException e) when (e.ErrorName == "org.freedesktop.DBus.Error.NameHasNoOwner")
             {
@@ -300,21 +300,21 @@ namespace Tmds.DBus
             }
         }
 
-        public Task<ServiceStartResult> ActivateServiceAsync(string serviceName, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<ServiceStartResult> ActivateServiceAsync(string serviceName)
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();
-            return DBus.StartServiceByNameAsync(serviceName, 0, cancellationToken);
+            return DBus.StartServiceByNameAsync(serviceName, 0);
         }
 
-        public Task<bool> IsServiceActiveAsync(string serviceName, CancellationToken cancellationToken)
+        public Task<bool> IsServiceActiveAsync(string serviceName)
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();
-            return DBus.NameHasOwnerAsync(serviceName, cancellationToken);
+            return DBus.NameHasOwnerAsync(serviceName);
         }
 
-        public async Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler)
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();
@@ -367,7 +367,7 @@ namespace Tmds.DBus
                             handler(e);
                         }
                     }
-                }, cancellationToken);
+                });
             if (namespaceLookup)
             {
                 serviceName = serviceName.Substring(0, serviceName.Length - 2);
@@ -376,7 +376,7 @@ namespace Tmds.DBus
             {
                 if (namespaceLookup)
                 {
-                    var services = await ListServicesAsync(cancellationToken);
+                    var services = await ListServicesAsync();
                     foreach (var service in services)
                     {
                         if (service.StartsWith(serviceName)
@@ -384,7 +384,7 @@ namespace Tmds.DBus
                              || (service[serviceName.Length] == '.')
                              || (serviceName.Length == 0 && service[0] != ':')))
                         {
-                            var currentName = await ResolveServiceOwnerAsync(service, cancellationToken);
+                            var currentName = await ResolveServiceOwnerAsync(service);
                             if (currentName != null && !emittedServices.Contains(serviceName))
                             {
                                 emittedServices.Add(service);
@@ -397,7 +397,7 @@ namespace Tmds.DBus
                 }
                 else
                 {
-                    var currentName = await ResolveServiceOwnerAsync(serviceName, cancellationToken);
+                    var currentName = await ResolveServiceOwnerAsync(serviceName);
                     if (currentName != null && !eventEmitted)
                     {
                         eventEmitted = true;
@@ -414,12 +414,12 @@ namespace Tmds.DBus
             }
         }
 
-        public Task<string[]> ListServicesAsync(CancellationToken cancellationToken = default(CancellationToken))
+        public Task<string[]> ListServicesAsync()
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();
 
-            return DBus.ListNamesAsync(cancellationToken);
+            return DBus.ListNamesAsync();
         }
 
         internal void Connect(IDBusConnection dbusConnection)

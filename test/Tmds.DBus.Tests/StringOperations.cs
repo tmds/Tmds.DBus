@@ -16,7 +16,7 @@ namespace Tmds.DBus.Tests
         {
             _path = path;
         }
-        public Task<string> ConcatAsync(string s1, string s2, CancellationToken cancellationToken)
+        public Task<string> ConcatAsync(string s1, string s2)
         {
             return Task.FromResult($"{s1}{s2}");
         }

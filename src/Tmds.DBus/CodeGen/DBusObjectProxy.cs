@@ -24,7 +24,7 @@ namespace Tmds.DBus.CodeGen
         }
         public ObjectPath ObjectPath { get; }
 
-        internal protected async Task<IDisposable> WatchNonVoidSignalAsync<T>(string iface, string member, Action<T> action, ReadMethodDelegate<T> readValue, bool isPropertiesChanged, CancellationToken cancellationToken)
+        internal protected async Task<IDisposable> WatchNonVoidSignalAsync<T>(string iface, string member, Action<T> action, ReadMethodDelegate<T> readValue, bool isPropertiesChanged)
         {
             var wrappedDisposable = new WrappedDisposable();
             var synchronizationContext = SynchronizationContext.Current;
@@ -66,17 +66,17 @@ namespace Tmds.DBus.CodeGen
 
             if (isPropertiesChanged)
             {
-                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, "org.freedesktop.DBus.Properties", "PropertiesChanged", handler, cancellationToken);
+                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, "org.freedesktop.DBus.Properties", "PropertiesChanged", handler);
             }
             else
             {
-                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler, cancellationToken);
+                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler);
             }
 
             return wrappedDisposable;
         }
 
-        internal protected async Task<IDisposable> WatchVoidSignalAsync<T>(string iface, string member, Action action, CancellationToken cancellationToken)
+        internal protected async Task<IDisposable> WatchVoidSignalAsync<T>(string iface, string member, Action action)
         {
             var wrappedDisposable = new WrappedDisposable();
             var synchronizationContext = SynchronizationContext.Current;
@@ -105,29 +105,29 @@ namespace Tmds.DBus.CodeGen
                 }
             };
 
-            wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler, cancellationToken);
+            wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler);
 
             return wrappedDisposable;
         }
 
-        internal protected async Task<T> CallNonVoidMethodAsync<T>(string iface, string member, Signature? inSignature, MessageWriter writer, ReadMethodDelegate<T> readValue, CancellationToken cancellationToken)
+        internal protected async Task<T> CallNonVoidMethodAsync<T>(string iface, string member, Signature? inSignature, MessageWriter writer, ReadMethodDelegate<T> readValue)
         {
-            var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer, cancellationToken);
+            var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer);
             return readValue(reader);
         }
 
-        internal protected async Task<T> CallGenericOutMethodAsync<T>(string iface, string member, Signature? inSignature, MessageWriter writer, ReadMethodDelegate<object> readValue, CancellationToken cancellationToken)
+        internal protected async Task<T> CallGenericOutMethodAsync<T>(string iface, string member, Signature? inSignature, MessageWriter writer, ReadMethodDelegate<object> readValue)
         {
-            var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer, cancellationToken);
+            var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer);
             return (T)readValue(reader);
         }
 
-        internal protected Task CallVoidMethodAsync(string iface, string member, Signature? inSigStr, MessageWriter writer, CancellationToken cancellationToken)
+        internal protected Task CallVoidMethodAsync(string iface, string member, Signature? inSigStr, MessageWriter writer)
         {
-            return SendMethodReturnReaderAsync(iface, member, inSigStr, writer, cancellationToken);
+            return SendMethodReturnReaderAsync(iface, member, inSigStr, writer);
         }
 
-        private async Task<MessageReader> SendMethodReturnReaderAsync(string iface, string member, Signature? inSignature, MessageWriter writer, CancellationToken cancellationToken)
+        private async Task<MessageReader> SendMethodReturnReaderAsync(string iface, string member, Signature? inSignature, MessageWriter writer)
         {
             var callMessage = new Message()
             {
@@ -142,7 +142,7 @@ namespace Tmds.DBus.CodeGen
                 Body = writer?.ToArray()
             };
 
-            var reply = await _connection.CallMethodAsync(callMessage, cancellationToken);
+            var reply = await _connection.CallMethodAsync(callMessage);
             return new MessageReader(reply, _factory);
         }
 

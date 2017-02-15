@@ -10,13 +10,13 @@ namespace Tmds.DBus.Tests
 
         public event Action<string> OnPing;
 
-        public Task PingAsync(string message, CancellationToken cancellationToken)
+        public Task PingAsync(string message)
         {
             OnPing?.Invoke(message);
             return Task.CompletedTask;
         }
 
-        public Task<IDisposable> WatchPongAsync(Action<string> reply, CancellationToken cancellationToken)
+        public Task<IDisposable> WatchPongAsync(Action<string> reply)
         {
             return EventHandler.AddAsync(this, nameof(OnPing), reply);
         }

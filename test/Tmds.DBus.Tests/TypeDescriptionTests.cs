@@ -170,7 +170,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(IntPair), argDescription.Type);
             Assert.Equal("(ii)", argDescription.Signature);
 
-            // Task<IDisposable> WatchSomethingAsync([TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a);
+            // Task<IDisposable> WatchSomethingAsync(Action<(int arg1, string arg2)> a);
             description = TypeDescription.DescribeInterface(typeof(IValidSignal5));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -208,7 +208,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(string), argDescription.Type);
             Assert.Equal("s", argDescription.Signature);
 
-            // Task<IDisposable> WatchSomethingAsync([Argument("myArg")][TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a);
+            // Task<IDisposable> WatchSomethingAsync([Argument("myArg")]Action<(int arg1, string arg2)> a);
             description = TypeDescription.DescribeInterface(typeof(IValidSignal7));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
@@ -359,8 +359,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal(typeof(IntPair), argDescription.Type);
             Assert.Equal("(ii)", argDescription.Signature);
 
-            // [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
-            // Task<ValueTuple<int, string>> FooAsync();
+            // Task<(int arg1, string arg2)> FooAsync();
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod9));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -401,8 +400,7 @@ namespace Tmds.DBus.Tests
             Assert.Equal("s", argDescription.Signature);
 
             // [return: Argument("arg")]
-            // [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
-            // Task<ValueTuple<int, string>> FooAsync();
+            // Task<(int arg1, string arg2)> FooAsync();
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod11));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
@@ -570,8 +568,7 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod9 : IDBusObject
         {
-            [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
-            Task<ValueTuple<int, string>> FooAsync();
+            Task<(int arg1, string arg2)> FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod10 : IDBusObject
@@ -582,8 +579,7 @@ namespace Tmds.DBus.Tests
         interface IValidDBusMethod11 : IDBusObject
         {
             [return: Argument("arg")]
-            [return: TupleElementNamesAttribute(new [] { "arg1", "arg2" })]
-            Task<ValueTuple<int, string>> FooAsync();
+            Task<(int arg1, string arg2)> FooAsync();
         }
         [DBusInterface("tmds.dbus.tests.validmethod")]
         interface IValidDBusMethod12 : IDBusObject
@@ -646,7 +642,7 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal5 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync([TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a);
+            Task<IDisposable> WatchSomethingAsync(Action<(int arg1, string arg2)> a);
         }
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal6 : IDBusObject
@@ -656,7 +652,7 @@ namespace Tmds.DBus.Tests
         [DBusInterface("tmds.dbus.tests.validsignal")]
         interface IValidSignal7 : IDBusObject
         {
-            Task<IDisposable> WatchSomethingAsync([Argument("myArg")][TupleElementNamesAttribute(new [] { "arg1", "arg2" })]Action<ValueTuple<int, string>> a);
+            Task<IDisposable> WatchSomethingAsync([Argument("myArg")]Action<(int arg1, string arg2)> a);
         }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal2 : IDBusObject

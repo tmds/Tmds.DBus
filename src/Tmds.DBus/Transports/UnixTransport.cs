@@ -17,9 +17,16 @@ namespace Tmds.DBus.Transports
     using SSizeT = System.IntPtr;
     internal class UnixTransport : Transport
     {
+        enum BsdCredSupport
+        {
+            Unknown,
+            ViaHandle,
+            ViaSafeHandle,
+            Not
+        }
         private static readonly byte[] _oneByteArray = new[] { (byte)0 };
-        private static bool s_bsdCredSupported = true;
-        private static PropertyInfo s_safeHandleProperty;
+        private static BsdCredSupport s_bsdCredSupport = BsdCredSupport.Unknown;
+        private static PropertyInfo s_handleProperty;
         private unsafe struct msghdr
         {
             public IntPtr msg_name; //optional address
@@ -117,7 +124,7 @@ namespace Tmds.DBus.Transports
             var endPoint = new Tmds.DBus.Transports.UnixDomainSocketEndPoint(path);
             try
             {
-                await socket.ConnectAsync(endPoint);
+                await SocketUtils.ConnectAsync(socket, endPoint);
                 var stream = new NetworkStream(socket, true);
                 try
                 {
@@ -149,55 +156,92 @@ namespace Tmds.DBus.Transports
 
         private static unsafe bool TryWriteBsdCred(Socket socket)
         {
-            if (!s_bsdCredSupported)
+            if (s_bsdCredSupport == BsdCredSupport.Not)
             {
                 return false;
             }
-            byte buf = 0;
-
-            IOVector iov = new IOVector ();
-            iov.Base = &buf;
-            iov.Length = 1;
-
-            msghdr msg = new msghdr ();
-            msg.msg_iov = &iov;
-            msg.msg_iovlen = (SizeT)1;
-
-            cmsg cm = new cmsg ();
-            msg.msg_control = (IntPtr)(&cm);
-            msg.msg_controllen = (SizeT)sizeof (cmsg);
-            cm.hdr.cmsg_len = (uint)sizeof (cmsg);
-            cm.hdr.cmsg_level = 0xffff; //SOL_SOCKET
-            cm.hdr.cmsg_type = 0x03; //SCM_CREDS
-
-            // Issue https://github.com/dotnet/corefx/issues/6807
-            s_safeHandleProperty = s_safeHandleProperty ?? typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
-            var socketSafeHandle = (SafeHandle)s_safeHandleProperty.GetValue(socket, null);
-            int sockFd = (int)socketSafeHandle.DangerousGetHandle();
-            do
+            try
             {
-                var rv = (int)Interop.sendmsg(sockFd, new IntPtr(&msg), 0);
+                byte buf = 0;
 
-                if (rv == 1)
+                IOVector iov = new IOVector ();
+                iov.Base = &buf;
+                iov.Length = 1;
+
+                msghdr msg = new msghdr ();
+                msg.msg_iov = &iov;
+                msg.msg_iovlen = (SizeT)1;
+
+                cmsg cm = new cmsg ();
+                msg.msg_control = (IntPtr)(&cm);
+                msg.msg_controllen = (SizeT)sizeof (cmsg);
+                cm.hdr.cmsg_len = (uint)sizeof (cmsg);
+                cm.hdr.cmsg_level = 0xffff; //SOL_SOCKET
+                cm.hdr.cmsg_type = 0x03; //SCM_CREDS
+
+                // Issue https://github.com/dotnet/corefx/issues/6807
+                // Handle is not netstandard
+                if (s_bsdCredSupport == BsdCredSupport.Unknown)
                 {
-                    return true;
-                }
-                else
-                {
-                    var errno = Marshal.GetLastWin32Error();
-                    switch (errno)
+                    s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
+                    if (s_handleProperty != null)
                     {
-                        case 4:  // EINTR
-                            continue;
-                        case 22: // EINVAL
-                            s_bsdCredSupported = false;
+                        s_bsdCredSupport = BsdCredSupport.ViaHandle;
+                    }
+                    else
+                    {
+                        s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
+                        if (s_handleProperty != null)
+                        {
+                            s_bsdCredSupport = BsdCredSupport.ViaSafeHandle;
+                        }
+                        else
+                        {
+                            s_bsdCredSupport = BsdCredSupport.Not;
                             return false;
-                        default:
-                            throw new SocketException();
+                        }
                     }
                 }
-            } while (true);
-        }
+                int sockFd = -1;
+                if (s_bsdCredSupport == BsdCredSupport.ViaHandle)
+                {
+                    var socketHandle = (IntPtr)s_handleProperty.GetValue(socket, null);
+                    sockFd = (int)socketHandle;
+                }
+                else // BsdCredSupport.ViaSafeHandle
+                {
+                    var socketSafeHandle = (SafeHandle)s_handleProperty.GetValue(socket, null);
+                    sockFd = (int)socketSafeHandle.DangerousGetHandle();
+                }
+                do
+                {
+                    var rv = (int)Interop.sendmsg(sockFd, new IntPtr(&msg), 0);
 
+                    if (rv == 1)
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        var errno = Marshal.GetLastWin32Error();
+                        switch (errno)
+                        {
+                            case 4:  // EINTR
+                                continue;
+                            case 22: // EINVAL
+                                s_bsdCredSupport = BsdCredSupport.Not;
+                                return false;
+                            default:
+                                throw new SocketException();
+                        }
+                    }
+                } while (true);
+            }
+            catch
+            {
+                s_bsdCredSupport = BsdCredSupport.Not;
+                return false;
+            }
+        }
     }
 }

@@ -596,6 +596,10 @@ namespace Tmds.DBus.Protocol
                 if (s_isPrimitiveStruct.TryGetValue(structType, out result))
                     return result;
 
+                var typeInfo = structType.GetTypeInfo();
+                if (!typeInfo.IsLayoutSequential)
+                    return false;
+
                 if (!(s_isPrimitiveStruct[structType] = fields.All((f) => f.FieldType.GetTypeInfo().IsPrimitive && f.FieldType != typeof(bool))))
                     return false;
 

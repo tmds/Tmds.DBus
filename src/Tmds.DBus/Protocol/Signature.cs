@@ -719,9 +719,19 @@ namespace Tmds.DBus.Protocol
             {
                 Signature sig = Signature.Empty;
                 var fields = ArgTypeInspector.GetStructFields(type, isValueTuple);
-                foreach (FieldInfo fi in fields)
+                for (int i = 0; i < fields.Length;)
                 {
-                    sig += GetSig(fi.FieldType, isCompileTimeType: true);
+                    var fi = fields[i];
+                    if (i == 7 && isValueTuple)
+                    {
+                        fields = ArgTypeInspector.GetStructFields(fi.FieldType, isValueTuple);
+                        i = 0;
+                    }
+                    else
+                    {
+                        sig += GetSig(fi.FieldType, isCompileTimeType: true);
+                        i++;
+                    }
                 }
 
                 return Signature.MakeStruct(sig);
@@ -733,9 +743,12 @@ namespace Tmds.DBus.Protocol
 
         private static Type TypeOfValueTupleOf(Type[] innerTypes)
         {
-            // We only support up to 7 inner types
-            if (innerTypes == null || innerTypes.Length == 0 || innerTypes.Length > 7)
-                throw new NotSupportedException($"ValueTuple of length {innerTypes.Length} is not supported");
+            if (innerTypes == null || innerTypes.Length == 0)
+                throw new NotSupportedException($"ValueTuple of length {innerTypes?.Length} is not supported");
+            if (innerTypes.Length > 7)
+            {
+                innerTypes = new [] { innerTypes[0], innerTypes[1], innerTypes[2], innerTypes[3], innerTypes[4], innerTypes[5], innerTypes[6], TypeOfValueTupleOf(innerTypes.Skip(7).ToArray()) };
+            }
 
             Type structType = null;
             switch (innerTypes.Length) {
@@ -759,6 +772,9 @@ namespace Tmds.DBus.Protocol
                 break;
             case 7:
                 structType = typeof(ValueTuple<,,,,,,>);
+                break;
+            case 8:
+                structType = typeof(ValueTuple<,,,,,,,>);
                 break;
             }
             return structType.MakeGenericType(innerTypes);

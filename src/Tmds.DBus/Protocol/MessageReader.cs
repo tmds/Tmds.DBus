@@ -511,31 +511,6 @@ namespace Tmds.DBus.Protocol
             return array;
         }
 
-        public object ReadStruct (Type type)
-        {
-            if (!_skipNextStructPadding)
-            {
-                ReadPad (8);
-            }
-            _skipNextStructPadding = false;
-
-            FieldInfo[] fis = ArgTypeInspector.GetStructFields(type);
-
-            // Empty struct? No need for processing
-            if (fis.Length == 0)
-                return Activator.CreateInstance (type);
-
-            if (IsEligibleStruct (type, fis))
-                return MarshalStruct (type, fis);
-
-            object val = Activator.CreateInstance (type);
-
-            foreach (System.Reflection.FieldInfo fi in fis)
-                fi.SetValue (val, Read (fi.FieldType));
-
-            return val;
-        }
-
         public T ReadStruct<T> ()
         {
             if (!_skipNextStructPadding)
@@ -544,7 +519,7 @@ namespace Tmds.DBus.Protocol
             }
             _skipNextStructPadding = false;
 
-            FieldInfo[] fis = ArgTypeInspector.GetStructFields(typeof(T));
+            FieldInfo[] fis = ArgTypeInspector.GetStructFields(typeof(T), isValueTuple: false);
 
             // Empty struct? No need for processing
             if (fis.Length == 0)
@@ -557,6 +532,36 @@ namespace Tmds.DBus.Protocol
 
             foreach (System.Reflection.FieldInfo fi in fis)
                 fi.SetValue (val, Read (fi.FieldType));
+
+            return (T)val;
+        }
+
+        public T ReadValueTupleStruct<T> ()
+        {
+            if (!_skipNextStructPadding)
+            {
+                ReadPad (8);
+            }
+            _skipNextStructPadding = false;
+
+            bool isValueTuple = true;
+            FieldInfo[] fis = ArgTypeInspector.GetStructFields(typeof(T), isValueTuple);
+
+            // Empty struct? No need for processing
+            if (fis.Length == 0)
+                return default (T);
+
+            object val = Activator.CreateInstance<T> ();
+
+            for (int i = 0; i < fis.Length; i++)
+            {
+                var fi = fis[i];
+                if (i == 7 && isValueTuple)
+                {
+                    _skipNextStructPadding = true;
+                }
+                fi.SetValue (val, Read(fi.FieldType));
+            }
 
             return (T)val;
         }

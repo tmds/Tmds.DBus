@@ -114,9 +114,17 @@ namespace Tmds.DBus.CodeGen
                 }
             }
 
-            if (ArgTypeInspector.IsStructType(type))
+            bool isValueTuple;
+            if (ArgTypeInspector.IsStructType(type, out isValueTuple))
             {
-                return s_messageReaderReadStruct.MakeGenericMethod(type);
+                if (isValueTuple)
+                {
+                    return s_messageReaderReadValueTupleStruct.MakeGenericMethod(type);
+                }
+                else
+                {
+                    return s_messageReaderReadStruct.MakeGenericMethod(type);
+                }
             }
 
             throw new ArgumentException($"Cannot (de)serialize Type '{type.FullName}'");
@@ -141,6 +149,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_messageReaderReadDictionaryObject = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadDictionaryObject), Type.EmptyTypes);
         private static readonly MethodInfo s_messageReaderReadArray = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadArray), Type.EmptyTypes);
         private static readonly MethodInfo s_messageReaderReadStruct = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadStruct), Type.EmptyTypes);
+        private static readonly MethodInfo s_messageReaderReadValueTupleStruct = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadValueTupleStruct), Type.EmptyTypes);
         private static readonly MethodInfo s_messageReaderReadDBusInterface = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadDBusInterface));
     }
 }

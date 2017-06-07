@@ -22,10 +22,6 @@ namespace Tmds.DBus.Protocol
         MemoryStream stream;
         bool  _skipNextStructPadding;
 
-        static readonly MethodInfo arrayWriter = typeof (MessageWriter).GetMethod (nameof(WriteArray));
-        static readonly MethodInfo dictWriter = typeof (MessageWriter).GetMethod (nameof(WriteFromDict));
-        static readonly MethodInfo structWriter = typeof (MessageWriter).GetMethod (nameof(WriteStructure));
-
         static readonly Encoding stringEncoding = Encoding.UTF8;
 
         //a default constructor is a bad idea for now as we want to make sure the header and content-type match
@@ -385,16 +381,16 @@ namespace Tmds.DBus.Protocol
 
         public void WriteStructure<T> (T value)
         {
-            FieldInfo[] fis = ArgTypeInspector.GetStructFields(typeof(T));
-
-            if (fis.Length == 0)
-                return;
-
+            
             if (!_skipNextStructPadding)
             {
                 WritePad (8);
             }
             _skipNextStructPadding = false;
+
+            FieldInfo[] fis = ArgTypeInspector.GetStructFields(typeof(T), isValueTuple: false);
+            if (fis.Length == 0)
+                return;
 
             object boxed = value;
 
@@ -412,6 +408,35 @@ namespace Tmds.DBus.Protocol
 
             foreach (var fi in fis)
                 Write (fi.FieldType, fi.GetValue (boxed), isCompileTimeType: true);
+        }
+
+        public void WriteValueTupleStructure<T> (T value)
+        {
+            if (!_skipNextStructPadding)
+            {
+                WritePad (8);
+            }
+            _skipNextStructPadding = false;
+            FieldInfo[] fis = ArgTypeInspector.GetStructFields(typeof(T), isValueTuple: true);
+            if (fis.Length == 0)
+                return;
+
+            object boxed = value;
+            for (int i = 0; i < fis.Length;)
+            {
+                var fi = fis[i];
+                if (i == 7)
+                {
+                    boxed = fi.GetValue (boxed);
+                    fis = ArgTypeInspector.GetStructFields(fi.FieldType, isValueTuple: true);
+                    i = 0;
+                }
+                else
+                {
+                    Write (fi.FieldType, fi.GetValue (boxed), isCompileTimeType: true);
+                    i++;
+                }
+            }
         }
 
         public void WriteFromDict<TKey,TValue> (IEnumerable<KeyValuePair<TKey,TValue>> val)

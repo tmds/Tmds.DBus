@@ -4,9 +4,16 @@ using System.Linq;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editing;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Tmds.DBus.CodeGen
 {
+    class GeneratorSettings
+    {
+        public string Namespace { get; set; } = "DBus";
+    }
+
     class Generator
     {
         private readonly AdhocWorkspace _workspace;
@@ -42,30 +49,28 @@ namespace Tmds.DBus.CodeGen
             return new[] {
                 _generator.NamespaceImportDeclaration("System"),
                 _generator.NamespaceImportDeclaration(_generator.DottedName("System.Collections.Generic")),
+                _generator.NamespaceImportDeclaration(_generator.DottedName("System.Runtime.CompilerServices")),
                 _generator.NamespaceImportDeclaration(_generator.DottedName("System.Threading.Tasks")),
                 _generator.NamespaceImportDeclaration(_generator.DottedName("Tmds.DBus")),
             };
         }
 
-        public string Generate(IEnumerable<XElement> interfaceXmls)
+        public string Generate(IEnumerable<InterfaceDescription> interfaceDescriptions)
         {
             var importDeclarations = ImportNamespaceDeclarations();
             var namespaceDeclarations = new List<SyntaxNode>();
-            foreach (var interfaceXml in interfaceXmls)
+            var internalsVisibleTo = _generator.Attribute("InternalsVisibleTo", _generator.DottedName("Tmds.DBus.Connection.DynamicAssemblyName"));
+            foreach (var interfaceDescription in interfaceDescriptions)
             {
-                namespaceDeclarations.AddRange(DBusInterfaceDeclaration(interfaceXml));
+                namespaceDeclarations.AddRange(DBusInterfaceDeclaration(interfaceDescription.Name, interfaceDescription.InterfaceXml));
             }
             var namespaceDeclaration = _generator.NamespaceDeclaration(_generator.DottedName(_settings.Namespace), namespaceDeclarations);
-            var compilationUnit = _generator.CompilationUnit(importDeclarations.Concat(new[] { namespaceDeclaration }));
+            var compilationUnit = _generator.AddAttributes(_generator.CompilationUnit(importDeclarations.Concat(new[] { namespaceDeclaration })), internalsVisibleTo);
             return compilationUnit.NormalizeWhitespace().ToFullString();
         }
 
-        private IEnumerable<SyntaxNode> DBusInterfaceDeclaration(XElement interfaceXml)
+        private IEnumerable<SyntaxNode> DBusInterfaceDeclaration(string name, XElement interfaceXml)
         {
-            string fullName = interfaceXml.Attribute("name").Value;
-            var split = fullName.Split(new[] { '.' });
-            var name = split[split.Length - 1];
-
             yield return InterfaceDeclaration(name, interfaceXml);
             if (HasProperties(interfaceXml))
             {
@@ -151,17 +156,18 @@ namespace Tmds.DBus.CodeGen
         private SyntaxNode MultyArgsToType(IEnumerable<XElement> outArgs)
         {
             var dbusType = string.Join(string.Empty, outArgs.Select(arg => arg.Attribute("type").Value));
+            var elementNames = outArgs.Select(element => (string)element.Attribute("name")).ToList();
             if (outArgs.Count() > 1)
             {
                 dbusType = $"({dbusType})";
             }
-            return ParseType(dbusType);
+            return ParseType(dbusType, elementNames);
         }
 
-        private SyntaxNode ParseType(string dbusType)
+        private SyntaxNode ParseType(string dbusType, List<string> elementNames = null)
         {
             int index = 0;
-            var type = ParseType(dbusType, ref index);
+            var type = ParseType(dbusType, ref index, elementNames);
             if (index != dbusType.Length)
             {
                 throw new InvalidOperationException($"Unable to parse dbus type: {dbusType}");
@@ -169,7 +175,7 @@ namespace Tmds.DBus.CodeGen
             return type;
         }
 
-        private SyntaxNode ParseType(string dbusType, ref int index)
+        private SyntaxNode ParseType(string dbusType, ref int index, List<string> elementNames = null)
         {
             switch (dbusType[index++])
             {
@@ -204,18 +210,29 @@ namespace Tmds.DBus.CodeGen
                         return _generator.ArrayTypeExpression(arrayType);
                     }
                 case '(': // struct
+                    var elements = new List<TupleElementSyntax>();
                     var memberTypes = new List<SyntaxNode>();
-                    SyntaxNode member = null;
+                    SyntaxNode type = null;
+                    int idx = 0;
                     do
                     {
-                        member = ParseType(dbusType, ref index);
-                        if (member != null)
+                        type = ParseType(dbusType, ref index);
+                        if (type != null)
                         {
-                            memberTypes.Add(member);
+                            memberTypes.Add(type);
+                            var name = elementNames != null && idx < elementNames.Count ? elementNames[idx] : null;
+                            idx++;
+                            elements.Add(SyntaxFactory.TupleElement((TypeSyntax)type, name != null ? SyntaxFactory.Identifier(name) : default(SyntaxToken)));
                         }
-                    } while (member != null);
-                    // TODO: generate tuple syntax
-                    return _generator.GenericName("Tuple", memberTypes);
+                    } while (type != null);
+                    if (memberTypes.Count < 2)
+                    {
+                        return _generator.GenericName("ValueTuple", memberTypes);
+                    }
+                    else
+                    {
+                        return SyntaxFactory.TupleType(SyntaxFactory.SeparatedList(elements));
+                    }
                 case 'v': return _generator.TypeExpression(SpecialType.System_Object);
                 case ')':
                 case '}':
@@ -225,11 +242,11 @@ namespace Tmds.DBus.CodeGen
             }
         }
 
-        private SyntaxNode InArgToParameter(XElement argXml)
+        private SyntaxNode InArgToParameter(XElement argXml, int idx)
         {
             var type = ParseType(argXml.Attribute("type").Value);
-            var name = argXml.Attribute("name").Value;
-            return _generator.ParameterDeclaration(name, type);
+            var name = (string)argXml.Attribute("name");
+            return _generator.ParameterDeclaration(name ?? $"arg{idx}", type);
         }
     }
 }

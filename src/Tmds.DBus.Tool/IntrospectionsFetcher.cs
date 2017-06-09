@@ -3,7 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace Tmds.DBus.CodeGen
+namespace Tmds.DBus.Tool
 {
 
     [DBusInterface("org.freedesktop.DBus.Introspectable")]

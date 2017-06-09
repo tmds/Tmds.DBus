@@ -1,6 +1,6 @@
 using System.Xml.Linq;
 
-namespace Tmds.DBus.CodeGen
+namespace Tmds.DBus.Tool
 {
     class InterfaceDescription
     {

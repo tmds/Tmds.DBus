@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
-namespace Tmds.DBus.CodeGen
+namespace Tmds.DBus.Tool
 {
     class GeneratorSettings
     {

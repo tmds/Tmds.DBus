@@ -196,7 +196,7 @@ public interface ITrackList
 }
 ```
 
-In case the return type of a method is `Task<object>` the method may me modeled as a generic method of Task<T>. This makes it unnecessary to cast the returned value when calling the method.
+In case the return type of a method is `Task<object>` the method may me modeled as a generic method of `Task<T>`.
 
 ```
 [DBusInterface("tmds.dbus.example.variantreturn")]
@@ -204,7 +204,7 @@ public interface ITrackList
 {
     // user needs to cast, e.g. (ObjectPath)(await FooAsync())
     Task<object> FooAsync();
-    // return value already casted, e.g. await BarAsync<ObjectPath>()
+    // return value is typed, e.g. await BarAsync<ObjectPath>()
     Task<T> BarAsync<T>();
 }
 ```

@@ -116,10 +116,10 @@ namespace Tmds.DBus.CodeGen
             return readValue(reader);
         }
 
-        internal protected async Task<T> CallGenericOutMethodAsync<T>(string iface, string member, Signature? inSignature, MessageWriter writer, ReadMethodDelegate<object> readValue)
+        internal protected async Task<T> CallGenericOutMethodAsync<T>(string iface, string member, Signature? inSignature, MessageWriter writer)
         {
             var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer);
-            return (T)readValue(reader);
+            return reader.ReadVariantAsType<T>();
         }
 
         internal protected Task CallVoidMethodAsync(string iface, string member, Signature? inSigStr, MessageWriter writer)

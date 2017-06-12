@@ -237,12 +237,6 @@ namespace Tmds.DBus.CodeGen
 
             if (methodDescription.OutType != null)
             {
-                // ReadMethodDelegate
-                ilg.Emit(OpCodes.Ldnull);
-                ilg.Emit(OpCodes.Ldftn, ReadMethodFactory.CreateReadMethodForType(methodDescription.OutType));
-                var readDelegateConstructor = s_readMethodDelegateGenericType.MakeGenericType(new[] { methodDescription.OutType }).GetConstructors()[0];
-                ilg.Emit(OpCodes.Newobj, readDelegateConstructor);
-
                 // CallMethod
                 if (methodDescription.IsGenericOut)
                 {
@@ -251,6 +245,12 @@ namespace Tmds.DBus.CodeGen
                 }
                 else
                 {
+                    // ReadMethodDelegate
+                    ilg.Emit(OpCodes.Ldnull);
+                    ilg.Emit(OpCodes.Ldftn, ReadMethodFactory.CreateReadMethodForType(methodDescription.OutType));
+                    var readDelegateConstructor = s_readMethodDelegateGenericType.MakeGenericType(new[] { methodDescription.OutType }).GetConstructors()[0];
+                    ilg.Emit(OpCodes.Newobj, readDelegateConstructor);
+
                     ilg.Emit(OpCodes.Call, s_callNonVoidMethod.MakeGenericMethod(new[] { methodDescription.OutType }));
                 }
             }

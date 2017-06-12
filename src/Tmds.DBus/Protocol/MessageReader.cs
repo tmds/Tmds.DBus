@@ -350,6 +350,17 @@ namespace Tmds.DBus.Protocol
             return Read(sig.ToType());
         }
 
+        public T ReadVariantAsType<T>()
+        {
+            var sig = ReadSignature ();
+            if (!sig.IsSingleCompleteType)
+                throw new InvalidOperationException (string.Format ("ReadVariant need a single complete type signature, {0} was given", sig.ToString ()));
+            var type = typeof(T);
+            if (sig != Signature.GetSig(type, isCompileTimeType: true))
+                throw new InvalidCastException($"Cannot convert dbus type '{sig.ToString()}' to '{type.FullName}'");
+            return (T)Read(type);
+        }
+
         public T ReadDictionaryObject<T>()
         {
             var type = typeof(T);

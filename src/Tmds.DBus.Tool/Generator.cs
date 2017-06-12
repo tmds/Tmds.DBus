@@ -72,14 +72,21 @@ namespace Tmds.DBus.Tool
         private IEnumerable<SyntaxNode> DBusInterfaceDeclaration(string name, XElement interfaceXml)
         {
             yield return InterfaceDeclaration(name, interfaceXml);
-            if (HasProperties(interfaceXml))
+            if (Properties(interfaceXml).Any())
             {
-                yield return PropertiesClassDeclaration(name, interfaceXml);
+                yield return PropertiesClassDeclaration(name, ReadableProperties(interfaceXml));
+                yield return PropertiesExtensionMethodClassDeclaration(name, interfaceXml);
             }
         }
 
-        private bool HasProperties(XElement interfaceXml)
-            => interfaceXml.Elements("property").Any();
+        private IEnumerable<XElement> Properties(XElement interfaceXml)
+            => interfaceXml.Elements("property");
+
+        private IEnumerable<XElement> ReadableProperties(XElement interfaceXml)
+            => Properties(interfaceXml).Where(p => p.Attribute("access").Value.StartsWith("read"));
+
+        private IEnumerable<XElement> WritableProperties(XElement interfaceXml)
+            => Properties(interfaceXml).Where(p => p.Attribute("access").Value.EndsWith("write"));
 
         private SyntaxNode InterfaceDeclaration(string name, XElement interfaceXml)
         {
@@ -87,7 +94,7 @@ namespace Tmds.DBus.Tool
 
             var methodDeclarations = interfaceXml.Elements("method").Select(MethodDeclaration);
             var signalDeclarations = interfaceXml.Elements("signal").Select(SignalDeclaration);
-            var propertiesDeclarations = HasProperties(interfaceXml) ? PropertiesDeclaration(name) : Array.Empty<SyntaxNode>();
+            var propertiesDeclarations = Properties(interfaceXml).Any() ? PropertiesDeclaration(name) : Array.Empty<SyntaxNode>();
 
             var dbusInterfaceAttribute = _generator.Attribute(_dBusInterfaceAttribute, _generator.LiteralExpression(fullName));
             var interfaceDeclaration = _generator.InterfaceDeclaration($"I{name}", null, Accessibility.NotApplicable,
@@ -97,12 +104,100 @@ namespace Tmds.DBus.Tool
             return _generator.AddAttributes(interfaceDeclaration, dbusInterfaceAttribute);
         }
 
-        private SyntaxNode PropertiesClassDeclaration(string name, XElement interfaceXml)
+        private SyntaxNode PropertiesClassDeclaration(string name, IEnumerable<XElement> propertyXmls)
         {
-            var propertiesXml = interfaceXml.Elements("property");
-            var fields = propertiesXml.Select(PropertyToField);
+            var fields = propertyXmls.Select(PropertyToField);
             var propClass = _generator.ClassDeclaration($"{name}Properties", null, Accessibility.NotApplicable, DeclarationModifiers.None, null, null, fields);
             return _generator.AddAttributes(propClass, _dictionaryAttribute);
+        }
+
+        private SyntaxNode PropertiesExtensionMethodClassDeclaration(string name, XElement interfaceXml)
+        {
+            List<SyntaxNode> methods = new List<SyntaxNode>();
+            var interfaceName = $"I{name}";
+            foreach (var propertyXml in ReadableProperties(interfaceXml))
+            {
+                methods.Add(PropertyToGet(interfaceName, propertyXml));
+            }
+            foreach (var propertyXml in WritableProperties(interfaceXml))
+            {
+                methods.Add(PropertyToSet(interfaceName, propertyXml));
+            }
+            return _generator.ClassDeclaration($"{name}Extensions", null, Accessibility.NotApplicable, DeclarationModifiers.Static, null, null, methods);
+        }
+
+        private SyntaxNode PropertyToGet(string interfaceName, XElement propertyXml)
+        {
+            string name = propertyXml.Attribute("name").Value;
+            string dbusType = propertyXml.Attribute("type").Value;
+            var returnType = (TypeSyntax)ParseType(dbusType);
+            return SyntaxFactory.MethodDeclaration(
+                attributeLists: default(SyntaxList<AttributeListSyntax>),
+                modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)),
+                returnType: SyntaxFactory.GenericName(SyntaxFactory.Identifier("Task"), SyntaxFactory.TypeArgumentList(SyntaxFactory.SingletonSeparatedList(returnType))),
+                explicitInterfaceSpecifier: default(ExplicitInterfaceSpecifierSyntax),
+                identifier: SyntaxFactory.Identifier($"Get{name}Async"),
+                typeParameterList: null,
+                parameterList: SyntaxFactory.ParameterList(
+                    SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Parameter(
+                        attributeLists: default(SyntaxList<AttributeListSyntax>),
+                        modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.ThisKeyword)),
+                        type: SyntaxFactory.IdentifierName(interfaceName),
+                        identifier: SyntaxFactory.Identifier("o"),
+                        @default: null))),
+                constraintClauses: default(SyntaxList<TypeParameterConstraintClauseSyntax>),
+                body: null,
+                expressionBody: SyntaxFactory.ArrowExpressionClause(
+                    SyntaxFactory.InvocationExpression(
+                        expression: SyntaxFactory.MemberAccessExpression(
+                            kind: SyntaxKind.SimpleMemberAccessExpression,
+                            expression: SyntaxFactory.IdentifierName("o"),
+                            name: SyntaxFactory.GenericName(SyntaxFactory.Identifier("GetAsync")).WithTypeArgumentList(SyntaxFactory.TypeArgumentList(SyntaxFactory.SingletonSeparatedList(returnType)))),
+                        argumentList: SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(name))))))
+                ),
+                semicolonToken: SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+        }
+
+        private SyntaxNode PropertyToSet(string interfaceName, XElement propertyXml)
+        {
+            string name = propertyXml.Attribute("name").Value;
+            string dbusType = propertyXml.Attribute("type").Value;
+            var returnType = (TypeSyntax)ParseType(dbusType);
+            return SyntaxFactory.MethodDeclaration(
+                attributeLists: default(SyntaxList<AttributeListSyntax>),
+                modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)),
+                returnType: SyntaxFactory.IdentifierName("Task"),
+                explicitInterfaceSpecifier: default(ExplicitInterfaceSpecifierSyntax),
+                identifier: SyntaxFactory.Identifier($"Set{name}Async"),
+                typeParameterList: null,
+                parameterList: SyntaxFactory.ParameterList(
+                    SyntaxFactory.SeparatedList<ParameterSyntax>(new[] {
+                        SyntaxFactory.Parameter(
+                            attributeLists: default(SyntaxList<AttributeListSyntax>),
+                            modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.ThisKeyword)),
+                            type: SyntaxFactory.IdentifierName(interfaceName),
+                            identifier: SyntaxFactory.Identifier("o"),
+                            @default: null),
+                    SyntaxFactory.Parameter(
+                            attributeLists: default(SyntaxList<AttributeListSyntax>),
+                            modifiers: default(SyntaxTokenList),
+                            type: returnType,
+                            identifier: SyntaxFactory.Identifier("val"),
+                            @default: null),
+                            })),
+                constraintClauses: default(SyntaxList<TypeParameterConstraintClauseSyntax>),
+                body: null,
+                expressionBody: SyntaxFactory.ArrowExpressionClause(
+                    SyntaxFactory.InvocationExpression(
+                        expression: SyntaxFactory.MemberAccessExpression(
+                            kind: SyntaxKind.SimpleMemberAccessExpression,
+                            expression: SyntaxFactory.IdentifierName("o"),
+                            name: SyntaxFactory.IdentifierName("SetAsync")),
+                        argumentList: SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(new [] {
+                            SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(name))),
+                            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("val")) })))
+                ),
+                semicolonToken: SyntaxFactory.Token(SyntaxKind.SemicolonToken));
         }
 
         private SyntaxNode PropertyToField(XElement propertyXml)

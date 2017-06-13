@@ -180,9 +180,6 @@ namespace Tmds.DBus.Tests
         {
             using (var dbusDaemon = new DBusDaemon())
             {
-                var cts = new CancellationTokenSource();
-                cts.CancelAfter(IsTravis ? TimeSpan.FromMinutes(30) : TimeSpan.FromSeconds(10));
-                var ct = cts.Token;
                 string serviceName = "tmds.dbus.test";
 
                 await dbusDaemon.StartAsync();
@@ -193,6 +190,10 @@ namespace Tmds.DBus.Tests
 
                 IConnection conn2 = new Connection(address);
                 await conn2.ConnectAsync();
+
+                var cts = new CancellationTokenSource();
+                cts.CancelAfter(IsTravis ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(10));
+                var ct = cts.Token;
 
                 var changeEvents = new BlockingCollection<ServiceOwnerChangedEventArgs>(new ConcurrentQueue<ServiceOwnerChangedEventArgs>());
                 Action<ServiceOwnerChangedEventArgs> onChange =

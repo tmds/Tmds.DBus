@@ -167,6 +167,8 @@ namespace Tmds.DBus.Tests
             }
         }
 
+        private static bool IsTravis = System.Environment.GetEnvironmentVariable("TRAVIS") == "true";
+
         [Theory]
         [InlineData("tmds.dbus.test", false)]
         [InlineData("tmds.dbus.test.*", false)]
@@ -179,7 +181,7 @@ namespace Tmds.DBus.Tests
             using (var dbusDaemon = new DBusDaemon())
             {
                 var cts = new CancellationTokenSource();
-                cts.CancelAfter(TimeSpan.FromSeconds(60));
+                cts.CancelAfter(IsTravis ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(10));
                 var ct = cts.Token;
                 string serviceName = "tmds.dbus.test";
 

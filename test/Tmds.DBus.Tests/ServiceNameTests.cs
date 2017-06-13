@@ -181,7 +181,7 @@ namespace Tmds.DBus.Tests
             using (var dbusDaemon = new DBusDaemon())
             {
                 var cts = new CancellationTokenSource();
-                cts.CancelAfter(IsTravis ? TimeSpan.FromMinutes(10) : TimeSpan.FromSeconds(10));
+                cts.CancelAfter(IsTravis ? TimeSpan.FromMinutes(30) : TimeSpan.FromSeconds(10));
                 var ct = cts.Token;
                 string serviceName = "tmds.dbus.test";
 

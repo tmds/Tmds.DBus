@@ -9,7 +9,7 @@ namespace Tmds.DBus.Tool
             app.Command(command.Name, configuration =>
             {
                 configuration.HelpOption(Command.HelpTemplate);
-                command.Configure(configuration);
+                command.Configure();
                 configuration.OnExecute(() =>
                     {
                         command.Execute();

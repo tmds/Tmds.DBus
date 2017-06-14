@@ -80,6 +80,10 @@ namespace Tmds.DBus.Protocol
             {
                 return GetAlignment(DType.Signature);
             }
+            else if (type == typeof(UnixFd))
+            {
+                return GetAlignment(DType.UnixFd);
+            }
             else if (type == typeof(string))
             {
                 return GetAlignment(DType.String);

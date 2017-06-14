@@ -9,35 +9,37 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Tmds.DBus.CodeGen;
+using Tmds.DBus.Protocol;
 
-namespace Tmds.DBus.Protocol
+namespace Tmds.DBus
 {
-    internal struct Signature
+    public struct Signature
     {
-        private static readonly Signature Empty = new Signature (String.Empty);
-        public static readonly Signature ArraySig = Allocate (DType.Array);
-        public static readonly Signature ByteSig = Allocate (DType.Byte);
-        public static readonly Signature DictEntryBegin = Allocate (DType.DictEntryBegin);
-        public static readonly Signature DictEntryEnd = Allocate (DType.DictEntryEnd);
-        public static readonly Signature Int32Sig = Allocate (DType.Int32);
-        public static readonly Signature UInt16Sig = Allocate (DType.UInt16);
-        public static readonly Signature UInt32Sig = Allocate (DType.UInt32);
-        public static readonly Signature StringSig = Allocate (DType.String);
-        public static readonly Signature StructBegin = Allocate (DType.StructBegin);
-        public static readonly Signature StructEnd = Allocate (DType.StructEnd);
-        public static readonly Signature ObjectPathSig = Allocate (DType.ObjectPath);
-        public static readonly Signature SignatureSig = Allocate (DType.Signature);
-        public static readonly Signature VariantSig = Allocate (DType.Variant);
-        public static readonly Signature BoolSig = Allocate(DType.Boolean);
-        public static readonly Signature DoubleSig = Allocate(DType.Double);
-        public static readonly Signature Int16Sig = Allocate(DType.Int16);
-        public static readonly Signature Int64Sig = Allocate(DType.Int64);
-        public static readonly Signature SingleSig = Allocate(DType.Single);
-        public static readonly Signature UInt64Sig = Allocate(DType.UInt64);
-        public static readonly Signature StructBeginSig = Allocate(DType.StructBegin);
-        public static readonly Signature StructEndSig = Allocate(DType.StructEnd);
-        public static readonly Signature DictEntryBeginSig = Allocate(DType.DictEntryBegin);
-        public static readonly Signature DictEntryEndSig = Allocate(DType.DictEntryEnd);
+        internal static readonly Signature Empty = new Signature (String.Empty);
+        internal static readonly Signature ArraySig = Allocate (DType.Array);
+        internal static readonly Signature ByteSig = Allocate (DType.Byte);
+        internal static readonly Signature DictEntryBegin = Allocate (DType.DictEntryBegin);
+        internal static readonly Signature DictEntryEnd = Allocate (DType.DictEntryEnd);
+        internal static readonly Signature Int32Sig = Allocate (DType.Int32);
+        internal static readonly Signature UInt16Sig = Allocate (DType.UInt16);
+        internal static readonly Signature UInt32Sig = Allocate (DType.UInt32);
+        internal static readonly Signature StringSig = Allocate (DType.String);
+        internal static readonly Signature StructBegin = Allocate (DType.StructBegin);
+        internal static readonly Signature StructEnd = Allocate (DType.StructEnd);
+        internal static readonly Signature ObjectPathSig = Allocate (DType.ObjectPath);
+        internal static readonly Signature SignatureSig = Allocate (DType.Signature);
+        internal static readonly Signature SignatureUnixFd = Allocate (DType.UnixFd);
+        internal static readonly Signature VariantSig = Allocate (DType.Variant);
+        internal static readonly Signature BoolSig = Allocate(DType.Boolean);
+        internal static readonly Signature DoubleSig = Allocate(DType.Double);
+        internal static readonly Signature Int16Sig = Allocate(DType.Int16);
+        internal static readonly Signature Int64Sig = Allocate(DType.Int64);
+        internal static readonly Signature SingleSig = Allocate(DType.Single);
+        internal static readonly Signature UInt64Sig = Allocate(DType.UInt64);
+        internal static readonly Signature StructBeginSig = Allocate(DType.StructBegin);
+        internal static readonly Signature StructEndSig = Allocate(DType.StructEnd);
+        internal static readonly Signature DictEntryBeginSig = Allocate(DType.DictEntryBegin);
+        internal static readonly Signature DictEntryEndSig = Allocate(DType.DictEntryEnd);
 
         private byte[] _data;
 
@@ -97,7 +99,7 @@ namespace Tmds.DBus.Protocol
             return Concat (s1, s2);
         }
 
-        public static Signature Concat (Signature s1, Signature s2)
+        internal static Signature Concat (Signature s1, Signature s2)
         {
             if (s1._data == null && s2._data == null)
                 return Signature.Empty;
@@ -137,14 +139,13 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-
         public static implicit operator Signature(string value)
         {
             return new Signature(value);
         }
 
         // Basic validity is to check that every "opening" DType has a corresponding closing DType
-        static bool IsValid (string strSig)
+        internal static bool IsValid (string strSig)
         {
             int structCount = 0;
             int dictCount = 0;
@@ -187,7 +188,7 @@ namespace Tmds.DBus.Protocol
             return sig;
         }
 
-        static byte[] DataForDType (DType value)
+        internal static byte[] DataForDType (DType value)
         {
             switch (value) {
                 case DType.Byte: return ByteSig._data;
@@ -226,7 +227,7 @@ namespace Tmds.DBus.Protocol
             this._data = DataForDType (value);
         }
 
-        public byte[] GetBuffer ()
+        internal byte[] GetBuffer ()
         {
             return _data;
         }
@@ -260,14 +261,14 @@ namespace Tmds.DBus.Protocol
             return Value;
         }
 
-        public static Signature MakeArray (Signature signature)
+        internal static Signature MakeArray (Signature signature)
         {
             if (!signature.IsSingleCompleteType)
                 throw new ArgumentException ("The type of an array must be a single complete type", "signature");
             return Signature.ArraySig + signature;
         }
 
-        public static Signature MakeStruct (Signature signature)
+        internal static Signature MakeStruct (Signature signature)
         {
             if (signature == Signature.Empty)
                 throw new ArgumentException ("Cannot create a struct with no fields", "signature");
@@ -275,7 +276,7 @@ namespace Tmds.DBus.Protocol
             return Signature.StructBegin + signature + Signature.StructEnd;
         }
 
-        public static Signature MakeDictEntry (Signature keyType, Signature valueType)
+        internal static Signature MakeDictEntry (Signature keyType, Signature valueType)
         {
             if (!keyType.IsSingleCompleteType)
                 throw new ArgumentException ("Signature must be a single complete type", "keyType");
@@ -288,12 +289,12 @@ namespace Tmds.DBus.Protocol
                     Signature.DictEntryEnd;
         }
 
-        public static Signature MakeDict (Signature keyType, Signature valueType)
+        internal static Signature MakeDict (Signature keyType, Signature valueType)
         {
             return MakeArray (MakeDictEntry (keyType, valueType));
         }
 
-        public int Alignment
+        internal int Alignment
         {
             get {
                 if (_data.Length == 0)
@@ -303,7 +304,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        static int GetSize (DType dtype)
+        internal int GetSize (DType dtype)
         {
             switch (dtype) {
                 case DType.Byte:
@@ -315,6 +316,7 @@ namespace Tmds.DBus.Protocol
                     return 2;
                 case DType.Int32:
                 case DType.UInt32:
+                case DType.UnixFd:
                     return 4;
                 case DType.Int64:
                 case DType.UInt64:
@@ -337,7 +339,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public bool GetFixedSize (ref int size)
+        internal bool GetFixedSize (ref int size)
         {
             if (size < 0)
                 return false;
@@ -379,7 +381,7 @@ namespace Tmds.DBus.Protocol
             throw new Exception ();
         }
 
-        public bool IsSingleCompleteType
+        internal bool IsSingleCompleteType
         {
             get {
                 if (_data.Length == 0)
@@ -389,7 +391,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public bool IsStruct
+        internal bool IsStruct
         {
             get {
                 if (Length < 2)
@@ -406,7 +408,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public bool IsStructlike
+        internal bool IsStructlike
         {
             get {
                 if (Length < 2)
@@ -425,7 +427,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public bool IsDict
+        internal bool IsDict
         {
             get {
                 if (Length < 3)
@@ -442,7 +444,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public bool IsArray
+        internal bool IsArray
         {
             get {
                 if (Length < 2)
@@ -455,7 +457,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public Type ToType ()
+        internal Type ToType ()
         {
             int pos = 0;
             Type ret = ToType (ref pos);
@@ -464,7 +466,7 @@ namespace Tmds.DBus.Protocol
             return ret;
         }
 
-        public IEnumerable<Signature> GetFieldSignatures ()
+        internal IEnumerable<Signature> GetFieldSignatures ()
         {
             if (this == Signature.Empty || this[0] != DType.StructBegin)
                 throw new ProtocolException("Not a struct");
@@ -473,7 +475,7 @@ namespace Tmds.DBus.Protocol
                 yield return GetNextSignature (ref pos);
         }
 
-        public void GetDictEntrySignatures (out Signature sigKey, out Signature sigValue)
+        internal void GetDictEntrySignatures (out Signature sigKey, out Signature sigValue)
         {
             if (this == Signature.Empty || this[0] != DType.DictEntryBegin)
                 throw new ProtocolException("Not a DictEntry");
@@ -483,7 +485,7 @@ namespace Tmds.DBus.Protocol
             sigValue = GetNextSignature (ref pos);
         }
 
-        public IEnumerable<Signature> GetParts ()
+        internal IEnumerable<Signature> GetParts ()
         {
             if (_data == null)
                 yield break;
@@ -492,7 +494,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public Signature GetNextSignature (ref int pos)
+        internal Signature GetNextSignature (ref int pos)
         {
             if (_data == null)
                 return Signature.Empty;
@@ -537,7 +539,7 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public Type ToType (ref int pos)
+        internal Type ToType (ref int pos)
         {
             if (_data == null)
                 return typeof (void);
@@ -602,12 +604,12 @@ namespace Tmds.DBus.Protocol
             }
         }
 
-        public static Signature GetSig (object[] objs)
+        internal static Signature GetSig (object[] objs)
         {
             return GetSig (objs.Select(o => o.GetType()).ToArray(), isCompileTimeType: true);
         }
 
-        public static Signature GetSig (Type[] types, bool isCompileTimeType)
+        internal static Signature GetSig (Type[] types, bool isCompileTimeType)
         {
             if (types == null)
                 throw new ArgumentNullException ("types");
@@ -620,7 +622,7 @@ namespace Tmds.DBus.Protocol
             return sig;
         }
 
-        public static Signature GetSig (Type type, bool isCompileTimeType)
+        internal static Signature GetSig (Type type, bool isCompileTimeType)
         {
             if (type == null)
                 throw new ArgumentNullException ("type");
@@ -661,6 +663,10 @@ namespace Tmds.DBus.Protocol
             else if (type == typeof(Signature))
             {
                 return SignatureSig;
+            }
+            else if (type == typeof(UnixFd))
+            {
+                return SignatureUnixFd;
             }
             else if (type == typeof(string))
             {
@@ -739,7 +745,6 @@ namespace Tmds.DBus.Protocol
 
             throw new ArgumentException($"Cannot (de)serialize Type '{type.FullName}'");
         }
-
 
         private static Type TypeOfValueTupleOf(Type[] innerTypes)
         {

@@ -175,6 +175,11 @@ namespace Tmds.DBus.Protocol
             WriteNull ();
         }
 
+        public void WriteUnixFd(UnixFd fd)
+        {
+            throw new NotSupportedException("Sending file descriptors is not supported");
+        }
+
         public void Write(Type type, object val, bool isCompileTimeType)
         {
             if (type.GetTypeInfo().IsEnum)
@@ -220,6 +225,11 @@ namespace Tmds.DBus.Protocol
             else if (type == typeof(Signature))
             {
                 WriteSignature((Signature)val);
+                return;
+            }
+            else if (type == typeof(UnixFd))
+            {
+                WriteUnixFd((UnixFd)val);
                 return;
             }
             else if (type == typeof(string))

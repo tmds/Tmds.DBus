@@ -23,6 +23,8 @@ namespace Tmds.DBus.Tool
         private readonly SyntaxNode _dictionaryAttribute;
         private readonly SyntaxNode _task;
         private readonly SyntaxNode _objectPath;
+        private readonly SyntaxNode _signature;
+        private readonly SyntaxNode _unixFd;
         private readonly SyntaxNode _action;
         private readonly SyntaxNode _taskOfIDisposable;
         private readonly GeneratorSettings _settings;
@@ -41,6 +43,8 @@ namespace Tmds.DBus.Tool
             _task = _generator.IdentifierName("Task");
             _action = _generator.IdentifierName("Action");
             _objectPath = _generator.IdentifierName("ObjectPath");
+            _signature = _generator.IdentifierName("Signature");
+            _unixFd = _generator.IdentifierName("UnixFd");
             _taskOfIDisposable = _generator.GenericName("Task", _generator.IdentifierName("IDisposable"));
         }
 
@@ -280,13 +284,14 @@ namespace Tmds.DBus.Tool
                 case 'n': return _generator.TypeExpression(SpecialType.System_Int16);
                 case 'q': return _generator.TypeExpression(SpecialType.System_UInt16);
                 case 'i': return _generator.TypeExpression(SpecialType.System_Int32);
-                case 'h': return _generator.TypeExpression(SpecialType.System_UInt32);
+                case 'h': return _unixFd;
                 case 'u': return _generator.TypeExpression(SpecialType.System_UInt32);
                 case 'x': return _generator.TypeExpression(SpecialType.System_Int64);
                 case 't': return _generator.TypeExpression(SpecialType.System_UInt64);
                 case 'd': return _generator.TypeExpression(SpecialType.System_Double);
                 case 's': return _generator.TypeExpression(SpecialType.System_String);
                 case 'o': return _objectPath;
+                case 'g': return _signature;
                 case 'f': return _generator.TypeExpression(SpecialType.System_Single);
                 case 'a': // array
                     if (dbusType[index] == '{')

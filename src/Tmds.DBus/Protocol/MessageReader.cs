@@ -89,6 +89,10 @@ namespace Tmds.DBus.Protocol
             {
                 return ReadSignature();
             }
+            else if (type == typeof(UnixFd))
+            {
+                return ReadUnixFd();
+            }
             else if (type == typeof(string))
             {
                 return ReadString();
@@ -340,6 +344,11 @@ namespace Tmds.DBus.Protocol
             ReadNull ();
 
             return Signature.Take (sigData);
+        }
+
+        public UnixFd ReadUnixFd()
+        {
+            throw new NotSupportedException("Receiving file descriptors is not supported");
         }
 
         public object ReadVariant ()

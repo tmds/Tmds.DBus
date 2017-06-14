@@ -10,7 +10,7 @@ namespace Tmds.DBus.Tool
     class ListCommand : Command
     {
         CommandOption _serviceOption;
-        CommandOption _daemonOption;
+        CommandOption _busOption;
         CommandOption _pathOption;
         CommandOption _norecurseOption;
         CommandArgument _typeArgument;
@@ -22,7 +22,7 @@ namespace Tmds.DBus.Tool
         public override void Configure()
         {
             //_serviceOption = AddServiceOption();
-            _daemonOption = AddDaemonOption();
+            _busOption = AddBusOption();
             //_pathOption = AddPathOption();
             //_norecurseOption = AddNoRecurseOption();
             _typeArgument = Configuration.Argument("type", "Type to list. 'services'/'activatable-services'");
@@ -30,7 +30,7 @@ namespace Tmds.DBus.Tool
 
         public override void Execute()
         {
-            var address = ParseDaemonAddress(_daemonOption);
+            var address = ParseBusAddress(_busOption);
             if (_typeArgument.Value == null)
             {
                 throw new ArgumentNullException("Type argument is required.", "type");

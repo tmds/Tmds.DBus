@@ -28,8 +28,8 @@ namespace Tmds.DBus.Tool
         internal CommandOption AddServiceOption()
             => Configuration.Option("--service", "DBus service", CommandOptionType.SingleValue);
 
-        internal CommandOption AddDaemonOption()
-            => Configuration.Option("--daemon", "Address of DBus daemon. 'session'/'system'/<address> (default: session)", CommandOptionType.SingleValue);
+        internal CommandOption AddBusOption()
+            => Configuration.Option("--bus", "Address of bus. 'session'/'system'/<address> (default: session)", CommandOptionType.SingleValue);
 
         internal CommandOption AddPathOption()
             => Configuration.Option("--path", "DBus object path (default: /)", CommandOptionType.SingleValue);
@@ -37,7 +37,7 @@ namespace Tmds.DBus.Tool
         internal CommandOption AddNoRecurseOption()
             => Configuration.Option("--no-recurse", "Don't visit child nodes of path", CommandOptionType.NoValue);
 
-        internal string ParseDaemonAddress(CommandOption addressOption)
+        internal string ParseBusAddress(CommandOption addressOption)
         {
             if (addressOption.HasValue())
             {

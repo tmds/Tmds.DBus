@@ -10,7 +10,7 @@ namespace Tmds.DBus.Tool
     class CodeGenCommand : Command
     {
         CommandOption _serviceOption;
-        CommandOption _daemonOption;
+        CommandOption _busOption;
         CommandOption _pathOption;
         CommandOption _norecurseOption;
         CommandOption _namespaceOption;
@@ -25,7 +25,7 @@ namespace Tmds.DBus.Tool
         public override void Configure()
         {
             _serviceOption = AddServiceOption();
-            _daemonOption = AddDaemonOption();
+            _busOption = AddBusOption();
             _pathOption = AddPathOption();
             _norecurseOption = AddNoRecurseOption();
             _namespaceOption = Configuration.Option("--namespace", "C# namespace (default: <service>)", CommandOptionType.SingleValue);
@@ -62,7 +62,7 @@ namespace Tmds.DBus.Tool
                     }
                 }
             }
-            var address = ParseDaemonAddress(_daemonOption);
+            var address = ParseBusAddress(_busOption);
             var service = _serviceOption.Value();
             var serviceSplit = service.Split(new [] { '.' });
             var ns = _namespaceOption.Value() ?? $"{serviceSplit[serviceSplit.Length - 1]}.DBus";

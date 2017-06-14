@@ -191,23 +191,19 @@ namespace Tmds.DBus.Tests
                 IConnection conn2 = new Connection(address);
                 await conn2.ConnectAsync();
 
-                var cts = new CancellationTokenSource();
-                cts.CancelAfter(IsTravis ? TimeSpan.FromMinutes(5) : TimeSpan.FromSeconds(10));
-                var ct = cts.Token;
-
                 var changeEvents = new BlockingCollection<ServiceOwnerChangedEventArgs>(new ConcurrentQueue<ServiceOwnerChangedEventArgs>());
                 Action<ServiceOwnerChangedEventArgs> onChange =
                     change => { if (!filterEvents || (change.ServiceName == serviceName)) changeEvents.Add(change); };
                 var resolver = await conn2.ResolveServiceOwnerAsync(resolvedService, onChange);
 
                 await conn1.RegisterServiceAsync(serviceName);
-                var e = changeEvents.Take(ct);
+                var e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
                 Assert.Equal(null, e.OldOwner);
                 Assert.Equal(conn1.LocalName, e.NewOwner);
 
                 await conn1.UnregisterServiceAsync(serviceName);
-                e = changeEvents.Take(ct);
+                e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
                 Assert.Equal(conn1.LocalName, e.OldOwner);
                 Assert.Equal(null, e.NewOwner);
@@ -216,11 +212,25 @@ namespace Tmds.DBus.Tests
                 await conn1.RegisterServiceAsync(serviceName);
                 resolver = await conn2.ResolveServiceOwnerAsync(resolvedService, onChange);
 
-                e = changeEvents.Take(ct);
+                e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
                 Assert.Equal(null, e.OldOwner);
                 Assert.Equal(conn1.LocalName, e.NewOwner);
             }
+        }
+    }
+
+    static class BlockingCollectionExtensions
+    {
+        public static Task<T> TakeAsync<T>(this BlockingCollection<T> collection)
+        {
+            // avoid blocking xunit synchronizationcontext threadpool
+            return Task.Run(() => 
+            {
+                var cts = new CancellationTokenSource();
+                cts.CancelAfter(TimeSpan.FromSeconds(10));
+                return collection.Take(cts.Token);
+            });
         }
     }
 }

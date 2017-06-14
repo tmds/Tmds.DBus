@@ -15,6 +15,7 @@ namespace Tmds.DBus.Tool
         CommandOption _norecurseOption;
         CommandOption _namespaceOption;
         CommandOption _outputOption;
+        CommandOption _catOption;
         CommandOption _skipOptions;
         CommandOption _interfaceOptions;
 
@@ -30,6 +31,7 @@ namespace Tmds.DBus.Tool
             _norecurseOption = AddNoRecurseOption();
             _namespaceOption = Configuration.Option("--namespace", "C# namespace (default: <service>)", CommandOptionType.SingleValue);
             _outputOption = Configuration.Option("--output", "File to write (default: <namespace>.cs)", CommandOptionType.SingleValue);
+            _catOption = Configuration.Option("--cat", "Write to standard out instead of file", CommandOptionType.NoValue);
             _skipOptions = Configuration.Option("--skip", "DBus interfaces to skip", CommandOptionType.MultipleValue);
             _interfaceOptions = Configuration.Option("--interface", "DBus interfaces to include, optionally specify a name (e.g. 'org.freedesktop.NetworkManager.Device.Wired:WiredDevice')", CommandOptionType.MultipleValue);
         }
@@ -73,12 +75,11 @@ namespace Tmds.DBus.Tool
                 Path = _pathOption.HasValue() ? _pathOption.Value() : "/",
                 Address = address,
                 Recurse = !_norecurseOption.HasValue(),
-                OutputFileName = _outputOption.Value() ?? $"{ns}.cs",
+                OutputFileName = _catOption.HasValue() ? null : _outputOption.Value() ?? $"{ns}.cs",
                 SkipInterfaces = skipInterfaces,
                 Interfaces = interfaces
             };
             GenerateCodeAsync(codeGenArguments).Wait();
-            Console.WriteLine($"Generated: {Path.GetFullPath(codeGenArguments.OutputFileName)}");
         }
 
         private async static Task GenerateCodeAsync(CodeGenArguments codeGenArguments)
@@ -100,7 +101,15 @@ namespace Tmds.DBus.Tool
                 });
             var code = generator.Generate(introspections);
 
-            File.WriteAllText(codeGenArguments.OutputFileName, code);
+            if (codeGenArguments.OutputFileName != null)
+            {
+                File.WriteAllText(codeGenArguments.OutputFileName, code);
+                Console.WriteLine($"Generated: {Path.GetFullPath(codeGenArguments.OutputFileName)}");
+            }
+            else
+            {
+                System.Console.WriteLine(code);
+            }
         }
 
         class CodeGenArguments

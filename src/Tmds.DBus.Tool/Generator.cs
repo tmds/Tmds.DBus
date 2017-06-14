@@ -272,13 +272,15 @@ namespace Tmds.DBus.Tool
 
         private SyntaxNode ParseType(string dbusType, ref int index, List<string> elementNames = null)
         {
-            switch (dbusType[index++])
+            char c;
+            switch (c = dbusType[index++])
             {
                 case 'y': return _generator.TypeExpression(SpecialType.System_Byte);
                 case 'b': return _generator.TypeExpression(SpecialType.System_Boolean);
                 case 'n': return _generator.TypeExpression(SpecialType.System_Int16);
                 case 'q': return _generator.TypeExpression(SpecialType.System_UInt16);
                 case 'i': return _generator.TypeExpression(SpecialType.System_Int32);
+                case 'h': return _generator.TypeExpression(SpecialType.System_UInt32);
                 case 'u': return _generator.TypeExpression(SpecialType.System_UInt32);
                 case 'x': return _generator.TypeExpression(SpecialType.System_Int64);
                 case 't': return _generator.TypeExpression(SpecialType.System_UInt64);
@@ -333,7 +335,7 @@ namespace Tmds.DBus.Tool
                 case '}':
                     return null;
                 default:
-                    throw new NotSupportedException($"Unexpected character '{dbusType[index]}' while parsing dbus type '{dbusType}'");
+                    throw new NotSupportedException($"Unexpected character '{c}' while parsing dbus type '{dbusType}'");
             }
         }
 

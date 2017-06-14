@@ -10,34 +10,35 @@ namespace Tmds.DBus.Tool
     class CodeGenCommand : Command
     {
         CommandOption _serviceOption;
-        CommandOption _addressOption;
+        CommandOption _daemonOption;
         CommandOption _pathOption;
         CommandOption _norecurseOption;
         CommandOption _namespaceOption;
         CommandOption _outputOption;
         CommandOption _skipOptions;
         CommandOption _interfaceOptions;
-        public CodeGenCommand()
+
+        public CodeGenCommand(CommandLineApplication parent) :
+            base("codegen", parent)
+        {}
+
+        public override void Configure()
         {
-            Name = "codegen";
-        }
-        public override void Configure(CommandLineApplication command)
-        {
-            _serviceOption = command.Option("--service", "DBus service", CommandOptionType.SingleValue);
-            _addressOption = command.Option("--daemon", "Address of DBus daemon. 'session'/'system'/<address> (default: session)", CommandOptionType.SingleValue);
-            _pathOption = command.Option("--path", "DBus object path (default: /)", CommandOptionType.SingleValue);
-            _norecurseOption = command.Option("--no-recurse", "Don't visit child nodes of path", CommandOptionType.NoValue);
-            _namespaceOption = command.Option("--namespace", "C# namespace (default: <service>)", CommandOptionType.SingleValue);
-            _outputOption = command.Option("--output", "File to write (default: <namespace>.cs)", CommandOptionType.SingleValue);
-            _skipOptions = command.Option("--skip", "DBus interfaces to skip", CommandOptionType.MultipleValue);
-            _interfaceOptions = command.Option("--interface", "DBus interfaces to include, optionally specify a name (e.g. 'org.freedesktop.NetworkManager.Device.Wired:WiredDevice')", CommandOptionType.MultipleValue);
+            _serviceOption = AddServiceOption();
+            _daemonOption = AddDaemonOption();
+            _pathOption = AddPathOption();
+            _norecurseOption = AddNoRecurseOption();
+            _namespaceOption = Configuration.Option("--namespace", "C# namespace (default: <service>)", CommandOptionType.SingleValue);
+            _outputOption = Configuration.Option("--output", "File to write (default: <namespace>.cs)", CommandOptionType.SingleValue);
+            _skipOptions = Configuration.Option("--skip", "DBus interfaces to skip", CommandOptionType.MultipleValue);
+            _interfaceOptions = Configuration.Option("--interface", "DBus interfaces to include, optionally specify a name (e.g. 'org.freedesktop.NetworkManager.Device.Wired:WiredDevice')", CommandOptionType.MultipleValue);
         }
 
         public override void Execute()
         {
             if (!_serviceOption.HasValue())
             {
-                throw new ArgumentException("Service argument is required.", "service");
+                throw new ArgumentNullException("Service argument is required.", "service");
             }
             IEnumerable<string> skipInterfaces = new [] { "org.freedesktop.DBus.Introspectable", "org.freedesktop.DBus.Peer", "org.freedesktop.DBus.ObjectManager", "org.freedesktop.DBus.Properties" };
             if (_skipOptions.HasValue())
@@ -61,22 +62,7 @@ namespace Tmds.DBus.Tool
                     }
                 }
             }
-            var address = Address.Session;
-            if (_addressOption.HasValue())
-            {
-                if (_addressOption.Value() == "system")
-                {
-                    address = Address.System;
-                }
-                else if (_addressOption.Value() == "session")
-                {
-                    address = Address.Session;
-                }
-                else
-                {
-                    address = _addressOption.Value();
-                }
-            }
+            var address = ParseDaemonAddress(_daemonOption);
             var service = _serviceOption.Value();
             var serviceSplit = service.Split(new [] { '.' });
             var ns = _namespaceOption.Value() ?? $"{serviceSplit[serviceSplit.Length - 1]}.DBus";

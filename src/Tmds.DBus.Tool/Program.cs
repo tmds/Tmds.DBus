@@ -9,7 +9,8 @@ namespace Tmds.DBus.Tool
             var commandLineApp = new CommandLineApplication();
             commandLineApp.Name = "dotnet-dbus";
             commandLineApp.HelpOption(Command.HelpTemplate);
-            commandLineApp.AddCommand(new CodeGenCommand());
+            new CodeGenCommand(commandLineApp);
+            new ListCommand(commandLineApp);
             commandLineApp.OnExecute(() => { commandLineApp.ShowHelp(); return 0; });
             commandLineApp.Execute(args);
         }

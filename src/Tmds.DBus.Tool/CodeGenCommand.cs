@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Microsoft.Extensions.CommandLineUtils;
 
 namespace Tmds.DBus.Tool
@@ -18,6 +19,7 @@ namespace Tmds.DBus.Tool
         CommandOption _catOption;
         CommandOption _skipOptions;
         CommandOption _interfaceOptions;
+        CommandArgument _files;
 
         public CodeGenCommand(CommandLineApplication parent) :
             base("codegen", parent)
@@ -34,13 +36,14 @@ namespace Tmds.DBus.Tool
             _catOption = Configuration.Option("--cat", "Write to standard out instead of file", CommandOptionType.NoValue);
             _skipOptions = Configuration.Option("--skip", "DBus interfaces to skip", CommandOptionType.MultipleValue);
             _interfaceOptions = Configuration.Option("--interface", "DBus interfaces to include, optionally specify a name (e.g. 'org.freedesktop.NetworkManager.Device.Wired:WiredDevice')", CommandOptionType.MultipleValue);
+            _files = Configuration.Argument("files", "Interface xml files", true);
         }
 
         public override void Execute()
         {
-            if (!_serviceOption.HasValue())
+            if (!_serviceOption.HasValue() && _files.Values == null)
             {
-                throw new ArgumentNullException("Service argument is required.", "service");
+                throw new ArgumentException("Service option or files argument must be specified.", "service");
             }
             IEnumerable<string> skipInterfaces = new [] { "org.freedesktop.DBus.Introspectable", "org.freedesktop.DBus.Peer", "org.freedesktop.DBus.ObjectManager", "org.freedesktop.DBus.Properties" };
             if (_skipOptions.HasValue())
@@ -66,8 +69,12 @@ namespace Tmds.DBus.Tool
             }
             var address = ParseBusAddress(_busOption);
             var service = _serviceOption.Value();
-            var serviceSplit = service.Split(new [] { '.' });
-            var ns = _namespaceOption.Value() ?? $"{serviceSplit[serviceSplit.Length - 1]}.DBus";
+            string ns = "DBus";
+            if (service != null)
+            {
+                var serviceSplit = service.Split(new [] { '.' });
+                ns = _namespaceOption.Value() ?? $"{serviceSplit[serviceSplit.Length - 1]}.DBus";
+            }
             var codeGenArguments = new CodeGenArguments
             {
                 Namespace = ns,
@@ -77,29 +84,93 @@ namespace Tmds.DBus.Tool
                 Recurse = !_norecurseOption.HasValue(),
                 OutputFileName = _catOption.HasValue() ? null : _outputOption.Value() ?? $"{ns}.cs",
                 SkipInterfaces = skipInterfaces,
-                Interfaces = interfaces
+                Interfaces = interfaces,
+                Files = _files.Values
             };
             GenerateCodeAsync(codeGenArguments).Wait();
         }
 
-        private async static Task GenerateCodeAsync(CodeGenArguments codeGenArguments)
+        class Visitor
         {
-            var fetcher = new IntrospectionsFetcher(
-                new IntrospectionsFetcherSettings {
-                    Service = codeGenArguments.Service,
-                    Path = codeGenArguments.Path,
-                    Address = codeGenArguments.Address,
-                    Recurse = codeGenArguments.Recurse,
-                    SkipInterfaces = codeGenArguments.SkipInterfaces,
-                    Interfaces = codeGenArguments.Interfaces
-                });
-            var introspections = await fetcher.GetIntrospectionsAsync();
+            private CodeGenArguments _arguments;
+            private Dictionary<string, InterfaceDescription> _introspections;
+            private HashSet<string> _names;
+
+            public Visitor(CodeGenArguments codeGenArguments)
+            {
+                _introspections = new Dictionary<string, InterfaceDescription>();
+                _names = new HashSet<string>();
+                _arguments = codeGenArguments;
+            }
+
+            public bool VisitNode(XElement nodeXml)
+            {
+                foreach (var interfaceXml in nodeXml.Elements("interface"))
+                {
+                    string fullName = interfaceXml.Attribute("name").Value;
+                    if (_introspections.ContainsKey(fullName) || _arguments.SkipInterfaces.Contains(fullName))
+                    {
+                        continue;
+                    }
+                    string proposedName = null;
+                    if (_arguments.Interfaces != null)
+                    {
+                        if (!_arguments.Interfaces.TryGetValue(fullName, out proposedName))
+                        {
+                            continue;
+                        }
+                    }
+                    if (proposedName == null)
+                    {
+                        var split = fullName.Split(new[] { '.' });
+                        var name = split[split.Length - 1];
+                        proposedName = name;
+                        int index = 0;
+                        while (_names.Contains(proposedName))
+                        {
+                            proposedName = $"{name}{index}";
+                            index++;
+                        }
+                    }
+                    _names.Add(proposedName);
+                    _introspections.Add(fullName, new InterfaceDescription { InterfaceXml = interfaceXml, Name = proposedName });
+                    if (_arguments.Interfaces != null)
+                    {
+                        _arguments.Interfaces.Remove(fullName);
+                        return _arguments.Interfaces.Count != 0;
+                    }
+                }
+                return true;
+            }
+
+            public List<InterfaceDescription> Descriptions => _introspections.Values.ToList();
+        }
+
+        private async Task GenerateCodeAsync(CodeGenArguments codeGenArguments)
+        {
+            var visitor = new Visitor(codeGenArguments);
+            if (codeGenArguments.Service != null)
+            {
+                using (var connection = new Connection(codeGenArguments.Address))
+                {
+                    await connection.ConnectAsync();
+                    await NodeVisitor.VisitAsync(connection, codeGenArguments.Service, codeGenArguments.Path, codeGenArguments.Recurse, visitor.VisitNode);
+                }
+            }
+            if (codeGenArguments.Files != null)
+            {
+                foreach (var file in codeGenArguments.Files)
+                {
+                    await NodeVisitor.VisitAsync(file, visitor.VisitNode);
+                }
+            }
+            var descriptions = visitor.Descriptions;
 
             var generator = new Generator(
                 new GeneratorSettings {
                     Namespace = codeGenArguments.Namespace
                 });
-            var code = generator.Generate(introspections);
+            var code = generator.Generate(descriptions);
 
             if (codeGenArguments.OutputFileName != null)
             {
@@ -122,6 +193,7 @@ namespace Tmds.DBus.Tool
             public string OutputFileName { get; set; }
             public IEnumerable<string> SkipInterfaces { get; set; }
             public Dictionary<string, string> Interfaces { get; set; }
+            public List<string> Files { get; set; }
         }
     }
 }

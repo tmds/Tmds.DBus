@@ -123,7 +123,7 @@ namespace Tmds.DBus.Tool
                     if (proposedName == null)
                     {
                         var split = fullName.Split(new[] { '.' });
-                        var name = split[split.Length - 1];
+                        var name = Generator.Prettify(split[split.Length - 1]);
                         proposedName = name;
                         int index = 0;
                         while (_names.Contains(proposedName))

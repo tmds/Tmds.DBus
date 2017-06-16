@@ -272,6 +272,8 @@ public interface ITrackList
 }
 ```
 
+The fields names may be prefixed with an underscore. Dashes (which would make the field names invalid) can be replaced with underscores.
+
 # Example
 
 In this section we'll write a simple application that retrieves the introspection XML of a D-Bus object. Our program will take 3 arguments. The first argument must be `--session` or `--system` to connect to the session bus or system bus. The next two arguments specify the service name and the object path.

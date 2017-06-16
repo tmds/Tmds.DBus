@@ -293,6 +293,22 @@ namespace Tmds.DBus.Tests
         }
 
         [Dictionary]
+        public class DictionaryWithDash
+        {
+            public int f_d;
+
+            public override bool Equals(object rhs)
+            {
+                var other = rhs as DictionaryWithDash;
+                if (other == null)
+                {
+                    return false;
+                }
+                return (f_d == other.f_d);
+            }
+        }
+
+        [Dictionary]
         public class PersonProperties2
         {
             public string Name;
@@ -399,6 +415,8 @@ namespace Tmds.DBus.Tests
                                                                      new byte[] {88, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 78, 97, 109, 101, 0, 1, 115, 0, 4, 0, 0, 0, 74, 111, 104, 110, 0, 0, 0, 0, 3, 0, 0, 0, 65, 103, 101, 0, 1, 105, 0, 0, 32, 0, 0, 0, 6, 0, 0, 0, 71, 101, 110, 100, 101, 114, 0, 1, 105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 73, 115, 77, 97, 114, 114, 105, 101, 100, 0, 1, 98, 0, 0, 0, 0, 1, 0, 0, 0}, null},
                     new object[] {typeof(PersonProperties2), john2, 4, new byte[] {0, 0, 0, 88, 0, 0, 0, 0, 0, 0, 0, 4, 78, 97, 109, 101, 0, 1, 115, 0, 0, 0, 0, 4, 74, 111, 104, 110, 0, 0, 0, 0, 0, 0, 0, 3, 65, 103, 101, 0, 1, 105, 0, 0, 0, 0, 0, 32, 0, 0, 0, 6, 71, 101, 110, 100, 101, 114, 0, 1, 105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 73, 115, 77, 97, 114, 114, 105, 101, 100, 0, 1, 98, 0, 0, 0, 0, 0, 0, 0, 1},
                                                                        new byte[] {88, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 78, 97, 109, 101, 0, 1, 115, 0, 4, 0, 0, 0, 74, 111, 104, 110, 0, 0, 0, 0, 3, 0, 0, 0, 65, 103, 101, 0, 1, 105, 0, 0, 32, 0, 0, 0, 6, 0, 0, 0, 71, 101, 110, 100, 101, 114, 0, 1, 105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 73, 115, 77, 97, 114, 114, 105, 101, 100, 0, 1, 98, 0, 0, 0, 0, 1, 0, 0, 0}, null},
+                    new object[] {typeof(DictionaryWithDash), new DictionaryWithDash { f_d = 5 }, 4, new byte[] {0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 3, 102, (byte)'-', 100, 0, 1, 105, 0, 0, 0, 0, 0, 5},
+                                                                       new byte[] {16, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 102, (byte)'-', 100, 0, 1, 105, 0, 0, 5, 0, 0, 0}, null},
                     new object[] {typeof((byte, byte, byte, byte, byte, byte, byte, byte)), ((byte)1, (byte)2, (byte)3, (byte)4, (byte)5, (byte)6, (byte)7, (byte)8), 8, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8}, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8}, null},
                     new object[] {typeof(object), true,             4, new byte[] {1, 98, 0, 0, 0, 0, 0, 1},
                                                                     new byte[] {1, 98, 0, 0, 1, 0, 0, 0}, null},

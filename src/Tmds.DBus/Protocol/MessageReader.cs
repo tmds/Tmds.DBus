@@ -394,7 +394,9 @@ namespace Tmds.DBus.Protocol
                 if (!sig.IsSingleCompleteType)
                     throw new InvalidOperationException (string.Format ("ReadVariant need a single complete type signature, {0} was given", sig.ToString ()));
 
-                var field = fis.Where(f => f.Name.EndsWith(key) &&
+                // if the key contains a '-' which is an invalid identifier character,
+                // we try and replace it with '_' and see if we find a match.
+                var field = fis.Where(f => f.Name.EndsWith(key) || (key.Contains("-") && f.Name.Replace('_', '-').EndsWith(key)) &&
                                             ((f.Name.Length == key.Length) ||
                                              (f.Name.Length == key.Length + 1 && f.Name[0] == '_'))).SingleOrDefault();
 

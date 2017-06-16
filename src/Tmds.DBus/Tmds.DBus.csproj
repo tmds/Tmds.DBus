@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <Description>Tmds.DBus Library</Description>
-    <VersionPrefix>0.4.0</VersionPrefix>
+    <VersionPrefix>0.5.0</VersionPrefix>
     <Authors>Tom Deseyn</Authors>
     <TargetFramework>netstandard1.5</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

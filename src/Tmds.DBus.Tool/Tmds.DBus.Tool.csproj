@@ -3,7 +3,10 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+    <AssemblyName>dotnet-dbus</AssemblyName>
+    <PackageId>Tmds.DBus.Tool</PackageId>
     <VersionPrefix>0.1.0</VersionPrefix>
+    <PackageType>DotnetCliTool</PackageType>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Simplification;
 
 namespace Tmds.DBus.Tool
 {
@@ -110,8 +112,8 @@ namespace Tmds.DBus.Tool
 
         private SyntaxNode PropertiesClassDeclaration(string name, IEnumerable<XElement> propertyXmls)
         {
-            var fields = propertyXmls.Select(PropertyToField);
-            var propClass = _generator.ClassDeclaration($"{name}Properties", null, Accessibility.NotApplicable, DeclarationModifiers.None, null, null, fields);
+            var propertyDeclarations = propertyXmls.Select(PropertyToDeclarations);
+            var propClass = _generator.ClassDeclaration($"{name}Properties", null, Accessibility.NotApplicable, DeclarationModifiers.None, null, null, propertyDeclarations.SelectMany(d => d));
             return _generator.AddAttributes(propClass, _dictionaryAttribute);
         }
 
@@ -140,7 +142,7 @@ namespace Tmds.DBus.Tool
                 modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)),
                 returnType: SyntaxFactory.GenericName(SyntaxFactory.Identifier("Task"), SyntaxFactory.TypeArgumentList(SyntaxFactory.SingletonSeparatedList(returnType))),
                 explicitInterfaceSpecifier: default(ExplicitInterfaceSpecifierSyntax),
-                identifier: SyntaxFactory.Identifier($"Get{name}Async"),
+                identifier: ToIdentifierToken($"Get{Prettify(name)}Async"),
                 typeParameterList: null,
                 parameterList: SyntaxFactory.ParameterList(
                     SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Parameter(
@@ -172,7 +174,7 @@ namespace Tmds.DBus.Tool
                 modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)),
                 returnType: SyntaxFactory.IdentifierName("Task"),
                 explicitInterfaceSpecifier: default(ExplicitInterfaceSpecifierSyntax),
-                identifier: SyntaxFactory.Identifier($"Set{name}Async"),
+                identifier: ToIdentifierToken($"Set{Prettify(name)}Async"),
                 typeParameterList: null,
                 parameterList: SyntaxFactory.ParameterList(
                     SyntaxFactory.SeparatedList<ParameterSyntax>(new[] {
@@ -204,12 +206,17 @@ namespace Tmds.DBus.Tool
                 semicolonToken: SyntaxFactory.Token(SyntaxKind.SemicolonToken));
         }
 
-        private SyntaxNode PropertyToField(XElement propertyXml)
+        private SyntaxNode[] PropertyToDeclarations(XElement propertyXml)
         {
             string name = propertyXml.Attribute("name").Value;
+            var fieldName = $"_{name.Replace('-', '_')}";
             string dbusType = propertyXml.Attribute("type").Value;
             SyntaxNode type = ParseType(dbusType);
-            return _generator.FieldDeclaration(name, type, Accessibility.Public, DeclarationModifiers.None, _generator.DefaultExpression(type));
+            var field = _generator.FieldDeclaration(fieldName, type, Accessibility.Private, DeclarationModifiers.None, _generator.DefaultExpression(type));
+            var property = _generator.PropertyDeclaration(Prettify(name), type, Accessibility.Public,
+                getAccessorStatements: new SyntaxNode[] { _generator.ReturnStatement(_generator.IdentifierName(fieldName)) },
+                setAccessorStatements:new SyntaxNode[]  { _generator.AssignmentStatement(_generator.IdentifierName(fieldName), _generator.IdentifierName("value"))});
+            return new [] { field, property };
         }
 
         private SyntaxNode[] PropertiesDeclaration(string name)
@@ -255,7 +262,7 @@ namespace Tmds.DBus.Tool
         private SyntaxNode MultyArgsToType(IEnumerable<XElement> outArgs)
         {
             var dbusType = string.Join(string.Empty, outArgs.Select(arg => arg.Attribute("type").Value));
-            var elementNames = outArgs.Select(element => (string)element.Attribute("name")).ToList();
+            var elementNames = outArgs.Select(element => Prettify((string)element.Attribute("name"), startWithUpper: false)).ToList();
             if (outArgs.Count() > 1)
             {
                 dbusType = $"({dbusType})";
@@ -324,7 +331,7 @@ namespace Tmds.DBus.Tool
                             memberTypes.Add(type);
                             var name = elementNames != null && idx < elementNames.Count ? elementNames[idx] : null;
                             idx++;
-                            elements.Add(SyntaxFactory.TupleElement((TypeSyntax)type, name != null ? SyntaxFactory.Identifier(name) : default(SyntaxToken)));
+                            elements.Add(SyntaxFactory.TupleElement((TypeSyntax)type, name != null ? ToIdentifierToken(Prettify(name, startWithUpper: false)) : default(SyntaxToken)));
                         }
                     } while (type != null);
                     if (memberTypes.Count < 2)
@@ -347,8 +354,68 @@ namespace Tmds.DBus.Tool
         private SyntaxNode InArgToParameter(XElement argXml, int idx)
         {
             var type = ParseType(argXml.Attribute("type").Value);
-            var name = (string)argXml.Attribute("name");
+            var name = Prettify((string)argXml.Attribute("name"));
             return _generator.ParameterDeclaration(name ?? $"arg{idx}", type);
+        }
+
+       private static string EscapeIdentifier(string identifier)
+       {
+            var nullIndex = identifier.IndexOf('\0');
+            if (nullIndex >= 0)
+            {
+                identifier = identifier.Substring(0, nullIndex);
+            }
+
+            var needsEscaping = SyntaxFacts.GetKeywordKind(identifier) != SyntaxKind.None;
+
+            return needsEscaping ? "@" + identifier : identifier;
+        }
+
+        private static SyntaxToken ToIdentifierToken(string identifier)
+        {
+            var escaped = EscapeIdentifier(identifier);
+
+            if (escaped.Length == 0 || escaped[0] != '@')
+            {
+                return SyntaxFactory.Identifier(escaped);
+            }
+
+            var unescaped = identifier.StartsWith("@", StringComparison.Ordinal)
+                ? identifier.Substring(1)
+                : identifier;
+
+            var token = SyntaxFactory.Identifier(
+                default(SyntaxTriviaList), SyntaxKind.None, "@" + unescaped, unescaped, default(SyntaxTriviaList));
+
+            if (!identifier.StartsWith("@", StringComparison.Ordinal))
+            {
+                token = token.WithAdditionalAnnotations(Simplifier.Annotation);
+            }
+
+            return token;
+        }
+
+        public static string Prettify(string name, bool startWithUpper = true)
+        {
+            if (name == null)
+            {
+                return null;
+            }
+            bool upper = startWithUpper;
+            var sb = new StringBuilder(name.Length);
+            bool first = true;
+            foreach (char c in name)
+            {
+                if (c == '_' || c == '-')
+                {
+                    upper = true;
+                    continue;
+                }
+                sb.Append(upper ? char.ToUpper(c) : first && !startWithUpper ? char.ToLower(c) : c);
+                upper = false;
+                first = false;
+            }
+            return sb.ToString();
         }
     }
 }

@@ -4,13 +4,8 @@
 
 namespace Tmds.DBus
 {
+    // This is a placeholder type for DBus UNIX_FD ('h') type.
+    // The UNIX_FD type is not supported by Tmds.DBus.
     public struct UnixFd
-    {
-        public UnixFd(uint value)
-        {
-            Value = value;
-        }
-
-        public uint Value { get; set; }
-    }
+    {}
 }

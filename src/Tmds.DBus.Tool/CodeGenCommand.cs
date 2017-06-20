@@ -36,7 +36,7 @@ namespace Tmds.DBus.Tool
             _catOption = Configuration.Option("--cat", "Write to standard out instead of file", CommandOptionType.NoValue);
             _skipOptions = Configuration.Option("--skip", "DBus interfaces to skip", CommandOptionType.MultipleValue);
             _interfaceOptions = Configuration.Option("--interface", "DBus interfaces to include, optionally specify a name (e.g. 'org.freedesktop.NetworkManager.Device.Wired:WiredDevice')", CommandOptionType.MultipleValue);
-            _files = Configuration.Argument("files", "Interface xml files", true);
+            _files = AddFilesArgument();
         }
 
         public override void Execute()

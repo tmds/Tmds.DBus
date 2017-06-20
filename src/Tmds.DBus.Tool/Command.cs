@@ -37,6 +37,9 @@ namespace Tmds.DBus.Tool
         internal CommandOption AddNoRecurseOption()
             => Configuration.Option("--no-recurse", "Don't visit child nodes of path", CommandOptionType.NoValue);
 
+        internal CommandArgument AddFilesArgument()
+            => Configuration.Argument("files", "Interface xml files", true);
+
         internal string ParseBusAddress(CommandOption addressOption)
         {
             if (addressOption.HasValue())

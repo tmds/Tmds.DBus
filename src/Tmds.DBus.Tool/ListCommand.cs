@@ -15,6 +15,7 @@ namespace Tmds.DBus.Tool
         CommandOption _pathOption;
         CommandOption _norecurseOption;
         CommandArgument _typeArgument;
+        CommandArgument _files;
 
         public ListCommand(CommandLineApplication parent) :
             base("list", parent)
@@ -26,7 +27,8 @@ namespace Tmds.DBus.Tool
             _busOption = AddBusOption();
             _pathOption = AddPathOption();
             _norecurseOption = AddNoRecurseOption();
-            _typeArgument = Configuration.Argument("type", "Type to list. 'objects'/services'/'activatable-services'");
+            _typeArgument = Configuration.Argument("type", "Type to list. 'objects'/'interfaces'/services'/'activatable-services'");
+            _files = AddFilesArgument();
         }
 
         public override void Execute()
@@ -55,6 +57,17 @@ namespace Tmds.DBus.Tool
                 string path = _pathOption.HasValue() ? _pathOption.Value() : "/";
                 ListObjectsAsync(address, service, path, recurse).Wait();
             }
+            else if (_typeArgument.Value == "interfaces")
+            {
+                if (!_serviceOption.HasValue() && _files.Values == null)
+                {
+                    throw new ArgumentException("Service option or files argument must be specified for listing interfaces.", "service");
+                }
+                string service = _serviceOption.Value();
+                bool recurse = !_norecurseOption.HasValue();
+                string path = _pathOption.HasValue() ? _pathOption.Value() : "/";
+                ListInterfacesAsync(address, service, path, recurse, _files.Values).Wait();
+            }
             else
             {
                 throw new ArgumentException("Unknown type", "type");
@@ -67,25 +80,27 @@ namespace Tmds.DBus.Tool
             public List<string> Interfaces { get; set; }
         }
 
-        class Visitor
+        class ObjectsVisitor
         {
             private static readonly IEnumerable<string> s_skipInterfaces = new[] { "org.freedesktop.DBus.Introspectable", "org.freedesktop.DBus.Peer", "org.freedesktop.DBus.Properties" };
             public List<DBusObject> Objects { private set; get; }
 
-            public Visitor()
+            public ObjectsVisitor()
             {
                 Objects = new List<DBusObject>();
             }
 
             public bool Visit(string path, XElement nodeXml)
             {
-                var interfaces = nodeXml.Elements("interface").Where(i => !s_skipInterfaces.Contains(i.Attribute("name").Value));
+                var interfaces = nodeXml.Elements("interface")
+                    .Select(i => i.Attribute("name").Value)
+                    .Where(i => !s_skipInterfaces.Contains(i));
                 if (interfaces.Any())
                 {
                     var o = new DBusObject()
                     {
                         Path = path,
-                        Interfaces = interfaces.Select(interfaceXml => interfaceXml.Attribute("name").Value).OrderBy(s => s).ToList()
+                        Interfaces = interfaces.OrderBy(s => s).ToList()
                     };
                     Objects.Add(o);
                 }
@@ -95,7 +110,7 @@ namespace Tmds.DBus.Tool
 
         private async Task ListObjectsAsync(string address, string service, string path, bool recurse)
         {
-            var visitor = new Visitor();
+            var visitor = new ObjectsVisitor();
             using (var connection = new Connection(address))
             {
                 await connection.ConnectAsync();
@@ -104,6 +119,53 @@ namespace Tmds.DBus.Tool
             foreach (var o in visitor.Objects.OrderBy(o => o.Path))
             {
                 Console.WriteLine($"{o.Path} : {string.Join(" ", o.Interfaces)}");
+            }
+        }
+
+        class InterfacesVisitor
+        {
+            private static readonly IEnumerable<string> s_skipInterfaces = new[] { "org.freedesktop.DBus.Introspectable", "org.freedesktop.DBus.Peer", "org.freedesktop.DBus.Properties" };
+            public HashSet<string> Interfaces { private set; get; }
+
+            public InterfacesVisitor()
+            {
+                Interfaces = new HashSet<string>();
+            }
+
+            public bool Visit(string path, XElement nodeXml)
+            {
+                var interfaces = nodeXml.Elements("interface")
+                    .Select(i => i.Attribute("name").Value)
+                    .Where(i => !s_skipInterfaces.Contains(i));
+                foreach (var interf in interfaces)
+                {
+                    Interfaces.Add(interf);
+                }
+                return true;
+            }
+        }
+
+        private async Task ListInterfacesAsync(string address, string service, string path, bool recurse, List<string> files)
+        {
+            var visitor = new InterfacesVisitor();
+            if (service != null)
+            {
+                using (var connection = new Connection(address))
+                {
+                    await connection.ConnectAsync();
+                    await NodeVisitor.VisitAsync(connection, service, path, recurse, visitor.Visit);
+                }
+            }
+            if (files != null)
+            {
+                foreach (var file in files)
+                {
+                    await NodeVisitor.VisitAsync(file, visitor.Visit);
+                }
+            }
+            foreach (var interf in visitor.Interfaces.OrderBy(i => i))
+            {
+                Console.WriteLine(interf);
             }
         }
 

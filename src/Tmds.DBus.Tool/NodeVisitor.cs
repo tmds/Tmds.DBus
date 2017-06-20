@@ -13,18 +13,18 @@ namespace Tmds.DBus
 
     class NodeVisitor
     {
-        public static Task VisitAsync(string filename, Func<XElement, bool> visit)
+        public static Task VisitAsync(string filename, Func<string, XElement, bool> visit)
         {
             var xml = XDocument.Load(filename).Root;
             return GetInterfacesFromIntrospection(null, null, null, xml, false, visit);
         }
 
-        public static Task VisitAsync(Connection connection, string service, string objectPath, bool recurse, Func<XElement, bool> visit)
+        public static Task VisitAsync(Connection connection, string service, string objectPath, bool recurse, Func<string, XElement, bool> visit)
         {
             return VisitAsyncInternal(connection, service, objectPath, recurse, visit);
         }
 
-        private static async Task<bool> VisitAsyncInternal(Connection connection, string service, string objectPath, bool recurse, Func<XElement, bool> visit)
+        private static async Task<bool> VisitAsyncInternal(Connection connection, string service, string objectPath, bool recurse, Func<string, XElement, bool> visit)
         {
             var introspectable = connection.CreateProxy<IIntrospectable>(service, objectPath);
             var xml = await introspectable.IntrospectAsync();
@@ -32,9 +32,9 @@ namespace Tmds.DBus
             return await GetInterfacesFromIntrospection(connection, service, objectPath, nodeXml, recurse, visit);
         }
 
-        private static async Task<bool> GetInterfacesFromIntrospection(Connection connection, string service, string objectPath, XElement nodeXml, bool recurse, Func<XElement, bool> visit)
+        private static async Task<bool> GetInterfacesFromIntrospection(Connection connection, string service, string objectPath, XElement nodeXml, bool recurse, Func<string, XElement, bool> visit)
         {
-            if (!visit(nodeXml))
+            if (!visit(objectPath, nodeXml))
             {
                 return false;
             }

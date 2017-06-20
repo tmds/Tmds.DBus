@@ -45,7 +45,7 @@ namespace Tmds.DBus.Tool
             {
                 throw new ArgumentException("Service option or files argument must be specified.", "service");
             }
-            IEnumerable<string> skipInterfaces = new [] { "org.freedesktop.DBus.Introspectable", "org.freedesktop.DBus.Peer", "org.freedesktop.DBus.ObjectManager", "org.freedesktop.DBus.Properties" };
+            IEnumerable<string> skipInterfaces = new [] { "org.freedesktop.DBus.Introspectable", "org.freedesktop.DBus.Peer", "org.freedesktop.DBus.Properties" };
             if (_skipOptions.HasValue())
             {
                 skipInterfaces = skipInterfaces.Concat(_skipOptions.Values);
@@ -103,7 +103,7 @@ namespace Tmds.DBus.Tool
                 _arguments = codeGenArguments;
             }
 
-            public bool VisitNode(XElement nodeXml)
+            public bool VisitNode(string path, XElement nodeXml)
             {
                 foreach (var interfaceXml in nodeXml.Elements("interface"))
                 {

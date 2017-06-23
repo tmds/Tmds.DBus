@@ -59,10 +59,10 @@ $ dotnet dbus list --bus system --service org.freedesktop.NetworkManager objects
 /org/freedesktop/NetworkManager : org.freedesktop.NetworkManager
 ```
 
-These command show us that the `org.freedesktop.NetworkManager` services is on the `system` bus
+These command show us that the `org.freedesktop.NetworkManager` service is on the `system` bus
 and has an entry point object at `/org/freedesktop/NetworkManager` which implements `org.freedesktop.NetworkManager`.
 
-Now we'll invoke the `codegen` command to generate the C# interfaces implemented by the NetworkManager service.
+Now we'll invoke the `codegen` command to generate C# interfaces for the NetworkManager service.
 
 ```
 $ dotnet dbus codegen --bus system --service org.freedesktop.NetworkManager
@@ -70,7 +70,7 @@ $ dotnet dbus codegen --bus system --service org.freedesktop.NetworkManager
 
 This generates a `NetworkManager.DBus.cs` file in the local folder.
 
-Now we'll change a `Program.cs`. We connect to the system bus and create an `INetworkManager` proxy object.
+We change `Program.cs` so it connects to the system bus and create an `INetworkManager` proxy object.
 
 ```C#
 using System;
@@ -106,18 +106,20 @@ namespace dbus_app
 ```
 
 If we look at the `INetworkManager` interface in `NetworkManager.DBus.cs`, we see it has a `GetDevicesAsync` method.
+
 ```C#
 Task<ObjectPath[]> GetDevicesAsync();
 ```
 
 This method is returning an `ObjectPath[]`. Thes paths refer to other objects of the D-Bus service. We can use these
-paths and use them with `CreateProxy`. Instead, we'll update the method to reflect it is returning `IDevice` objects.
+paths with `CreateProxy`. Instead, we'll update the method to reflect it is returning `IDevice` objects.
 
 ```C#
 Task<IDevice[]> GetDevicesAsync();
 ```
 
 We can now add the code to iterate over the devices and add a signal handler for the state change:
+
 ```C#
 foreach (var device in await networkManager.GetDevicesAsync())
 {
@@ -128,7 +130,8 @@ foreach (var device in await networkManager.GetDevicesAsync())
 }
 ```
 
-When we run our program and change our network interfaces (e.g. turn on/off WiFi) we see the notifications show up:
+When we run our program and change our network interfaces (e.g. turn on/off WiFi) notifications show up:
+
 ```
 $ dotnet run
 Press any key to close the application.

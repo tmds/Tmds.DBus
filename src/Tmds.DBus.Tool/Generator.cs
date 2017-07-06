@@ -26,7 +26,7 @@ namespace Tmds.DBus.Tool
         private readonly SyntaxNode _task;
         private readonly SyntaxNode _objectPath;
         private readonly SyntaxNode _signature;
-        private readonly SyntaxNode _unixFd;
+        private readonly SyntaxNode _closeSafeHandle;
         private readonly SyntaxNode _action;
         private readonly SyntaxNode _taskOfIDisposable;
         private readonly GeneratorSettings _settings;
@@ -46,7 +46,7 @@ namespace Tmds.DBus.Tool
             _action = _generator.IdentifierName("Action");
             _objectPath = _generator.IdentifierName("ObjectPath");
             _signature = _generator.IdentifierName("Signature");
-            _unixFd = _generator.IdentifierName("UnixFd");
+            _closeSafeHandle = _generator.IdentifierName("CloseSafeHandle");
             _taskOfIDisposable = _generator.GenericName("Task", _generator.IdentifierName("IDisposable"));
         }
 
@@ -291,7 +291,7 @@ namespace Tmds.DBus.Tool
                 case 'n': return _generator.TypeExpression(SpecialType.System_Int16);
                 case 'q': return _generator.TypeExpression(SpecialType.System_UInt16);
                 case 'i': return _generator.TypeExpression(SpecialType.System_Int32);
-                case 'h': return _unixFd;
+                case 'h': return _closeSafeHandle;
                 case 'u': return _generator.TypeExpression(SpecialType.System_UInt32);
                 case 'x': return _generator.TypeExpression(SpecialType.System_Int64);
                 case 't': return _generator.TypeExpression(SpecialType.System_UInt64);

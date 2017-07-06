@@ -346,11 +346,12 @@ namespace Tmds.DBus.Protocol
         {
             var idx = ReadInt32();
             var fds = _message.UnixFds;
-            if (fds == null || idx >= fds.Length)
+            int fd = -1;
+            if (fds != null || idx < fds.Length)
             {
-                return default(T);
+                fd = fds[idx].Handle;
             }
-            return (T)Activator.CreateInstance(typeof(T), new object[] { (IntPtr)fds[idx].Handle , true });
+            return (T)Activator.CreateInstance(typeof(T), new object[] { (IntPtr)fd , true });
         }
 
         public object ReadVariant ()

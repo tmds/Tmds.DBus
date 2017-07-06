@@ -127,12 +127,14 @@ namespace Tmds.DBus
 
         public async Task<bool> UnregisterServiceAsync(string serviceName)
         {
+            ThrowIfNotConnected();
             var reply = await _dbusConnection.ReleaseNameAsync(serviceName);
             return reply == ReleaseNameReply.ReplyReleased;
         }
 
         public async Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
+            ThrowIfNotConnected();
             if (!options.HasFlag(ServiceRegistrationOptions.AllowReplacement) && (onLost != null))
             {
                 throw new ArgumentException($"{nameof(onLost)} can only be set when {nameof(ServiceRegistrationOptions.AllowReplacement)} is also set", nameof(onLost));
@@ -162,6 +164,7 @@ namespace Tmds.DBus
 
         public async Task RegisterServiceAsync(string name, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
+            ThrowIfNotConnected();
             if (!options.HasFlag(ServiceRegistrationOptions.AllowReplacement) && (onLost != null))
             {
                 throw new ArgumentException($"{nameof(onLost)} can only be set when {nameof(ServiceRegistrationOptions.AllowReplacement)} is also set", nameof(onLost));
@@ -195,9 +198,10 @@ namespace Tmds.DBus
         {
             return RegisterObjectsAsync(new[] { o });
         }
-        
+
         public async Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects)
         {
+            ThrowIfNotConnected();
             var assembly = DynamicAssembly.Instance;
             var registrations = new List<DBusAdapter>();
             foreach (var o in objects)
@@ -422,6 +426,7 @@ namespace Tmds.DBus
             return DBus.ListNamesAsync();
         }
 
+        // Used by tests
         internal void Connect(IDBusConnection dbusConnection)
         {
             lock (_gate)
@@ -437,6 +442,7 @@ namespace Tmds.DBus
 
         private object CreateProxy(Type interfaceType, string busName, ObjectPath path)
         {
+            ThrowIfNotConnected();
             var assembly = DynamicAssembly.Instance;
             var implementationType = assembly.GetProxyTypeInfo(interfaceType);
 

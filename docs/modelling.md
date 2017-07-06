@@ -50,7 +50,7 @@ INT64	          | x         |	System.Int64 (long)
 UINT64	          | t         |	System.UInt64 (ulong)
 N/A    	          | f         |	System.Single (float)
 DOUBLE	          | d         |	System.Double (double)
-UNIX_FD	          | h         |	not supported
+UNIX_FD	          | h         |	SafeHandle derived type
 STRING	          | s         |	System.String (string)
 OBJECT_PATH	      | o         |	ObjectPath, IDBusObject, D-Bus interface, D-Bus object type interface
 SIGNATURE	      | g         |	N/A
@@ -68,7 +68,9 @@ When an `object` is serialized as a VARIANT, it's underlying type is determined 
 
 When an VARIANT is deserialized as an `object` the matching .NET type is used. ARRAY types are deserialized as `T[]`. DICTIONARY types are deserialized as `IDictionary<TKey,TValue>`. STRUCTS are deserialized as `System.ValueTuple`.
 
-The `float` type is not part of the D-Bus specification. It was implemented as part of ndesk-dbus and is supported by Tmds.DBus. The UNIX_FD type is not supported by Tmds.DBus.
+The `float` type is not part of the D-Bus specification. It was implemented as part of ndesk-dbus and is supported by Tmds.DBus.
+
+`SafeHandle` derived types can be used to receive and send file descriptors. The derived type must have a `(IntPtr, Boolean)` constructor. When a `SafeHandle` is sent, it will be Disposed. Tmds.DBus provides a `CloseSafeHandle` class, that can be used as a generic `SafeHandle`.
 
 ## Methods
 

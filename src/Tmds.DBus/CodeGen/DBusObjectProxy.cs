@@ -129,9 +129,8 @@ namespace Tmds.DBus.CodeGen
 
         private async Task<MessageReader> SendMethodReturnReaderAsync(string iface, string member, Signature? inSignature, MessageWriter writer)
         {
-            var callMessage = new Message()
-            {
-                Header = new Header(MessageType.MethodCall)
+            var callMessage = new Message(
+                new Header(MessageType.MethodCall)
                 {
                     Path = ObjectPath,
                     Interface = iface,
@@ -139,8 +138,9 @@ namespace Tmds.DBus.CodeGen
                     Destination = _serviceName,
                     Signature = inSignature
                 },
-                Body = writer?.ToArray()
-            };
+                writer?.ToArray(),
+                writer?.UnixFds
+            );
 
             var reply = await _connection.CallMethodAsync(callMessage);
             return new MessageReader(reply, _factory);

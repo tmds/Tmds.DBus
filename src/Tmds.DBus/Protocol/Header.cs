@@ -56,6 +56,7 @@ namespace Tmds.DBus.Protocol
         public string Destination { get; set; }
         public string Sender { get; set; }
         public Signature? Signature { get; set; }
+        public uint NumberOfFds { get; set; }
 
         public static Header FromBytes(ArraySegment<byte> data)
         {
@@ -102,6 +103,9 @@ namespace Tmds.DBus.Protocol
                         break;
                     case FieldCode.Signature:
                         header.Signature = (Signature)value;
+                        break;
+                    case FieldCode.UnixFds:
+                        header.NumberOfFds = (uint)value;
                         break;
                 }
             }
@@ -156,6 +160,10 @@ namespace Tmds.DBus.Protocol
             if (Signature != null)
             {
                 yield return new KeyValuePair<FieldCode, object>(FieldCode.Signature, Signature.Value);
+            }
+            if (NumberOfFds != 0)
+            {
+                yield return new KeyValuePair<FieldCode, object>(FieldCode.UnixFds, NumberOfFds);
             }
         }
 

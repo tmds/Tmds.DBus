@@ -17,7 +17,7 @@ namespace Tmds.DBus.Protocol
 {
     internal class MessageReader
     {
-        private static MethodInfo s_createReadDelegateMethod = typeof(ReadMethodFactory)
+        private static readonly MethodInfo s_createReadDelegateMethod = typeof(ReadMethodFactory)
             .GetMethod(nameof(ReadMethodFactory.CreateReadMethodDelegate), BindingFlags.Static | BindingFlags.Public);
 
         private readonly EndianFlag _endianness;
@@ -88,10 +88,6 @@ namespace Tmds.DBus.Protocol
             else if (type == typeof(Signature))
             {
                 return ReadSignature();
-            }
-            else if (type == typeof(UnixFd))
-            {
-                return ReadUnixFd();
             }
             else if (type == typeof(string))
             {
@@ -346,9 +342,15 @@ namespace Tmds.DBus.Protocol
             return Signature.Take (sigData);
         }
 
-        public UnixFd ReadUnixFd()
+        public T ReadSafeHandle<T>()
         {
-            throw new NotSupportedException("Receiving file descriptors is not supported");
+            var idx = ReadInt32();
+            var fds = _message.UnixFds;
+            if (fds == null || idx >= fds.Length)
+            {
+                return default(T);
+            }
+            return (T)Activator.CreateInstance(typeof(T), new object[] { (IntPtr)fds[idx].Handle , true });
         }
 
         public object ReadVariant ()

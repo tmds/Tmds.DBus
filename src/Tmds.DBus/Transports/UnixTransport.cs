@@ -4,88 +4,99 @@
 // See COPYING for details
 
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Transports
 {
     using SizeT = System.UIntPtr;
-    using SSizeT = System.IntPtr;
     internal class UnixTransport : Transport
     {
         private static readonly byte[] _oneByteArray = new[] { (byte)0 };
-        private static bool s_bsdCredSupported = true;
-        private static PropertyInfo s_safeHandleProperty;
+
+        // Issue https://github.com/dotnet/corefx/issues/6807
+        private static PropertyInfo s_safeHandleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
+
+        const int SOL_SOCKET = 1;
+        const int EINTR = 4;
+        const int EAGAIN = 11;
+        const int SCM_RIGHTS = 1;
+
         private unsafe struct msghdr
         {
             public IntPtr msg_name; //optional address
             public uint msg_namelen; //size of address
             public IOVector* msg_iov; //scatter/gather array
             public SizeT msg_iovlen; //# elements in msg_iov
-            public IntPtr msg_control; //ancillary data, see below
+            public void* msg_control; //ancillary data, see below
             public SizeT msg_controllen; //ancillary data buffer len
             public int msg_flags; //flags on received message
         }
 
-        unsafe struct IOVector
+        private unsafe struct IOVector
         {
-            public IOVector(IntPtr bbase, int length)
-            {
-                this.Base = (void*)bbase;
-                this.length = (SizeT)length;
-            }
-
-            //public IntPtr Base;
             public void* Base;
-
-            public SizeT length;
-            public int Length
-            {
-                get
-                {
-                    return (int)length;
-                }
-                set
-                {
-                    length = (SizeT)value;
-                }
-            }
+            public SizeT Length;
         }
 
         private struct cmsghdr
         {
-            public uint cmsg_len; //data byte count, including header
+            public SizeT cmsg_len; //data byte count, including header
             public int cmsg_level; //originating protocol
             public int cmsg_type; //protocol-specific type
         }
 
-        private unsafe struct cmsgcred
-        {
-            const int CMGROUP_MAX = 16;
-
-            public int cmcred_pid; //PID of sending process
-            public uint cmcred_uid; //real UID of sending process
-            public uint cmcred_euid; //effective UID of sending process
-            public uint cmcred_gid; //real GID of sending process
-            public short cmcred_ngroups; //number or groups
-            public fixed uint cmcred_groups[CMGROUP_MAX]; //groups
-        }
-
-        private struct cmsg
+        private unsafe struct cmsg_fd
         {
             public cmsghdr hdr;
-            public cmsgcred cred;
+            public fixed int fds[64];
         }
 
-        public UnixTransport(AddressEntry entry) :
-            base(entry)
-        {}
+        private class ReadContext
+        {
+            public TaskCompletionSource<int> Tcs;
+            public byte[] Buffer;
+            public int Offset;
+            public int Count;
+            public List<UnixFd> FileDescriptors;
+        }
 
-        protected override Task<Stream> OpenAsync (AddressEntry entry, CancellationToken cancellationToken)
+        private class SendContext
+        {
+            public TaskCompletionSource<object> Tcs;
+        }
+
+        private Socket _socket;
+        private int _socketFd;
+        private readonly SocketAsyncEventArgs _waitForData;
+        private readonly SocketAsyncEventArgs _sendArgs;
+        private readonly List<ArraySegment<byte>> _bufferList = new List<ArraySegment<byte>>();
+
+        private UnixTransport()
+        {
+            _waitForData = new SocketAsyncEventArgs();
+            _waitForData.SetBuffer(Array.Empty<byte>(), 0, 0);
+            _waitForData.Completed += ReadCompleted;
+            _waitForData.UserToken = new ReadContext();
+            _sendArgs = new SocketAsyncEventArgs();
+            _sendArgs.BufferList = new List<ArraySegment<byte>>();
+            _sendArgs.UserToken = new SendContext();
+            _sendArgs.Completed += SendCompleted;
+        }
+
+        public static new async Task<IMessageStream> OpenAsync(AddressEntry entry, CancellationToken cancellationToken)
+        {
+            var messageStream = new UnixTransport();
+            await messageStream.DoOpenAsync(entry, cancellationToken);
+            return messageStream;
+        }
+
+        private async Task DoOpenAsync(AddressEntry entry, CancellationToken cancellationToken)
         {
             string path;
             bool abstr;
@@ -97,10 +108,10 @@ namespace Tmds.DBus.Transports
             else
                 throw new ArgumentException("No path specified for UNIX transport");
 
-            return OpenAsync(path, abstr, cancellationToken);
+            await OpenAsync(entry.Guid, path, abstr, cancellationToken);
         }
 
-        private async Task<Stream> OpenAsync(string path, bool abstr, CancellationToken cancellationToken)
+        private async Task OpenAsync(Guid guid, string path, bool abstr, CancellationToken cancellationToken)
         {
             if (String.IsNullOrEmpty(path))
             {
@@ -112,33 +123,30 @@ namespace Tmds.DBus.Transports
                 path = (char)'\0' + path;
             }
 
-            var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            var registration = cancellationToken.Register(() => ((IDisposable)socket).Dispose());
-            var endPoint = new Tmds.DBus.Transports.UnixDomainSocketEndPoint(path);
+            _socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+            var socketSafeHandle = (SafeHandle)s_safeHandleProperty.GetValue(_socket, null);
+            _socketFd = (int)socketSafeHandle.DangerousGetHandle();
+
+            var registration = cancellationToken.Register(Dispose);
+            var endPoint = new UnixDomainSocketEndPoint(path);
             try
             {
-                await socket.ConnectAsync(endPoint);
-                var stream = new NetworkStream(socket, true);
+                await _socket.ConnectAsync(endPoint);
                 try
                 {
-                    var bsdAuthenticated = TryWriteBsdCred(socket);
-                    registration.Dispose();
-                    if (!bsdAuthenticated)
-                    {
-                        await stream.WriteAsync(_oneByteArray, 0, 1, cancellationToken);
-                    }
-                    await DoSaslAuthenticationAsync(stream, cancellationToken);
-                    return stream;
+                    await SendAsync(_oneByteArray, 0, 1);
+                    await DoSaslAuthenticationAsync(guid, true);
+                    return;
                 }
                 catch (Exception e)
                 {
-                    stream.Dispose();
+                    Dispose();
                     throw new ConnectionException($"Unable to authenticate: {e.Message}", e);
                 }
             }
             catch (System.Exception e)
             {
-                socket.Dispose();
+                Dispose();
                 throw new ConnectionException($"Socket error: {e.Message}", e);
             }
             finally
@@ -147,57 +155,261 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        private static unsafe bool TryWriteBsdCred(Socket socket)
+        public override void Dispose()
         {
-            if (!s_bsdCredSupported)
+            _socketFd = -1;
+            _socket.Dispose();
+        }
+
+        private void ReadCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            var readContext = _waitForData.UserToken as ReadContext;
+            int rv = DoRead(readContext.Buffer, readContext.Offset, readContext.Count, readContext.FileDescriptors);
+            var tcs = readContext.Tcs;
+            if (rv >= 0)
             {
-                return false;
+                readContext.Tcs = null;
+                tcs.SetResult(rv);
             }
-            byte buf = 0;
-
-            IOVector iov = new IOVector ();
-            iov.Base = &buf;
-            iov.Length = 1;
-
-            msghdr msg = new msghdr ();
-            msg.msg_iov = &iov;
-            msg.msg_iovlen = (SizeT)1;
-
-            cmsg cm = new cmsg ();
-            msg.msg_control = (IntPtr)(&cm);
-            msg.msg_controllen = (SizeT)sizeof (cmsg);
-            cm.hdr.cmsg_len = (uint)sizeof (cmsg);
-            cm.hdr.cmsg_level = 0xffff; //SOL_SOCKET
-            cm.hdr.cmsg_type = 0x03; //SCM_CREDS
-
-            // Issue https://github.com/dotnet/corefx/issues/6807
-            s_safeHandleProperty = s_safeHandleProperty ?? typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
-            var socketSafeHandle = (SafeHandle)s_safeHandleProperty.GetValue(socket, null);
-            int sockFd = (int)socketSafeHandle.DangerousGetHandle();
-            do
+            else
             {
-                var rv = (int)Interop.sendmsg(sockFd, new IntPtr(&msg), 0);
-
-                if (rv == 1)
+                int errno = -rv;
+                if (errno == EAGAIN)
                 {
-                    return true;
+                    ReadAvailableAsync(readContext.Buffer, readContext.Offset, readContext.Count, readContext.FileDescriptors);
                 }
                 else
                 {
-                    var errno = Marshal.GetLastWin32Error();
-                    switch (errno)
+                    readContext.Tcs = null;
+                    tcs.SetException(CreateExceptionForErrno(errno));
+                }
+            }
+        }
+
+        private SocketException CreateExceptionForErrno(int errno)
+        {
+            return new SocketException(errno);
+        }
+
+        private unsafe int DoRead(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
+        {
+            fixed (byte* buf = buffer)
+            {
+                do
+                {
+                    IOVector iov = new IOVector ();
+                    iov.Base = buf + offset;
+                    iov.Length = (SizeT)count;
+                    
+                    msghdr msg = new msghdr ();
+                    msg.msg_iov = &iov;
+                    msg.msg_iovlen = (SizeT)1;
+
+                    cmsg_fd cm = new cmsg_fd ();
+                    msg.msg_control = &cm;
+                    msg.msg_controllen = (SizeT)sizeof (cmsg_fd);
+
+                    var rv = (int)Interop.recvmsg(_socketFd, new IntPtr(&msg), 0);
+                    if (rv >= 0)
                     {
-                        case 4:  // EINTR
-                            continue;
-                        case 22: // EINVAL
-                            s_bsdCredSupported = false;
-                            return false;
-                        default:
-                            throw new SocketException();
+                        if (cm.hdr.cmsg_level == SOL_SOCKET && cm.hdr.cmsg_type == SCM_RIGHTS)
+                        {
+                            int msgFdCount = ((int)cm.hdr.cmsg_len - sizeof(cmsghdr)) / sizeof(int);
+                            for (int i = 0; i < msgFdCount; i++)
+                            {
+                                fileDescriptors.Add(new UnixFd(cm.fds[i]));
+                            }
+                        }
+                        return rv;
                     }
+                    else
+                    {
+                        var errno = Marshal.GetLastWin32Error();
+                        if (errno != EINTR)
+                        {
+                            return -errno;
+                        }
+                    }
+                } while (true);
+            }
+        }
+
+        protected unsafe override Task<int> ReadAvailableAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
+        {
+            var readContext = _waitForData.UserToken as ReadContext;
+            readContext.Tcs = readContext.Tcs ?? new TaskCompletionSource<int>();
+            readContext.Buffer = buffer;
+            readContext.Offset = offset;
+            readContext.Count = count;
+            readContext.FileDescriptors = fileDescriptors;
+            while (true)
+            {
+                if (!_socket.ReceiveAsync(_waitForData))
+                {
+                    int rv = DoRead(buffer, offset, count, fileDescriptors);
+                    if (rv >= 0)
+                    {
+                        return Task.FromResult(rv);
+                    }
+                    else
+                    {
+                        int errno = -rv;
+                        if (errno == EAGAIN)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            return Task.FromException<int>(CreateExceptionForErrno(errno));
+                        }
+                    }
+                }
+                else
+                {
+                    return readContext.Tcs.Task;
+                }
+            }
+        }
+
+        public override Task SendMessageAsync(Message message)
+        {
+            if (message.UnixFds != null && message.UnixFds.Length > 0)
+            {
+                return SendMessageWithFdsAsync(message);
+            }
+            else
+            {
+                _bufferList.Clear();
+                var headerBytes = message.Header.ToArray();
+                _bufferList.Add(new ArraySegment<byte>(headerBytes, 0, headerBytes.Length));
+                if (message.Body != null)
+                {
+                    _bufferList.Add(new ArraySegment<byte>(message.Body, 0, message.Body.Length));
+                }
+                return SendBufferListAsync(_bufferList);
+            }
+        }
+
+        private unsafe int SendMsg(msghdr* msg, int length)
+        {
+            // This method does NOT handle splitting msg and EAGAIN
+            do
+            {
+                var rv = Interop.sendmsg(_socketFd, new IntPtr(msg), 0);
+                if (rv == new IntPtr(length))
+                {
+                    return length;
+                }
+                if (rv == new IntPtr(-1))
+                {
+                    var errno = Marshal.GetLastWin32Error();
+                    if (errno != EINTR)
+                    {
+                        return -errno;
+                    }
+                }
+                else
+                {
+                    return -EAGAIN;
                 }
             } while (true);
         }
 
+        private unsafe Task SendMessageWithFdsAsync(Message message)
+        {
+            var headerBytes = message.Header.ToArray();
+            fixed (byte* bufHeader = headerBytes)
+            {
+                fixed (byte* bufBody = message.Body)
+                {
+                    IOVector* iovs = stackalloc IOVector[2];
+                    iovs[0].Base = bufHeader;
+                    iovs[0].Length = (SizeT)headerBytes.Length;
+                    iovs[1].Base = bufBody;
+                    int bodyLength = message.Body?.Length ?? 0;
+                    iovs[1].Length = (SizeT)bodyLength;
+
+                    msghdr msg = new msghdr ();
+                    msg.msg_iov = iovs;
+                    msg.msg_iovlen = (SizeT)2;
+
+                    var fdm = new cmsg_fd ();
+                    int size = sizeof(cmsghdr) + 4 * message.UnixFds.Length;
+                    msg.msg_control = &fdm;
+                    msg.msg_controllen = (SizeT)size;
+                    fdm.hdr.cmsg_len = (SizeT)size;
+                    fdm.hdr.cmsg_level = SOL_SOCKET;
+                    fdm.hdr.cmsg_type = SCM_RIGHTS;
+                    for (int i = 0, j = 0; i < message.UnixFds.Length; i++)
+                    {
+                        fdm.fds[j++] = message.UnixFds[i].Handle;
+                    }
+
+                    int rv = SendMsg(&msg, headerBytes.Length + bodyLength);
+
+                    if (message.UnixFds != null)
+                    {
+                        foreach (var fd in message.UnixFds)
+                        {
+                            fd.SafeHandle.Dispose();
+                        }
+                    }
+                    if (rv >= 0)
+                    {
+                        return Task.CompletedTask;
+                    }
+                    else
+                    {
+                        var errno = -rv;
+                        return Task.FromException(CreateExceptionForErrno(errno));
+                    }
+                }
+            }
+        }
+
+        protected unsafe override Task SendAsync(byte[] buffer, int offset, int count)
+        {
+            _bufferList.Clear();
+            _bufferList.Add(new ArraySegment<byte>(buffer, offset, count));
+            return SendBufferListAsync(_bufferList);
+        }
+
+        private Task SendBufferListAsync(List<ArraySegment<byte>> bufferList)
+        {
+            var sendContext = _sendArgs.UserToken as SendContext;
+            sendContext.Tcs = sendContext.Tcs ?? new TaskCompletionSource<object>();
+            _sendArgs.BufferList = bufferList;
+            if (!_socket.SendAsync(_sendArgs))
+            {
+                
+                if (_sendArgs.SocketError == SocketError.Success)
+                {
+                    return Task.CompletedTask;
+                }
+                else
+                {
+                    return Task.FromException(new SocketException((int)_sendArgs.SocketError));
+                }
+            }
+            else
+            {
+                return sendContext.Tcs.Task;
+            }
+        }
+
+        private void SendCompleted(object sender, SocketAsyncEventArgs e)
+        {
+            var sendContext = e.UserToken as SendContext;
+            var tcs = sendContext.Tcs;
+            sendContext.Tcs = null;
+            if (e.SocketError == SocketError.Success)
+            {
+                tcs.SetResult(null);
+            }
+            else
+            {
+                tcs.SetException(new SocketException((int)e.SocketError));
+            }
+        }
     }
 }

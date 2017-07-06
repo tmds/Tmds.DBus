@@ -118,14 +118,14 @@ namespace Tmds.DBus.Tests
 
         private MessageReader CreateMessageReader(EndianFlag endianFlag, byte[] data)
         {
-            var message = new Message
-            {
-                Body = data,
-                Header = new Header(MessageType.Invalid, endianFlag)
+            var message = new Message(
+                new Header(MessageType.Invalid, endianFlag)
                 {
                     Sender = string.Empty
-                }
-            };
+                },
+                body: data,
+                unixFds: null
+            );
             return new MessageReader(message, new MyProxyFactory());
         }
 

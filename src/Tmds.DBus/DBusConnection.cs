@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Tmds.DBus.Protocol;
+using Tmds.DBus.Transports;
 
 namespace Tmds.DBus
 {
@@ -100,7 +101,7 @@ namespace Tmds.DBus
                 _serverId = entry.Guid;
                 try
                 {
-                    stream = await MessageStream.OpenAsync(entry, cancellationToken).ConfigureAwait(false);
+                    stream = await Transport.OpenAsync(entry, cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -755,16 +756,17 @@ namespace Tmds.DBus
 
         private async Task<string> CallHelloAsync()
         {
-            Message callMsg = new Message()
-            {
-                Header = new Header(MessageType.MethodCall)
+            Message callMsg = new Message(
+                new Header(MessageType.MethodCall)
                 {
                     Path = DBusObjectPath,
                     Interface = DBusInterface,
                     Member = "Hello",
                     Destination = DBusServiceName
-                }
-            };
+                },
+                body: null,
+                unixFds: null
+            );
 
             Message reply = await CallMethodAsync(callMsg, checkConnected: false, checkReplyType: false);
 
@@ -789,9 +791,8 @@ namespace Tmds.DBus
             writer.WriteString(name);
             writer.WriteUInt32((uint)options);
 
-            Message callMsg = new Message()
-            {
-                Header = new Header(MessageType.MethodCall)
+            Message callMsg = new Message(
+                new Header(MessageType.MethodCall)
                 {
                     Path = DBusObjectPath,
                     Interface = DBusInterface,
@@ -799,8 +800,9 @@ namespace Tmds.DBus
                     Destination = DBusServiceName,
                     Signature = "su"
                 },
-                Body = writer.ToArray()
-            };
+                writer.ToArray(),
+                writer.UnixFds
+            );
 
             Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true);
 
@@ -814,9 +816,8 @@ namespace Tmds.DBus
             var writer = new MessageWriter();
             writer.WriteString(name);
 
-            Message callMsg = new Message()
-            {
-                Header = new Header(MessageType.MethodCall)
+            Message callMsg = new Message(
+                new Header(MessageType.MethodCall)
                 {
                     Path = DBusObjectPath,
                     Interface = DBusInterface,
@@ -824,8 +825,9 @@ namespace Tmds.DBus
                     Destination = DBusServiceName,
                     Signature = Signature.StringSig
                 },
-                Body = writer.ToArray()
-            };
+                writer.ToArray(),
+                writer.UnixFds
+            );
 
             Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true);
 
@@ -973,11 +975,11 @@ namespace Tmds.DBus
             };
             var writer = new MessageWriter();
             writer.WriteString(arg);
-            var message = new Message()
-            {
-                Header = header,
-                Body = writer.ToArray()
-            };
+            var message = new Message(
+                header,
+                writer.ToArray(),
+                writer.UnixFds
+            );
             return CallMethodAsync(message);
         }
 

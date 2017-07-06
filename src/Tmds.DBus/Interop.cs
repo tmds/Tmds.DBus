@@ -30,6 +30,8 @@ namespace Tmds.DBus
         internal static extern unsafe int getpwuid_r(uint uid, out Passwd pwd, byte* buf, int bufLen, out IntPtr result);
         [DllImport ("libc", SetLastError=true)]
         public static extern SSizeT sendmsg(int sockfd, IntPtr msg, int flags);
+        [DllImport ("libc", SetLastError=true)]
+        public static extern SSizeT recvmsg(int sockfd, IntPtr msg, int flags);
         
         [DllImport("libX11")]
         internal static extern IntPtr XOpenDisplay (string name);

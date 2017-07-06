@@ -7,42 +7,23 @@ namespace Tmds.DBus.Protocol
 {
     internal class Message
     {
+        public Message(Header header, byte[] body, UnixFd[] unixFds)
+        {
+            _header = header;
+            _body = body;
+            _fds = unixFds;
+            _header.Length = _body != null ? (uint)_body.Length : 0;
+            _header.NumberOfFds = (uint)(_fds?.Length ?? 0);
+        }
+
         private Header _header;
         private byte[] _body;
+        private UnixFd[] _fds;
 
-        public Message ()
-        {}
+        public UnixFd[] UnixFds => _fds;
 
-        public byte[] Body
-        {
-            get
-            {
-                return _body;
-            }
-            set
-            {
-                _body = value;
-                if (_header != null)
-                {
-                    _header.Length = _body != null ? (uint)_body.Length : 0;
-                }
-            }
-        }
+        public byte[] Body => _body;
 
-        public Header Header
-        {
-            get
-            {
-                return _header;
-            }
-            set
-            {
-                _header = value;
-                if ((_body != null) && (_header != null))
-                {
-                    _header.Length = (uint)_body.Length;
-                }
-            }
-        }
+        public Header Header => _header;
     }
 }

@@ -167,21 +167,37 @@ namespace Tmds.DBus.CodeGen
             {
                 if (_synchronizationContext == null)
                 {
-                    return handler(_object, methodCall, _factory);
+                    try
+                    {
+                        return handler(_object, methodCall, _factory);
+                    }
+                    catch (DBusException be)
+                    {
+                        return Task.FromResult(MessageHelper.ConstructErrorReply(methodCall, be.ErrorName, be.ErrorMessage));
+                    }
+                    catch (Exception e)
+                    {
+                        return Task.FromResult(MessageHelper.ConstructErrorReply(methodCall, e.GetType().FullName, e.Message));
+                    }
                 }
                 else
                 {
                     var tcs = new TaskCompletionSource<Message>();
                     _synchronizationContext.Post(async _ => {
+                        Message reply;
                         try
                         {
-                            var reply = await handler(_object, methodCall, _factory);
-                            tcs.SetResult(reply);
+                            reply = await handler(_object, methodCall, _factory);
+                        }
+                        catch (DBusException be)
+                        {
+                            reply = MessageHelper.ConstructErrorReply(methodCall, be.ErrorName, be.ErrorMessage);
                         }
                         catch (Exception e)
                         {
-                            tcs.SetException(e);
+                            reply = MessageHelper.ConstructErrorReply(methodCall, e.GetType().FullName, e.Message);
                         }
+                        tcs.SetResult(reply);
                     }, null);
                     return tcs.Task;
                 }

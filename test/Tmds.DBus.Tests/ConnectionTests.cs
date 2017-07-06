@@ -76,5 +76,36 @@ namespace Tmds.DBus.Tests
                 await Assert.ThrowsAsync<ConnectionException>(() => connection.ConnectAsync());
             }
         }
+
+        [DBusInterface("tmds.dbus.tests.Throw")]
+        public interface IThrow : IDBusObject
+        {
+            Task ThrowAsync();
+        }
+
+        public class Throw : IThrow
+        {
+            public static readonly ObjectPath Path = new ObjectPath("/tmds/dbus/tests/throw");
+            public static readonly string ExceptionMessage = "throwing";
+
+            public ObjectPath ObjectPath => Path;
+
+            public Task ThrowAsync()
+            {
+                throw new Exception(ExceptionMessage);
+            }
+        }
+
+        [Fact]
+        public async Task PassException()
+        {
+            var connections = await PairedConnection.CreateConnectedPairAsync();
+            var conn1 = connections.Item1;
+            var conn2 = connections.Item2;
+            var proxy = conn1.CreateProxy<IThrow>("servicename", Throw.Path);
+            await conn2.RegisterObjectAsync(new Throw());
+            var exception = await Assert.ThrowsAsync<DBusException>(proxy.ThrowAsync);
+            Assert.Equal(Throw.ExceptionMessage, exception.ErrorMessage);
+        }
     }
 }

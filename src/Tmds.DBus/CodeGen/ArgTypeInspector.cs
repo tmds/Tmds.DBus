@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Tmds.DBus.CodeGen
 {
@@ -49,6 +50,11 @@ namespace Tmds.DBus.CodeGen
             {
                 return typeInfo.ImplementedInterfaces.Contains(s_idbusObjectType);
             }
+        }
+
+        public static bool IsSafeHandleType(Type type)
+        {
+            return type.GetTypeInfo().IsSubclassOf(typeof(SafeHandle));
         }
 
         public enum EnumerableType

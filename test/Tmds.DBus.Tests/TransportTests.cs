@@ -7,7 +7,7 @@ namespace Tmds.DBus.Tests
 {
     public class TransportTests
     {
-        private static bool IsSELinux => Directory.Exists("/etc/selinux");
+        private static bool IsSELinux => Directory.Exists("/sys/fs/selinux");
 
         [InlineData(DBusDaemonProtocol.Tcp)]
         [InlineData(DBusDaemonProtocol.Unix)]

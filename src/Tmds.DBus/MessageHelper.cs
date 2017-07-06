@@ -15,17 +15,17 @@ namespace Tmds.DBus
             MessageWriter writer = new MessageWriter(incoming.Header.Endianness);
             writer.WriteString(errorMessage);
 
-            Message replyMessage = new Message()
-            {
-                Header = new Header(MessageType.Error)
+            Message replyMessage = new Message(
+                new Header(MessageType.Error)
                 {
                     ErrorName = errorName,
                     ReplySerial = incoming.Header.Serial,
                     Signature = Signature.StringSig,
                     Destination = incoming.Header.Sender
                 },
-                Body = writer.ToArray()
-            };
+                writer.ToArray(),
+                writer.UnixFds
+            );
 
             return replyMessage;
         }
@@ -43,15 +43,15 @@ namespace Tmds.DBus
                     writer.Write(arg.GetType(), arg, isCompileTimeType: false);
             }
 
-            Message replyMsg = new Message()
-            {
-                Header = new Header(MessageType.MethodReturn)
+            Message replyMsg = new Message(
+                new Header(MessageType.MethodReturn)
                 {
                     ReplySerial = msg.Header.Serial,
                     Signature = inSig
                 },
-                Body = writer?.ToArray()
-            };
+                writer?.ToArray(),
+                writer?.UnixFds
+            );
 
             if (msg.Header.Sender != null)
                 replyMsg.Header.Destination = msg.Header.Sender;

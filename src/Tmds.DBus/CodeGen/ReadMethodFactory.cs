@@ -59,10 +59,6 @@ namespace Tmds.DBus.CodeGen
             {
                 return s_messageReaderReadSignature;
             }
-            else if (type == typeof(UnixFd))
-            {
-                return s_messageReaderReadUnixFd;
-            }
             else if (type == typeof(string))
             {
                 return s_messageReaderReadString;
@@ -131,6 +127,11 @@ namespace Tmds.DBus.CodeGen
                 }
             }
 
+            if (ArgTypeInspector.IsSafeHandleType(type))
+            {
+                return s_messageReaderReadSafeHandle.MakeGenericMethod(type);
+            }
+
             throw new ArgumentException($"Cannot (de)serialize Type '{type.FullName}'");
         }
 
@@ -142,7 +143,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_messageReaderReadInt64 = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadInt64));
         private static readonly MethodInfo s_messageReaderReadObjectPath = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadObjectPath));
         private static readonly MethodInfo s_messageReaderReadSignature = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadSignature));
-        private static readonly MethodInfo s_messageReaderReadUnixFd = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadUnixFd));
+        private static readonly MethodInfo s_messageReaderReadSafeHandle = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadSafeHandle));
         private static readonly MethodInfo s_messageReaderReadSingle = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadSingle));
         private static readonly MethodInfo s_messageReaderReadString = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadString));
         private static readonly MethodInfo s_messageReaderReadUInt16 = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadUInt16));

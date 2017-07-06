@@ -575,6 +575,8 @@ namespace Tmds.DBus
                 return typeof (ObjectPath);
             case DType.Signature:
                 return typeof (Signature);
+            case DType.UnixFd:
+                return typeof (CloseSafeHandle);
             case DType.Array:
                 //peek to see if this is in fact a dictionary
                 if ((DType)_data[pos] == DType.DictEntryBegin) {
@@ -664,10 +666,6 @@ namespace Tmds.DBus
             {
                 return SignatureSig;
             }
-            else if (type == typeof(UnixFd))
-            {
-                return SignatureUnixFd;
-            }
             else if (type == typeof(string))
             {
                 return StringSig;
@@ -741,6 +739,11 @@ namespace Tmds.DBus
                 }
 
                 return Signature.MakeStruct(sig);
+            }
+
+            if (ArgTypeInspector.IsSafeHandleType(type))
+            {
+                return Signature.SignatureUnixFd;
             }
 
             throw new ArgumentException($"Cannot (de)serialize Type '{type.FullName}'");

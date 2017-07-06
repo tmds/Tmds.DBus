@@ -20,6 +20,7 @@ namespace Tmds.DBus.Protocol
     {
         EndianFlag endianness;
         MemoryStream stream;
+        List<UnixFd> fds;
         bool  _skipNextStructPadding;
 
         static readonly Encoding stringEncoding = Encoding.UTF8;
@@ -42,6 +43,8 @@ namespace Tmds.DBus.Protocol
         {
             return stream.ToArray ();
         }
+
+        public UnixFd[] UnixFds => fds?.ToArray() ?? Array.Empty<UnixFd>();
 
         public void CloseWrite ()
         {
@@ -175,9 +178,14 @@ namespace Tmds.DBus.Protocol
             WriteNull ();
         }
 
-        public void WriteUnixFd(UnixFd fd)
+        public void WriteSafeHandle(SafeHandle handle)
         {
-            throw new NotSupportedException("Sending file descriptors is not supported");
+            if (fds == null)
+            {
+                fds = new List<UnixFd>();
+            }
+            fds.Add(new UnixFd(handle));
+            WriteInt32(fds.Count - 1);
         }
 
         public void Write(Type type, object val, bool isCompileTimeType)
@@ -227,11 +235,6 @@ namespace Tmds.DBus.Protocol
                 WriteSignature((Signature)val);
                 return;
             }
-            else if (type == typeof(UnixFd))
-            {
-                WriteUnixFd((UnixFd)val);
-                return;
-            }
             else if (type == typeof(string))
             {
                 WriteString((string)val);
@@ -271,6 +274,12 @@ namespace Tmds.DBus.Protocol
             if (ArgTypeInspector.IsDBusObjectType(type, isCompileTimeType))
             {
                 WriteBusObject((IDBusObject)val);
+                return;
+            }
+
+            if (ArgTypeInspector.IsSafeHandleType(type))
+            {
+                WriteSafeHandle((SafeHandle)val);
                 return;
             }
 

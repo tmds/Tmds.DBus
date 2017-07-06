@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Win32.SafeHandles;
 using Xunit;
 
 namespace Tmds.DBus.Tests
@@ -178,31 +179,90 @@ namespace Tmds.DBus.Tests
             }
         }
 
-        [Fact]
-        public async Task DaemonDisconnect()
+        // https://github.com/dotnet/corefx/issues/21865
+        // [Fact]
+        // public async Task DaemonDisconnect()
+        // {
+        //     var dbusDaemon = new DBusDaemon();
+        //     {
+        //         await dbusDaemon.StartAsync();
+        //         var address = dbusDaemon.Address;
+
+        //         IConnection conn2 = new Connection(address);
+        //         await conn2.ConnectAsync();
+        //         await conn2.RegisterObjectAsync(new Slow());
+
+        //         IConnection conn1 = new Connection(address);
+        //         var tcs = new TaskCompletionSource<Exception>();
+        //         await conn1.ConnectAsync(e => tcs.SetResult(e));
+
+        //         var proxy = conn1.CreateProxy<ISlow>(conn2.LocalName, Slow.Path);
+
+        //         var pending = proxy.SlowAsync();
+
+        //         dbusDaemon.Dispose();
+
+        //         await Assert.ThrowsAsync<DisconnectedException>(() => pending);
+        //         var disconnectReason = await tcs.Task;
+        //         Assert.NotNull(disconnectReason);
+        //     }
+        // }
+
+        [DBusInterface("tmds.dbus.tests.FdOperations")]
+        public interface IFdOperations : IDBusObject
         {
-            var dbusDaemon = new DBusDaemon();
+            Task<SafeFileHandle> PassAsync(SafeFileHandle fd2);
+        }
+
+        public class FdOperations : IFdOperations
+        {
+            public static readonly ObjectPath Path = new ObjectPath("/tmds/dbus/tests/fdoperations");
+
+            public ObjectPath ObjectPath => Path;
+
+            public Task<SafeFileHandle> PassAsync(SafeFileHandle fd)
             {
-                await dbusDaemon.StartAsync();
+                return Task.FromResult(fd);
+            }
+        }
+
+        [Fact]
+        public async Task UnixFd()
+        {
+            using (var dbusDaemon = new DBusDaemon())
+            {
+                await dbusDaemon.StartAsync(DBusDaemonProtocol.Unix);
                 var address = dbusDaemon.Address;
 
-                IConnection conn2 = new Connection(address);
+                var conn1 = new Connection(address);
+                await conn1.ConnectAsync();
+
+                var conn2 = new Connection(address);
                 await conn2.ConnectAsync();
-                await conn2.RegisterObjectAsync(new Slow());
 
-                IConnection conn1 = new Connection(address);
-                var tcs = new TaskCompletionSource<Exception>();
-                await conn1.ConnectAsync(e => tcs.SetResult(e));
+                var conn2Name = conn2.LocalName;
+                var path = FdOperations.Path;
+                var proxy = conn1.CreateProxy<IFdOperations>(conn2Name, path);
 
-                var proxy = conn1.CreateProxy<ISlow>(conn2.LocalName, Slow.Path);
+                await conn2.RegisterObjectAsync(new FdOperations());
 
-                var pending = proxy.SlowAsync();
+                var fileName = Path.GetTempFileName();
+                var expected = "content";
+                File.WriteAllText(fileName, expected);
 
-                dbusDaemon.Dispose();
-
-                await Assert.ThrowsAsync<DisconnectedException>(() => pending);
-                var disconnectReason = await tcs.Task;
-                Assert.NotNull(disconnectReason);
+                SafeFileHandle receivedHandle;
+                using (var fileStream = File.OpenRead(fileName))
+                {
+                    var handle = fileStream.SafeFileHandle;
+                    Assert.False(handle.IsClosed);
+                    receivedHandle = await proxy.PassAsync(handle);
+                    Assert.True(handle.IsClosed);
+                }
+                using (var reader = new StreamReader(new FileStream(receivedHandle, FileAccess.Read)))
+                {
+                    var text = reader.ReadToEnd();
+                    Assert.Equal(expected, text);
+                }
             }
         }
     }

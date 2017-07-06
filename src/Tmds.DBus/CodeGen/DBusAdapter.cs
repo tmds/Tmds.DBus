@@ -216,17 +216,17 @@ namespace Tmds.DBus.CodeGen
                 return;
             }
 
-            Message signalMsg = new Message()
-            {
-                Header = new Header(MessageType.Signal)
+            Message signalMsg = new Message(
+                new Header(MessageType.Signal)
                 {
                     Path = _objectPath,
                     Interface = iface,
                     Member = member,
                     Signature = inSigStr
                 },
-                Body = writer.ToArray()
-            };
+                writer.ToArray(),
+                writer.UnixFds
+            );
 
             _connection.EmitSignal(signalMsg);
         }
@@ -239,14 +239,14 @@ namespace Tmds.DBus.CodeGen
             MessageWriter retWriter = new MessageWriter();
             writeResult(retWriter, result);
 
-            Message replyMsg = new Message()
-            {
-                Header = new Header(MessageType.MethodReturn)
+            Message replyMsg = new Message(
+                new Header(MessageType.MethodReturn)
                 {
                     Signature = outSignature
                 },
-                Body = retWriter.ToArray()
-            };
+                retWriter.ToArray(),
+                retWriter.UnixFds
+            );
             return replyMsg;
         }
 
@@ -254,10 +254,11 @@ namespace Tmds.DBus.CodeGen
         {
             uint serial = methodCall.Header.Serial;
             await task;
-            var replyMsg = new Message()
-            {
-                Header = new Header(MessageType.MethodReturn)
-            };
+            var replyMsg = new Message(
+                new Header(MessageType.MethodReturn),
+                body: null,
+                unixFds: null
+            );
             return replyMsg;
         }
 

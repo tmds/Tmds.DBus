@@ -58,10 +58,6 @@ namespace Tmds.DBus.CodeGen
             {
                 return s_messageWriterWriteSignature;
             }
-            else if (type == typeof(UnixFd))
-            {
-                return s_messageWriterWriteUnixFd;
-            }
             else if (type == typeof(string))
             {
                 return s_messageWriterWriteString;
@@ -128,6 +124,11 @@ namespace Tmds.DBus.CodeGen
                 }
             }
 
+            if (ArgTypeInspector.IsSafeHandleType(type))
+            {
+                return s_messageWriterWriteSafeHandle;
+            }
+
             throw new ArgumentException($"Cannot (de)serialize Type '{type.FullName}'");
         }
 
@@ -139,7 +140,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_messageWriterWriteInt64 = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteInt64));
         private static readonly MethodInfo s_messageWriterWriteObjectPath = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteObjectPath));
         private static readonly MethodInfo s_messageWriterWriteSignature = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteSignature));
-        private static readonly MethodInfo s_messageWriterWriteUnixFd = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteUnixFd));
+        private static readonly MethodInfo s_messageWriterWriteSafeHandle = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteSafeHandle));
         private static readonly MethodInfo s_messageWriterWriteSingle = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteSingle));
         private static readonly MethodInfo s_messageWriterWriteString = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteString));
         private static readonly MethodInfo s_messageWriterWriteUInt16 = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteUInt16));

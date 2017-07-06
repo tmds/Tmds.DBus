@@ -28,7 +28,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly Signature s_getAllOutSignature = new Signature("a{sv}");
         private static readonly Type[] s_mappedTypes = new[] { typeof(bool), typeof(byte), typeof(double), typeof(short), typeof(int),
             typeof(long), typeof(ObjectPath), typeof(Signature), typeof(float), typeof(string), typeof(ushort), typeof(uint), typeof(ulong),
-            typeof(object), typeof(IDBusObject), typeof(UnixFd)};
+            typeof(object), typeof(IDBusObject)};
 
         public Type Type { get; }
 

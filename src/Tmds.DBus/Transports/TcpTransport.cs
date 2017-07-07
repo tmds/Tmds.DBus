@@ -107,7 +107,7 @@ namespace Tmds.DBus.Transports
             throw new ConnectionException($"No addresses for host '{host}'");
         }
 
-        protected override Task<int> ReadAvailableAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
+        protected override Task<int> ReadAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
         {
             return _stream.ReadAsync(buffer, offset, count);
         }
@@ -123,17 +123,8 @@ namespace Tmds.DBus.Transports
             await _stream.FlushAsync();
         }
 
-        public async override Task SendMessageAsync(Message message)
+        protected async override Task SendAsync(Message message)
         {
-            // Clean up UnixFds
-            if (message.UnixFds != null)
-            {
-                foreach (var unixFd in message.UnixFds)
-                {
-                    unixFd.SafeHandle.Dispose();
-                }
-            }
-
             var headerBytes = message.Header.ToArray();
             await _stream.WriteAsync(headerBytes, 0, headerBytes.Length, CancellationToken.None);
 

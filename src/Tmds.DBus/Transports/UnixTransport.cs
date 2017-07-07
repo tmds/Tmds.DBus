@@ -176,7 +176,7 @@ namespace Tmds.DBus.Transports
                 int errno = -rv;
                 if (errno == EAGAIN)
                 {
-                    ReadAvailableAsync(readContext.Buffer, readContext.Offset, readContext.Count, readContext.FileDescriptors);
+                    ReadAsync(readContext.Buffer, readContext.Offset, readContext.Count, readContext.FileDescriptors);
                 }
                 else
                 {
@@ -234,7 +234,7 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        protected unsafe override Task<int> ReadAvailableAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
+        protected unsafe override Task<int> ReadAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
         {
             var readContext = _waitForData.UserToken as ReadContext;
             readContext.Tcs = readContext.Tcs ?? new TaskCompletionSource<int>();
@@ -271,7 +271,7 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        public override Task SendMessageAsync(Message message)
+        protected override Task SendAsync(Message message)
         {
             if (message.UnixFds != null && message.UnixFds.Length > 0)
             {

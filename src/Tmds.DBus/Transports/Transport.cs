@@ -17,6 +17,7 @@ namespace Tmds.DBus.Transports
     {
         private readonly byte[] _headerReadBuffer = new byte[16];
         private readonly List<UnixFd> _fileDescriptors = new List<UnixFd>();
+        private bool _supportsFdPassing = false;
 
         public static Task<IMessageStream> OpenAsync(AddressEntry entry, CancellationToken cancellationToken)
         {
@@ -123,7 +124,7 @@ namespace Tmds.DBus.Transports
             int read = 0;
             while (read < count)
             {
-                int nread = await ReadAvailableAsync(buffer, offset + read, count - read, fileDescriptors);
+                int nread = await ReadAsync(buffer, offset + read, count - read, fileDescriptors);
                 if (nread == 0)
                     break;
                 read += nread;
@@ -163,6 +164,7 @@ namespace Tmds.DBus.Transports
         protected async Task DoSaslAuthenticationAsync(Guid guid, bool transportSupportsUnixFdPassing)
         {
             var authenticationResult = await AuthenticateAsync(transportSupportsUnixFdPassing);
+            _supportsFdPassing = authenticationResult.SupportsUnixFdPassing;
             if (guid != Guid.Empty)
             {
                 if (guid != authenticationResult.Guid)
@@ -285,9 +287,23 @@ namespace Tmds.DBus.Transports
             return result.ToString();
         }
 
-        protected abstract Task<int> ReadAvailableAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors);
+        public Task SendMessageAsync(Message message)
+        {
+            if (!_supportsFdPassing && message.Header.NumberOfFds > 0)
+            {
+                foreach (var unixFd in message.UnixFds)
+                {
+                    unixFd.SafeHandle.Dispose();
+                }
+                message.Header.NumberOfFds = 0;
+                message.UnixFds = null;
+            }
+            return SendAsync(message);
+        }
+
+        protected abstract Task<int> ReadAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors);
         protected abstract Task SendAsync(byte[] buffer, int offset, int count);
-        public abstract Task SendMessageAsync(Message message);
+        protected abstract Task SendAsync(Message message);
         public abstract void Dispose();
     }
 }

@@ -11,7 +11,7 @@ namespace Tmds.DBus
     public class DBusException : Exception
     {
         public DBusException(string errorName, string errorMessage) :
-            base($"{errorName: errorMessage}")
+            base($"{errorName}: {errorMessage}")
         {
             this.ErrorName = errorName;
             this.ErrorMessage = errorMessage;

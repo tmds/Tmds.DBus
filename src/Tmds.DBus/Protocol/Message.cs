@@ -20,7 +20,11 @@ namespace Tmds.DBus.Protocol
         private byte[] _body;
         private UnixFd[] _fds;
 
-        public UnixFd[] UnixFds => _fds;
+        public UnixFd[] UnixFds
+        {
+            get => _fds;
+            set => _fds = value;
+        }
 
         public byte[] Body => _body;
 

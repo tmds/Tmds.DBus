@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Win32.SafeHandles;
 using Xunit;
+using XunitSkip;
 
 namespace Tmds.DBus.Tests
 {
@@ -222,7 +223,20 @@ namespace Tmds.DBus.Tests
 
             public Task<SafeFileHandle> PassAsync(SafeFileHandle fd)
             {
-                return Task.FromResult(fd);
+                if (!fd.IsInvalid)
+                {
+                    return Task.FromResult(fd);
+                }
+                else
+                {
+                    var fileName = System.IO.Path.GetTempFileName();
+                    var expected = "invalid";
+                    File.WriteAllText(fileName, expected);
+                    var fileStream = File.OpenRead(fileName);
+                    var handle = fileStream.SafeFileHandle;
+                    File.Delete(fileName);
+                    return Task.FromResult(handle);
+                }
             }
         }
 
@@ -249,19 +263,70 @@ namespace Tmds.DBus.Tests
                 var fileName = Path.GetTempFileName();
                 var expected = "content";
                 File.WriteAllText(fileName, expected);
-
-                SafeFileHandle receivedHandle;
-                using (var fileStream = File.OpenRead(fileName))
+                try
                 {
-                    var handle = fileStream.SafeFileHandle;
-                    Assert.False(handle.IsClosed);
-                    receivedHandle = await proxy.PassAsync(handle);
-                    Assert.True(handle.IsClosed);
+                    SafeFileHandle receivedHandle;
+                    using (var fileStream = File.OpenRead(fileName))
+                    {
+                        var handle = fileStream.SafeFileHandle;
+                        Assert.False(handle.IsClosed);
+                        receivedHandle = await proxy.PassAsync(handle);
+                        Assert.True(handle.IsClosed);
+                    }
+                    using (var reader = new StreamReader(new FileStream(receivedHandle, FileAccess.Read)))
+                    {
+                        var text = reader.ReadToEnd();
+                        Assert.Equal(expected, text);
+                    }
                 }
-                using (var reader = new StreamReader(new FileStream(receivedHandle, FileAccess.Read)))
+                finally
                 {
-                    var text = reader.ReadToEnd();
-                    Assert.Equal(expected, text);
+                    File.Delete(fileName);
+                }
+            }
+        }
+
+        [SkippableFact]
+        public async Task UnixFd_Unsupported()
+        {
+            if (DBusDaemon.IsSELinux)
+            {
+                throw new SkipTestException("Cannot provide SELinux context to DBus daemon over TCP");
+            }
+            using (var dbusDaemon = new DBusDaemon())
+            {
+                await dbusDaemon.StartAsync(DBusDaemonProtocol.Tcp);
+                var address = dbusDaemon.Address;
+
+                var conn1 = new Connection(address);
+                await conn1.ConnectAsync();
+
+                var conn2 = new Connection(address);
+                await conn2.ConnectAsync();
+
+                var conn2Name = conn2.LocalName;
+                var path = FdOperations.Path;
+                var proxy = conn1.CreateProxy<IFdOperations>(conn2Name, path);
+
+                await conn2.RegisterObjectAsync(new FdOperations());
+
+                var fileName = Path.GetTempFileName();
+                var expected = "content";
+                File.WriteAllText(fileName, expected);
+                try
+                {
+                    using (var fileStream = File.OpenRead(fileName))
+                    {
+                        var handle = fileStream.SafeFileHandle;
+                        Assert.False(handle.IsClosed);
+                        SafeFileHandle receivedHandle = await proxy.PassAsync(handle);
+                        Assert.True(handle.IsClosed);
+                        Assert.True(receivedHandle.IsInvalid);
+                    }
+                }
+                finally
+                {
+                    File.Delete(fileName);
                 }
             }
         }

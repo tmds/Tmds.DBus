@@ -347,7 +347,7 @@ namespace Tmds.DBus.Protocol
             var idx = ReadInt32();
             var fds = _message.UnixFds;
             int fd = -1;
-            if (fds != null || idx < fds.Length)
+            if (fds != null && idx < fds.Length)
             {
                 fd = fds[idx].Handle;
             }

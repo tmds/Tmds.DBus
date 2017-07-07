@@ -14,6 +14,11 @@ namespace Tmds.DBus.Tests
     }
     class DBusDaemon : IDisposable
     {
+        // On an SELinux system the DBus daemon gets the security context
+        // of the peer: the call 'getsockopt(fd, SOL_SOCKET, SO_PEERSEC, ...)'
+        // returns ENOPROTOOPT and the daemon closes the connection.
+        public static readonly bool IsSELinux = Directory.Exists("/sys/fs/selinux");
+
         private static string s_config =
  @"<!DOCTYPE busconfig PUBLIC ""-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN""
  ""http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd"">

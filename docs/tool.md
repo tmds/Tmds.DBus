@@ -43,6 +43,7 @@ Additional argument allow to further control the behavior:
 * `output`: set the filename to generate
 * `skip`: don't generate C# for certain interfaces
 * `interface`: only generate C# for certain interfaces
+* `no-ivt`: don't add the InternalsVisibleTo Attribute
 
 The `interface` argument can also be used to name the interfaces.
 

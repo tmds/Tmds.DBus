@@ -14,6 +14,7 @@ namespace Tmds.DBus.Tool
     class GeneratorSettings
     {
         public string Namespace { get; set; } = "DBus";
+        public bool NoInternalsVisibleTo = false;
     }
 
     class Generator
@@ -71,7 +72,11 @@ namespace Tmds.DBus.Tool
                 namespaceDeclarations.AddRange(DBusInterfaceDeclaration(interfaceDescription.Name, interfaceDescription.InterfaceXml));
             }
             var namespaceDeclaration = _generator.NamespaceDeclaration(_generator.DottedName(_settings.Namespace), namespaceDeclarations);
-            var compilationUnit = _generator.AddAttributes(_generator.CompilationUnit(importDeclarations.Concat(new[] { namespaceDeclaration })), internalsVisibleTo);
+            var compilationUnit = _generator.CompilationUnit(importDeclarations.Concat(new[] { namespaceDeclaration }));
+            if (!_settings.NoInternalsVisibleTo)
+            {
+                compilationUnit = _generator.AddAttributes(compilationUnit, internalsVisibleTo);
+            }
             return compilationUnit.NormalizeWhitespace().ToFullString();
         }
 

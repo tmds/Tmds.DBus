@@ -19,6 +19,7 @@ namespace Tmds.DBus.Tool
         CommandOption _catOption;
         CommandOption _skipOptions;
         CommandOption _interfaceOptions;
+        CommandOption _noInternalsVisibleToOption;
         CommandArgument _files;
 
         public CodeGenCommand(CommandLineApplication parent) :
@@ -31,6 +32,7 @@ namespace Tmds.DBus.Tool
             _busOption = AddBusOption();
             _pathOption = AddPathOption();
             _norecurseOption = AddNoRecurseOption();
+            _noInternalsVisibleToOption = Configuration.Option("--no-ivt", "Don add the InternalsVisibleTo Attribute", CommandOptionType.NoValue);
             _namespaceOption = Configuration.Option("--namespace", "C# namespace (default: <service>)", CommandOptionType.SingleValue);
             _outputOption = Configuration.Option("--output", "File to write (default: <namespace>.cs)", CommandOptionType.SingleValue);
             _catOption = Configuration.Option("--cat", "Write to standard out instead of file", CommandOptionType.NoValue);
@@ -82,6 +84,7 @@ namespace Tmds.DBus.Tool
                 Path = _pathOption.HasValue() ? _pathOption.Value() : "/",
                 Address = address,
                 Recurse = !_norecurseOption.HasValue(),
+                NoInternalsVisibleTo = _noInternalsVisibleToOption.HasValue(),
                 OutputFileName = _catOption.HasValue() ? null : _outputOption.Value() ?? $"{ns}.cs",
                 SkipInterfaces = skipInterfaces,
                 Interfaces = interfaces,
@@ -168,7 +171,8 @@ namespace Tmds.DBus.Tool
 
             var generator = new Generator(
                 new GeneratorSettings {
-                    Namespace = codeGenArguments.Namespace
+                    Namespace = codeGenArguments.Namespace,
+                    NoInternalsVisibleTo = codeGenArguments.NoInternalsVisibleTo
                 });
             var code = generator.Generate(descriptions);
 
@@ -194,6 +198,7 @@ namespace Tmds.DBus.Tool
             public IEnumerable<string> SkipInterfaces { get; set; }
             public Dictionary<string, string> Interfaces { get; set; }
             public List<string> Files { get; set; }
+            public bool NoInternalsVisibleTo { get; set; }
         }
     }
 }

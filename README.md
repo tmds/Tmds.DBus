@@ -13,7 +13,7 @@ Higher-level bindings are available for various popular frameworks and languages
 [dbus-sharp](https://github.com/mono/dbus-sharp) (a fork of [ndesk-dbus](http://www.ndesk.org/DBusSharp)) is a C#
 implementation which targets Mono and .NET 2.0. Tmds.DBus builds on top of the protocol implementation of dbus-sharp
 and provides an API based on the asynchronous programming model introduced in .NET 4.5. The library targets
-netstandard 1.3 which means it runs on .NET 4.6 (Windows 7 and later) and .NET Core. You can get Tmds.DBus from NuGet.
+netstandard 1.5 which means it runs on .NET 4.6.1 (Windows 7 SP1 and later) and .NET Core. You can get Tmds.DBus from NuGet.
 
 # Example
 
@@ -111,7 +111,7 @@ If we look at the `INetworkManager` interface in `NetworkManager.DBus.cs`, we se
 Task<ObjectPath[]> GetDevicesAsync();
 ```
 
-This method is returning an `ObjectPath[]`. Thes paths refer to other objects of the D-Bus service. We can use these
+This method is returning an `ObjectPath[]`. These paths refer to other objects of the D-Bus service. We can use these
 paths with `CreateProxy`. Instead, we'll update the method to reflect it is returning `IDevice` objects.
 
 ```C#
@@ -167,7 +167,7 @@ uses `DeviceState` instead of `uint`.
 Task<IDisposable> WatchStateChangedAsync(Action<(DeviceState newState, DeviceState oldState, uint reason)> action);
 ```
 
-When we run our application again, we see more meaningfull messages.
+When we run our application again, we see more meaningful messages.
 
 ```
 $ dotnet run

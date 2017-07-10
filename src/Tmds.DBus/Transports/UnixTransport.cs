@@ -20,7 +20,7 @@ namespace Tmds.DBus.Transports
         private static readonly byte[] _oneByteArray = new[] { (byte)0 };
 
         // Issue https://github.com/dotnet/corefx/issues/6807
-        private static PropertyInfo s_safeHandleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
+        private static PropertyInfo s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
 
         const int SOL_SOCKET = 1;
         const int EINTR = 4;
@@ -124,8 +124,8 @@ namespace Tmds.DBus.Transports
             }
 
             _socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            var socketSafeHandle = (SafeHandle)s_safeHandleProperty.GetValue(_socket, null);
-            _socketFd = (int)socketSafeHandle.DangerousGetHandle();
+            var socketHandle = (IntPtr)s_handleProperty.GetValue(_socket, null);
+            _socketFd = (int)socketHandle;
 
             var registration = cancellationToken.Register(Dispose);
             var endPoint = new UnixDomainSocketEndPoint(path);

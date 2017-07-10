@@ -17,7 +17,7 @@ namespace Tmds.DBus.Transports
     {
         private readonly byte[] _headerReadBuffer = new byte[16];
         private readonly List<UnixFd> _fileDescriptors = new List<UnixFd>();
-        private bool _supportsFdPassing = false;
+        protected bool _supportsFdPassing = false;
 
         public static Task<IMessageStream> OpenAsync(AddressEntry entry, CancellationToken cancellationToken)
         {

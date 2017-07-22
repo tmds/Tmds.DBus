@@ -71,11 +71,15 @@ namespace Tmds.DBus.Tool
             }
             var address = ParseBusAddress(_busOption);
             var service = _serviceOption.Value();
-            string ns = "DBus";
+            string ns = _namespaceOption.Value();
             if (service != null)
             {
                 var serviceSplit = service.Split(new [] { '.' });
-                ns = _namespaceOption.Value() ?? $"{serviceSplit[serviceSplit.Length - 1]}.DBus";
+                ns = ns ?? $"{serviceSplit[serviceSplit.Length - 1]}.DBus";
+            }
+            else
+            {
+                ns = ns ?? "DBus";
             }
             var codeGenArguments = new CodeGenArguments
             {

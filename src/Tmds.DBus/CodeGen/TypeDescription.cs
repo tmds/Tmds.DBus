@@ -177,10 +177,13 @@ namespace Tmds.DBus.CodeGen
                     bool validActionParameter = false;
                     if (actionParameter != null)
                     {
-                        if (actionParameter.ParameterType == s_emptyActionType)
+                        if (actionParameter.ParameterType == s_exceptionActionType)
+                        {
+                            // actionParameter is missing
+                        }
+                        else if (actionParameter.ParameterType == s_emptyActionType)
                         {
                             validActionParameter = true;
-                            parameterType = null;
                         }
                         else if (actionParameter.ParameterType.GetTypeInfo().IsGenericType
                                  && actionParameter.ParameterType.GetGenericTypeDefinition() == s_singleParameterActionType)

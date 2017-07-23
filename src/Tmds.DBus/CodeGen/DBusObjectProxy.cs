@@ -102,7 +102,7 @@ namespace Tmds.DBus.CodeGen
             return wrappedDisposable;
         }
 
-        internal protected async Task<IDisposable> WatchVoidSignalAsync<T>(string iface, string member, Action<Exception> error, Action action)
+        internal protected async Task<IDisposable> WatchVoidSignalAsync(string iface, string member, Action<Exception> error, Action action)
         {
             var wrappedDisposable = new WrappedDisposable();
             var synchronizationContext = SynchronizationContext.Current;

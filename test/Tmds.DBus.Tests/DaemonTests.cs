@@ -131,6 +131,7 @@ namespace Tmds.DBus.Tests
         public interface ISlow : IDBusObject
         {
             Task SlowAsync();
+            Task<IDisposable> WatchSomethingErrorAsync(Action value, Action<Exception> onError);
         }
 
         public class Slow : ISlow
@@ -149,6 +150,16 @@ namespace Tmds.DBus.Tests
             {
                 return Task.Delay(30000);
             }
+
+            public Task<IDisposable> WatchSomethingErrorAsync(Action value, Action<Exception> onError)
+            {
+                return Task.FromResult<IDisposable>(new NoopDisposable());
+            }
+
+            private class NoopDisposable : IDisposable
+            {
+                public void Dispose() { }
+            }
         }
 
         [Fact]
@@ -163,20 +174,27 @@ namespace Tmds.DBus.Tests
                 await conn2.ConnectAsync();
                 await conn2.RegisterObjectAsync(new Slow());
 
+                // connection
                 IConnection conn1 = new Connection(address);
-                var tcs = new TaskCompletionSource<Exception>();
-                await conn1.ConnectAsync(e => tcs.SetResult(e));
+                var connectionTcs = new TaskCompletionSource<Exception>();
+                await conn1.ConnectAsync(e => connectionTcs.SetResult(e));
 
                 var proxy = conn1.CreateProxy<ISlow>(conn2.LocalName, Slow.Path);
-
-                var pending = proxy.SlowAsync();
+                // method
+                var pendingMethod = proxy.SlowAsync();
+                // signal
+                var signalTcs = new TaskCompletionSource<Exception>();
+                await proxy.WatchSomethingErrorAsync(() => { }, e => signalTcs.SetException(e));
 
                 conn1.Dispose();
 
-                var disconnectReason = await tcs.Task;
+                // connection
+                var disconnectReason = await connectionTcs.Task;
                 Assert.Null(disconnectReason);
-
-                await Assert.ThrowsAsync<ObjectDisposedException>(() => pending);
+                // method
+                await Assert.ThrowsAsync<ObjectDisposedException>(() => pendingMethod);
+                // signal
+                await Assert.ThrowsAsync<ObjectDisposedException>(() => signalTcs.Task);
             }
         }
 

@@ -37,6 +37,36 @@ namespace Tmds.DBus.Tests
         }
 
         [Fact]
+        public async Task SignalNoArg()
+        {
+            var connections = await PairedConnection.CreateConnectedPairAsync();
+            var conn1 = connections.Item1;
+            var conn2 = connections.Item2;
+            var proxy = conn1.CreateProxy<IPingPong>("servicename", PingPong.Path);
+            var tcs = new TaskCompletionSource<string>();
+            await proxy.WatchPongNoArgAsync(() => tcs.SetResult(null));
+            await conn2.RegisterObjectAsync(new PingPong());
+            await proxy.PingAsync("hello world");
+            var reply = await tcs.Task;
+            Assert.Equal(null, reply);
+        }
+
+        [Fact]
+        public async Task SignalWithException()
+        {
+            var connections = await PairedConnection.CreateConnectedPairAsync();
+            var conn1 = connections.Item1;
+            var conn2 = connections.Item2;
+            var proxy = conn1.CreateProxy<IPingPong>("servicename", PingPong.Path);
+            var tcs = new TaskCompletionSource<string>();
+            await proxy.WatchPongWithExceptionAsync(message => tcs.SetResult(message), null);
+            await conn2.RegisterObjectAsync(new PingPong());
+            await proxy.PingAsync("hello world");
+            var reply = await tcs.Task;
+            Assert.Equal("hello world", reply);
+        }
+
+        [Fact]
         public async Task Properties()
         {
             var connections = await PairedConnection.CreateConnectedPairAsync();

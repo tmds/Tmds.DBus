@@ -18,8 +18,8 @@ namespace Tmds.DBus
             }
             private Action _disposeAction;
         }
-        
-        private static IDisposable Add<T>(object o, string eventName, Action<T> handler)
+
+        private static IDisposable Add(object o, string eventName, object handler)
         {
             var eventInfo = o.GetType().GetEvent(eventName);
             var addMethod = eventInfo.GetAddMethod();
@@ -28,8 +28,13 @@ namespace Tmds.DBus
             Action disposeAction = () => removeMethod.Invoke(o, new object[] { handler });
             return new Disposable(disposeAction);
         }
-        
+
         public static Task<IDisposable> AddAsync<T>(object o, string eventName, Action<T> handler)
+        {
+            return Task.FromResult(Add(o, eventName, handler));
+        }
+
+        public static Task<IDisposable> AddAsync(object o, string eventName, Action handler)
         {
             return Task.FromResult(Add(o, eventName, handler));
         }

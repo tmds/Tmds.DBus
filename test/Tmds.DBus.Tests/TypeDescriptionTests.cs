@@ -80,6 +80,7 @@ namespace Tmds.DBus.Tests
         [InlineData(typeof(IInvalidSignal6), false)]
         [InlineData(typeof(IInvalidSignal7), false)]
         [InlineData(typeof(IInvalidSignal8), false)]
+        [InlineData(typeof(IInvalidSignal9), false)]
         public void ValidMembers(Type type, bool expectedValid)
         {
             bool valid = true;
@@ -115,6 +116,7 @@ namespace Tmds.DBus.Tests
             var description = TypeDescription.DescribeInterface(typeof(IValidSignal1));
             var signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
+            Assert.Equal(false, signalDescription.HasOnError);
             Assert.Equal(null, signalDescription.SignalType);
             Assert.Equal(typeof(Action), signalDescription.ActionType);
             Assert.Equal((Signature?)null, signalDescription.SignalSignature);
@@ -125,6 +127,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidSignal2));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
+            Assert.Equal(false, signalDescription.HasOnError);
             Assert.Equal(typeof(int), signalDescription.SignalType);
             Assert.Equal(typeof(Action<int>), signalDescription.ActionType);
             Assert.Equal("i", signalDescription.SignalSignature);
@@ -222,6 +225,33 @@ namespace Tmds.DBus.Tests
             Assert.Equal("myArg", argDescription.Name);
             Assert.Equal(typeof(ValueTuple<int, string>), argDescription.Type);
             Assert.Equal("(is)", argDescription.Signature);
+
+            // Task<IDisposable> WatchSomethingAsync(Action a, Action<Exception>);
+            description = TypeDescription.DescribeInterface(typeof(IValidSignal8));
+            signalDescription = description.Interfaces[0].Signals[0];
+            Assert.Equal("Something", signalDescription.Name);
+            Assert.Equal(true, signalDescription.HasOnError);
+            Assert.Equal(null, signalDescription.SignalType);
+            Assert.Equal(typeof(Action), signalDescription.ActionType);
+            Assert.Equal((Signature?)null, signalDescription.SignalSignature);
+            Assert.Equal(0, signalDescription.SignalArguments.Count);
+            Assert.Equal(typeof(IValidSignal8).GetTypeInfo().GetMethod("WatchSomethingAsync"), signalDescription.MethodInfo);
+
+            // Task<IDisposable> WatchSomethingAsync(Action<int> a, Action<Exception>);
+            description = TypeDescription.DescribeInterface(typeof(IValidSignal9));
+            signalDescription = description.Interfaces[0].Signals[0];
+            Assert.Equal("Something", signalDescription.Name);
+            Assert.Equal(true, signalDescription.HasOnError);
+            Assert.Equal(typeof(int), signalDescription.SignalType);
+            Assert.Equal(typeof(Action<int>), signalDescription.ActionType);
+            Assert.Equal("i", signalDescription.SignalSignature);
+            Assert.Equal(typeof(IValidSignal9).GetTypeInfo().GetMethod("WatchSomethingAsync"), signalDescription.MethodInfo);
+            Assert.NotNull(signalDescription.SignalArguments);
+            Assert.Equal(1, signalDescription.SignalArguments.Count);
+            argDescription = signalDescription.SignalArguments[0];
+            Assert.Equal("value", argDescription.Name);
+            Assert.Equal(typeof(int), argDescription.Type);
+            Assert.Equal("i", argDescription.Signature);
         }
 
         [Fact]
@@ -654,6 +684,16 @@ namespace Tmds.DBus.Tests
         {
             Task<IDisposable> WatchSomethingAsync([Argument("myArg")]Action<(int arg1, string arg2)> a);
         }
+        [DBusInterface("tmds.dbus.tests.validsignal")]
+        interface IValidSignal8 : IDBusObject
+        {
+            Task<IDisposable> WatchSomethingAsync(Action a, Action<Exception> error);
+        }
+        [DBusInterface("tmds.dbus.tests.validsignal")]
+        interface IValidSignal9 : IDBusObject
+        {
+            Task<IDisposable> WatchSomethingAsync(Action<int> a, Action<Exception> error);
+        }
         [DBusInterface("tmds.dbus.tests.invalidsignal")]
         interface IInvalidSignal2 : IDBusObject
         {
@@ -688,6 +728,11 @@ namespace Tmds.DBus.Tests
         interface IInvalidSignal8 : IDBusObject
         {
             int WatchSomethingAsync(Action a);
+        }
+        [DBusInterface("tmds.dbus.tests.invalidsignal")]
+        interface IInvalidSignal9 : IDBusObject
+        {
+            Task<IDisposable> WatchSomethingAsync(Action<Exception> error);
         }
         interface IInvalidDBusObjectInterface1 : IEmptyDBusInterface, IEmptyDBusInterfaceDuplicate, IDBusObject
         {}

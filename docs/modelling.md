@@ -131,14 +131,14 @@ public interface ITrackList
 
 ## Signals
 
-A D-Bus signal is modeled by a method in the .NET interface which matches the D-Bus signal name prefixed with `Watch` and sufixed with `Async` suffix. The method needs to return `Task<IDisposable>`. The returned `IDisposable` can be used to unsubscribe from the signal. The method has a handler parameter. The handler must be of type `Action` for signals without parameters and of type `Action<T>` for methods which do have parameters. In case there are multiple parameters, they must be wrapped in a struct/class as public fields or use a C# 7 tuple. Similar to the method output parameter, the `ArgumentAttribute` can be set on the `Action` to distinguish between a single STRUCT being returned (attribute set) or multiple arguments (no attribute).
+A D-Bus signal is modeled by a method in the .NET interface which matches the D-Bus signal name prefixed with `Watch` and sufixed with `Async` suffix. The method needs to return `Task<IDisposable>`. The returned `IDisposable` can be used to unsubscribe from the signal. The method has a handler parameter. The handler must be of type `Action` for signals without parameters and of type `Action<T>` for methods which do have parameters. In case there are multiple parameters, they must be wrapped in a struct/class as public fields or use a C# 7 tuple. Similar to the method output parameter, the `ArgumentAttribute` can be set on the `Action` to distinguish between a single STRUCT being returned (attribute set) or multiple arguments (no attribute). A second action of type `Action<Exception>` can be specified. This action will be called when the Connection is closed.
 
 ```
 [DBusInterface("org.freedesktop.NetworkManager")]
 public interface INetworkManager : IDBusObject
 {
     // DeviceAdded signal with a single ObjectPath argument
-    Task<IDisposable> WatchDeviceAddedAsync(Action<ObjectPath> handler)));
+    Task<IDisposable> WatchDeviceAddedAsync(Action<ObjectPath> handler, Action<Exception> onComplete)));
 }
 ```
 

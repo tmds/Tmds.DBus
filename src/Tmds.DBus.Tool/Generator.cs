@@ -30,6 +30,7 @@ namespace Tmds.DBus.Tool
         private readonly SyntaxNode _closeSafeHandle;
         private readonly SyntaxNode _action;
         private readonly SyntaxNode _taskOfIDisposable;
+        private readonly SyntaxNode _actionOfException;
         private readonly GeneratorSettings _settings;
 
         public Generator() : this(new GeneratorSettings())
@@ -49,6 +50,7 @@ namespace Tmds.DBus.Tool
             _signature = _generator.IdentifierName("Signature");
             _closeSafeHandle = _generator.IdentifierName("CloseSafeHandle");
             _taskOfIDisposable = _generator.GenericName("Task", _generator.IdentifierName("IDisposable"));
+            _actionOfException = _generator.GenericName("Action", _generator.IdentifierName("Exception"));
         }
 
         private SyntaxNode[] ImportNamespaceDeclarations()
@@ -247,7 +249,7 @@ namespace Tmds.DBus.Tool
             string name = signalXml.Attribute("name").Value;
             var args = signalXml.Elements("arg");
             var inArgType = args.Count() == 0 ? _action : _generator.GenericName("Action", MultyArgsToType(args));
-            var inParameters = new[] { _generator.ParameterDeclaration("action", inArgType) };
+            var inParameters = new[] { _generator.ParameterDeclaration("handler", inArgType), _generator.ParameterDeclaration("onComplete", _actionOfException, _generator.NullLiteralExpression()) };
             var methodDeclaration = _generator.MethodDeclaration($"Watch{name}Async", inParameters, null, _taskOfIDisposable);
             return methodDeclaration;
         }

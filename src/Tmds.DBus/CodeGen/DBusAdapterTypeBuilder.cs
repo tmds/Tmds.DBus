@@ -118,6 +118,12 @@ namespace Tmds.DBus.CodeGen
                             ilg.Emit(OpCodes.Newobj, signal.ActionType.GetConstructors()[0]);
                         }
 
+                        if (signal.HasOnError)
+                        {
+                            // Action<Exception> = null
+                            ilg.Emit(OpCodes.Ldnull);
+                        }
+
                         ilg.Emit(OpCodes.Callvirt, signal.MethodInfo);
                     }
 

@@ -11,11 +11,11 @@ namespace Tmds.DBus.CodeGen
 {
     internal class DBusObjectProxy : IDBusObject
     {
-        private readonly IDBusConnection _connection;
+        private readonly Connection _connection;
         private readonly IProxyFactory _factory;
         public readonly string _serviceName;
 
-        protected DBusObjectProxy(IDBusConnection connection, IProxyFactory factory, string serviceName, ObjectPath objectPath)
+        protected DBusObjectProxy(Connection connection, IProxyFactory factory, string serviceName, ObjectPath objectPath)
         {
             _connection = connection;
             _serviceName = serviceName;
@@ -24,12 +24,38 @@ namespace Tmds.DBus.CodeGen
         }
         public ObjectPath ObjectPath { get; }
 
-        internal protected async Task<IDisposable> WatchNonVoidSignalAsync<T>(string iface, string member, Action<T> action, ReadMethodDelegate<T> readValue, bool isPropertiesChanged)
+        internal protected async Task<IDisposable> WatchNonVoidSignalAsync<T>(string iface, string member, Action<Exception> error, Action<T> action, ReadMethodDelegate<T> readValue, bool isPropertiesChanged)
         {
             var wrappedDisposable = new WrappedDisposable();
             var synchronizationContext = SynchronizationContext.Current;
-            SignalHandler handler = msg =>
+            SignalHandler handler = (msg, ex) =>
             {
+                if (ex != null)
+                {
+                    if (error == null)
+                    {
+                        return;
+                    }
+                    if (synchronizationContext != null && synchronizationContext != SynchronizationContext.Current)
+                    {
+                        synchronizationContext.Post(o =>
+                        {
+                            if (!wrappedDisposable.IsDisposed)
+                            {
+                                error(ex);
+                            }
+                        }, null);
+                    }
+                    else
+                    {
+                        if (!wrappedDisposable.IsDisposed)
+                        {
+                            error(ex);
+                        }
+                    }
+                    return;
+                }
+
                 if (!SenderMatches(msg))
                 {
                     return;
@@ -76,12 +102,38 @@ namespace Tmds.DBus.CodeGen
             return wrappedDisposable;
         }
 
-        internal protected async Task<IDisposable> WatchVoidSignalAsync<T>(string iface, string member, Action action)
+        internal protected async Task<IDisposable> WatchVoidSignalAsync<T>(string iface, string member, Action<Exception> error, Action action)
         {
             var wrappedDisposable = new WrappedDisposable();
             var synchronizationContext = SynchronizationContext.Current;
-            SignalHandler handler = msg =>
+            SignalHandler handler = (msg, ex) =>
             {
+                if (ex != null)
+                {
+                    if (error == null)
+                    {
+                        return;
+                    }
+                    if (synchronizationContext != null && synchronizationContext != SynchronizationContext.Current)
+                    {
+                        synchronizationContext.Post(o =>
+                        {
+                            if (!wrappedDisposable.IsDisposed)
+                            {
+                                error(ex);
+                            }
+                        }, null);
+                    }
+                    else
+                    {
+                        if (!wrappedDisposable.IsDisposed)
+                        {
+                            error(ex);
+                        }
+                    }
+                    return;
+                }
+
                 if (!SenderMatches(msg))
                 {
                     return;

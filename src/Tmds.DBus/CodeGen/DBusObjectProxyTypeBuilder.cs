@@ -13,7 +13,7 @@ namespace Tmds.DBus.CodeGen
     internal class DBusObjectProxyTypeBuilder
     {
         private static readonly ConstructorInfo s_messageWriterConstructor = typeof(MessageWriter).GetConstructor(Type.EmptyTypes);
-        private static readonly Type[] s_dbusObjectProxyConstructorParameterTypes = new Type[] { typeof(IDBusConnection), typeof(IProxyFactory), typeof(string), typeof(ObjectPath) };
+        private static readonly Type[] s_dbusObjectProxyConstructorParameterTypes = new Type[] { typeof(Connection), typeof(IProxyFactory), typeof(string), typeof(ObjectPath) };
         private static readonly ConstructorInfo s_baseConstructor = typeof(DBusObjectProxy).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, s_dbusObjectProxyConstructorParameterTypes);
         private static readonly ConstructorInfo s_signatureConstructor = typeof(Signature).GetConstructor(new Type[] { typeof(string) });
         private static readonly ConstructorInfo s_nullableSignatureConstructor = typeof(Signature?).GetConstructor(new Type[] { typeof(Signature) });
@@ -128,6 +128,16 @@ namespace Tmds.DBus.CodeGen
 
             // Member
             ilg.Emit(OpCodes.Ldstr, signalDescription.Name);
+
+            // Action/Action<Exception>
+            if (signalDescription.HasOnError)
+            {
+                ilg.Emit(OpCodes.Ldarg_2);
+            }
+            else
+            {
+                ilg.Emit(OpCodes.Ldnull);
+            }
 
             // Action/Action<>
             ilg.Emit(OpCodes.Ldarg_1);

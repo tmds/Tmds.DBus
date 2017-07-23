@@ -120,7 +120,7 @@ namespace Tmds.DBus
 
         private readonly IMessageStream _stream;
         private readonly object _gate = new object();
-        private readonly Dictionary<SignalMatchRule, SignalHandler> _signalHandlers = new Dictionary<SignalMatchRule, SignalHandler>();
+        private Dictionary<SignalMatchRule, SignalHandler> _signalHandlers = new Dictionary<SignalMatchRule, SignalHandler>();
         private readonly Dictionary<string, Action<ServiceOwnerChangedEventArgs>> _nameOwnerWatchers = new Dictionary<string, Action<ServiceOwnerChangedEventArgs>>();
         private Dictionary<uint, TaskCompletionSource<Message>> _pendingMethods = new Dictionary<uint, TaskCompletionSource<Message>>();
         private readonly Dictionary<ObjectPath, MethodHandler> _methodHandlers = new Dictionary<ObjectPath, MethodHandler>();
@@ -611,7 +611,7 @@ namespace Tmds.DBus
                 {
                     try
                     {
-                        signalHandler(msg);
+                        signalHandler(msg, null);
                     }
                     catch (Exception e)
                     {
@@ -650,6 +650,7 @@ namespace Tmds.DBus
         private void DoDisconnect(State nextState, Exception disconnectReason)
         {
             Dictionary<uint, TaskCompletionSource<Message>> pendingMethods = null;
+            Dictionary<SignalMatchRule, SignalHandler> signalHandlers = null;
             lock (_gate)
             {
                 if ((_state == State.Disconnected) || (_state == State.Disposed))
@@ -666,9 +667,22 @@ namespace Tmds.DBus
                 _disconnectReason = disconnectReason;
                 pendingMethods = _pendingMethods;
                 _pendingMethods = null;
-                _signalHandlers.Clear();
+                signalHandlers = _signalHandlers;
+                _signalHandlers = null;
                 _nameOwnerWatchers.Clear();
                 _serviceNameRegistrations.Clear();
+            }
+
+            foreach (var handler in signalHandlers)
+            {
+                if (disconnectReason != null)
+                {
+                    handler.Value(null, new DisconnectedException(disconnectReason));
+                }
+                else
+                {
+                    handler.Value(null, new ObjectDisposedException(typeof(Connection).FullName));
+                }
             }
 
             foreach (var tcs in pendingMethods.Values)

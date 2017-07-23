@@ -129,7 +129,7 @@ namespace Tmds.DBus.CodeGen
             // Member
             ilg.Emit(OpCodes.Ldstr, signalDescription.Name);
 
-            // Action/Action<Exception>
+            // Action<Exception>
             if (signalDescription.HasOnError)
             {
                 ilg.Emit(OpCodes.Ldarg_2);

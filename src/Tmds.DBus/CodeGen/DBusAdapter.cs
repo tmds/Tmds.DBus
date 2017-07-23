@@ -240,8 +240,8 @@ namespace Tmds.DBus.CodeGen
                     Member = member,
                     Signature = inSigStr
                 },
-                writer.ToArray(),
-                writer.UnixFds
+                writer?.ToArray(),
+                writer?.UnixFds
             );
 
             _connection.EmitSignal(signalMsg);

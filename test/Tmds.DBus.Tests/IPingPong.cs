@@ -9,5 +9,7 @@ namespace Tmds.DBus.Tests
     {
         Task PingAsync(string message);
         Task<IDisposable> WatchPongAsync(Action<string> reply);
+        Task<IDisposable> WatchPongNoArgAsync(Action reply);
+        Task<IDisposable> WatchPongWithExceptionAsync(Action<string> reply, Action<Exception> onError);
     }
 }

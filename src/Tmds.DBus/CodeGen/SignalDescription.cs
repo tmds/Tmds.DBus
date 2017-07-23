@@ -11,7 +11,7 @@ namespace Tmds.DBus.CodeGen
 {
     internal class SignalDescription
     {
-        public SignalDescription(MethodInfo method, string name, Type actionType, Type signalType, Signature? signature, IList<ArgumentDescription> arguments)
+        public SignalDescription(MethodInfo method, string name, Type actionType, Type signalType, Signature? signature, IList<ArgumentDescription> arguments, bool hasOnError)
         {
             MethodInfo = method;
             Name = name;
@@ -19,6 +19,7 @@ namespace Tmds.DBus.CodeGen
             SignalType = signalType;
             SignalSignature = signature;
             _signalArguments = arguments;
+            HasOnError = hasOnError;
         }
 
         public InterfaceDescription Interface { get; internal set; }
@@ -29,5 +30,6 @@ namespace Tmds.DBus.CodeGen
         private IList<ArgumentDescription> _signalArguments;
         public IList<ArgumentDescription> SignalArguments { get { return _signalArguments ?? Array.Empty<ArgumentDescription>(); } }
         public Type ActionType { get; }
+        public bool HasOnError { get; }
     }
 }

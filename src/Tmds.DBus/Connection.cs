@@ -442,12 +442,11 @@ namespace Tmds.DBus
 
         private object CreateProxy(Type interfaceType, string busName, ObjectPath path)
         {
-            ThrowIfNotConnected();
             var assembly = DynamicAssembly.Instance;
             var implementationType = assembly.GetProxyTypeInfo(interfaceType);
 
             DBusObjectProxy instance = (DBusObjectProxy)Activator.CreateInstance(implementationType.AsType(),
-                new object[] { _dbusConnection, _factory, busName, path });
+                new object[] { this, _factory, busName, path });
 
             return instance;
         }
@@ -492,6 +491,16 @@ namespace Tmds.DBus
             }
         }
 
+        private IDBusConnection GetConnectedConnection()
+        {
+            var connection = Volatile.Read(ref _dbusConnection);
+            if (connection == null)
+            {
+                throw new InvalidOperationException("Not Connected");
+            }
+            return connection;
+        }
+
         private void ThrowIfRemoteIsNotBus()
         {
             if (_dbusConnection.RemoteIsBus != true)
@@ -525,6 +534,16 @@ namespace Tmds.DBus
 
                 _dbusConnection?.Dispose();
             }
+        }
+
+        internal Task<Message> CallMethodAsync(Message message)
+        {
+            return GetConnectedConnection().CallMethodAsync(message);
+        }
+
+        internal Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
+        {
+            return GetConnectedConnection().WatchSignalAsync(path, @interface, signalName, handler);
         }
     }
 }

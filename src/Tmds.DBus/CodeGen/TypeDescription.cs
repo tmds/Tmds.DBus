@@ -18,6 +18,7 @@ namespace Tmds.DBus.CodeGen
         private static readonly Type s_signalReturnType = typeof(Task<IDisposable>);
         private static readonly Type s_idbusObjectType = typeof(IDBusObject);
         private static readonly Type s_emptyActionType = typeof(Action);
+        private static readonly Type s_exceptionActionType = typeof(Action<Exception>);
         private static readonly Type s_singleParameterActionType = typeof(Action<>);
         private static readonly Type s_emptyTaskType = typeof(Task);
         private static readonly Type s_parameterTaskType = typeof(Task<>);
@@ -173,18 +174,18 @@ namespace Tmds.DBus.CodeGen
                     var parameters = member.GetParameters();
                     var actionParameter = parameters.Length > 0 ? parameters[0] : null;
                     Type parameterType = null;
-                    bool valid = false;
+                    bool validActionParameter = false;
                     if (actionParameter != null)
                     {
                         if (actionParameter.ParameterType == s_emptyActionType)
                         {
-                            valid = true;
+                            validActionParameter = true;
                             parameterType = null;
                         }
                         else if (actionParameter.ParameterType.GetTypeInfo().IsGenericType
                                  && actionParameter.ParameterType.GetGenericTypeDefinition() == s_singleParameterActionType)
                         {
-                            valid = true;
+                            validActionParameter = true;
                             parameterType = actionParameter.ParameterType.GetGenericArguments()[0];
                             InspectParameterType(parameterType, actionParameter, out parameterSignature, out arguments);
                         }
@@ -193,12 +194,14 @@ namespace Tmds.DBus.CodeGen
                     {
                         throw new NotSupportedException($"Signal {memberName} does not support cancellation. See https://github.com/tmds/Tmds.DBus/issues/15.");
                     }
-                    if (!valid || parameters.Length != 1)
+                    var lastParameter = parameters.Length > 0 ? parameters[parameters.Length - 1] : null;
+                    bool hasOnError = lastParameter?.ParameterType == s_exceptionActionType;
+                    if (!validActionParameter || parameters.Length != 1 + (hasOnError ? 1 : 0))
                     {
-                        throw new ArgumentException($"Signal {memberName} must accept a single argument of Type 'Action'/'Action<>'");
+                        throw new ArgumentException($"Signal {memberName} must accept an argument of Type 'Action'/'Action<>' and optional argument of Type 'Action<Exception>'");
                     }
 
-                    var signal = new SignalDescription(member, name, actionParameter.ParameterType, parameterType, parameterSignature, arguments);
+                    var signal = new SignalDescription(member, name, actionParameter.ParameterType, parameterType, parameterSignature, arguments, hasOnError);
                     if (member.Name == interfaceAttribute.WatchPropertiesMethod)
                     {
                         if (propertiesChangedSignal != null)

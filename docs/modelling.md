@@ -138,7 +138,7 @@ A D-Bus signal is modeled by a method in the .NET interface which matches the D-
 public interface INetworkManager : IDBusObject
 {
     // DeviceAdded signal with a single ObjectPath argument
-    Task<IDisposable> WatchDeviceAddedAsync(Action<ObjectPath> handler, Action<Exception> onComplete)));
+    Task<IDisposable> WatchDeviceAddedAsync(Action<ObjectPath> handler, Action<Exception> onError)));
 }
 ```
 

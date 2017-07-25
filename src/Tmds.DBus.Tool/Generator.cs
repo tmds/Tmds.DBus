@@ -249,7 +249,7 @@ namespace Tmds.DBus.Tool
             string name = signalXml.Attribute("name").Value;
             var args = signalXml.Elements("arg");
             var inArgType = args.Count() == 0 ? _action : _generator.GenericName("Action", MultyArgsToType(args));
-            var inParameters = new[] { _generator.ParameterDeclaration("handler", inArgType), _generator.ParameterDeclaration("onComplete", _actionOfException, _generator.NullLiteralExpression()) };
+            var inParameters = new[] { _generator.ParameterDeclaration("handler", inArgType), _generator.ParameterDeclaration("onError", _actionOfException, _generator.NullLiteralExpression()) };
             var methodDeclaration = _generator.MethodDeclaration($"Watch{name}Async", inParameters, null, _taskOfIDisposable);
             return methodDeclaration;
         }

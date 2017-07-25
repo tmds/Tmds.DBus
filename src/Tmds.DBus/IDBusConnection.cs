@@ -14,7 +14,7 @@ namespace Tmds.DBus
     {
         Task<Message> CallMethodAsync(Message message);
         Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler);
-        Task<IDisposable> WatchNameOwnerChangedAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler);
+        Task<IDisposable> WatchNameOwnerChangedAsync(string serviceName, Action<ServiceOwnerChangedEventArgs, Exception> handler);
         Task<RequestNameReply> RequestNameAsync(string name, RequestNameOptions options, Action onAquired, Action onLost, SynchronizationContext synchronzationContext);
         Task<ReleaseNameReply> ReleaseNameAsync(string name);
         void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers);

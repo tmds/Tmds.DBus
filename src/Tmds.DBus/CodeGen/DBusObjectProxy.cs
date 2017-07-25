@@ -26,8 +26,8 @@ namespace Tmds.DBus.CodeGen
 
         internal protected async Task<IDisposable> WatchNonVoidSignalAsync<T>(string iface, string member, Action<Exception> error, Action<T> action, ReadMethodDelegate<T> readValue, bool isPropertiesChanged)
         {
-            var wrappedDisposable = new WrappedDisposable();
-            var synchronizationContext = SynchronizationContext.Current;
+            var synchronizationContext = _connection.CaptureSynchronizationContext();
+            var wrappedDisposable = new WrappedDisposable(synchronizationContext);
             SignalHandler handler = (msg, ex) =>
             {
                 if (ex != null)
@@ -36,23 +36,7 @@ namespace Tmds.DBus.CodeGen
                     {
                         return;
                     }
-                    if (synchronizationContext != null && synchronizationContext != SynchronizationContext.Current)
-                    {
-                        synchronizationContext.Post(o =>
-                        {
-                            if (!wrappedDisposable.IsDisposed)
-                            {
-                                error(ex);
-                            }
-                        }, null);
-                    }
-                    else
-                    {
-                        if (!wrappedDisposable.IsDisposed)
-                        {
-                            error(ex);
-                        }
-                    }
+                    wrappedDisposable.Call(error, ex, disposes: true);
                     return;
                 }
 
@@ -71,23 +55,7 @@ namespace Tmds.DBus.CodeGen
                     reader.SetSkipNextStructPadding();
                 }
                 var value = readValue(reader);
-                if (synchronizationContext != null)
-                {
-                    synchronizationContext.Post(o =>
-                    {
-                        if (!wrappedDisposable.IsDisposed)
-                        {
-                            action(value);
-                        }
-                    }, null);
-                }
-                else
-                {
-                    if (!wrappedDisposable.IsDisposed)
-                    {
-                        action(value);
-                    }
-                }
+                wrappedDisposable.Call(action, value);
             };
 
             if (isPropertiesChanged)
@@ -104,8 +72,8 @@ namespace Tmds.DBus.CodeGen
 
         internal protected async Task<IDisposable> WatchVoidSignalAsync(string iface, string member, Action<Exception> error, Action action)
         {
-            var wrappedDisposable = new WrappedDisposable();
-            var synchronizationContext = SynchronizationContext.Current;
+            var synchronizationContext = _connection.CaptureSynchronizationContext();
+            var wrappedDisposable = new WrappedDisposable(synchronizationContext);
             SignalHandler handler = (msg, ex) =>
             {
                 if (ex != null)
@@ -114,23 +82,7 @@ namespace Tmds.DBus.CodeGen
                     {
                         return;
                     }
-                    if (synchronizationContext != null && synchronizationContext != SynchronizationContext.Current)
-                    {
-                        synchronizationContext.Post(o =>
-                        {
-                            if (!wrappedDisposable.IsDisposed)
-                            {
-                                error(ex);
-                            }
-                        }, null);
-                    }
-                    else
-                    {
-                        if (!wrappedDisposable.IsDisposed)
-                        {
-                            error(ex);
-                        }
-                    }
+                    wrappedDisposable.Call(error, ex, disposes: true);
                     return;
                 }
 
@@ -138,23 +90,7 @@ namespace Tmds.DBus.CodeGen
                 {
                     return;
                 }
-                if (synchronizationContext != null)
-                {
-                    synchronizationContext.Post(o =>
-                    {
-                        if (!wrappedDisposable.IsDisposed)
-                        {
-                            action();
-                        }
-                    }, null);
-                }
-                else
-                {
-                    if (!wrappedDisposable.IsDisposed)
-                    {
-                        action();
-                    }
-                }
+                wrappedDisposable.Call(action);
             };
 
             wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler);

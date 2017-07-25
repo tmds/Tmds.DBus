@@ -178,12 +178,15 @@ namespace Tmds.DBus.Tests
                 IConnection conn1 = new Connection(address);
                 var connectionTcs = new TaskCompletionSource<Exception>();
                 await conn1.ConnectAsync(e => connectionTcs.SetResult(e));
+                // resolve
+                var resolverTcs = new TaskCompletionSource<object>();
+                await conn1.ResolveServiceOwnerAsync("some.service", _ => {}, e => resolverTcs.SetException(e));
 
                 var proxy = conn1.CreateProxy<ISlow>(conn2.LocalName, Slow.Path);
                 // method
                 var pendingMethod = proxy.SlowAsync();
                 // signal
-                var signalTcs = new TaskCompletionSource<Exception>();
+                var signalTcs = new TaskCompletionSource<object>();
                 await proxy.WatchSomethingErrorAsync(() => { }, e => signalTcs.SetException(e));
 
                 conn1.Dispose();
@@ -195,6 +198,8 @@ namespace Tmds.DBus.Tests
                 await Assert.ThrowsAsync<ObjectDisposedException>(() => pendingMethod);
                 // signal
                 await Assert.ThrowsAsync<ObjectDisposedException>(() => signalTcs.Task);
+                // resolve
+                await Assert.ThrowsAsync<ObjectDisposedException>(() => resolverTcs.Task);
             }
         }
 

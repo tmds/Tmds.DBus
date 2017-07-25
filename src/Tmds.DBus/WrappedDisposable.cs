@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Threading;
 
 namespace Tmds.DBus
 {
@@ -11,18 +12,92 @@ namespace Tmds.DBus
         private object _gate = new object();
         private bool _disposed;
         private IDisposable _disposable;
-        public void Dispose()
+        private readonly SynchronizationContext _synchronizationContext;
+
+        public WrappedDisposable(SynchronizationContext synchronizationContext)
         {
-            lock (_gate)
+            _synchronizationContext = synchronizationContext;
+        }
+
+        public void Call(Action action)
+        {
+            if (_synchronizationContext != null && _synchronizationContext != SynchronizationContext.Current)
             {
                 if (_disposed)
                 {
                     return;
                 }
+                _synchronizationContext.Post(_ =>
+                {
+                    lock (_gate)
+                    {
+                        if (!_disposed)
+                        {
+                            action();
+                        }
+                    }
+                }, null);
+            }
+            else
+            {
+                lock (_gate)
+                {
+                    if (!_disposed)
+                    {
+                        action();
+                    }
+                }
+            }
+        }
+
+        public void Call<T>(Action<T> action, T value, bool disposes = false)
+        {
+            if (_synchronizationContext != null && _synchronizationContext != SynchronizationContext.Current)
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+                _synchronizationContext.Post(_ =>
+                {
+                    lock (_gate)
+                    {
+                        if (!_disposed)
+                        {
+                            if (disposes)
+                            {
+                                Dispose();
+                            }
+                            action(value);
+                        }
+                    }
+                }, null);
+            }
+            else
+            {
+                lock (_gate)
+                {
+                    if (!_disposed)
+                    {
+                        if (disposes)
+                        {
+                            Dispose();
+                        }
+                        action(value);
+                    }
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (_gate)
+            {
                 _disposed = true;
                 _disposable?.Dispose();
             }
         }
+
         public IDisposable Disposable
         {
             set

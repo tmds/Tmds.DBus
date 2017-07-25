@@ -41,6 +41,7 @@ namespace Tmds.DBus
         private readonly object _gate = new object();
         private readonly Dictionary<ObjectPath, DBusAdapter> _registeredObjects = new Dictionary<ObjectPath, DBusAdapter>();
         private readonly string _address;
+        private readonly Func<SynchronizationContext> _captureSynchronizationContext = () => SynchronizationContext.Current;
 
         private State _state = State.Created;
         private IProxyFactory _factory;
@@ -92,7 +93,7 @@ namespace Tmds.DBus
             {
                 if (onDisconnect != null)
                 {
-                    _onDisconnectSynchronizationContext = SynchronizationContext.Current;
+                    _onDisconnectSynchronizationContext = CaptureSynchronizationContext();
                 }
 
                 _dbusConnection = await DBusConnection.OpenAsync(_address, OnDisconnect, cancellationToken);
@@ -149,7 +150,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await _dbusConnection.RequestNameAsync(serviceName, requestOptions, onAquired, onLost, SynchronizationContext.Current);
+            var reply = await _dbusConnection.RequestNameAsync(serviceName, requestOptions, onAquired, onLost, CaptureSynchronizationContext());
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -179,7 +180,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await _dbusConnection.RequestNameAsync(name, requestOptions, null, onLost, SynchronizationContext.Current);
+            var reply = await _dbusConnection.RequestNameAsync(name, requestOptions, null, onLost, CaptureSynchronizationContext());
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -208,7 +209,7 @@ namespace Tmds.DBus
             {
                 var implementationType = assembly.GetExportTypeInfo(o.GetType());
                 var objectPath = o.ObjectPath;
-                var registration = (DBusAdapter)Activator.CreateInstance(implementationType.AsType(), _dbusConnection, objectPath, o, _factory, SynchronizationContext.Current);
+                var registration = (DBusAdapter)Activator.CreateInstance(implementationType.AsType(), _dbusConnection, objectPath, o, _factory, CaptureSynchronizationContext());
                 registrations.Add(registration);
             }
 
@@ -318,7 +319,7 @@ namespace Tmds.DBus
             return DBus.NameHasOwnerAsync(serviceName);
         }
 
-        public async Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler)
+        public async Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, Action<Exception> onError = null)
         {
             ThrowIfNotConnected();
             ThrowIfRemoteIsNotBus();
@@ -327,51 +328,49 @@ namespace Tmds.DBus
                 serviceName = ".*";
             }
 
-            var synchronizationContext = SynchronizationContext.Current;
-            bool eventEmitted = false;
-            var wrappedDisposable = new WrappedDisposable();
-            var namespaceLookup = serviceName.EndsWith(".*");
-            var emittedServices = namespaceLookup ? new List<string>() : null;
+            var synchronizationContext = CaptureSynchronizationContext();
+            var wrappedDisposable = new WrappedDisposable(synchronizationContext);
+            bool namespaceLookup = serviceName.EndsWith(".*");
+            bool _eventEmitted = false;
+            var _gate = new object();
+            var _emittedServices = namespaceLookup ? new List<string>() : null;
 
-            wrappedDisposable.Disposable = await _dbusConnection.WatchNameOwnerChangedAsync(serviceName,
-                e => {
-                    bool first = false;
+            Action<ServiceOwnerChangedEventArgs, Exception> handleEvent = (ownerChange, ex) => {
+                if (ex != null)
+                {
+                    if (onError == null)
+                    {
+                        return;
+                    }
+                    wrappedDisposable.Call(onError, ex, disposes: true);
+                    return;
+                }
+                bool first = false;
+                lock (_gate)
+                {
                     if (namespaceLookup)
                     {
-                        first = emittedServices?.Contains(e.ServiceName) == false;
-                        emittedServices?.Add(e.ServiceName);
+                        first = _emittedServices?.Contains(ownerChange.ServiceName) == false;
+                        _emittedServices?.Add(ownerChange.ServiceName);
                     }
                     else
                     {
-                        first = eventEmitted == false;
-                        eventEmitted = true;
+                        first = _eventEmitted == false;
+                        _eventEmitted = true;
                     }
-                    if (first)
+                }
+                if (first)
+                {
+                    if (ownerChange.NewOwner == null)
                     {
-                        if (e.NewOwner == null)
-                        {
-                            return;
-                        }
-                        e.OldOwner = null;
+                        return;
                     }
-                    if (synchronizationContext != null)
-                    {
-                        synchronizationContext.Post(o =>
-                        {
-                            if (!wrappedDisposable.IsDisposed)
-                            {
-                                handler(e);
-                            }
-                        }, null);
-                    }
-                    else
-                    {
-                        if (!wrappedDisposable.IsDisposed)
-                        {
-                            handler(e);
-                        }
-                    }
-                });
+                    ownerChange.OldOwner = null;
+                }
+                wrappedDisposable.Call(handler, ownerChange);
+            };
+
+            wrappedDisposable.Disposable = await _dbusConnection.WatchNameOwnerChangedAsync(serviceName, handleEvent).ConfigureAwait(false);
             if (namespaceLookup)
             {
                 serviceName = serviceName.Substring(0, serviceName.Length - 2);
@@ -389,33 +388,41 @@ namespace Tmds.DBus
                              || (serviceName.Length == 0 && service[0] != ':')))
                         {
                             var currentName = await ResolveServiceOwnerAsync(service);
-                            if (currentName != null && !emittedServices.Contains(serviceName))
+                            lock (_gate)
                             {
-                                emittedServices.Add(service);
-                                var e = new ServiceOwnerChangedEventArgs(service, null, currentName);
-                                handler(e);
+                                if (currentName != null && !_emittedServices.Contains(serviceName))
+                                {
+                                    var e = new ServiceOwnerChangedEventArgs(service, null, currentName);
+                                    handleEvent(e, null);
+                                }
                             }
                         }
                     }
-                    emittedServices = null;
+                    lock (_gate)
+                    {
+                        _emittedServices = null;
+                    }
                 }
                 else
                 {
                     var currentName = await ResolveServiceOwnerAsync(serviceName);
-                    if (currentName != null && !eventEmitted)
+                    lock (_gate)
                     {
-                        eventEmitted = true;
-                        var e = new ServiceOwnerChangedEventArgs(serviceName, null, currentName);
-                        handler(e);
+                        if (currentName != null && !_eventEmitted)
+                        {
+                            var e = new ServiceOwnerChangedEventArgs(serviceName, null, currentName);
+                            handleEvent(e, null);
+                        }
                     }
                 }
                 return wrappedDisposable;
             }
-            catch
+            catch (Exception ex)
             {
-                wrappedDisposable.Dispose();
-                throw;
+                handleEvent(default(ServiceOwnerChangedEventArgs), ex);
             }
+
+            return wrappedDisposable;
         }
 
         public Task<string[]> ListServicesAsync()
@@ -545,5 +552,7 @@ namespace Tmds.DBus
         {
             return GetConnectedConnection().WatchSignalAsync(path, @interface, signalName, handler);
         }
+
+        internal SynchronizationContext CaptureSynchronizationContext() => _captureSynchronizationContext();
     }
 }

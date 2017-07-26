@@ -1,0 +1,5 @@
+{
+  "maxParallelThreads": 1,
+  "longRunningTestSeconds": 3,
+  "diagnosticMessages": true
+}

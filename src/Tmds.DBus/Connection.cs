@@ -41,7 +41,7 @@ namespace Tmds.DBus
         private readonly object _gate = new object();
         private readonly Dictionary<ObjectPath, DBusAdapter> _registeredObjects = new Dictionary<ObjectPath, DBusAdapter>();
         private readonly string _address;
-        private readonly Func<SynchronizationContext> _captureSynchronizationContext = () => SynchronizationContext.Current;
+        private readonly SynchronizationContext _synchronizationContext;
 
         private State _state = State.Created;
         private IProxyFactory _factory;
@@ -70,13 +70,20 @@ namespace Tmds.DBus
         public string LocalName => _dbusConnection?.LocalName;
         public bool? RemoteIsBus => _dbusConnection?.RemoteIsBus;
 
-        public Connection(string address)
+        public Connection(string address) :
+            this(address, new ConnectionOptions())
+        { }
+
+        public Connection(string address, ConnectionOptions connectionOptions)
         {
             if (address == null)
                 throw new ArgumentNullException(nameof(address));
+            if (connectionOptions == null)
+                throw new ArgumentNullException(nameof(connectionOptions));
 
             _address = address;
             _factory = new ProxyFactory(this);
+            _synchronizationContext = connectionOptions.SynchronizationContext;
         }
 
         public async Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -553,6 +560,6 @@ namespace Tmds.DBus
             return GetConnectedConnection().WatchSignalAsync(path, @interface, signalName, handler);
         }
 
-        internal SynchronizationContext CaptureSynchronizationContext() => _captureSynchronizationContext();
+        internal SynchronizationContext CaptureSynchronizationContext() => _synchronizationContext;
     }
 }

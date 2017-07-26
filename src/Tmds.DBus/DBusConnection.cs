@@ -113,9 +113,7 @@ namespace Tmds.DBus
                 break;
             }
 
-            var dbusConnection = new DBusConnection(stream);
-            await dbusConnection.ConnectAsync(onDisconnect, cancellationToken);
-            return dbusConnection;
+            return await DBusConnection.CreateAndConnectAsync(stream, onDisconnect, cancellationToken);
         }
 
         private readonly IMessageStream _stream;
@@ -140,15 +138,22 @@ namespace Tmds.DBus
         public string LocalName => _localName;
         public bool? RemoteIsBus => _remoteIsBus;
 
-        internal DBusConnection(IMessageStream stream)
+        public static async Task<DBusConnection> CreateAndConnectAsync(IMessageStream stream, Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            var connection = new DBusConnection(stream);
+            await connection.ConnectAsync(onDisconnect, cancellationToken);
+            return connection;
+        }
+
+        private DBusConnection(IMessageStream stream)
         {
             _stream = stream;
             _sendQueue = new ConcurrentQueue<PendingSend>();
             _sendSemaphore = new SemaphoreSlim(1);
-            _receiveFinished = new EventWaitHandle(false, EventResetMode.ManualReset);
+            _receiveFinished = new EventWaitHandle(false, EventResetMode.AutoReset);
         }
 
-        public async Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (_gate)
             {
@@ -157,6 +162,12 @@ namespace Tmds.DBus
                     throw new InvalidOperationException("Unable to connect");
                 }
                 _state = State.Connecting;
+            }
+
+            if (SynchronizationContext.Current != null)
+            {
+                SynchronizationContext.SetSynchronizationContext(null);
+                await Task.Yield();
             }
 
             ReceiveMessages();

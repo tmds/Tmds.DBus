@@ -52,7 +52,7 @@ namespace Tmds.DBus.Tests
         private string _configFile;
         private State _state;
 
-        public DBusDaemon()
+        public DBusDaemon(string unixSocketPath = null)
         {
             _state = State.Created;
         }
@@ -70,7 +70,7 @@ namespace Tmds.DBus.Tests
             _process?.Dispose();
         }
 
-        public Task StartAsync(DBusDaemonProtocol protocol = DBusDaemonProtocol.Default)
+        public Task StartAsync(DBusDaemonProtocol protocol = DBusDaemonProtocol.Default, string socketPath = null)
         {
             if (_state != State.Created)
             {
@@ -81,14 +81,12 @@ namespace Tmds.DBus.Tests
             _configFile = Path.GetTempFileName();
             if (protocol == DBusDaemonProtocol.Unix)
             {
-                var socketPath = Path.GetTempFileName();
-                File.Delete(socketPath);
+                socketPath = socketPath ?? Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 File.WriteAllText(_configFile, s_config.Replace("$LISTEN", $"unix:path={socketPath}"));
             }
             else if (protocol == DBusDaemonProtocol.UnixAbstract)
             {
-                var socketPath = Path.GetTempFileName();
-                File.Delete(socketPath);
+                socketPath = socketPath ?? Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
                 File.WriteAllText(_configFile, s_config.Replace("$LISTEN", $"unix:abstract={socketPath}"));
             }
             else // DBusDaemonProtocol.Tcp

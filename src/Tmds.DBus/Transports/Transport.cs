@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -246,7 +247,7 @@ namespace Tmds.DBus.Transports
                 byte b = buffer[0];
                 if (length == 0)
                 {
-                    throw new DisconnectedException();
+                    throw new IOException("Connection closed by peer");
                 }
                 else if (b == '\r')
                 {

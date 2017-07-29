@@ -10,5 +10,6 @@ namespace Tmds.DBus
     public class ConnectionOptions
     {
         public SynchronizationContext SynchronizationContext { get; set; }
+        public bool AutoConnect { get; set; }
     }
 }

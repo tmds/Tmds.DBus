@@ -176,8 +176,8 @@ namespace Tmds.DBus.Tests
 
                 // connection
                 IConnection conn1 = new Connection(address);
-                var connectionTcs = new TaskCompletionSource<Exception>();
-                await conn1.ConnectAsync(e => connectionTcs.SetResult(e));
+                //var connectionTcs = new TaskCompletionSource<Exception>();
+                await conn1.ConnectAsync(/*e => connectionTcs.SetResult(e)*/);
                 // resolve
                 var resolverTcs = new TaskCompletionSource<object>();
                 await conn1.ResolveServiceOwnerAsync("some.service", _ => {}, e => resolverTcs.SetException(e));
@@ -192,8 +192,8 @@ namespace Tmds.DBus.Tests
                 conn1.Dispose();
 
                 // connection
-                var disconnectReason = await connectionTcs.Task;
-                Assert.Null(disconnectReason);
+                //var disconnectReason = await connectionTcs.Task;
+                //Assert.Null(disconnectReason);
                 // method
                 await Assert.ThrowsAsync<ObjectDisposedException>(() => pendingMethod);
                 // signal
@@ -352,6 +352,31 @@ namespace Tmds.DBus.Tests
                     File.Delete(fileName);
                 }
             }
+        }
+
+        [Fact]
+        public async Task AutoConnect()
+        {
+            string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            string address = $"unix:path={socketPath}";
+
+            var connection = new Connection(address, new ConnectionOptions { AutoConnect = true });
+
+            using (var dbusDaemon = new DBusDaemon())
+            {
+                await dbusDaemon.StartAsync(DBusDaemonProtocol.Unix, socketPath);
+
+                var reply = await connection.ListServicesAsync();
+            }
+
+            using (var dbusDaemon = new DBusDaemon())
+            {
+                await dbusDaemon.StartAsync(DBusDaemonProtocol.Unix, socketPath);
+
+                var reply = await connection.ListServicesAsync();
+            }
+
+            var exception = await Assert.ThrowsAsync<ConnectionException>(() => connection.ListServicesAsync());
         }
     }
 }

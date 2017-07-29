@@ -10,7 +10,7 @@ using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus
 {
-    interface IDBusConnection : IDisposable
+    interface IDBusConnection
     {
         Task<Message> CallMethodAsync(Message message);
         Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler);
@@ -23,5 +23,6 @@ namespace Tmds.DBus
         string LocalName { get; }
         bool? RemoteIsBus { get; }
         string[] GetChildNames(ObjectPath path);
+        void Disconnect(ConnectionState state, Exception disconnectReason = null);
     }
 }

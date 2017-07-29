@@ -76,27 +76,24 @@ namespace Tmds.DBus.Transports
                 {
                     await socket.ConnectAsync(address, port);
                     _stream = new NetworkStream(socket, true);
-                    try
-                    {
-                        await _stream.WriteAsync(_oneByteArray, 0, 1, cancellationToken);
-                        await DoSaslAuthenticationAsync(guid, transportSupportsUnixFdPassing: false);
-                        return;
-                    }
-                    catch (Exception e)
-                    {
-                        _stream?.Dispose();
-                        if (lastAddress)
-                        {
-                            throw new ConnectionException($"Unable to authenticate: {e.Message}", e);
-                        }
-                    }
+                    await _stream.WriteAsync(_oneByteArray, 0, 1, cancellationToken);
+                    await DoSaslAuthenticationAsync(guid, transportSupportsUnixFdPassing: false);
+                    return;
                 }
                 catch (System.Exception e)
                 {
+                    _stream?.Dispose();
                     socket.Dispose();
                     if (lastAddress)
                     {
-                        throw new ConnectionException($"Socket error: {e.Message}", e);
+                        if (e is ConnectionException)
+                        {
+                            throw;
+                        }
+                        else
+                        {
+                            throw new ConnectionException(e.Message, e);    
+                        }
                     }
                 }
                 finally

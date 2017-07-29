@@ -16,15 +16,6 @@ namespace Tmds.DBus
     {
         public const string DynamicAssemblyName = "Tmds.DBus.Emit";
 
-        private enum State
-        {
-            Created,
-            Connecting,
-            Connected,
-            Disconnected,
-            Disposed
-        }
-
         private class ProxyFactory : IProxyFactory
         {
             public Connection Connection { get; }
@@ -42,14 +33,18 @@ namespace Tmds.DBus
         private readonly Dictionary<ObjectPath, DBusAdapter> _registeredObjects = new Dictionary<ObjectPath, DBusAdapter>();
         private readonly string _address;
         private readonly SynchronizationContext _synchronizationContext;
+        private readonly bool _autoConnect;
 
-        private State _state = State.Created;
+        private ConnectionState _state = ConnectionState.Created;
         private IProxyFactory _factory;
         private IDBusConnection _dbusConnection;
-        private Action<Exception> _onDisconnect;
-        private SynchronizationContext _onDisconnectSynchronizationContext;
+        private Task<IDBusConnection> _dbusConnectionTask;
+        private TaskCompletionSource<IDBusConnection> _dbusConnectionTcs;
+        private CancellationTokenSource _connectCts;
         private Exception _disconnectReason;
         private IDBus _bus;
+        private bool? _remoteIsBus;
+        private string _localName;
 
         private IDBus DBus
         {
@@ -67,8 +62,8 @@ namespace Tmds.DBus
             }
         }
 
-        public string LocalName => _dbusConnection?.LocalName;
-        public bool? RemoteIsBus => _dbusConnection?.RemoteIsBus;
+        public string LocalName => _localName;
+        public bool? RemoteIsBus => _remoteIsBus;
 
         public Connection(string address) :
             this(address, new ConnectionOptions())
@@ -84,48 +79,88 @@ namespace Tmds.DBus
             _address = address;
             _factory = new ProxyFactory(this);
             _synchronizationContext = connectionOptions.SynchronizationContext;
+            _autoConnect = connectionOptions.AutoConnect;
         }
 
-        public async Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken))
+        public Task ConnectAsync()
+            => DoConnectAsync();
+
+        private async Task<IDBusConnection> DoConnectAsync()
         {
+            Task<IDBusConnection> connectionTask = null;
+            bool alreadyConnecting = false;
             lock (_gate)
             {
-                if (_state != State.Created)
+                if (_state == ConnectionState.Disposed)
                 {
-                    throw new InvalidOperationException("Can only connect once");
+                    throw new ObjectDisposedException(typeof(Connection).FullName); 
                 }
-                _state = State.Connecting;
+
+                if (!_autoConnect)
+                {
+                    if (_state != ConnectionState.Created)
+                    {
+                        throw new InvalidOperationException("Can only connect once");
+                    }
+                }
+                else
+                {
+                    if (_state == ConnectionState.Connecting || _state == ConnectionState.Connected)
+                    {
+                        connectionTask = _dbusConnectionTask;
+                        alreadyConnecting = true;
+                    }
+                }
+                if (!alreadyConnecting)
+                {
+                    _connectCts = new CancellationTokenSource();
+                    _dbusConnectionTcs = new TaskCompletionSource<IDBusConnection>();
+                    _dbusConnectionTask = _dbusConnectionTcs.Task;
+                    _state = ConnectionState.Connecting;
+                }
+                connectionTask = _dbusConnectionTask;
             }
+
+            if (alreadyConnecting)
+            {
+                return await connectionTask;
+            }
+
+            IDBusConnection connection;
             try
             {
-                if (onDisconnect != null)
-                {
-                    _onDisconnectSynchronizationContext = CaptureSynchronizationContext();
-                }
-
-                _dbusConnection = await DBusConnection.OpenAsync(_address, OnDisconnect, cancellationToken);
-
-                lock (_gate)
-                {
-                    if (_state == State.Connecting)
-                    {
-                        _state = State.Connected;
-                    }
-                    ThrowIfNotConnected();
-
-                    _onDisconnect = onDisconnect;
-                }
+                connection = await DBusConnection.OpenAsync(_address, OnDisconnect, _connectCts.Token);
             }
             catch (Exception e)
             {
-                DoDisconnect(State.Disconnected, e);
+                Disconnect(ConnectionState.Disconnected, e);
                 throw;
             }
+            lock (_gate)
+            {
+                if (_state == ConnectionState.Connecting)
+                {
+                    _localName = connection.LocalName;
+                    _remoteIsBus = connection.RemoteIsBus;
+                    _dbusConnection = connection;
+                    _connectCts.Dispose();
+                    _connectCts = null;
+                    _state = ConnectionState.Connected;
+                    _dbusConnectionTcs.SetResult(connection);
+                    _dbusConnectionTcs = null;
+                }
+                else
+                {
+                    connection.Disconnect(ConnectionState.Disposed);
+                }
+                ThrowIfNotConnected();
+            }
+            return connection;
         }
 
         public void Dispose()
         {
-            DoDisconnect(State.Disposed, null);
+            Disconnect(ConnectionState.Disposed, null);
         }
 
         public T CreateProxy<T>(string busName, ObjectPath path)
@@ -135,14 +170,16 @@ namespace Tmds.DBus
 
         public async Task<bool> UnregisterServiceAsync(string serviceName)
         {
-            ThrowIfNotConnected();
-            var reply = await _dbusConnection.ReleaseNameAsync(serviceName);
+            ThrowIfAutoConnect();
+            var connection = GetConnectedConnection();
+            var reply = await connection.ReleaseNameAsync(serviceName);
             return reply == ReleaseNameReply.ReplyReleased;
         }
 
         public async Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
-            ThrowIfNotConnected();
+            ThrowIfAutoConnect();
+            var connection = GetConnectedConnection();
             if (!options.HasFlag(ServiceRegistrationOptions.AllowReplacement) && (onLost != null))
             {
                 throw new ArgumentException($"{nameof(onLost)} can only be set when {nameof(ServiceRegistrationOptions.AllowReplacement)} is also set", nameof(onLost));
@@ -157,7 +194,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await _dbusConnection.RequestNameAsync(serviceName, requestOptions, onAquired, onLost, CaptureSynchronizationContext());
+            var reply = await connection.RequestNameAsync(serviceName, requestOptions, onAquired, onLost, CaptureSynchronizationContext());
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -172,7 +209,8 @@ namespace Tmds.DBus
 
         public async Task RegisterServiceAsync(string name, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
-            ThrowIfNotConnected();
+            ThrowIfAutoConnect();
+            var connection = GetConnectedConnection();
             if (!options.HasFlag(ServiceRegistrationOptions.AllowReplacement) && (onLost != null))
             {
                 throw new ArgumentException($"{nameof(onLost)} can only be set when {nameof(ServiceRegistrationOptions.AllowReplacement)} is also set", nameof(onLost));
@@ -187,7 +225,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await _dbusConnection.RequestNameAsync(name, requestOptions, null, onLost, CaptureSynchronizationContext());
+            var reply = await connection.RequestNameAsync(name, requestOptions, null, onLost, CaptureSynchronizationContext());
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -209,7 +247,8 @@ namespace Tmds.DBus
 
         public async Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects)
         {
-            ThrowIfNotConnected();
+            ThrowIfAutoConnect();
+            var connection = GetConnectedConnection();
             var assembly = DynamicAssembly.Instance;
             var registrations = new List<DBusAdapter>();
             foreach (var o in objects)
@@ -222,9 +261,7 @@ namespace Tmds.DBus
 
             lock (_gate)
             {
-                ThrowIfNotConnected();
-
-                _dbusConnection.AddMethodHandlers(registrations.Select(r => new KeyValuePair<ObjectPath, MethodHandler>(r.Path, r.HandleMethodCall)));
+                connection.AddMethodHandlers(registrations.Select(r => new KeyValuePair<ObjectPath, MethodHandler>(r.Path, r.HandleMethodCall)));
 
                 foreach (var registration in registrations)
                 {
@@ -239,8 +276,6 @@ namespace Tmds.DBus
                 }
                 lock (_gate)
                 {
-                    ThrowIfNotConnected();
-
                     foreach (var registration in registrations)
                     {
                         registration.CompleteRegistration();
@@ -256,7 +291,7 @@ namespace Tmds.DBus
                         registration.Unregister();
                         _registeredObjects.Remove(registration.Path);
                     }
-                    _dbusConnection.RemoveMethodHandlers(registrations.Select(r => r.Path));
+                    connection.RemoveMethodHandlers(registrations.Select(r => r.Path));
                 }
                 throw;
             }
@@ -269,9 +304,10 @@ namespace Tmds.DBus
 
         public void UnregisterObjects(IEnumerable<ObjectPath> paths)
         {
+            ThrowIfAutoConnect();
             lock (_gate)
             {
-                ThrowIfNotConnected();
+                var connection = GetConnectedConnection();
 
                 foreach(var objectPath in paths)
                 {
@@ -283,21 +319,15 @@ namespace Tmds.DBus
                     }
                 }
                 
-                _dbusConnection.RemoveMethodHandlers(paths);
+                connection.RemoveMethodHandlers(paths);
             }
         }
 
         public Task<string[]> ListActivatableServicesAsync()
-        {
-            ThrowIfNotConnected();
-            ThrowIfRemoteIsNotBus();
-            return DBus.ListActivatableNamesAsync();
-        }
+            => DBus.ListActivatableNamesAsync();
 
         public async Task<string> ResolveServiceOwnerAsync(string serviceName)
         {
-            ThrowIfNotConnected();
-            ThrowIfRemoteIsNotBus();
             try
             {
                 return await DBus.GetNameOwnerAsync(serviceName);
@@ -313,23 +343,13 @@ namespace Tmds.DBus
         }
 
         public Task<ServiceStartResult> ActivateServiceAsync(string serviceName)
-        {
-            ThrowIfNotConnected();
-            ThrowIfRemoteIsNotBus();
-            return DBus.StartServiceByNameAsync(serviceName, 0);
-        }
+            => DBus.StartServiceByNameAsync(serviceName, 0);
 
         public Task<bool> IsServiceActiveAsync(string serviceName)
-        {
-            ThrowIfNotConnected();
-            ThrowIfRemoteIsNotBus();
-            return DBus.NameHasOwnerAsync(serviceName);
-        }
+            => DBus.NameHasOwnerAsync(serviceName);
 
         public async Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, Action<Exception> onError = null)
         {
-            ThrowIfNotConnected();
-            ThrowIfRemoteIsNotBus();
             if (serviceName == "*")
             {
                 serviceName = ".*";
@@ -377,7 +397,8 @@ namespace Tmds.DBus
                 wrappedDisposable.Call(handler, ownerChange);
             };
 
-            wrappedDisposable.Disposable = await _dbusConnection.WatchNameOwnerChangedAsync(serviceName, handleEvent).ConfigureAwait(false);
+            var connection = await GetConnectionTask();
+            wrappedDisposable.Disposable = await connection.WatchNameOwnerChangedAsync(serviceName, handleEvent).ConfigureAwait(false);
             if (namespaceLookup)
             {
                 serviceName = serviceName.Substring(0, serviceName.Length - 2);
@@ -433,24 +454,20 @@ namespace Tmds.DBus
         }
 
         public Task<string[]> ListServicesAsync()
-        {
-            ThrowIfNotConnected();
-            ThrowIfRemoteIsNotBus();
-
-            return DBus.ListNamesAsync();
-        }
+            => DBus.ListNamesAsync();
 
         // Used by tests
         internal void Connect(IDBusConnection dbusConnection)
         {
             lock (_gate)
             {
-                if (_state != State.Created)
+                if (_state != ConnectionState.Created)
                 {
                     throw new InvalidOperationException("Can only connect once");
                 }
                 _dbusConnection = dbusConnection;
-                _state = State.Connected;
+                _dbusConnectionTask = Task.FromResult(_dbusConnection);
+                _state = ConnectionState.Connected;
             }
         }
 
@@ -467,69 +484,98 @@ namespace Tmds.DBus
 
         private void OnDisconnect(Exception e)
         {
-            if (e != null)
-            {
-                DoDisconnect(State.Disconnected, e);
-            }
-            if (_onDisconnect != null)
-            {
-                if ((_onDisconnectSynchronizationContext != null)
-                    && (SynchronizationContext.Current != _onDisconnectSynchronizationContext))
-                {
-                    _onDisconnectSynchronizationContext.Post(_ => _onDisconnect(_disconnectReason), null);
-                }
-                else
-                {
-                    _onDisconnect(_disconnectReason);
-                }
-            }
+            Disconnect(ConnectionState.Disconnected, e);
         }
 
         private void ThrowIfNotConnected()
+            => ThrowIfNotConnected(_state, _disconnectReason);
+
+        internal static void ThrowIfNotConnected(ConnectionState state, Exception disconnectReason)
         {
-            if (_state == State.Disconnected)
+            if (state == ConnectionState.Disconnected)
             {
-                throw new DisconnectedException(_disconnectReason);
+                throw new DisconnectedException(disconnectReason);
             }
-            else if (_state == State.Created)
+            else if (state == ConnectionState.Created)
             {
                 throw new InvalidOperationException("Not Connected");
             }
-            else if (_state == State.Connecting)
+            else if (state == ConnectionState.Connecting)
             {
                 throw new InvalidOperationException("Connecting");
             }
-            else if (_state == State.Disposed)
+            else if (state == ConnectionState.Disposed)
             {
                 throw new ObjectDisposedException(typeof(Connection).FullName);
+            }
+        }
+
+        internal static void ThrowIfNotConnecting(ConnectionState state, Exception disconnectReason)
+        {
+            if (state == ConnectionState.Disconnected)
+            {
+                throw new DisconnectedException(disconnectReason);
+            }
+            else if (state == ConnectionState.Created)
+            {
+                throw new InvalidOperationException("Not Connected");
+            }
+            else if (state == ConnectionState.Connected)
+            {
+                throw new InvalidOperationException("Already Connected");
+            }
+            else if (state == ConnectionState.Disposed)
+            {
+                throw new ObjectDisposedException(typeof(Connection).FullName);
+            }
+        }
+
+        private async Task<IDBusConnection> GetConnectionTask()
+        {
+            var connectionTask = Volatile.Read(ref _dbusConnectionTask);
+            if (connectionTask != null)
+            {
+                return await connectionTask;
+            }
+            if (!_autoConnect)
+            {
+                return GetConnectedConnection();
+            }
+            else
+            {
+                return await DoConnectAsync();
             }
         }
 
         private IDBusConnection GetConnectedConnection()
         {
             var connection = Volatile.Read(ref _dbusConnection);
-            if (connection == null)
+            if (connection != null)
             {
-                throw new InvalidOperationException("Not Connected");
+                return connection;
             }
-            return connection;
+            lock (_gate)
+            {
+                ThrowIfNotConnected();
+                return _dbusConnection;
+            }
         }
 
-        private void ThrowIfRemoteIsNotBus()
+        private void ThrowIfAutoConnect()
         {
-            if (_dbusConnection.RemoteIsBus != true)
+            if (_autoConnect == true)
             {
-                throw new InvalidOperationException("The remote peer is not a bus");
+                throw new InvalidOperationException($"Operation not supported for {nameof(ConnectionOptions.AutoConnect)} Connection.");
             }
         }
 
-        private void DoDisconnect(State nextState, Exception e)
+        private void Disconnect(ConnectionState nextState, Exception e)
         {
             lock (_gate)
             {
-                if ((_state == State.Disconnected) || (_state == State.Disposed))
+                if ((_state == ConnectionState.Disconnected) || (_state == ConnectionState.Disposed))
                 {
-                    if (nextState == State.Disposed)
+                    if (nextState == ConnectionState.Disposed)
                     {
                         _state = nextState;
                     }
@@ -537,7 +583,6 @@ namespace Tmds.DBus
                 }
 
                 _disconnectReason = e;
-
                 _state = nextState;
 
                 foreach (var registeredObject in _registeredObjects)
@@ -546,18 +591,43 @@ namespace Tmds.DBus
                 }
                 _registeredObjects.Clear();
 
-                _dbusConnection?.Dispose();
+                _dbusConnection?.Disconnect(nextState, e);
+                _connectCts?.Cancel();
+                _connectCts?.Dispose();
+                _connectCts = null;
+                _dbusConnection = null;
+                _dbusConnectionTask = null;
+                _dbusConnectionTcs?.SetException(nextState == ConnectionState.Disposed ? (Exception)new ObjectDisposedException(typeof(Connection).FullName) : new DisconnectedException(e));
+                _dbusConnectionTcs = null;
             }
         }
 
-        internal Task<Message> CallMethodAsync(Message message)
+        internal async Task<Message> CallMethodAsync(Message message)
         {
-            return GetConnectedConnection().CallMethodAsync(message);
+            var connection = await GetConnectionTask();
+            try
+            {
+                return await connection.CallMethodAsync(message);
+            }
+            catch (DisconnectedException) when (_autoConnect)
+            {
+                connection = await GetConnectionTask();
+                return await connection.CallMethodAsync(message);
+            }
         }
 
-        internal Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
+        internal async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
         {
-            return GetConnectedConnection().WatchSignalAsync(path, @interface, signalName, handler);
+            var connection = await GetConnectionTask();
+            try
+            {
+                return await connection.WatchSignalAsync(path, @interface, signalName, handler);
+            }
+            catch (DisconnectedException) when (_autoConnect)
+            {
+                connection = await GetConnectionTask();
+                return await connection.WatchSignalAsync(path, @interface, signalName, handler);
+            }
         }
 
         internal SynchronizationContext CaptureSynchronizationContext() => _synchronizationContext;

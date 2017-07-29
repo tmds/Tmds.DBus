@@ -4,7 +4,7 @@
 
 namespace Tmds.DBus
 {
-    public enum ConnectionState
+    internal enum ConnectionState
     {
         Created,
         Connecting,

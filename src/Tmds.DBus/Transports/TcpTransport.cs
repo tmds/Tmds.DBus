@@ -63,7 +63,7 @@ namespace Tmds.DBus.Transports
             }
             catch (System.Exception e)
             {
-                throw new ConnectionException($"No addresses for host '{host}'", e);
+                throw new ConnectException($"No addresses for host '{host}'", e);
             }
 
             for (int i = 0; i < addresses.Length; i++)
@@ -86,13 +86,13 @@ namespace Tmds.DBus.Transports
                     socket.Dispose();
                     if (lastAddress)
                     {
-                        if (e is ConnectionException)
+                        if (e is ConnectException)
                         {
                             throw;
                         }
                         else
                         {
-                            throw new ConnectionException(e.Message, e);    
+                            throw new ConnectException(e.Message, e);    
                         }
                     }
                 }
@@ -101,7 +101,7 @@ namespace Tmds.DBus.Transports
                     registration.Dispose();
                 }
             }
-            throw new ConnectionException($"No addresses for host '{host}'");
+            throw new ConnectException($"No addresses for host '{host}'");
         }
 
         protected override Task<int> ReadAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)

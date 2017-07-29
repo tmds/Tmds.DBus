@@ -144,13 +144,13 @@ namespace Tmds.DBus.Transports
             catch (Exception e)
             {
                 Dispose();
-                if (e is ConnectionException)
+                if (e is ConnectException)
                 {
                     throw;
                 }
                 else
                 {
-                    throw new ConnectionException(e.Message, e);
+                    throw new ConnectException(e.Message, e);
                 }
             }
             finally

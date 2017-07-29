@@ -376,7 +376,7 @@ namespace Tmds.DBus.Tests
                 var reply = await connection.ListServicesAsync();
             }
 
-            var exception = await Assert.ThrowsAsync<ConnectionException>(() => connection.ListServicesAsync());
+            var exception = await Assert.ThrowsAsync<ConnectException>(() => connection.ListServicesAsync());
         }
     }
 }

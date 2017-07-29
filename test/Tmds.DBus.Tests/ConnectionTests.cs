@@ -103,7 +103,7 @@ namespace Tmds.DBus.Tests
         {
             using (var connection = new Connection(address))
             {
-                await Assert.ThrowsAsync<ConnectionException>(() => connection.ConnectAsync());
+                await Assert.ThrowsAsync<ConnectException>(() => connection.ConnectAsync());
             }
         }
 

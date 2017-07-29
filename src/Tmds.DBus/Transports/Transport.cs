@@ -170,7 +170,7 @@ namespace Tmds.DBus.Transports
             {
                 if (guid != authenticationResult.Guid)
                 {
-                    throw new ConnectionException("Authentication failure: Unexpected GUID");
+                    throw new ConnectException("Authentication failure: Unexpected GUID");
                 }
             }
         }
@@ -195,7 +195,7 @@ namespace Tmds.DBus.Transports
                 }
             }
 
-            throw new ConnectionException("Authentication failure");
+            throw new ConnectException("Authentication failure");
         }
 
         private async Task<AuthenticationResult> AuthenticateAsync(bool transportSupportsUnixFdPassing, string command)

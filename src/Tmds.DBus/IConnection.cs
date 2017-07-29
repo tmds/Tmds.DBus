@@ -22,7 +22,7 @@ namespace Tmds.DBus
         Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects);
         void UnregisterObject(ObjectPath path);
         void UnregisterObjects(IEnumerable<ObjectPath> paths);
-        Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken));
+        Task ConnectAsync();
         Task<string[]> ListActivatableServicesAsync();
         Task<string> ResolveServiceOwnerAsync(string serviceName);
         Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, Action<Exception> onError = null);

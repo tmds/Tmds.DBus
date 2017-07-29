@@ -69,21 +69,12 @@ namespace Tmds.DBus
             public SynchronizationContext SynchronizationContext;
         }
 
-        private enum State
-        {
-            Created,
-            Connecting,
-            Connected,
-            Disconnected,
-            Disposed
-        }
-
         public static readonly ObjectPath DBusObjectPath = new ObjectPath("/org/freedesktop/DBus");
         public const string DBusServiceName = "org.freedesktop.DBus";
         public const string DBusInterface = "org.freedesktop.DBus";
         private static readonly char[] s_dot = new[] { '.' };
 
-        public static async Task<DBusConnection> OpenAsync(string address, Action<Exception> onDisconnect, CancellationToken cancellationToken)
+        public static async Task<IDBusConnection> OpenAsync(string address, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
             var _entries = AddressEntry.ParseEntries(address);
             if (_entries.Length == 0)
@@ -125,7 +116,7 @@ namespace Tmds.DBus
         private readonly Dictionary<ObjectPath, string[]> _childNames = new Dictionary<ObjectPath, string[]>();
         private readonly Dictionary<string, ServiceNameRegistration> _serviceNameRegistrations = new Dictionary<string, ServiceNameRegistration>();
 
-        private State _state = State.Created;
+        private ConnectionState _state = ConnectionState.Created;
         private string _localName;
         private bool? _remoteIsBus;
         private Action<Exception> _onDisconnect;
@@ -133,7 +124,6 @@ namespace Tmds.DBus
         private int _methodSerial;
         private ConcurrentQueue<PendingSend> _sendQueue;
         private SemaphoreSlim _sendSemaphore;
-        private EventWaitHandle _receiveFinished;
 
         public string LocalName => _localName;
         public bool? RemoteIsBus => _remoteIsBus;
@@ -150,18 +140,17 @@ namespace Tmds.DBus
             _stream = stream;
             _sendQueue = new ConcurrentQueue<PendingSend>();
             _sendSemaphore = new SemaphoreSlim(1);
-            _receiveFinished = new EventWaitHandle(false, EventResetMode.AutoReset);
         }
 
         private async Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             lock (_gate)
             {
-                if (_state != State.Created)
+                if (_state != ConnectionState.Created)
                 {
                     throw new InvalidOperationException("Unable to connect");
                 }
-                _state = State.Connecting;
+                _state = ConnectionState.Connecting;
             }
 
             if (SynchronizationContext.Current != null)
@@ -170,6 +159,8 @@ namespace Tmds.DBus
                 await Task.Yield();
             }
 
+            _onDisconnect = OnDisconnect;
+
             ReceiveMessages();
 
             _localName = await CallHelloAsync();
@@ -177,9 +168,9 @@ namespace Tmds.DBus
 
             lock (_gate)
             {
-                if (_state == State.Connecting)
+                if (_state == ConnectionState.Connecting)
                 {
-                    _state = State.Connected;
+                    _state = ConnectionState.Connected;
                 }
                 ThrowIfNotConnected();
 
@@ -187,9 +178,9 @@ namespace Tmds.DBus
             }
         }
 
-        public void Dispose()
+        private void OnDisconnect(Exception e)
         {
-            DoDisconnect(State.Disposed, null);
+            Disconnect(ConnectionState.Disconnected, e);
         }
 
         public Task<Message> CallMethodAsync(Message msg)
@@ -200,12 +191,11 @@ namespace Tmds.DBus
         public void EmitSignal(Message message)
         {
             message.Header.Serial = GenerateSerial();
-            SendMessageAsync(message);
+            TrySendMessageAsync(message);
         }
 
         public void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers)
         {
-
             lock (_gate)
             {
                 foreach (var handler in handlers)
@@ -456,7 +446,8 @@ namespace Tmds.DBus
                     }
                     catch (System.Exception e)
                     {
-                        pendingSend.CompletionSource.SetException(e);
+                        pendingSend.CompletionSource.SetResult(false);
+                        EmitDisconnected(e);
                     }
                 }
             }
@@ -466,7 +457,7 @@ namespace Tmds.DBus
             }
         }
 
-        private Task SendMessageAsync(Message message)
+        private Task<bool> TrySendMessageAsync(Message message)
         {
             var tcs = new TaskCompletionSource<bool>();
             var pendingSend = new PendingSend()
@@ -495,8 +486,16 @@ namespace Tmds.DBus
             }
             catch (Exception e)
             {
-                _receiveFinished.Set();
-                DoDisconnect(State.Disposed, e);
+                EmitDisconnected(e);
+            }
+        }
+
+        private void EmitDisconnected(Exception e)
+        {
+            lock (_gate)
+            {
+                _onDisconnect?.Invoke(e);
+                _onDisconnect = null;
             }
         }
 
@@ -592,9 +591,8 @@ namespace Tmds.DBus
                             {
                                 foreach (var key in keys)
                                 {
-                                    Action<ServiceOwnerChangedEventArgs, Exception> keyWatchers;
-                                    _nameOwnerWatchers.TryGetValue(key, out keyWatchers);
-                                    if (keyWatchers != null)
+                                    Action<ServiceOwnerChangedEventArgs, Exception> keyWatchers = null;
+                                    if (_nameOwnerWatchers?.TryGetValue(key, out keyWatchers) == true)
                                     {
                                         watchers += keyWatchers;
                                     }
@@ -618,10 +616,10 @@ namespace Tmds.DBus
                 Path = msg.Header.Path.Value
             };
 
-            SignalHandler signalHandler;
+            SignalHandler signalHandler = null;
             lock (_gate)
             {
-                if (_signalHandlers.TryGetValue(rule, out signalHandler) && signalHandler != null)
+                if (_signalHandlers?.TryGetValue(rule, out signalHandler) == true)
                 {
                     try
                     {
@@ -661,16 +659,16 @@ namespace Tmds.DBus
             }
         }
 
-        private void DoDisconnect(State nextState, Exception disconnectReason)
+        public void Disconnect(ConnectionState nextState, Exception disconnectReason = null)
         {
             Dictionary<uint, TaskCompletionSource<Message>> pendingMethods = null;
             Dictionary<SignalMatchRule, SignalHandler> signalHandlers = null;
             Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>> nameOwnerWatchers = null;
             lock (_gate)
             {
-                if ((_state == State.Disconnected) || (_state == State.Disposed))
+                if ((_state == ConnectionState.Disconnected) || (_state == ConnectionState.Disposed))
                 {
-                    if (nextState == State.Disposed)
+                    if (nextState == ConnectionState.Disposed)
                     {
                         _state = nextState;
                     }
@@ -687,50 +685,31 @@ namespace Tmds.DBus
                 nameOwnerWatchers = _nameOwnerWatchers;
                 _nameOwnerWatchers = null;
                 _serviceNameRegistrations.Clear();
-            }
 
-            _receiveFinished.WaitOne();
-            _receiveFinished.Dispose();
+                _onDisconnect = null;
 
-            foreach (var watcher in nameOwnerWatchers)
-            {
-                if (disconnectReason != null)
-                {
-                    watcher.Value(default(ServiceOwnerChangedEventArgs), new DisconnectedException(disconnectReason));
-                }
-                else
-                {
-                    watcher.Value(default(ServiceOwnerChangedEventArgs), new ObjectDisposedException(typeof(Connection).FullName));
-                }
-            }
+                Func<Exception> createException = () =>
+                    nextState == ConnectionState.Disposed ? (Exception)new ObjectDisposedException(typeof(Connection).FullName) : new DisconnectedException(disconnectReason);
 
-            foreach (var handler in signalHandlers)
-            {
-                if (disconnectReason != null)
+                foreach (var watcher in nameOwnerWatchers)
                 {
-                    handler.Value(null, new DisconnectedException(disconnectReason));
+                    watcher.Value(default(ServiceOwnerChangedEventArgs), createException());
                 }
-                else
-                {
-                    handler.Value(null, new ObjectDisposedException(typeof(Connection).FullName));
-                }
-            }
 
-            foreach (var tcs in pendingMethods.Values)
-            {
-                if (disconnectReason != null)
+                foreach (var handler in signalHandlers)
                 {
-                    tcs.SetException(new DisconnectedException(disconnectReason));
+                    handler.Value(null, createException());
                 }
-                else
+
+                foreach (var tcs in pendingMethods.Values)
                 {
-                    tcs.SetException(new ObjectDisposedException(typeof(Connection).FullName));
+                    tcs.SetException(createException());
                 }
             }
 
             if (_onDisconnect != null)
             {
-                _onDisconnect(disconnectReason);
+                _onDisconnect(nextState == ConnectionState.Disposed ? null : disconnectReason);
             }
         }
 
@@ -740,7 +719,7 @@ namespace Tmds.DBus
             {
                 message.Header.Serial = GenerateSerial();
             }
-            SendMessageAsync(message);
+            TrySendMessageAsync(message);
         }
 
         private async void HandleMethodCall(Message methodCall)
@@ -929,7 +908,7 @@ namespace Tmds.DBus
 
             try
             {
-                await SendMessageAsync(msg);
+                await TrySendMessageAsync(msg);
             }
             catch
             {
@@ -1030,44 +1009,10 @@ namespace Tmds.DBus
         }
 
         private void ThrowIfNotConnected()
-        {
-            if (_state == State.Disconnected)
-            {
-                throw new DisconnectedException(_disconnectReason);
-            }
-            else if (_state == State.Created)
-            {
-                throw new InvalidOperationException("Not Connected");
-            }
-            else if (_state == State.Connecting)
-            {
-                throw new InvalidOperationException("Connecting");
-            }
-            else if (_state == State.Disposed)
-            {
-                throw new ObjectDisposedException(typeof(Connection).FullName);
-            }
-        }
+            => Connection.ThrowIfNotConnected(_state, _disconnectReason);
 
         private void ThrowIfNotConnecting()
-        {
-            if (_state == State.Disconnected)
-            {
-                throw new DisconnectedException(_disconnectReason);
-            }
-            else if (_state == State.Created)
-            {
-                throw new InvalidOperationException("Not Connected");
-            }
-            else if (_state == State.Connected)
-            {
-                throw new InvalidOperationException("Already Connected");
-            }
-            else if (_state == State.Disposed)
-            {
-                throw new ObjectDisposedException(typeof(Connection).FullName);
-            }
-        }
+            => Connection.ThrowIfNotConnecting(_state, _disconnectReason);
 
         public string[] GetChildNames(ObjectPath path)
         {

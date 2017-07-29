@@ -138,22 +138,20 @@ namespace Tmds.DBus.Transports
             try
             {
                 await _socket.ConnectAsync(endPoint);
-                try
-                {
-                    await SendAsync(_oneByteArray, 0, 1);
-                    await DoSaslAuthenticationAsync(guid, transportSupportsUnixFdPassing: _socketFd != -1);
-                    return;
-                }
-                catch (Exception e)
-                {
-                    Dispose();
-                    throw new ConnectionException($"Unable to authenticate: {e.Message}", e);
-                }
+                await SendAsync(_oneByteArray, 0, 1);
+                await DoSaslAuthenticationAsync(guid, transportSupportsUnixFdPassing: _socketFd != -1);
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Dispose();
-                throw new ConnectionException($"Socket error: {e.Message}", e);
+                if (e is ConnectionException)
+                {
+                    throw;
+                }
+                else
+                {
+                    throw new ConnectionException(e.Message, e);
+                }
             }
             finally
             {
@@ -163,6 +161,7 @@ namespace Tmds.DBus.Transports
 
         public override void Dispose()
         {
+            // TODO: make Dispose threadsafe
             _socketFd = -1;
             _socket.Dispose();
         }
@@ -427,7 +426,6 @@ namespace Tmds.DBus.Transports
             _sendArgs.BufferList = bufferList;
             if (!_socket.SendAsync(_sendArgs))
             {
-                
                 if (_sendArgs.SocketError == SocketError.Success)
                 {
                     return Task.CompletedTask;

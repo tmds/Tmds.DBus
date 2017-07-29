@@ -6,6 +6,7 @@ env:
   global:
     - DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
     - DOTNET_CLI_TELEMETRY_OPTOUT: 1
+    - secure: "j133P64oqkPVa9nYiUIxowkcMzNAVCEguc/CSNw0N3qpU2Ck9c6orR1kAizW9p9Ye1KV5umTE8AfUhKZ5Cj4UinsM8QUrMTXuLk4oWlUIUNdnE5uZxPPf85A6vq8jMKonlXVbES/M0wket2hVFz2GvAQ0QX6gfKXvXKsz6pN77Qjw5dpyn7pGDGjOHhXa7is3A+G2nWSr9WKWwVQJRouv14YkGoumy+AHyBi8dPO1hJXZylK2ZTw/fjBxImX/7jsz8o4cCc/4UEJcJXtG8yKhhW/2ZOgQQ00cCIQUu8ttUWJoBHtEBO/xpHhJH53JiwMRCwbjJzfnjObRaXMn5ES4bKp/yn2QiGdOzE6w+st8Yr/CNmHGVqz9EbdKrcijCF+fT/gkx9iKfA7seL6ovt369qe4zpkCLKqciEDXHnux/PRvEwwVxOOn3qmn6OxWES51vKaZF/wLeEIOMSVed+6pcZjK9rYBSroMSH7IEFKUkfxNEnIBVL2BBYkPyDyqJaBfUhJvzXiZrzZM6J/zD59ZCFHMnSAU3JfRg3tTfvgJtBPfzErN5brz6b4s1TWQ9uTQEedjJUz3s9EF1bz3MFHh3x4jN8vd3QpIX+HSc8kS69PA6TzmiAexiptwbgAPandvFVDIO273EIgc3zE6LEj63YbV/8QykyW2qZBw8FpA6A="
 
 addons:
   apt:
@@ -16,7 +17,7 @@ addons:
     - dbus
 
 before_install:
-  - curl -sSL -o dotnet.tar.gz https://go.microsoft.com/fwlink/?linkid=848738
+  - curl -sSL -o dotnet.tar.gz https://dotnetcli.blob.core.windows.net/dotnet/Sdk/release/2.0.0/dotnet-sdk-latest-linux-x64.tar.gz
   - sudo mkdir -p /opt/dotnet && sudo tar zxf dotnet.tar.gz -C /opt/dotnet
   - sudo ln -s /opt/dotnet/dotnet /usr/local/bin
 
@@ -32,7 +33,3 @@ after_success:
   curl -H "X-NuGet-ApiKey: $NUGET_APIKEY" -T src/Tmds.DBus/Tmds.DBus.*.nupkg https://www.myget.org/F/tmds/api/v2/package ;
   curl -H "X-NuGet-ApiKey: $NUGET_APIKEY" -T src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg https://www.myget.org/F/tmds/api/v2/package ;
      fi'
-
-env:
-  global:
-    secure: j133P64oqkPVa9nYiUIxowkcMzNAVCEguc/CSNw0N3qpU2Ck9c6orR1kAizW9p9Ye1KV5umTE8AfUhKZ5Cj4UinsM8QUrMTXuLk4oWlUIUNdnE5uZxPPf85A6vq8jMKonlXVbES/M0wket2hVFz2GvAQ0QX6gfKXvXKsz6pN77Qjw5dpyn7pGDGjOHhXa7is3A+G2nWSr9WKWwVQJRouv14YkGoumy+AHyBi8dPO1hJXZylK2ZTw/fjBxImX/7jsz8o4cCc/4UEJcJXtG8yKhhW/2ZOgQQ00cCIQUu8ttUWJoBHtEBO/xpHhJH53JiwMRCwbjJzfnjObRaXMn5ES4bKp/yn2QiGdOzE6w+st8Yr/CNmHGVqz9EbdKrcijCF+fT/gkx9iKfA7seL6ovt369qe4zpkCLKqciEDXHnux/PRvEwwVxOOn3qmn6OxWES51vKaZF/wLeEIOMSVed+6pcZjK9rYBSroMSH7IEFKUkfxNEnIBVL2BBYkPyDyqJaBfUhJvzXiZrzZM6J/zD59ZCFHMnSAU3JfRg3tTfvgJtBPfzErN5brz6b4s1TWQ9uTQEedjJUz3s9EF1bz3MFHh3x4jN8vd3QpIX+HSc8kS69PA6TzmiAexiptwbgAPandvFVDIO273EIgc3zE6LEj63YbV/8QykyW2qZBw8FpA6A=

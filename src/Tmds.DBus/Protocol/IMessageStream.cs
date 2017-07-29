@@ -3,7 +3,6 @@
 // See COPYING for details
 
 using System;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Tmds.DBus.Protocol

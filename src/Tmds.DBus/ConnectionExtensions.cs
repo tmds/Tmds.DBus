@@ -24,10 +24,5 @@ namespace Tmds.DBus
         {
             connection.UnregisterObject(dbusObject.ObjectPath);
         }
-        
-        public static Task ConnectAsync(this IConnection connection, CancellationToken cancellationToken)
-        {
-            return connection.ConnectAsync(null, cancellationToken);
-        }
     }
 }

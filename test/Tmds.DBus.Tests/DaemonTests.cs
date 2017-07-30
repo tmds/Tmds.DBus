@@ -378,5 +378,7 @@ namespace Tmds.DBus.Tests
 
             var exception = await Assert.ThrowsAsync<ConnectException>(() => connection.ListServicesAsync());
         }
+
+        // TODO: ConnectionStateChanged event test
     }
 }

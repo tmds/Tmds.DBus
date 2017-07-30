@@ -27,5 +27,6 @@ namespace Tmds.DBus
         Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, Action<Exception> onError = null);
         Task<ServiceStartResult> ActivateServiceAsync(string serviceName);
         Task<bool> IsServiceActiveAsync(string serviceName);
+        event EventHandler<ConnectionStateChangedEventArgs> StateChanged;
     }
 }

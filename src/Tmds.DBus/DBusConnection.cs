@@ -659,6 +659,11 @@ namespace Tmds.DBus
             }
         }
 
+        public void Dispose()
+        {
+            Disconnect(ConnectionState.Disposed, null);
+        }
+
         public void Disconnect(ConnectionState nextState, Exception disconnectReason = null)
         {
             Dictionary<uint, TaskCompletionSource<Message>> pendingMethods = null;

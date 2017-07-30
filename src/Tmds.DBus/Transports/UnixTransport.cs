@@ -25,6 +25,7 @@ namespace Tmds.DBus.Transports
 
         const int SOL_SOCKET = 1;
         const int EINTR = 4;
+        const int EBADF = 9;
         const int EAGAIN = 11;
         const int SCM_RIGHTS = 1;
 
@@ -161,9 +162,11 @@ namespace Tmds.DBus.Transports
 
         public override void Dispose()
         {
-            // TODO: make Dispose threadsafe
-            _socketFd = -1;
-            _socket.Dispose();
+            lock (_socket)
+            {
+                _socketFd = -1;
+                _socket.Dispose();
+            }
         }
 
         private void ReadCompleted(object sender, SocketAsyncEventArgs e)
@@ -206,9 +209,16 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        private SocketException CreateExceptionForErrno(int errno)
+        private Exception CreateExceptionForErrno(int errno)
         {
-            return new SocketException(errno);
+            if (errno == EBADF)
+            {
+                return new ObjectDisposedException(typeof(Socket).FullName);
+            }
+            else
+            {
+                return new SocketException(errno);
+            }
         }
 
         private unsafe int DoRead(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
@@ -229,7 +239,15 @@ namespace Tmds.DBus.Transports
                     msg.msg_control = &cm;
                     msg.msg_controllen = (SizeT)sizeof (cmsg_fd);
 
-                    var rv = (int)Interop.recvmsg(_socketFd, new IntPtr(&msg), 0);
+                    int rv;
+                    lock (_socket)
+                    {
+                        if (_socketFd == -1)
+                        {
+                            return -EBADF;
+                        }
+                        rv = (int)Interop.recvmsg(_socketFd, new IntPtr(&msg), 0);
+                    }
                     if (rv >= 0)
                     {
                         if (cm.hdr.cmsg_level == SOL_SOCKET && cm.hdr.cmsg_type == SCM_RIGHTS)
@@ -340,7 +358,15 @@ namespace Tmds.DBus.Transports
             // This method does NOT handle splitting msg and EAGAIN
             do
             {
-                var rv = Interop.sendmsg(_socketFd, new IntPtr(msg), 0);
+                IntPtr rv;
+                lock (_socket)
+                {
+                    if (_socketFd == -1)
+                    {
+                        throw new ObjectDisposedException(typeof(Socket).FullName);
+                    }
+                    rv = Interop.sendmsg(_socketFd, new IntPtr(msg), 0);
+                }
                 if (rv == new IntPtr(length))
                 {
                     return length;

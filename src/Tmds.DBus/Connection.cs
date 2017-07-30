@@ -151,7 +151,7 @@ namespace Tmds.DBus
                 }
                 else
                 {
-                    connection.Disconnect(ConnectionState.Disposed);
+                    connection.Dispose();
                 }
                 ThrowIfNotConnected();
             }

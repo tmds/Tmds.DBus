@@ -133,8 +133,8 @@ namespace Tmds.DBus.Transports
 
             _socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             _socketFd = GetFd(_socket);
+            cancellationToken.Register(Dispose);
 
-            var registration = cancellationToken.Register(Dispose);
             var endPoint = new UnixDomainSocketEndPoint(path);
             try
             {
@@ -153,10 +153,6 @@ namespace Tmds.DBus.Transports
                 {
                     throw new ConnectException(e.Message, e);
                 }
-            }
-            finally
-            {
-                registration.Dispose();
             }
         }
 

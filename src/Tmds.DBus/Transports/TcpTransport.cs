@@ -71,12 +71,12 @@ namespace Tmds.DBus.Transports
                 var address = addresses[i];
                 bool lastAddress = i == (addresses.Length - 1);
                 var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-                var registration = cancellationToken.Register(() => ((IDisposable)socket).Dispose());
+                cancellationToken.Register(() => socket.Dispose());
                 try
                 {
                     await socket.ConnectAsync(address, port);
                     _stream = new NetworkStream(socket, true);
-                    await _stream.WriteAsync(_oneByteArray, 0, 1, cancellationToken);
+                    await _stream.WriteAsync(_oneByteArray, 0, 1);
                     await DoSaslAuthenticationAsync(guid, transportSupportsUnixFdPassing: false);
                     return;
                 }
@@ -95,10 +95,6 @@ namespace Tmds.DBus.Transports
                             throw new ConnectException(e.Message, e);    
                         }
                     }
-                }
-                finally
-                {
-                    registration.Dispose();
                 }
             }
             throw new ConnectException($"No addresses for host '{host}'");

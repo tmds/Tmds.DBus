@@ -104,7 +104,7 @@ namespace Tmds.DBus
                 break;
             }
 
-            return await DBusConnection.CreateAndConnectAsync(stream, onDisconnect, cancellationToken);
+            return await DBusConnection.CreateAndConnectAsync(stream, onDisconnect);
         }
 
         private readonly IMessageStream _stream;
@@ -128,10 +128,11 @@ namespace Tmds.DBus
         public string LocalName => _localName;
         public bool? RemoteIsBus => _remoteIsBus;
 
-        public static async Task<DBusConnection> CreateAndConnectAsync(IMessageStream stream, Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken))
+        // For testing
+        internal static async Task<DBusConnection> CreateAndConnectAsync(IMessageStream stream, Action<Exception> onDisconnect = null)
         {
             var connection = new DBusConnection(stream);
-            await connection.ConnectAsync(onDisconnect, cancellationToken);
+            await connection.ConnectAsync(onDisconnect);
             return connection;
         }
 
@@ -142,7 +143,7 @@ namespace Tmds.DBus
             _sendSemaphore = new SemaphoreSlim(1);
         }
 
-        private async Task ConnectAsync(Action<Exception> onDisconnect = null, CancellationToken cancellationToken = default(CancellationToken))
+        private async Task ConnectAsync(Action<Exception> onDisconnect)
         {
             lock (_gate)
             {

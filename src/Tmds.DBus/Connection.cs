@@ -36,6 +36,7 @@ namespace Tmds.DBus
         private readonly bool _autoConnect;
 
         private ConnectionState _state = ConnectionState.Created;
+        private bool _disposed = false;
         private IProxyFactory _factory;
         private IDBusConnection _dbusConnection;
         private Task<IDBusConnection> _dbusConnectionTask;
@@ -45,7 +46,6 @@ namespace Tmds.DBus
         private IDBus _bus;
         private bool? _remoteIsBus;
         private string _localName;
-        private ConnectionStateChangedEventArgs _disconnectedEvent;
 
         private IDBus DBus
         {
@@ -93,7 +93,7 @@ namespace Tmds.DBus
             bool alreadyConnecting = false;
             lock (_gate)
             {
-                if (_state == ConnectionState.Disposed)
+                if (_disposed)
                 {
                     throw new ObjectDisposedException(typeof(Connection).FullName); 
                 }
@@ -115,12 +115,7 @@ namespace Tmds.DBus
                 }
                 if (!alreadyConnecting)
                 {
-                    var stateChangeEvent = new ConnectionStateChangedEventArgs
-                    {
-                        PreviousState = _disconnectedEvent?.PreviousState ?? _state,
-                        State = ConnectionState.Connecting,
-                        DisconnectReason = _disconnectedEvent?.DisconnectReason
-                    };
+                    var previousState = _state;
                     _localName = null;
                     _remoteIsBus = null;
                     _connectCts = new CancellationTokenSource();
@@ -128,8 +123,10 @@ namespace Tmds.DBus
                     _dbusConnectionTask = _dbusConnectionTcs.Task;
                     connectionTask = _dbusConnectionTask;
                     _state = ConnectionState.Connecting;
-                    _disconnectedEvent = null;
-                    EmitConnectionStateChanged(stateChangeEvent);
+
+                    var connectingEvent = CreateConnectionStateChangedEvent(previousState);
+                    _disconnectReason = null;
+                    EmitConnectionStateChanged(connectingEvent);
                 }
             }
 
@@ -143,15 +140,22 @@ namespace Tmds.DBus
             {
                 connection = await DBusConnection.OpenAsync(_address, OnDisconnect, _connectCts.Token);
             }
+            catch (ConnectException ce)
+            {
+                Disconnect(dispose: false, exception: ce);
+                throw;
+            }
             catch (Exception e)
             {
-                Disconnect(ConnectionState.Disconnected, e);
-                throw;
+                var ce = new ConnectException(e.Message, e);
+                Disconnect(dispose: false, exception: ce);
+                throw ce;
             }
             lock (_gate)
             {
                 if (_state == ConnectionState.Connecting)
                 {
+                    var previousState = _state;
                     _localName = connection.LocalName;
                     _remoteIsBus = connection.RemoteIsBus;
                     _dbusConnection = connection;
@@ -160,14 +164,11 @@ namespace Tmds.DBus
                     _state = ConnectionState.Connected;
                     _dbusConnectionTcs.SetResult(connection);
                     _dbusConnectionTcs = null;
-                    var stateChangeEvent = new ConnectionStateChangedEventArgs
-                    {
-                        PreviousState = ConnectionState.Connecting,
-                        State = ConnectionState.Connected,
-                        RemoteIsBus = _dbusConnection.RemoteIsBus == true,
-                        LocalName = _dbusConnection.LocalName
-                    };
-                    EmitConnectionStateChanged(stateChangeEvent);
+
+                    var connectedEvent = CreateConnectionStateChangedEvent(previousState);
+                    connectedEvent.RemoteIsBus = _dbusConnection.RemoteIsBus == true;
+                    connectedEvent.LocalName = _dbusConnection.LocalName;
+                    EmitConnectionStateChanged(connectedEvent);
                 }
                 else
                 {
@@ -180,7 +181,7 @@ namespace Tmds.DBus
 
         public void Dispose()
         {
-            Disconnect(ConnectionState.Disposed, null);
+            Disconnect(dispose: true, exception: new ObjectDisposedException(typeof(Connection).FullName));
         }
 
         public T CreateProxy<T>(string busName, ObjectPath path)
@@ -504,14 +505,18 @@ namespace Tmds.DBus
 
         private void OnDisconnect(Exception e)
         {
-            Disconnect(ConnectionState.Disconnected, e);
+            Disconnect(dispose: false, exception: e);
         }
 
         private void ThrowIfNotConnected()
-            => ThrowIfNotConnected(_state, _disconnectReason);
+            => ThrowIfNotConnected(_disposed, _state, _disconnectReason);
 
-        internal static void ThrowIfNotConnected(ConnectionState state, Exception disconnectReason)
+        internal static void ThrowIfNotConnected(bool disposed, ConnectionState state, Exception disconnectReason)
         {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(typeof(Connection).FullName);
+            }
             if (state == ConnectionState.Disconnected)
             {
                 throw new DisconnectedException(disconnectReason);
@@ -524,14 +529,14 @@ namespace Tmds.DBus
             {
                 throw new InvalidOperationException("Connecting");
             }
-            else if (state == ConnectionState.Disposed)
+        }
+
+        internal static void ThrowIfNotConnecting(bool disposed, ConnectionState state, Exception disconnectReason)
+        {
+            if (disposed)
             {
                 throw new ObjectDisposedException(typeof(Connection).FullName);
             }
-        }
-
-        internal static void ThrowIfNotConnecting(ConnectionState state, Exception disconnectReason)
-        {
             if (state == ConnectionState.Disconnected)
             {
                 throw new DisconnectedException(disconnectReason);
@@ -544,26 +549,22 @@ namespace Tmds.DBus
             {
                 throw new InvalidOperationException("Already Connected");
             }
-            else if (state == ConnectionState.Disposed)
-            {
-                throw new ObjectDisposedException(typeof(Connection).FullName);
-            }
         }
 
-        private async Task<IDBusConnection> GetConnectionTask()
+        private Task<IDBusConnection> GetConnectionTask()
         {
             var connectionTask = Volatile.Read(ref _dbusConnectionTask);
             if (connectionTask != null)
             {
-                return await connectionTask;
+                return connectionTask;
             }
             if (!_autoConnect)
             {
-                return GetConnectedConnection();
+                return Task.FromResult(GetConnectedConnection());
             }
             else
             {
-                return await DoConnectAsync();
+                return DoConnectAsync();
             }
         }
 
@@ -589,38 +590,26 @@ namespace Tmds.DBus
             }
         }
 
-        private void Disconnect(ConnectionState nextState, Exception e)
+        private void Disconnect(bool dispose, Exception exception)
         {
             lock (_gate)
             {
-                if ((_state == ConnectionState.Disconnected) || (_state == ConnectionState.Disposed))
+                if (dispose)
                 {
-                    if (nextState == ConnectionState.Disposed)
-                    {
-                        _state = nextState;
-                    }
-                    return;
+                    _disposed = true;
                 }
-                else if (_state == ConnectionState.Created)
+                var previousState = _state;
+                if (previousState == ConnectionState.Disconnecting || previousState == ConnectionState.Disconnected || previousState == ConnectionState.Created)
                 {
-                    _state = nextState;
                     return;
                 }
 
-                _disconnectedEvent = new ConnectionStateChangedEventArgs
-                {
-                    PreviousState = _state,
-                    State = nextState,
-                    DisconnectReason = e
-                };
-
-                _disconnectReason = e;
-                _state = nextState;
+                _disconnectReason = exception;
 
                 var connection = _dbusConnection;
                 var connectionCts = _connectCts;;
                 var dbusConnectionTask = _dbusConnectionTask;
-                var dbusConnectionCts = _dbusConnectionTcs;
+                var dbusConnectionTcs = _dbusConnectionTcs;
                 _dbusConnection = null;
                 _connectCts = null;
                 _dbusConnectionTask = null;
@@ -631,16 +620,25 @@ namespace Tmds.DBus
                     registeredObject.Value.Unregister();
                 }
                 _registeredObjects.Clear();
+
+                _state = ConnectionState.Disconnecting;
+                var disconnectingEvent = CreateConnectionStateChangedEvent(previousState);
+                EmitConnectionStateChanged(disconnectingEvent);
+
                 connectionCts?.Cancel();
                 connectionCts?.Dispose();
-                dbusConnectionCts?.SetException(nextState == ConnectionState.Disposed ? (Exception)new ObjectDisposedException(typeof(Connection).FullName) : new DisconnectedException(e));
-                connection?.Disconnect(nextState, e);
+                dbusConnectionTcs?.SetException(
+                    dispose ? (Exception)new ObjectDisposedException(typeof(Connection).FullName) : 
+                    exception.GetType() == typeof(ConnectException) ? exception :
+                    new DisconnectedException(exception));
+                connection?.Disconnect(dispose, exception);
 
-                var disconnectedEvent = _disconnectedEvent;
-                _disconnectedEvent = null;
-                if (disconnectedEvent != null)
+                if (_state == ConnectionState.Disconnecting)
                 {
-                    EmitConnectionStateChanged(disconnectedEvent);
+                    previousState = _state;
+                    _state = ConnectionState.Disconnected;                    
+                    var disconnectEvent = CreateConnectionStateChangedEvent(previousState);
+                    EmitConnectionStateChanged(disconnectEvent);
                 }
             }
         }
@@ -686,6 +684,19 @@ namespace Tmds.DBus
                 connection = await GetConnectionTask();
                 return await connection.WatchSignalAsync(path, @interface, signalName, handler);
             }
+        }
+
+        private ConnectionStateChangedEventArgs CreateConnectionStateChangedEvent(ConnectionState previousState)
+        {
+            var disconnectReason = _disconnectReason;
+            if (disconnectReason != null
+             && disconnectReason.GetType() != typeof(ConnectException)
+             && disconnectReason.GetType() != typeof(ObjectDisposedException)
+             && disconnectReason.GetType() != typeof(DisconnectedException))
+            {
+                disconnectReason = new DisconnectedException(disconnectReason?.Message, disconnectReason);
+            }
+            return new ConnectionStateChangedEventArgs(previousState, _state, disconnectReason);
         }
 
         internal SynchronizationContext CaptureSynchronizationContext() => _synchronizationContext;

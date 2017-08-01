@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -176,8 +177,7 @@ namespace Tmds.DBus.Tests
 
                 // connection
                 IConnection conn1 = new Connection(address);
-                //var connectionTcs = new TaskCompletionSource<Exception>();
-                await conn1.ConnectAsync(/*e => connectionTcs.SetResult(e)*/);
+                await conn1.ConnectAsync();
                 // resolve
                 var resolverTcs = new TaskCompletionSource<object>();
                 await conn1.ResolveServiceOwnerAsync("some.service", _ => {}, e => resolverTcs.SetException(e));
@@ -191,9 +191,6 @@ namespace Tmds.DBus.Tests
 
                 conn1.Dispose();
 
-                // connection
-                //var disconnectReason = await connectionTcs.Task;
-                //Assert.Null(disconnectReason);
                 // method
                 await Assert.ThrowsAsync<ObjectDisposedException>(() => pendingMethod);
                 // signal
@@ -379,6 +376,94 @@ namespace Tmds.DBus.Tests
             var exception = await Assert.ThrowsAsync<ConnectException>(() => connection.ListServicesAsync());
         }
 
-        // TODO: ConnectionStateChanged event test
+        [Fact]
+        public async Task StateChanged()
+        {
+            string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            string address = $"unix:path={socketPath}";
+
+            var connection = new Connection(address, new ConnectionOptions { AutoConnect = true });
+            var changeEvents = new BlockingCollection<ConnectionStateChangedEventArgs>(new ConcurrentQueue<ConnectionStateChangedEventArgs>());
+            connection.StateChanged += (o, change) => changeEvents.Add(change);
+            ConnectionStateChangedEventArgs e;
+
+            using (var dbusDaemon = new DBusDaemon())
+            {
+                await dbusDaemon.StartAsync(DBusDaemonProtocol.Unix, socketPath);
+
+                var reply = await connection.ListServicesAsync();
+
+                // Created -> Connecting
+                e = await changeEvents.TakeAsync();
+                Assert.Equal(ConnectionState.Created, e.PreviousState);
+                Assert.Equal(ConnectionState.Connecting, e.State);
+
+                // Connecting -> Connected
+                e = await changeEvents.TakeAsync();
+                Assert.Equal(ConnectionState.Connecting, e.PreviousState);
+                Assert.Equal(ConnectionState.Connected, e.State);
+                Assert.True(e.RemoteIsBus);
+                Assert.NotNull(e.LocalName);
+            }
+
+            // Connected -> Disconnecting
+            e = await changeEvents.TakeAsync();
+            Assert.Equal(ConnectionState.Connected, e.PreviousState);
+            Assert.Equal(ConnectionState.Disconnecting, e.State);
+            Assert.NotNull(e.DisconnectReason);
+            Assert.IsType<DisconnectedException>(e.DisconnectReason);
+
+            // Disconnecting -> Disconnected
+            e = await changeEvents.TakeAsync();
+            Assert.Equal(ConnectionState.Disconnecting, e.PreviousState);
+            Assert.Equal(ConnectionState.Disconnected, e.State);
+            Assert.NotNull(e.DisconnectReason);
+            Assert.IsType<DisconnectedException>(e.DisconnectReason);
+
+            var exception = await Assert.ThrowsAsync<ConnectException>(() => connection.ListServicesAsync());
+
+            // Disconnected -> Connecting
+            e = await changeEvents.TakeAsync();
+            Assert.Equal(ConnectionState.Disconnected, e.PreviousState);
+            Assert.Equal(ConnectionState.Connecting, e.State);
+            Assert.NotNull(e.DisconnectReason);
+            Assert.IsType<DisconnectedException>(e.DisconnectReason);
+
+            // Connecting -> Disconnecting
+            e = await changeEvents.TakeAsync();
+            Assert.Equal(ConnectionState.Connecting, e.PreviousState);
+            Assert.Equal(ConnectionState.Disconnecting, e.State);
+            Assert.NotNull(e.DisconnectReason);
+            Assert.IsType<ConnectException>(e.DisconnectReason);
+
+            // Disconnecting -> Disconnected
+            e = await changeEvents.TakeAsync();
+            Assert.Equal(ConnectionState.Disconnecting, e.PreviousState);
+            Assert.Equal(ConnectionState.Disconnected, e.State);
+            Assert.NotNull(e.DisconnectReason);
+            Assert.IsType<ConnectException>(e.DisconnectReason);
+
+            using (var dbusDaemon = new DBusDaemon())
+            {
+                await dbusDaemon.StartAsync(DBusDaemonProtocol.Unix, socketPath);
+
+                var reply = await connection.ListServicesAsync();
+
+                // Created -> Connecting
+                e = await changeEvents.TakeAsync();
+                Assert.Equal(ConnectionState.Disconnected, e.PreviousState);
+                Assert.Equal(ConnectionState.Connecting, e.State);
+                Assert.NotNull(e.DisconnectReason);
+                Assert.IsType<ConnectException>(e.DisconnectReason);
+
+                // Connecting -> Connected
+                e = await changeEvents.TakeAsync();
+                Assert.Equal(ConnectionState.Connecting, e.PreviousState);
+                Assert.Equal(ConnectionState.Connected, e.State);
+                Assert.True(e.RemoteIsBus);
+                Assert.NotNull(e.LocalName);
+                Assert.Null(e.DisconnectReason);
+            }
+        }
     }
 }

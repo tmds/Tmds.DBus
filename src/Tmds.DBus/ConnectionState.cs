@@ -9,7 +9,7 @@ namespace Tmds.DBus
         Created,
         Connecting,
         Connected,
-        Disconnected,
-        Disposed
+        Disconnecting,
+        Disconnected
     }
 }

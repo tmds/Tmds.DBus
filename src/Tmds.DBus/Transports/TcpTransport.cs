@@ -80,20 +80,13 @@ namespace Tmds.DBus.Transports
                     await DoSaslAuthenticationAsync(guid, transportSupportsUnixFdPassing: false);
                     return;
                 }
-                catch (System.Exception e)
+                catch
                 {
                     _stream?.Dispose();
                     socket.Dispose();
                     if (lastAddress)
                     {
-                        if (e is ConnectException)
-                        {
-                            throw;
-                        }
-                        else
-                        {
-                            throw new ConnectException(e.Message, e);    
-                        }
+                        throw;
                     }
                 }
             }

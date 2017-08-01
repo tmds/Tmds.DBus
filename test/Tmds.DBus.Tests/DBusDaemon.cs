@@ -61,6 +61,10 @@ namespace Tmds.DBus.Tests
 
         public void Dispose()
         {
+            if (_state == State.Disposed)
+            {
+                return;
+            }
             if (_configFile != null)
             {
                 File.Delete(_configFile);

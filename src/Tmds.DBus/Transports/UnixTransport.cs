@@ -142,17 +142,10 @@ namespace Tmds.DBus.Transports
                 await SendAsync(_oneByteArray, 0, 1);
                 await DoSaslAuthenticationAsync(guid, transportSupportsUnixFdPassing: _socketFd != -1);
             }
-            catch (Exception e)
+            catch
             {
                 Dispose();
-                if (e is ConnectException)
-                {
-                    throw;
-                }
-                else
-                {
-                    throw new ConnectException(e.Message, e);
-                }
+                throw;
             }
         }
 

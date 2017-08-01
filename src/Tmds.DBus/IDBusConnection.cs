@@ -23,6 +23,6 @@ namespace Tmds.DBus
         string LocalName { get; }
         bool? RemoteIsBus { get; }
         string[] GetChildNames(ObjectPath path);
-        void Disconnect(ConnectionState state, Exception disconnectReason);
+        void Disconnect(bool dispose, Exception exception);
     }
 }

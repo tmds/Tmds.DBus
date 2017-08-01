@@ -117,6 +117,7 @@ namespace Tmds.DBus
         private readonly Dictionary<string, ServiceNameRegistration> _serviceNameRegistrations = new Dictionary<string, ServiceNameRegistration>();
 
         private ConnectionState _state = ConnectionState.Created;
+        private bool _disposed = false;
         private string _localName;
         private bool? _remoteIsBus;
         private Action<Exception> _onDisconnect;
@@ -181,7 +182,7 @@ namespace Tmds.DBus
 
         private void OnDisconnect(Exception e)
         {
-            Disconnect(ConnectionState.Disconnected, e);
+            Disconnect(dispose: false, exception: e);
         }
 
         public Task<Message> CallMethodAsync(Message msg)
@@ -662,28 +663,25 @@ namespace Tmds.DBus
 
         public void Dispose()
         {
-            Disconnect(ConnectionState.Disposed, null);
+            Disconnect(dispose: true, exception: null);
         }
 
-        public void Disconnect(ConnectionState nextState, Exception disconnectReason = null)
+        public void Disconnect(bool dispose, Exception exception)
         {
             Dictionary<uint, TaskCompletionSource<Message>> pendingMethods = null;
             Dictionary<SignalMatchRule, SignalHandler> signalHandlers = null;
             Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>> nameOwnerWatchers = null;
             lock (_gate)
             {
-                if ((_state == ConnectionState.Disconnected) || (_state == ConnectionState.Disposed))
+                if (_state == ConnectionState.Disconnected || _state == ConnectionState.Created)
                 {
-                    if (nextState == ConnectionState.Disposed)
-                    {
-                        _state = nextState;
-                    }
                     return;
                 }
 
-                _state = nextState;
+                _state = ConnectionState.Disconnected;
+                _disposed = dispose;
                 _stream.Dispose();
-                _disconnectReason = disconnectReason;
+                _disconnectReason = exception;
                 pendingMethods = _pendingMethods;
                 _pendingMethods = null;
                 signalHandlers = _signalHandlers;
@@ -695,7 +693,7 @@ namespace Tmds.DBus
                 _onDisconnect = null;
 
                 Func<Exception> createException = () =>
-                    nextState == ConnectionState.Disposed ? (Exception)new ObjectDisposedException(typeof(Connection).FullName) : new DisconnectedException(disconnectReason);
+                    dispose ? (Exception)new ObjectDisposedException(typeof(Connection).FullName) : new DisconnectedException(exception);
 
                 foreach (var watcher in nameOwnerWatchers)
                 {
@@ -715,7 +713,7 @@ namespace Tmds.DBus
 
             if (_onDisconnect != null)
             {
-                _onDisconnect(nextState == ConnectionState.Disposed ? null : disconnectReason);
+                _onDisconnect(dispose ? null : exception);
             }
         }
 
@@ -1015,10 +1013,10 @@ namespace Tmds.DBus
         }
 
         private void ThrowIfNotConnected()
-            => Connection.ThrowIfNotConnected(_state, _disconnectReason);
+            => Connection.ThrowIfNotConnected(_disposed, _state, _disconnectReason);
 
         private void ThrowIfNotConnecting()
-            => Connection.ThrowIfNotConnecting(_state, _disconnectReason);
+            => Connection.ThrowIfNotConnecting(_disposed, _state, _disconnectReason);
 
         public string[] GetChildNames(ObjectPath path)
         {

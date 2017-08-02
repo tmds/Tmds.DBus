@@ -200,34 +200,30 @@ namespace Tmds.DBus.Tests
             }
         }
 
-        // https://github.com/dotnet/corefx/issues/21865
-        // [Fact]
-        // public async Task DaemonDisconnect()
-        // {
-        //     var dbusDaemon = new DBusDaemon();
-        //     {
-        //         await dbusDaemon.StartAsync();
-        //         var address = dbusDaemon.Address;
+        [Fact]
+        public async Task DaemonDisconnect()
+        {
+            var dbusDaemon = new DBusDaemon();
+            {
+                await dbusDaemon.StartAsync();
+                var address = dbusDaemon.Address;
 
-        //         IConnection conn2 = new Connection(address);
-        //         await conn2.ConnectAsync();
-        //         await conn2.RegisterObjectAsync(new Slow());
+                IConnection conn2 = new Connection(address);
+                await conn2.ConnectAsync();
+                await conn2.RegisterObjectAsync(new Slow());
 
-        //         IConnection conn1 = new Connection(address);
-        //         var tcs = new TaskCompletionSource<Exception>();
-        //         await conn1.ConnectAsync(e => tcs.SetResult(e));
+                IConnection conn1 = new Connection(address);
+                await conn1.ConnectAsync();
 
-        //         var proxy = conn1.CreateProxy<ISlow>(conn2.LocalName, Slow.Path);
+                var proxy = conn1.CreateProxy<ISlow>(conn2.LocalName, Slow.Path);
 
-        //         var pending = proxy.SlowAsync();
+                var pending = proxy.SlowAsync();
 
-        //         dbusDaemon.Dispose();
+                dbusDaemon.Dispose();
 
-        //         await Assert.ThrowsAsync<DisconnectedException>(() => pending);
-        //         var disconnectReason = await tcs.Task;
-        //         Assert.NotNull(disconnectReason);
-        //     }
-        // }
+                await Assert.ThrowsAsync<DisconnectedException>(() => pending);
+            }
+        }
 
         [DBusInterface("tmds.dbus.tests.FdOperations")]
         public interface IFdOperations : IDBusObject

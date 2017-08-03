@@ -14,8 +14,7 @@ namespace Tmds.DBus
             DisconnectReason = disconnectReason;
         }
 
-        public string LocalName { get; internal set; }
-        public bool RemoteIsBus { get; internal set; }
+        public ConnectionInfo ConnectionInfo { get; internal set; }
         public ConnectionState State { get; internal set; }
         public Exception DisconnectReason { get; internal set; }
     }

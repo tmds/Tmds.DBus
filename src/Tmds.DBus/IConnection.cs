@@ -10,8 +10,6 @@ namespace Tmds.DBus
 {
     public interface IConnection : IDisposable
     {
-        string LocalName { get; }
-        bool? RemoteIsBus { get; }
         Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default);
         Task RegisterServiceAsync(string serviceName, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default);
         Task<bool> UnregisterServiceAsync(string serviceName);
@@ -21,7 +19,7 @@ namespace Tmds.DBus
         Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects);
         void UnregisterObject(ObjectPath path);
         void UnregisterObjects(IEnumerable<ObjectPath> paths);
-        Task ConnectAsync();
+        Task<ConnectionInfo> ConnectAsync();
         Task<string[]> ListActivatableServicesAsync();
         Task<string> ResolveServiceOwnerAsync(string serviceName);
         Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, Action<Exception> onError = null);

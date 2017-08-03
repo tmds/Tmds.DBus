@@ -44,8 +44,6 @@ namespace Tmds.DBus
         private CancellationTokenSource _connectCts;
         private Exception _disconnectReason;
         private IDBus _bus;
-        private bool? _remoteIsBus;
-        private string _localName;
 
         private IDBus DBus
         {
@@ -63,8 +61,6 @@ namespace Tmds.DBus
             }
         }
 
-        public string LocalName => _localName;
-        public bool? RemoteIsBus => _remoteIsBus;
         public event EventHandler<ConnectionStateChangedEventArgs> StateChanged;
 
         public Connection(string address) :
@@ -84,8 +80,8 @@ namespace Tmds.DBus
             _autoConnect = connectionOptions.AutoConnect;
         }
 
-        public Task ConnectAsync()
-            => DoConnectAsync();
+        public async Task<ConnectionInfo> ConnectAsync()
+            => (await DoConnectAsync()).ConnectionInfo;
 
         private async Task<IDBusConnection> DoConnectAsync()
         {
@@ -115,8 +111,6 @@ namespace Tmds.DBus
                 }
                 if (!alreadyConnecting)
                 {
-                    _localName = null;
-                    _remoteIsBus = null;
                     _connectCts = new CancellationTokenSource();
                     _dbusConnectionTcs = new TaskCompletionSource<IDBusConnection>();
                     _dbusConnectionTask = _dbusConnectionTcs.Task;
@@ -154,8 +148,6 @@ namespace Tmds.DBus
             {
                 if (_state == ConnectionState.Connecting)
                 {
-                    _localName = connection.LocalName;
-                    _remoteIsBus = connection.RemoteIsBus;
                     _dbusConnection = connection;
                     _connectCts.Dispose();
                     _connectCts = null;
@@ -164,8 +156,7 @@ namespace Tmds.DBus
                     _dbusConnectionTcs = null;
 
                     var connectedEvent = CreateConnectionStateChangedEvent();
-                    connectedEvent.RemoteIsBus = _dbusConnection.RemoteIsBus == true;
-                    connectedEvent.LocalName = _dbusConnection.LocalName;
+                    connectedEvent.ConnectionInfo = _dbusConnection.ConnectionInfo;
                     EmitConnectionStateChanged(connectedEvent);
                 }
                 else

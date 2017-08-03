@@ -149,7 +149,7 @@ namespace Tmds.DBus.Tests
                 var address = dbusDaemon.Address;
 
                 IConnection conn1 = new Connection(address);
-                await conn1.ConnectAsync();
+                var conn1Info = await conn1.ConnectAsync();
 
                 IConnection conn2 = new Connection(address);
                 await conn2.ConnectAsync();
@@ -159,7 +159,7 @@ namespace Tmds.DBus.Tests
 
                 await conn1.RegisterServiceAsync(serviceName);
                 owner = await conn2.ResolveServiceOwnerAsync(serviceName);
-                Assert.Equal(conn1.LocalName, owner);
+                Assert.Equal(conn1Info.LocalName, owner);
 
                 await conn1.UnregisterServiceAsync(serviceName);
                 owner = await conn2.ResolveServiceOwnerAsync(serviceName);
@@ -186,10 +186,10 @@ namespace Tmds.DBus.Tests
                 var address = dbusDaemon.Address;
 
                 IConnection conn1 = new Connection(address);
-                await conn1.ConnectAsync();
+                var conn1Info = await conn1.ConnectAsync();
 
                 IConnection conn2 = new Connection(address);
-                await conn2.ConnectAsync();
+                var conn2Info = await conn2.ConnectAsync();
 
                 var changeEvents = new BlockingCollection<ServiceOwnerChangedEventArgs>(new ConcurrentQueue<ServiceOwnerChangedEventArgs>());
                 Action<ServiceOwnerChangedEventArgs> onChange =
@@ -200,12 +200,12 @@ namespace Tmds.DBus.Tests
                 var e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
                 Assert.Equal(null, e.OldOwner);
-                Assert.Equal(conn1.LocalName, e.NewOwner);
+                Assert.Equal(conn1Info.LocalName, e.NewOwner);
 
                 await conn1.UnregisterServiceAsync(serviceName);
                 e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
-                Assert.Equal(conn1.LocalName, e.OldOwner);
+                Assert.Equal(conn1Info.LocalName, e.OldOwner);
                 Assert.Equal(null, e.NewOwner);
 
                 resolver.Dispose();
@@ -215,7 +215,7 @@ namespace Tmds.DBus.Tests
                 e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
                 Assert.Equal(null, e.OldOwner);
-                Assert.Equal(conn1.LocalName, e.NewOwner);
+                Assert.Equal(conn1Info.LocalName, e.NewOwner);
             }
         }
     }

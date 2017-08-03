@@ -21,10 +21,10 @@ namespace Tmds.DBus.Tests
             {
                 await dbusDaemon.StartAsync(protocol);
                 var connection = new Connection(dbusDaemon.Address);
-                await connection.ConnectAsync();
+                var connectionInfo = await connection.ConnectAsync();
 
-                Assert.StartsWith(":", connection.LocalName);
-                Assert.Equal(true, connection.RemoteIsBus);
+                Assert.StartsWith(":", connectionInfo.LocalName);
+                Assert.Equal(true, connectionInfo.RemoteIsBus);
             }
         }
 
@@ -39,10 +39,10 @@ namespace Tmds.DBus.Tests
                                  + dbusDaemon.Address;
 
                 var connection = new Connection(address);
-                await connection.ConnectAsync();
+                var connectionInfo = await connection.ConnectAsync();
 
-                Assert.StartsWith(":", connection.LocalName);
-                Assert.Equal(true, connection.RemoteIsBus);
+                Assert.StartsWith(":", connectionInfo.LocalName);
+                Assert.Equal(true, connectionInfo.RemoteIsBus);
             }
         }
     }

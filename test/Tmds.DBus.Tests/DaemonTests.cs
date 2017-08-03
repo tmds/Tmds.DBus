@@ -391,12 +391,10 @@ namespace Tmds.DBus.Tests
 
                 // Created -> Connecting
                 e = await changeEvents.TakeAsync();
-                Assert.Equal(ConnectionState.Created, e.PreviousState);
                 Assert.Equal(ConnectionState.Connecting, e.State);
 
                 // Connecting -> Connected
                 e = await changeEvents.TakeAsync();
-                Assert.Equal(ConnectionState.Connecting, e.PreviousState);
                 Assert.Equal(ConnectionState.Connected, e.State);
                 Assert.True(e.RemoteIsBus);
                 Assert.NotNull(e.LocalName);
@@ -404,14 +402,12 @@ namespace Tmds.DBus.Tests
 
             // Connected -> Disconnecting
             e = await changeEvents.TakeAsync();
-            Assert.Equal(ConnectionState.Connected, e.PreviousState);
             Assert.Equal(ConnectionState.Disconnecting, e.State);
             Assert.NotNull(e.DisconnectReason);
             Assert.IsType<DisconnectedException>(e.DisconnectReason);
 
             // Disconnecting -> Disconnected
             e = await changeEvents.TakeAsync();
-            Assert.Equal(ConnectionState.Disconnecting, e.PreviousState);
             Assert.Equal(ConnectionState.Disconnected, e.State);
             Assert.NotNull(e.DisconnectReason);
             Assert.IsType<DisconnectedException>(e.DisconnectReason);
@@ -420,21 +416,18 @@ namespace Tmds.DBus.Tests
 
             // Disconnected -> Connecting
             e = await changeEvents.TakeAsync();
-            Assert.Equal(ConnectionState.Disconnected, e.PreviousState);
             Assert.Equal(ConnectionState.Connecting, e.State);
             Assert.NotNull(e.DisconnectReason);
             Assert.IsType<DisconnectedException>(e.DisconnectReason);
 
             // Connecting -> Disconnecting
             e = await changeEvents.TakeAsync();
-            Assert.Equal(ConnectionState.Connecting, e.PreviousState);
             Assert.Equal(ConnectionState.Disconnecting, e.State);
             Assert.NotNull(e.DisconnectReason);
             Assert.IsType<ConnectException>(e.DisconnectReason);
 
             // Disconnecting -> Disconnected
             e = await changeEvents.TakeAsync();
-            Assert.Equal(ConnectionState.Disconnecting, e.PreviousState);
             Assert.Equal(ConnectionState.Disconnected, e.State);
             Assert.NotNull(e.DisconnectReason);
             Assert.IsType<ConnectException>(e.DisconnectReason);
@@ -447,14 +440,12 @@ namespace Tmds.DBus.Tests
 
                 // Created -> Connecting
                 e = await changeEvents.TakeAsync();
-                Assert.Equal(ConnectionState.Disconnected, e.PreviousState);
                 Assert.Equal(ConnectionState.Connecting, e.State);
                 Assert.NotNull(e.DisconnectReason);
                 Assert.IsType<ConnectException>(e.DisconnectReason);
 
                 // Connecting -> Connected
                 e = await changeEvents.TakeAsync();
-                Assert.Equal(ConnectionState.Connecting, e.PreviousState);
                 Assert.Equal(ConnectionState.Connected, e.State);
                 Assert.True(e.RemoteIsBus);
                 Assert.NotNull(e.LocalName);

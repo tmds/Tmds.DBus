@@ -115,7 +115,6 @@ namespace Tmds.DBus
                 }
                 if (!alreadyConnecting)
                 {
-                    var previousState = _state;
                     _localName = null;
                     _remoteIsBus = null;
                     _connectCts = new CancellationTokenSource();
@@ -124,7 +123,7 @@ namespace Tmds.DBus
                     connectionTask = _dbusConnectionTask;
                     _state = ConnectionState.Connecting;
 
-                    var connectingEvent = CreateConnectionStateChangedEvent(previousState);
+                    var connectingEvent = CreateConnectionStateChangedEvent();
                     _disconnectReason = null;
                     EmitConnectionStateChanged(connectingEvent);
                 }
@@ -155,7 +154,6 @@ namespace Tmds.DBus
             {
                 if (_state == ConnectionState.Connecting)
                 {
-                    var previousState = _state;
                     _localName = connection.LocalName;
                     _remoteIsBus = connection.RemoteIsBus;
                     _dbusConnection = connection;
@@ -165,7 +163,7 @@ namespace Tmds.DBus
                     _dbusConnectionTcs.SetResult(connection);
                     _dbusConnectionTcs = null;
 
-                    var connectedEvent = CreateConnectionStateChangedEvent(previousState);
+                    var connectedEvent = CreateConnectionStateChangedEvent();
                     connectedEvent.RemoteIsBus = _dbusConnection.RemoteIsBus == true;
                     connectedEvent.LocalName = _dbusConnection.LocalName;
                     EmitConnectionStateChanged(connectedEvent);
@@ -622,7 +620,7 @@ namespace Tmds.DBus
                 _registeredObjects.Clear();
 
                 _state = ConnectionState.Disconnecting;
-                var disconnectingEvent = CreateConnectionStateChangedEvent(previousState);
+                var disconnectingEvent = CreateConnectionStateChangedEvent();
                 EmitConnectionStateChanged(disconnectingEvent);
 
                 connectionCts?.Cancel();
@@ -635,9 +633,8 @@ namespace Tmds.DBus
 
                 if (_state == ConnectionState.Disconnecting)
                 {
-                    previousState = _state;
                     _state = ConnectionState.Disconnected;                    
-                    var disconnectEvent = CreateConnectionStateChangedEvent(previousState);
+                    var disconnectEvent = CreateConnectionStateChangedEvent();
                     EmitConnectionStateChanged(disconnectEvent);
                 }
             }
@@ -686,7 +683,7 @@ namespace Tmds.DBus
             }
         }
 
-        private ConnectionStateChangedEventArgs CreateConnectionStateChangedEvent(ConnectionState previousState)
+        private ConnectionStateChangedEventArgs CreateConnectionStateChangedEvent()
         {
             var disconnectReason = _disconnectReason;
             if (disconnectReason != null
@@ -696,7 +693,7 @@ namespace Tmds.DBus
             {
                 disconnectReason = new DisconnectedException(disconnectReason?.Message, disconnectReason);
             }
-            return new ConnectionStateChangedEventArgs(previousState, _state, disconnectReason);
+            return new ConnectionStateChangedEventArgs(_state, disconnectReason);
         }
 
         internal SynchronizationContext CaptureSynchronizationContext() => _synchronizationContext;

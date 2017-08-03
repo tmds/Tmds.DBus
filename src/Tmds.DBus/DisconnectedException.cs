@@ -8,7 +8,7 @@ namespace Tmds.DBus
 {
     public class DisconnectedException : Exception
     {
-        public DisconnectedException(Exception innerException) : base(innerException?.Message, innerException)
+        public DisconnectedException(Exception innerException) : base(innerException.Message, innerException)
         {
         }
 

@@ -8,16 +8,14 @@ namespace Tmds.DBus
 {
     public class ConnectionStateChangedEventArgs
     {
-        public ConnectionStateChangedEventArgs(ConnectionState previousState, ConnectionState state, Exception disconnectReason)
+        public ConnectionStateChangedEventArgs(ConnectionState state, Exception disconnectReason)
         {
-            PreviousState = previousState;
             State = state;
             DisconnectReason = disconnectReason;
         }
 
         public string LocalName { get; internal set; }
         public bool RemoteIsBus { get; internal set; }
-        public ConnectionState PreviousState { get; internal set; }
         public ConnectionState State { get; internal set; }
         public Exception DisconnectReason { get; internal set; }
     }

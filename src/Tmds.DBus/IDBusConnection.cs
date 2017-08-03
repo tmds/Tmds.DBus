@@ -20,8 +20,7 @@ namespace Tmds.DBus
         void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers);
         void RemoveMethodHandlers(IEnumerable<ObjectPath> paths);
         void EmitSignal(Message message);
-        string LocalName { get; }
-        bool? RemoteIsBus { get; }
+        ConnectionInfo ConnectionInfo { get; }
         string[] GetChildNames(ObjectPath path);
         void Disconnect(bool dispose, Exception exception);
     }

@@ -24,9 +24,9 @@ namespace Tmds.DBus.Tests
                 await conn1.ConnectAsync();
 
                 var conn2 = new Connection(address);
-                await conn2.ConnectAsync();
+                var conn2Info = await conn2.ConnectAsync();
 
-                var conn2Name = conn2.LocalName;
+                var conn2Name = conn2Info.LocalName;
                 var path = StringOperations.Path;
                 var proxy = conn1.CreateProxy<IStringOperations>(conn2Name, path);
 
@@ -49,10 +49,10 @@ namespace Tmds.DBus.Tests
                 await conn1.ConnectAsync();
 
                 var conn2 = new Connection(address);
-                await conn2.ConnectAsync();
+                var conn2Info = await conn2.ConnectAsync();
                 await conn2.RegisterObjectAsync(new PingPong());
 
-                var conn2Name = conn2.LocalName;
+                var conn2Name = conn2Info.LocalName;
                 var path = PingPong.Path;
                 var proxy = conn1.CreateProxy<IPingPong>(conn2Name, path);
                 var tcs = new TaskCompletionSource<string>();
@@ -79,12 +79,12 @@ namespace Tmds.DBus.Tests
                 await conn1.ConnectAsync();
 
                 var conn2 = new Connection(address);
-                await conn2.ConnectAsync();
+                var conn2Info = await conn2.ConnectAsync();
 
                 var dictionary = new Dictionary<string, object>{{"key1", 1}, {"key2", 2}};
                 await conn2.RegisterObjectAsync(new PropertyObject(dictionary));
 
-                var proxy = conn1.CreateProxy<IPropertyObject>(conn2.LocalName, PropertyObject.Path);
+                var proxy = conn1.CreateProxy<IPropertyObject>(conn2Info.LocalName, PropertyObject.Path);
 
                 var properties = await proxy.GetAllAsync();
 
@@ -172,7 +172,7 @@ namespace Tmds.DBus.Tests
                 var address = dbusDaemon.Address;
 
                 IConnection conn2 = new Connection(address);
-                await conn2.ConnectAsync();
+                var conn2Info = await conn2.ConnectAsync();
                 await conn2.RegisterObjectAsync(new Slow());
 
                 // connection
@@ -182,7 +182,7 @@ namespace Tmds.DBus.Tests
                 var resolverTcs = new TaskCompletionSource<object>();
                 await conn1.ResolveServiceOwnerAsync("some.service", _ => {}, e => resolverTcs.SetException(e));
 
-                var proxy = conn1.CreateProxy<ISlow>(conn2.LocalName, Slow.Path);
+                var proxy = conn1.CreateProxy<ISlow>(conn2Info.LocalName, Slow.Path);
                 // method
                 var pendingMethod = proxy.SlowAsync();
                 // signal
@@ -209,13 +209,13 @@ namespace Tmds.DBus.Tests
                 var address = dbusDaemon.Address;
 
                 IConnection conn2 = new Connection(address);
-                await conn2.ConnectAsync();
+                var conn2Info = await conn2.ConnectAsync();
                 await conn2.RegisterObjectAsync(new Slow());
 
                 IConnection conn1 = new Connection(address);
                 await conn1.ConnectAsync();
 
-                var proxy = conn1.CreateProxy<ISlow>(conn2.LocalName, Slow.Path);
+                var proxy = conn1.CreateProxy<ISlow>(conn2Info.LocalName, Slow.Path);
 
                 var pending = proxy.SlowAsync();
 
@@ -268,9 +268,9 @@ namespace Tmds.DBus.Tests
                 await conn1.ConnectAsync();
 
                 var conn2 = new Connection(address);
-                await conn2.ConnectAsync();
+                var conn2Info = await conn2.ConnectAsync();
 
-                var conn2Name = conn2.LocalName;
+                var conn2Name = conn2Info.LocalName;
                 var path = FdOperations.Path;
                 var proxy = conn1.CreateProxy<IFdOperations>(conn2Name, path);
 
@@ -315,12 +315,12 @@ namespace Tmds.DBus.Tests
                 var address = dbusDaemon.Address;
 
                 var conn1 = new Connection(address);
-                await conn1.ConnectAsync();
+                var conn1Info = await conn1.ConnectAsync();
 
                 var conn2 = new Connection(address);
-                await conn2.ConnectAsync();
+                var conn2Info = await conn2.ConnectAsync();
 
-                var conn2Name = conn2.LocalName;
+                var conn2Name = conn2Info.LocalName;
                 var path = FdOperations.Path;
                 var proxy = conn1.CreateProxy<IFdOperations>(conn2Name, path);
 
@@ -396,8 +396,8 @@ namespace Tmds.DBus.Tests
                 // Connecting -> Connected
                 e = await changeEvents.TakeAsync();
                 Assert.Equal(ConnectionState.Connected, e.State);
-                Assert.True(e.RemoteIsBus);
-                Assert.NotNull(e.LocalName);
+                Assert.True(e.ConnectionInfo.RemoteIsBus);
+                Assert.NotNull(e.ConnectionInfo.LocalName);
             }
 
             // Connected -> Disconnecting
@@ -447,8 +447,8 @@ namespace Tmds.DBus.Tests
                 // Connecting -> Connected
                 e = await changeEvents.TakeAsync();
                 Assert.Equal(ConnectionState.Connected, e.State);
-                Assert.True(e.RemoteIsBus);
-                Assert.NotNull(e.LocalName);
+                Assert.True(e.ConnectionInfo.RemoteIsBus);
+                Assert.NotNull(e.ConnectionInfo.LocalName);
                 Assert.Null(e.DisconnectReason);
             }
         }

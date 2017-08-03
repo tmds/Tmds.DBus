@@ -118,16 +118,13 @@ namespace Tmds.DBus
 
         private ConnectionState _state = ConnectionState.Created;
         private bool _disposed = false;
-        private string _localName;
-        private bool? _remoteIsBus;
         private Action<Exception> _onDisconnect;
         private Exception _disconnectReason;
         private int _methodSerial;
         private ConcurrentQueue<PendingSend> _sendQueue;
         private SemaphoreSlim _sendSemaphore;
 
-        public string LocalName => _localName;
-        public bool? RemoteIsBus => _remoteIsBus;
+        public ConnectionInfo ConnectionInfo { get; private set; }
 
         // For testing
         internal static async Task<DBusConnection> CreateAndConnectAsync(IMessageStream stream, Action<Exception> onDisconnect = null)
@@ -165,8 +162,8 @@ namespace Tmds.DBus
 
             ReceiveMessages();
 
-            _localName = await CallHelloAsync();
-            _remoteIsBus = !string.IsNullOrEmpty(_localName);
+            string localName = await CallHelloAsync();
+            ConnectionInfo = new ConnectionInfo(localName);
 
             lock (_gate)
             {
@@ -318,7 +315,7 @@ namespace Tmds.DBus
                 else
                 {
                     _signalHandlers[rule] = handler;
-                    if (_remoteIsBus == true)
+                    if (ConnectionInfo.RemoteIsBus)
                     {
                         task = CallAddMatchRuleAsync(rule.ToString());
                     }
@@ -427,7 +424,7 @@ namespace Tmds.DBus
 
         private void ThrowIfRemoteIsNotBus()
         {
-            if (RemoteIsBus != true)
+            if (ConnectionInfo.RemoteIsBus != true)
             {
                 throw new InvalidOperationException("The remote peer is not a bus");
             }
@@ -957,7 +954,7 @@ namespace Tmds.DBus
                     if (_signalHandlers[rule] == null)
                     {
                         _signalHandlers.Remove(rule);
-                        if (_remoteIsBus == true)
+                        if (ConnectionInfo.RemoteIsBus)
                         {
                             CallRemoveMatchRule(rule.ToString());
                         }

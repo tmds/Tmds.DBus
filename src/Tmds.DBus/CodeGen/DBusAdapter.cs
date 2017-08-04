@@ -23,7 +23,7 @@ namespace Tmds.DBus.CodeGen
         }
 
         private readonly object _gate = new object();
-        private readonly IDBusConnection _connection;
+        private readonly DBusConnection _connection;
         private readonly IProxyFactory _factory;
         private readonly ObjectPath _objectPath;
         private readonly SynchronizationContext _synchronizationContext;
@@ -34,7 +34,7 @@ namespace Tmds.DBus.CodeGen
         private State _state;
         private List<IDisposable> _signalWatchers;
 
-        protected DBusAdapter(IDBusConnection connection, ObjectPath objectPath, object o, IProxyFactory factory, SynchronizationContext synchronizationContext)
+        protected DBusAdapter(DBusConnection connection, ObjectPath objectPath, object o, IProxyFactory factory, SynchronizationContext synchronizationContext)
         {
             _connection = connection;
             _objectPath = objectPath;

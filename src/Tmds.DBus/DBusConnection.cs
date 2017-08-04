@@ -14,7 +14,7 @@ using Tmds.DBus.Transports;
 
 namespace Tmds.DBus
 {
-    class DBusConnection : IDBusConnection
+    class DBusConnection
     {
         private struct PendingSend
         {
@@ -74,7 +74,7 @@ namespace Tmds.DBus
         public const string DBusInterface = "org.freedesktop.DBus";
         private static readonly char[] s_dot = new[] { '.' };
 
-        public static async Task<IDBusConnection> OpenAsync(string address, Action<Exception> onDisconnect, CancellationToken cancellationToken)
+        public static async Task<DBusConnection> OpenAsync(string address, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
             var _entries = AddressEntry.ParseEntries(address);
             if (_entries.Length == 0)

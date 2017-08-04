@@ -9,8 +9,8 @@ namespace Tmds.DBus
 {
     public struct PropertyChanges
     {
-        public KeyValuePair<string, object>[] Changed;
-        public string[] Invalidated;
+        public KeyValuePair<string, object>[] Changed { get; set; }
+        public string[] Invalidated { get; set; }
 
         public static PropertyChanges ForProperty(string prop, object val)
         {

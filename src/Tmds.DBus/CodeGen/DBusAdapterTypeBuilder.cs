@@ -16,7 +16,7 @@ namespace Tmds.DBus.CodeGen
     internal class DBusAdapterTypeBuilder
     {
         private static readonly ConstructorInfo s_messageWriterConstructor = typeof(MessageWriter).GetConstructor(Type.EmptyTypes);
-        private static readonly Type[] s_dbusAdaptorConstructorParameterTypes = new Type[] { typeof(IDBusConnection), typeof(ObjectPath), typeof(object), typeof(IProxyFactory), typeof(SynchronizationContext) };
+        private static readonly Type[] s_dbusAdaptorConstructorParameterTypes = new Type[] { typeof(DBusConnection), typeof(ObjectPath), typeof(object), typeof(IProxyFactory), typeof(SynchronizationContext) };
         private static readonly ConstructorInfo s_baseConstructor = typeof(DBusAdapter).GetConstructor(BindingFlags.Instance | BindingFlags.NonPublic, s_dbusAdaptorConstructorParameterTypes);
         private static readonly ConstructorInfo s_methodHandlerConstructor = typeof(DBusAdapter.MethodCallHandler).GetConstructors()[0];
         private static readonly ConstructorInfo s_signatureConstructor = typeof(Signature).GetConstructor(new Type[] { typeof(string) });
@@ -139,14 +139,14 @@ namespace Tmds.DBus.CodeGen
         private void ImplementConstructor(TypeDescription typeDescription)
         {
             var dbusInterfaces = typeDescription.Interfaces;
-            // IDBusConnection connection, ObjectPath objectPath, object o, IProxyFactory factory
+            // DBusConnection connection, ObjectPath objectPath, object o, IProxyFactory factory
             var constructor = _typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, s_dbusAdaptorConstructorParameterTypes);
             var ilg = constructor.GetILGenerator();
 
             {
                 // base constructor
                 ilg.Emit(OpCodes.Ldarg_0); // this
-                ilg.Emit(OpCodes.Ldarg_1); // IDBusConnection
+                ilg.Emit(OpCodes.Ldarg_1); // DBusConnection
                 ilg.Emit(OpCodes.Ldarg_2); // ObjectPath
                 ilg.Emit(OpCodes.Ldarg_3); // object
                 ilg.Emit(OpCodes.Ldarg, 4); // IProxyFactory

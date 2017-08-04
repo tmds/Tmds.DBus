@@ -38,9 +38,9 @@ namespace Tmds.DBus
         private ConnectionState _state = ConnectionState.Created;
         private bool _disposed = false;
         private IProxyFactory _factory;
-        private IDBusConnection _dbusConnection;
-        private Task<IDBusConnection> _dbusConnectionTask;
-        private TaskCompletionSource<IDBusConnection> _dbusConnectionTcs;
+        private DBusConnection _dbusConnection;
+        private Task<DBusConnection> _dbusConnectionTask;
+        private TaskCompletionSource<DBusConnection> _dbusConnectionTcs;
         private CancellationTokenSource _connectCts;
         private Exception _disconnectReason;
         private IDBus _bus;
@@ -83,9 +83,9 @@ namespace Tmds.DBus
         public async Task<ConnectionInfo> ConnectAsync()
             => (await DoConnectAsync()).ConnectionInfo;
 
-        private async Task<IDBusConnection> DoConnectAsync()
+        private async Task<DBusConnection> DoConnectAsync()
         {
-            Task<IDBusConnection> connectionTask = null;
+            Task<DBusConnection> connectionTask = null;
             bool alreadyConnecting = false;
             lock (_gate)
             {
@@ -112,7 +112,7 @@ namespace Tmds.DBus
                 if (!alreadyConnecting)
                 {
                     _connectCts = new CancellationTokenSource();
-                    _dbusConnectionTcs = new TaskCompletionSource<IDBusConnection>();
+                    _dbusConnectionTcs = new TaskCompletionSource<DBusConnection>();
                     _dbusConnectionTask = _dbusConnectionTcs.Task;
                     connectionTask = _dbusConnectionTask;
                     _state = ConnectionState.Connecting;
@@ -128,7 +128,7 @@ namespace Tmds.DBus
                 return await connectionTask;
             }
 
-            IDBusConnection connection;
+            DBusConnection connection;
             try
             {
                 connection = await DBusConnection.OpenAsync(_address, OnDisconnect, _connectCts.Token);
@@ -467,7 +467,7 @@ namespace Tmds.DBus
             => DBus.ListNamesAsync();
 
         // Used by tests
-        internal void Connect(IDBusConnection dbusConnection)
+        internal void Connect(DBusConnection dbusConnection)
         {
             lock (_gate)
             {
@@ -540,7 +540,7 @@ namespace Tmds.DBus
             }
         }
 
-        private Task<IDBusConnection> GetConnectionTask()
+        private Task<DBusConnection> GetConnectionTask()
         {
             var connectionTask = Volatile.Read(ref _dbusConnectionTask);
             if (connectionTask != null)
@@ -557,7 +557,7 @@ namespace Tmds.DBus
             }
         }
 
-        private IDBusConnection GetConnectedConnection()
+        private DBusConnection GetConnectedConnection()
         {
             var connection = Volatile.Read(ref _dbusConnection);
             if (connection != null)

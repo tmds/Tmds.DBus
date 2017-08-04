@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace Tmds.DBus
 {
     [DBusInterface(DBusConnection.DBusInterface)]
-    public interface IDBus : IDBusObject
+    internal interface IDBus : IDBusObject
     {
         Task<string[]> ListActivatableNamesAsync();
 		Task<bool> NameHasOwnerAsync(string name);

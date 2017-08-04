@@ -6,12 +6,13 @@ using System;
 
 namespace Tmds.DBus
 {
-    public class ConnectionStateChangedEventArgs
+    public struct ConnectionStateChangedEventArgs
     {
         public ConnectionStateChangedEventArgs(ConnectionState state, Exception disconnectReason)
         {
             State = state;
             DisconnectReason = disconnectReason;
+            ConnectionInfo = null;
         }
 
         public ConnectionInfo ConnectionInfo { get; internal set; }

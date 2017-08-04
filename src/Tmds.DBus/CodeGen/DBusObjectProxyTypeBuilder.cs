@@ -64,7 +64,7 @@ namespace Tmds.DBus.CodeGen
 
         private void ImplementConstructor()
         {
-            //IDBusConnection connection, IProxyFactory factory, string serviceName, ObjectPath objectPath
+            //DBusConnection connection, IProxyFactory factory, string serviceName, ObjectPath objectPath
             var constructor = _typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, s_dbusObjectProxyConstructorParameterTypes);
 
             ILGenerator ilg = constructor.GetILGenerator();

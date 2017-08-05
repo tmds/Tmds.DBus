@@ -4,8 +4,14 @@
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// Base interface for D-Bus objects.
+    /// </summary>
     public interface IDBusObject
     {
+        /// <summary>
+        /// Path of the D-Bus object.
+        /// </summary>
         ObjectPath ObjectPath { get; }
     }
 }

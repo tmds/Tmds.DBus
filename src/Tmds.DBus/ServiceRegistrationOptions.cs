@@ -6,12 +6,19 @@ using System;
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// Options for service name registration.
+    /// </summary>
     [Flags]
     public enum ServiceRegistrationOptions
     {
+        /// <summary>No options.</summary>
         None = 0,
+        /// <summary>Replace the existing owner.</summary>
         ReplaceExisting = 1,
+        /// <summary>Allow registration to be replaced.</summary>
         AllowReplacement = 2,
+        /// <summary>Default (<c>ReplaceExisting | AllowReplacement</c>)</summary>
         Default = ReplaceExisting | AllowReplacement
     }
 }

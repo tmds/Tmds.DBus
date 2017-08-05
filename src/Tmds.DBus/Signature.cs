@@ -13,6 +13,9 @@ using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// D-Bus type signature.
+    /// </summary>
     public struct Signature
     {
         internal static readonly Signature Empty = new Signature (String.Empty);
@@ -43,7 +46,10 @@ namespace Tmds.DBus
 
         private byte[] _data;
 
-        public static bool operator == (Signature a, Signature b)
+        /// <summary>
+        /// Determines whether two specified Signatures have the same value.
+        /// </summary>
+        public static bool operator== (Signature a, Signature b)
         {
             if (a._data == b._data)
                 return true;
@@ -64,11 +70,17 @@ namespace Tmds.DBus
             return true;
         }
 
-        public static bool operator != (Signature a, Signature b)
+        /// <summary>
+        /// Determines whether two specified Signatures have different values.
+        /// </summary>
+        public static bool operator!=(Signature a, Signature b)
         {
             return !(a == b);
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
         public override bool Equals (object o)
         {
             if (o == null)
@@ -80,7 +92,10 @@ namespace Tmds.DBus
             return this == (Signature)o;
         }
 
-        public override int GetHashCode ()
+        /// <summary>
+        /// Returns the hash code for this Signature.
+        /// </summary>
+        public override int GetHashCode()
         {
             if (_data == null)
             {
@@ -92,11 +107,6 @@ namespace Tmds.DBus
                 hash = hash * 31 + _data[i].GetHashCode();
             }
             return hash;
-        }
-
-        public static Signature operator + (Signature s1, Signature s2)
-        {
-            return Concat (s1, s2);
         }
 
         internal static Signature Concat (Signature s1, Signature s2)
@@ -119,7 +129,11 @@ namespace Tmds.DBus
             return Signature.Take (data);
         }
 
-        public Signature (string value)
+        /// <summary>
+        /// Creates a new Signature.
+        /// </summary>
+        /// <param name="value">signature.</param>
+        public Signature(string value)
         {
             if (value == null)
                 throw new ArgumentNullException ("value");
@@ -139,6 +153,10 @@ namespace Tmds.DBus
             }
         }
 
+        /// <summary>
+        /// Creates a new Signature.
+        /// </summary>
+        /// <param name="value">signature.</param>
         public static implicit operator Signature(string value)
         {
             return new Signature(value);
@@ -239,6 +257,9 @@ namespace Tmds.DBus
             }
         }
 
+        /// <summary>
+        /// Length of the Signature.
+        /// </summary>
         public int Length
         {
             get {
@@ -246,7 +267,7 @@ namespace Tmds.DBus
             }
         }
 
-        public string Value
+        internal string Value
         {
             get {
                 if (_data == null)
@@ -256,6 +277,9 @@ namespace Tmds.DBus
             }
         }
 
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
         public override string ToString ()
         {
             return Value;
@@ -265,7 +289,7 @@ namespace Tmds.DBus
         {
             if (!signature.IsSingleCompleteType)
                 throw new ArgumentException ("The type of an array must be a single complete type", "signature");
-            return Signature.ArraySig + signature;
+            return Concat(Signature.ArraySig, signature);
         }
 
         internal static Signature MakeStruct (Signature signature)
@@ -273,7 +297,7 @@ namespace Tmds.DBus
             if (signature == Signature.Empty)
                 throw new ArgumentException ("Cannot create a struct with no fields", "signature");
 
-            return Signature.StructBegin + signature + Signature.StructEnd;
+            return Concat(Concat(Signature.StructBegin, signature), Signature.StructEnd);
         }
 
         internal static Signature MakeDictEntry (Signature keyType, Signature valueType)
@@ -283,10 +307,7 @@ namespace Tmds.DBus
             if (!valueType.IsSingleCompleteType)
                 throw new ArgumentException ("Signature must be a single complete type", "valueType");
 
-            return Signature.DictEntryBegin +
-                    keyType +
-                    valueType +
-                    Signature.DictEntryEnd;
+            return Concat(Concat(Concat(Signature.DictEntryBegin, keyType), valueType), Signature.DictEntryEnd);
         }
 
         internal static Signature MakeDict (Signature keyType, Signature valueType)
@@ -523,7 +544,9 @@ namespace Tmds.DBus
                     //List<Signature> fieldTypes = new List<Signature> ();
                     Signature fieldsSig = Signature.Empty;
                     while ((DType)_data[pos] != DType.StructEnd)
-                        fieldsSig += GetNextSignature (ref pos);
+                    {
+                        fieldsSig = Concat(fieldsSig, GetNextSignature (ref pos));
+                    }
                     //skip over the )
                     pos++;
                     return Signature.MakeStruct (fieldsSig);
@@ -619,7 +642,9 @@ namespace Tmds.DBus
             Signature sig = Signature.Empty;
 
             foreach (Type type in types)
-                    sig += GetSig (type, isCompileTimeType);
+            {
+                sig = Concat(sig, GetSig (type, isCompileTimeType));
+            }
 
             return sig;
         }
@@ -733,7 +758,7 @@ namespace Tmds.DBus
                     }
                     else
                     {
-                        sig += GetSig(fi.FieldType, isCompileTimeType: true);
+                        sig = Concat(sig, GetSig(fi.FieldType, isCompileTimeType: true));
                         i++;
                     }
                 }

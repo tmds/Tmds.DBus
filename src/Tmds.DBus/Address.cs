@@ -9,13 +9,19 @@ using System.Runtime.InteropServices;
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// Helper class for determining D-Bus addresses.
+    /// </summary>
     public static class Address
     {
-        
         private static bool _systemAddressResolved = false;
         private static string _systemAddress = null;
         private static bool _sessionAddressResolved = false;
         private static string _sessionAddress = null;
+
+        /// <summary>
+        /// Address of System bus.
+        /// </summary>
         public static string System
         {
             get
@@ -34,6 +40,9 @@ namespace Tmds.DBus
             }
         }
 
+        /// <summary>
+        /// Address of Session bus.
+        /// </summary>
         public static string Session
         {
             get
@@ -57,22 +66,6 @@ namespace Tmds.DBus
                 }
                 _sessionAddressResolved = true;
                 return _sessionAddress;
-            }
-        }
-
-        public static string Starter
-        {
-            get
-            {
-                return GetEnvironmentVariable("DBUS_STARTER_ADDRESS");
-            }
-        }
-
-        public static string StarterBusType
-        {
-            get
-            {
-                return GetEnvironmentVariable("DBUS_STARTER_BUS_TYPE");
             }
         }
 

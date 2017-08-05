@@ -42,7 +42,7 @@ namespace Tmds.DBus.Tests
 
         public Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler)
         {
-            return EventHandler.AddAsync(this, nameof(OnPropertiesChanged), handler);
+            return SignalWatcher.AddAsync(this, nameof(OnPropertiesChanged), handler);
         }
     }
 }

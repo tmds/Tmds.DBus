@@ -9,16 +9,37 @@ using System.Threading.Tasks;
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// Event data for the ServiceOwnerChanged event.
+    /// </summary>
     public struct ServiceOwnerChangedEventArgs
     {
+        /// <summary>
+        /// Creates an instance of ServiceOwnerChangedEventArgs.
+        /// </summary>
+        /// <param name="serviceName">The name of the service.</param>
+        /// <param name="oldOwner">The previous owner of the service.</param>
+        /// <param name="newOwner">The new owner of the service.</param>
         public ServiceOwnerChangedEventArgs(string serviceName, string oldOwner, string newOwner)
         {
             ServiceName = serviceName;
             OldOwner = oldOwner;
             NewOwner = newOwner;
         }
-        public string ServiceName { get; set; }
-        public string OldOwner { get; set; }
-        public string NewOwner { get; set; }
+
+        /// <summary>
+        /// Name of the service.
+        /// </summary>
+        public string ServiceName { get; }
+
+        /// <summary>
+        /// Local name of the previous owner. <c>null</c> when there is no previous owner.
+        /// </summary>
+        public string OldOwner { get; internal set; }
+
+        /// <summary>
+        /// Local name of the new owner. <c>null</c> when there is no new owner.
+        /// </summary>
+        public string NewOwner { get; }
     }
 }

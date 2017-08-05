@@ -7,12 +7,22 @@ using System;
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// Path to D-Bus object.
+    /// </summary>
     public struct ObjectPath : IComparable, IComparable<ObjectPath>, IEquatable<ObjectPath>
     {
+        /// <summary>
+        /// Root path (<c>"/"</c>).
+        /// </summary>
         public static readonly ObjectPath Root = new ObjectPath("/");
 
         internal readonly string Value;
 
+        /// <summary>
+        /// Creates a new ObjectPath.
+        /// </summary>
+        /// <param name="value">path.</param>
         public ObjectPath(string value)
         {
             if (value == null)
@@ -51,11 +61,21 @@ namespace Tmds.DBus
 
         }
 
+        /// <summary>
+        /// Compares the current instance with another object of the same type and returns an integer that
+        /// indicates whether the current instance precedes, follows, or occurs in the same position in
+        /// the sort order as the other object.
+        /// </summary>
         public int CompareTo(ObjectPath other)
         {
             return Value.CompareTo(other.Value);
         }
 
+        /// <summary>
+        /// Compares the current instance with another object of the same type and returns an integer that
+        /// indicates whether the current instance precedes, follows, or occurs in the same position in
+        /// the sort order as the other object.
+        /// </summary>
         public int CompareTo(object otherObject)
         {
             var other = otherObject as ObjectPath?;
@@ -66,11 +86,17 @@ namespace Tmds.DBus
             return Value.CompareTo(other.Value.Value);
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
         public bool Equals(ObjectPath other)
         {
             return Value == other.Value;
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
         public override bool Equals(object o)
         {
             var b = o as ObjectPath?;
@@ -81,16 +107,25 @@ namespace Tmds.DBus
             return Value.Equals(b.Value.Value);
         }
 
-        public static bool operator ==(ObjectPath a, ObjectPath b)
+        /// <summary>
+        /// Determines whether two specified ObjectPaths have the same value.
+        /// </summary>
+        public static bool operator==(ObjectPath a, ObjectPath b)
         {
             return a.Value == b.Value;
         }
 
-        public static bool operator !=(ObjectPath a, ObjectPath b)
+        /// <summary>
+        /// Determines whether two specified ObjectPaths have different values.
+        /// </summary>
+        public static bool operator!=(ObjectPath a, ObjectPath b)
         {
             return !(a == b);
         }
 
+        /// <summary>
+        /// Returns the hash code for this ObjectPath.
+        /// </summary>
         public override int GetHashCode()
         {
             if (Value == null)
@@ -100,11 +135,18 @@ namespace Tmds.DBus
             return Value.GetHashCode();
         }
 
+        /// <summary>
+        /// Returns a string that represents the current object.
+        /// </summary>
         public override string ToString()
         {
             return Value;
         }
 
+        /// <summary>
+        /// Creates the ObjectPath that is represented by the string value.
+        /// </summary>
+        /// <param name="value">path.</param>
         public static implicit operator ObjectPath(string value)
         {
             return new ObjectPath(value);

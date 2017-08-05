@@ -20,17 +20,17 @@ namespace Tmds.DBus.Tests
 
         public Task<IDisposable> WatchPongAsync(Action<string> reply)
         {
-            return EventHandler.AddAsync(this, nameof(OnPing), reply);
+            return SignalWatcher.AddAsync(this, nameof(OnPing), reply);
         }
 
         public Task<IDisposable> WatchPongNoArgAsync(Action reply)
         {
-            return EventHandler.AddAsync(this, nameof(OnPingNoArg), reply);
+            return SignalWatcher.AddAsync(this, nameof(OnPingNoArg), reply);
         }
 
         public Task<IDisposable> WatchPongWithExceptionAsync(Action<string> reply, Action<Exception> ex)
         {
-            return EventHandler.AddAsync(this, nameof(OnPing), reply);
+            return SignalWatcher.AddAsync(this, nameof(OnPing), reply);
         }
 
         public ObjectPath ObjectPath { get { return Path; } }

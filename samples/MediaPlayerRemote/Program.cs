@@ -132,7 +132,7 @@ namespace MediaPlayerRemote
 
         private static void OnPropertiesChanged(PropertyChanges changes)
         {
-            var metadata = changes.GetValue<IDictionary<string, object>>(nameof(PlayerProperties.Metadata));
+            var metadata = changes.Get<IDictionary<string, object>>(nameof(PlayerProperties.Metadata));
             if (metadata != null)
             {
                 UpdateCurrentTitle(metadata);

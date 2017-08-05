@@ -69,6 +69,8 @@ namespace Tmds.DBus
 
         /// <summary><see cref="Connection"/></summary>
         void UnregisterObjects(IEnumerable<ObjectPath> paths);
-        // TODO: UnregisterObjects(IEnumerable<IDBusObject>)
+
+        /// <summary><see cref="Connection"/></summary>
+        void UnregisterObjects(IEnumerable<IDBusObject> objects);
     }
 }

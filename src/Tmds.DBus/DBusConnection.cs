@@ -690,7 +690,7 @@ namespace Tmds.DBus
                 _onDisconnect = null;
 
                 Func<Exception> createException = () =>
-                    dispose ? (Exception)new ObjectDisposedException(typeof(Connection).FullName) : new DisconnectedException(exception);
+                    dispose ? Connection.CreateDisposedException() : new DisconnectedException(exception);
 
                 foreach (var watcher in nameOwnerWatchers)
                 {

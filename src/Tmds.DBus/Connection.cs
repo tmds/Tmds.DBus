@@ -144,7 +144,7 @@ namespace Tmds.DBus
             {
                 if (_disposed)
                 {
-                    throw new ObjectDisposedException(typeof(Connection).FullName); 
+                    ThrowDisposed();
                 }
 
                 if (!_autoConnect)
@@ -222,7 +222,7 @@ namespace Tmds.DBus
         /// </summary>
         public void Dispose()
         {
-            Disconnect(dispose: true, exception: new ObjectDisposedException(typeof(Connection).FullName));
+            Disconnect(dispose: true, exception: CreateDisposedException());
         }
 
         /// <summary>
@@ -762,7 +762,7 @@ namespace Tmds.DBus
         {
             if (disposed)
             {
-                throw new ObjectDisposedException(typeof(Connection).FullName);
+                ThrowDisposed();
             }
             if (state == ConnectionState.Disconnected)
             {
@@ -778,11 +778,19 @@ namespace Tmds.DBus
             }
         }
 
+        internal static Exception CreateDisposedException()
+            => new ObjectDisposedException(typeof(Connection).FullName);
+
+        private static void ThrowDisposed()
+        {
+            throw CreateDisposedException();
+        }
+
         internal static void ThrowIfNotConnecting(bool disposed, ConnectionState state, Exception disconnectReason)
         {
             if (disposed)
             {
-                throw new ObjectDisposedException(typeof(Connection).FullName);
+                ThrowDisposed();
             }
             if (state == ConnectionState.Disconnected)
             {
@@ -874,7 +882,7 @@ namespace Tmds.DBus
                 connectionCts?.Cancel();
                 connectionCts?.Dispose();
                 dbusConnectionTcs?.SetException(
-                    dispose ? (Exception)new ObjectDisposedException(typeof(Connection).FullName) : 
+                    dispose ? CreateDisposedException() : 
                     exception.GetType() == typeof(ConnectException) ? exception :
                     new DisconnectedException(exception));
                 connection?.Disconnect(dispose, exception);

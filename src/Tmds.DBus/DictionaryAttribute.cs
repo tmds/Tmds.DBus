@@ -6,6 +6,9 @@ using System;
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// Indicates the type must be marshalled as a D-Bus dictionary of <c>a{sv}</c>.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public class DictionaryAttribute : Attribute
     {}

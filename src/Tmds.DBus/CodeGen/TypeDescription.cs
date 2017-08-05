@@ -281,7 +281,7 @@ namespace Tmds.DBus.CodeGen
                         }
                         else
                         {
-                            inSignature += paramSignature;
+                            inSignature = Signature.Concat(inSignature.Value, paramSignature);
                         }
                         inArguments = inArguments ?? new List<ArgumentDescription>();
                         var argumentAttribute = param.GetCustomAttribute<ArgumentAttribute>(false);
@@ -405,7 +405,7 @@ namespace Tmds.DBus.CodeGen
                         }
                         else
                         {
-                            signature += argumentSignature;
+                            signature = Signature.Concat(signature.Value, argumentSignature);
                         }
                         i++;
                         nameIdx++;

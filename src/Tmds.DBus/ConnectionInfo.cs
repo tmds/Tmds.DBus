@@ -4,14 +4,28 @@
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// Information about established Connection.
+    /// </summary>
     public class ConnectionInfo
     {
-        internal ConnectionInfo(string localName)
+        /// <summary>
+        /// Creates an instance of ConnectionInfo.
+        /// </summary>
+        /// <param name="localName">Name assigned by the bus to the connection.</param>
+        public ConnectionInfo(string localName)
         {
             LocalName = localName;
         }
 
+        /// <summary>
+        /// Local name assigned by the bus to the connection.
+        /// </summary>
         public string LocalName { get; }
+
+        /// <summary>
+        /// Returns whether the remote peer is a bus.
+        /// </summary>
         public bool RemoteIsBus => !string.IsNullOrEmpty(LocalName);
     }
 }

@@ -12,8 +12,14 @@ using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus
 {
+    /// <summary>
+    /// Connection with a D-Bus peer.
+    /// </summary>
     public class Connection : IConnection
     {
+        /// <summary>
+        /// Assembly name where the dynamically generated code resides.
+        /// </summary>
         public const string DynamicAssemblyName = "Tmds.DBus.Emit";
 
         private class ProxyFactory : IProxyFactory
@@ -44,6 +50,7 @@ namespace Tmds.DBus
         private CancellationTokenSource _connectCts;
         private Exception _disconnectReason;
         private IDBus _bus;
+        private EventHandler<ConnectionStateChangedEventArgs> _stateChangedEvent;
 
         private IDBus DBus
         {
@@ -61,12 +68,48 @@ namespace Tmds.DBus
             }
         }
 
-        public event EventHandler<ConnectionStateChangedEventArgs> StateChanged;
+        /// <summary>
+        /// Occurs when the state changes.
+        /// </summary>
+        /// <remarks>
+        /// The event handler will be called when it is added to the event.
+        /// The event handler is invoked on the ConnectionOptions.SynchronizationContext.
+        /// </remarks>
+        public event EventHandler<ConnectionStateChangedEventArgs> StateChanged
+        {
+            add  
+            {
+                lock (_gate)
+                {
+                    _stateChangedEvent += value;
+                    if (_state != ConnectionState.Created)
+                    {
+                        EmitConnectionStateChanged(value);
+                    }
+                }
+            }
+            remove
+            {
+                lock (_gate)
+                {
+                    _stateChangedEvent -= value;
+                }
+            }  
+        }
 
+        /// <summary>
+        /// Creates a new Connection with a specific address.
+        /// </summary>
+        /// <param name="address">Address of the D-Bus peer.</param>
         public Connection(string address) :
             this(address, new ConnectionOptions())
         { }
 
+        /// <summary>
+        /// Creates a new Connection with a specific address and ConnectionOptions.
+        /// </summary>
+        /// <param name="address">Address of the D-Bus peer.</param>
+        /// <param name="connectionOptions"></param>
         public Connection(string address, ConnectionOptions connectionOptions)
         {
             if (address == null)
@@ -80,6 +123,16 @@ namespace Tmds.DBus
             _autoConnect = connectionOptions.AutoConnect;
         }
 
+        /// <summary>
+        /// Connect with the remote peer.
+        /// </summary>
+        /// <returns>
+        /// Information about the established connection.
+        /// </returns>
+        /// <exception cref="ConnectException">There was an error establishing the connection.</exception>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection was closed after it was established.</exception>
         public async Task<ConnectionInfo> ConnectAsync()
             => (await DoConnectAsync()).ConnectionInfo;
 
@@ -117,9 +170,7 @@ namespace Tmds.DBus
                     connectionTask = _dbusConnectionTask;
                     _state = ConnectionState.Connecting;
 
-                    var connectingEvent = CreateConnectionStateChangedEvent();
-                    _disconnectReason = null;
-                    EmitConnectionStateChanged(connectingEvent);
+                    EmitConnectionStateChanged();
                 }
             }
 
@@ -155,9 +206,7 @@ namespace Tmds.DBus
                     _dbusConnectionTcs.SetResult(connection);
                     _dbusConnectionTcs = null;
 
-                    var connectedEvent = CreateConnectionStateChangedEvent();
-                    connectedEvent.ConnectionInfo = _dbusConnection.ConnectionInfo;
-                    EmitConnectionStateChanged(connectedEvent);
+                    EmitConnectionStateChanged();
                 }
                 else
                 {
@@ -168,16 +217,42 @@ namespace Tmds.DBus
             return connection;
         }
 
+        /// <summary>
+        /// Disposes the connection.
+        /// </summary>
         public void Dispose()
         {
             Disconnect(dispose: true, exception: new ObjectDisposedException(typeof(Connection).FullName));
         }
 
-        public T CreateProxy<T>(string busName, ObjectPath path)
+        /// <summary>
+        /// Creates a proxy object that represents a remote D-Bus object.
+        /// </summary>
+        /// <typeparam name="T">Interface of the D-Bus object.</typeparam>
+        /// <param name="serviceName">Name of the service that exposes the object.</param>
+        /// <param name="path">Object path of the object.</param>
+        /// <returns>
+        /// Proxy object.
+        /// </returns>
+        public T CreateProxy<T>(string serviceName, ObjectPath path)
         {
-            return (T)CreateProxy(typeof(T), busName, path);
+            return (T)CreateProxy(typeof(T), serviceName, path);
         }
 
+        /// <summary>
+        /// Releases a service name assigned to the connection.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <returns>
+        /// <c>true</c> when the name was assigned to this connection; <c>false</c> when the name was not assigned to this connection.
+        /// </returns>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection was closed after it was established.</exception>
+        /// <exception cref="DBusException">Error returned by remote peer.</exception>
+        /// <remarks>
+        /// This operation is not supported for AutoConnection connections.
+        /// </remarks>
         public async Task<bool> UnregisterServiceAsync(string serviceName)
         {
             ThrowIfAutoConnect();
@@ -186,6 +261,21 @@ namespace Tmds.DBus
             return reply == ReleaseNameReply.ReplyReleased;
         }
 
+        /// <summary>
+        /// Queues a service name registration for the connection.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <param name="onAquired">Action invoked when the service name is assigned to the connection.</param>
+        /// <param name="onLost">Action invoked when the service name is no longer assigned to the connection.</param>
+        /// <param name="options">Options for the registration.</param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection was closed after it was established.</exception>
+        /// <exception cref="DBusException">Error returned by remote peer.</exception>
+        /// <exception cref="ProtocolException">Unexpected reply.</exception>
+        /// <remarks>
+        /// This operation is not supported for AutoConnection connections.
+        /// </remarks>
         public async Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
             ThrowIfAutoConnect();
@@ -217,7 +307,36 @@ namespace Tmds.DBus
             }
         }
 
-        public async Task RegisterServiceAsync(string name, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
+        /// <summary>
+        /// Queues a service name registration for the connection.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <param name="options">Options for the registration.</param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection was closed after it was established.</exception>
+        /// <exception cref="DBusException">Error returned by remote peer.</exception>
+        /// <exception cref="ProtocolException">Unexpected reply.</exception>
+        /// <remarks>
+        /// This operation is not supported for AutoConnection connections.
+        /// </remarks>
+        public Task QueueServiceRegistrationAsync(string serviceName, ServiceRegistrationOptions options)
+            => QueueServiceRegistrationAsync(serviceName, null, null, options);
+
+        /// <summary>
+        /// Requests a service name to be assigned to the connection.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <param name="onLost">Action invoked when the service name is no longer assigned to the connection.</param>
+        /// <param name="options"></param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection was closed after it was established.</exception>
+        /// <exception cref="DBusException">Error returned by remote peer.</exception>
+        /// <remarks>
+        /// This operation is not supported for AutoConnection connections.
+        /// </remarks>
+        public async Task RegisterServiceAsync(string serviceName, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
             ThrowIfAutoConnect();
             var connection = GetConnectedConnection();
@@ -235,7 +354,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await connection.RequestNameAsync(name, requestOptions, null, onLost, CaptureSynchronizationContext());
+            var reply = await connection.RequestNameAsync(serviceName, requestOptions, null, onLost, CaptureSynchronizationContext());
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -250,11 +369,43 @@ namespace Tmds.DBus
             }
         }
 
+        /// <summary>
+        /// Requests a service name to be assigned to the connection.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <param name="options"></param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection was closed after it was established.</exception>
+        /// <exception cref="DBusException">Error returned by remote peer.</exception>
+        /// <remarks>
+        /// This operation is not supported for AutoConnection connections.
+        /// </remarks>
+        public Task RegisterServiceAsync(string serviceName, ServiceRegistrationOptions options)
+            => RegisterServiceAsync(serviceName, null, options);
+
+        /// <summary>
+        /// Publishes an object.
+        /// </summary>
+        /// <param name="o">Object to publish.</param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection was closed.</exception>
         public Task RegisterObjectAsync(IDBusObject o)
         {
             return RegisterObjectsAsync(new[] { o });
         }
 
+        /// <summary>
+        /// Publishes objects.
+        /// </summary>
+        /// <param name="objects">Objects to publish.</param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection was closed.</exception>
+        /// <remarks>
+        /// This operation is not supported for AutoConnection connections.
+        /// </remarks>
         public async Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects)
         {
             ThrowIfAutoConnect();
@@ -307,11 +458,36 @@ namespace Tmds.DBus
             }
         }
 
-        public void UnregisterObject(ObjectPath objectPath)
-        {
-            UnregisterObjects(new[] { objectPath });
-        }
+        /// <summary>
+        /// Unpublishes an object.
+        /// </summary>
+        /// <param name="path">Path of object to unpublish.</param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
+        public void UnregisterObject(ObjectPath path)
+            => UnregisterObjects(new[] { path });
 
+        /// <summary>
+        /// Unpublishes an object.
+        /// </summary>
+        /// <param name="o">object to unpublish.</param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
+        public void UnregisterObject(IDBusObject o)
+            => UnregisterObject(o.ObjectPath);
+
+        /// <summary>
+        /// Unpublishes objects.
+        /// </summary>
+        /// <param name="paths">Paths of objects to unpublish.</param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
+        /// <remarks>
+        /// This operation is not supported for AutoConnection connections.
+        /// </remarks>
         public void UnregisterObjects(IEnumerable<ObjectPath> paths)
         {
             ThrowIfAutoConnect();
@@ -333,9 +509,30 @@ namespace Tmds.DBus
             }
         }
 
+        /// <summary>
+        /// List services that can be activated.
+        /// </summary>
+        /// <returns>
+        /// List of activatable services.
+        /// </returns>
+        /// <exception cref="ConnectException">There was an error establishing the connection.</exception>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
         public Task<string[]> ListActivatableServicesAsync()
             => DBus.ListActivatableNamesAsync();
 
+        /// <summary>
+        /// Resolves the local address for a service.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <returns>
+        /// Local address of service. <c>null</c> is returned when the service name is not available.
+        /// </returns>
+        /// <exception cref="ConnectException">There was an error establishing the connection.</exception>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
         public async Task<string> ResolveServiceOwnerAsync(string serviceName)
         {
             try
@@ -352,12 +549,50 @@ namespace Tmds.DBus
             }
         }
 
+        /// <summary>
+        /// Activates a service.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <returns>
+        /// The result of the activation.
+        /// </returns>
+        /// <exception cref="ConnectException">There was an error establishing the connection.</exception>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
         public Task<ServiceStartResult> ActivateServiceAsync(string serviceName)
             => DBus.StartServiceByNameAsync(serviceName, 0);
 
+        /// <summary>
+        /// Checks if a service is available.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <returns>
+        /// <c>true</c> when the service is available, <c>false</c> otherwise.
+        /// </returns>
+        /// <exception cref="ConnectException">There was an error establishing the connection.</exception>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
         public Task<bool> IsServiceActiveAsync(string serviceName)
             => DBus.NameHasOwnerAsync(serviceName);
 
+        /// <summary>
+        /// Resolves the local address for a service.
+        /// </summary>
+        /// <param name="serviceName">Name of the service.</param>
+        /// <param name="handler">Action invoked when the local name of the service changes.</param>
+        /// <param name="onError">Action invoked when the connection closes.</param>
+        /// <returns>
+        /// Disposable that allows to stop receiving notifications.
+        /// </returns>
+        /// <exception cref="ConnectException">There was an error establishing the connection.</exception>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
+        /// <remarks>
+        /// The event handler will be called when the service name is already registered.
+        /// </remarks>
         public async Task<IDisposable> ResolveServiceOwnerAsync(string serviceName, Action<ServiceOwnerChangedEventArgs> handler, Action<Exception> onError = null)
         {
             if (serviceName == "*")
@@ -463,6 +698,16 @@ namespace Tmds.DBus
             return wrappedDisposable;
         }
 
+        /// <summary>
+        /// List services that are available.
+        /// </summary>
+        /// <returns>
+        /// List of available services.
+        /// </returns>
+        /// <exception cref="ConnectException">There was an error establishing the connection.</exception>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
         public Task<string[]> ListServicesAsync()
             => DBus.ListNamesAsync();
 
@@ -611,8 +856,7 @@ namespace Tmds.DBus
                 _registeredObjects.Clear();
 
                 _state = ConnectionState.Disconnecting;
-                var disconnectingEvent = CreateConnectionStateChangedEvent();
-                EmitConnectionStateChanged(disconnectingEvent);
+                EmitConnectionStateChanged();
 
                 connectionCts?.Cancel();
                 connectionCts?.Dispose();
@@ -624,25 +868,48 @@ namespace Tmds.DBus
 
                 if (_state == ConnectionState.Disconnecting)
                 {
-                    _state = ConnectionState.Disconnected;                    
-                    var disconnectEvent = CreateConnectionStateChangedEvent();
-                    EmitConnectionStateChanged(disconnectEvent);
+                    _state = ConnectionState.Disconnected;
+                    EmitConnectionStateChanged();
                 }
             }
         }
 
-        private void EmitConnectionStateChanged(ConnectionStateChangedEventArgs stateChangeEvent)
+        private void EmitConnectionStateChanged(EventHandler<ConnectionStateChangedEventArgs> handler = null)
         {
+            var disconnectReason = _disconnectReason;
+            if (_state == ConnectionState.Connecting)
+            {
+                _disconnectReason = null;
+            }
+
+            if (handler == null)
+            {
+                handler = _stateChangedEvent;
+            }
+
+            if (handler == null)
+            {
+                return;
+            }
+
+            if (disconnectReason != null
+             && disconnectReason.GetType() != typeof(ConnectException)
+             && disconnectReason.GetType() != typeof(ObjectDisposedException)
+             && disconnectReason.GetType() != typeof(DisconnectedException))
+            {
+                disconnectReason = new DisconnectedException(disconnectReason);
+            }
+            var connectionInfo = _state == ConnectionState.Connected ? _dbusConnection.ConnectionInfo : null;
+            var stateChangeEvent = new ConnectionStateChangedEventArgs(_state, disconnectReason, connectionInfo);
+
+
             if (_synchronizationContext != null && SynchronizationContext.Current != _synchronizationContext)
             {
-                if (StateChanged != null)
-                {
-                    _synchronizationContext.Post(_ => StateChanged?.Invoke(this, stateChangeEvent), null);
-                }
+                _synchronizationContext.Post(_ => handler(this, stateChangeEvent), null);
             }
             else
             {
-                StateChanged?.Invoke(this, stateChangeEvent);
+                handler(this, stateChangeEvent);
             }
         }
 
@@ -672,19 +939,6 @@ namespace Tmds.DBus
                 connection = await GetConnectionTask();
                 return await connection.WatchSignalAsync(path, @interface, signalName, handler);
             }
-        }
-
-        private ConnectionStateChangedEventArgs CreateConnectionStateChangedEvent()
-        {
-            var disconnectReason = _disconnectReason;
-            if (disconnectReason != null
-             && disconnectReason.GetType() != typeof(ConnectException)
-             && disconnectReason.GetType() != typeof(ObjectDisposedException)
-             && disconnectReason.GetType() != typeof(DisconnectedException))
-            {
-                disconnectReason = new DisconnectedException(disconnectReason?.Message, disconnectReason);
-            }
-            return new ConnectionStateChangedEventArgs(_state, disconnectReason);
         }
 
         internal SynchronizationContext CaptureSynchronizationContext() => _synchronizationContext;

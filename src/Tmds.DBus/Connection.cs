@@ -510,6 +510,19 @@ namespace Tmds.DBus
         }
 
         /// <summary>
+        /// Unpublishes objects.
+        /// </summary>
+        /// <param name="objects">Objects to unpublish.</param>
+        /// <exception cref="ObjectDisposedException">The connection has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
+        /// <exception cref="DisconnectedException">The connection is closed.</exception>
+        /// <remarks>
+        /// This operation is not supported for AutoConnection connections.
+        /// </remarks>
+        public void UnregisterObjects(IEnumerable<IDBusObject> objects)
+            => UnregisterObjects(objects.Select(o => o.ObjectPath));
+
+        /// <summary>
         /// List services that can be activated.
         /// </summary>
         /// <returns>

@@ -26,12 +26,12 @@ namespace Tmds.DBus
         private static Connection s_sessionConnection;
 
         /// <summary>
-        /// Returns an AutoConnect Connection to the system bus.
+        /// An AutoConnect Connection to the system bus.
         /// </summary>
         public static Connection System => s_systemConnection ?? CreateSystemConnection();
 
         /// <summary>
-        /// Returns an AutoConnect Connection to the session bus.
+        /// An AutoConnect Connection to the session bus.
         /// </summary>
         public static Connection Session => s_sessionConnection ?? CreateSessionConnection();
 

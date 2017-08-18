@@ -124,7 +124,7 @@ When we run our program and change our network interfaces (e.g. turn on/off WiFi
 
 ```
 $ dotnet run
-Press any key to close the application.
+Monitoring network state changes. Press Ctrl-C to stop.
 wlp4s0: 100 -> 20
 ```
 
@@ -161,7 +161,7 @@ When we run our application again, we see more meaningful messages.
 
 ```
 $ dotnet run
-Press any key to close the application.
+Monitoring network state changes. Press Ctrl-C to stop.
 wlp4s0: Activated -> Unavailable
 ```
 

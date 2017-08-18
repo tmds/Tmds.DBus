@@ -22,6 +22,19 @@ namespace Tmds.DBus
         /// </summary>
         public const string DynamicAssemblyName = "Tmds.DBus.Emit";
 
+        private static Connection s_systemConnection;
+        private static Connection s_sessionConnection;
+
+        /// <summary>
+        /// Returns an AutoConnect Connection to the system bus.
+        /// </summary>
+        public static Connection System => s_systemConnection ?? CreateSystemConnection();
+
+        /// <summary>
+        /// Returns an AutoConnect Connection to the session bus.
+        /// </summary>
+        public static Connection Session => s_sessionConnection ?? CreateSessionConnection();
+
         private class ProxyFactory : IProxyFactory
         {
             public Connection Connection { get; }
@@ -963,5 +976,21 @@ namespace Tmds.DBus
         }
 
         internal SynchronizationContext CaptureSynchronizationContext() => _synchronizationContext;
+
+        private static Connection CreateSessionConnection() => CreateConnection(Address.Session, ref s_sessionConnection);
+
+        private static Connection CreateSystemConnection() => CreateConnection(Address.System, ref s_systemConnection);
+
+        private static Connection CreateConnection(string address, ref Connection connection)
+        {
+            address = address ?? "unix:";
+            if (Volatile.Read(ref connection) != null)
+            {
+                return connection;
+            }
+            var newConnection = new Connection(address, new ConnectionOptions { AutoConnect = true, SynchronizationContext = null });
+            Interlocked.CompareExchange(ref connection, newConnection, null);
+            return connection;
+        }
     }
 }

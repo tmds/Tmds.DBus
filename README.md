@@ -29,13 +29,14 @@ $ dotnet new console -o netmon
 $ cd netmon
 ```
 
-Now we add references to `Tmds.DBus` and `Tmds.DBus.Tool`. in `netmon.csproj`.
+Now we add references to `Tmds.DBus` and `Tmds.DBus.Tool`. in `netmon.csproj`. We also set the `LangVersion` to be able to create an `async Main` (C# 7.1).
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
+    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Tmds.DBus" Version="0.5.0-*" />
@@ -70,7 +71,7 @@ $ dotnet dbus codegen --bus system --service org.freedesktop.NetworkManager
 
 This generates a `NetworkManager.DBus.cs` file in the local folder.
 
-We change `Program.cs` so it connects to the system bus and create an `INetworkManager` proxy object.
+We update `Program.cs` to have an async `Main` and instiantiate an `INetworkManager` proxy object.
 
 ```C#
 using System;
@@ -78,28 +79,17 @@ using Tmds.DBus;
 using NetworkManager.DBus;
 using System.Threading.Tasks;
 
-namespace dbus_app
+namespace netmon
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            MainAsync().Wait();
-        }
+            Console.WriteLine("Monitoring network state changes. Press Ctrl-C to stop.");
 
-        static async Task MainAsync()
-        {
-            using (var connection = new Connection(Address.System))
-            {
-                await connection.ConnectAsync();
-                var networkManager = connection.CreateProxy<INetworkManager>("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager");
-                
-                await Task.Run(() =>
-                {
-                    Console.WriteLine("Press any key to close the application.");
-                    Console.Read();
-                });
-            }
+            var networkManager = Connection.System.CreateProxy<INetworkManager>("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager");
+
+            await Task.Delay(int.MaxValue);
         }
     }
 }

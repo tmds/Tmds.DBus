@@ -87,13 +87,19 @@ namespace netmon
         {
             Console.WriteLine("Monitoring network state changes. Press Ctrl-C to stop.");
 
-            var networkManager = Connection.System.CreateProxy<INetworkManager>("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager");
+            var systemConnection = Connection.System;
+            var networkManager = systemConnection.CreateProxy<INetworkManager>("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager");
 
             await Task.Delay(int.MaxValue);
         }
     }
 }
 ```
+
+Note that we are using the static `Connection.System`. `Connection.System` and `Connection.Session` provide a connection to the system bus and session bus.
+These static members provide a convenient way to share the same connection.
+The connection to the bus is established automatically when used. Statefull operations (e.g. `Connection.RegisterServiceAsync`) are not supported.
+For these use-cases you must create an instance of the `Connection` and manage the lifetime yourself.
 
 If we look at the `INetworkManager` interface in `NetworkManager.DBus.cs`, we see it has a `GetDevicesAsync` method.
 

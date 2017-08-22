@@ -10,7 +10,7 @@ The tool can be added by using a `DotNetCliToolReference` in the project file.
 
 ```xml
   <ItemGroup>
-    <DotNetCliToolReference Include="Tmds.DBus.Tool" Version="0.1.0" />
+    <DotNetCliToolReference Include="Tmds.DBus.Tool" Version="0.5.0" />
   </ItemGroup>
 ```
 

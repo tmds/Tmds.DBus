@@ -39,8 +39,8 @@ Now we add references to `Tmds.DBus` and `Tmds.DBus.Tool`. in `netmon.csproj`. W
     <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Tmds.DBus" Version="0.5.0-*" />
-    <DotNetCliToolReference Include="Tmds.DBus.Tool" Version="0.1.0-*" />
+    <PackageReference Include="Tmds.DBus" Version="0.5.0" />
+    <DotNetCliToolReference Include="Tmds.DBus.Tool" Version="0.5.0" />
   </ItemGroup>
 </Project>
 ```

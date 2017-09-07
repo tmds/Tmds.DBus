@@ -11,9 +11,9 @@ application or daemon, and to launch applications and daemons on demand when the
 
 Higher-level bindings are available for various popular frameworks and languages (Qt, GLib, Java, Python, etc.).
 [dbus-sharp](https://github.com/mono/dbus-sharp) (a fork of [ndesk-dbus](http://www.ndesk.org/DBusSharp)) is a C#
-implementation which targets Mono and .NET 2.0. Tmds.DBus builds on top of the protocol implementation of dbus-sharp
-and provides an API based on the asynchronous programming model introduced in .NET 4.5. The library targets
-netstandard 1.5 which means it runs on .NET 4.6.1 (Windows 7 SP1 and later) and .NET Core. You can get Tmds.DBus from NuGet.
+implementation which targets Mono and .NET 2.0. Tmds.DBus builds on top of the protocol implementation of dbus-sharp and
+provides an API based on the asynchronous programming model introduced in .NET 4.5. The library targets netstandard 1.5
+which means it runs on .NET 4.6.1 (Windows 7 SP1 and later) and .NET Core. You can get Tmds.DBus from NuGet.
 
 # Example
 
@@ -29,7 +29,8 @@ $ dotnet new console -o netmon
 $ cd netmon
 ```
 
-Now we add references to `Tmds.DBus` and `Tmds.DBus.Tool`. in `netmon.csproj`. We also set the `LangVersion` to be able to create an `async Main` (C# 7.1).
+Now we add references to `Tmds.DBus` and `Tmds.DBus.Tool` in `netmon.csproj`. We also set the `LangVersion` to be able
+to use an `async Main` (C# 7.1).
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
@@ -45,7 +46,7 @@ Now we add references to `Tmds.DBus` and `Tmds.DBus.Tool`. in `netmon.csproj`. W
 </Project>
 ```
 
-Let's restore to fetch these dependencies:
+Let's `restore` to fetch these dependencies:
 
 ```
 $ dotnet restore
@@ -53,9 +54,9 @@ $ dotnet restore
 
 Next, we use the `list` command to find out some information about the NetworkManager service:
 ```
-$ dotnet dbus list --bus system services | grep NetworkManager
+$ dotnet dbus list services --bus system | grep NetworkManager
 org.freedesktop.NetworkManager
-$ dotnet dbus list --bus system --service org.freedesktop.NetworkManager objects | head -2
+$ dotnet dbus list objects --bus system --service org.freedesktop.NetworkManager | head -2
 /org/freedesktop : org.freedesktop.DBus.ObjectManager
 /org/freedesktop/NetworkManager : org.freedesktop.NetworkManager
 ```
@@ -88,7 +89,8 @@ namespace netmon
             Console.WriteLine("Monitoring network state changes. Press Ctrl-C to stop.");
 
             var systemConnection = Connection.System;
-            var networkManager = systemConnection.CreateProxy<INetworkManager>("org.freedesktop.NetworkManager", "/org/freedesktop/NetworkManager");
+            var networkManager = systemConnection.CreateProxy<INetworkManager>("org.freedesktop.NetworkManager",
+                                                                               "/org/freedesktop/NetworkManager");
 
             await Task.Delay(int.MaxValue);
         }
@@ -96,25 +98,26 @@ namespace netmon
 }
 ```
 
-Note that we are using the static `Connection.System`. `Connection.System` and `Connection.Session` provide a connection to the system bus and session bus.
-These static members provide a convenient way to share the same connection.
-The connection to the bus is established automatically when used. Statefull operations (e.g. `Connection.RegisterServiceAsync`) are not supported.
-For these use-cases you must create an instance of the `Connection` and manage the lifetime yourself.
+Note that we are using the static `Connection.System`. `Connection.System` and `Connection.Session` provide a connection
+to the system bus and session bus. These static members provide a convenient way to share the same `Connection`
+throughout the application. The connection to the bus is established automatically on first use. Statefull operations
+(e.g. `Connection.RegisterServiceAsync`) are not allowed. For these use-cases you must create an instance of the
+`Connection` and manually connect it.
 
-If we look at the `INetworkManager` interface in `NetworkManager.DBus.cs`, we see it has a `GetDevicesAsync` method.
+When we look at the `INetworkManager` interface in `NetworkManager.DBus.cs`, we see it has a `GetDevicesAsync` method.
 
 ```C#
 Task<ObjectPath[]> GetDevicesAsync();
 ```
 
-This method is returning an `ObjectPath[]`. These paths refer to other objects of the D-Bus service. We can use these
-paths with `CreateProxy`. Instead, we'll update the method to reflect it is returning `IDevice` objects.
+This method is returning `ObjectPath[]`. These paths refer to other objects of the D-Bus service. We can use them with
+`CreateProxy`. Instead, we'll update the method to reflect it is returning `IDevice` objects.
 
 ```C#
 Task<IDevice[]> GetDevicesAsync();
 ```
 
-We can now add the code to iterate over the devices and add a signal handler for the state change:
+We will now add the code to iterate over the devices and add a signal handler for the state change:
 
 ```C#
 foreach (var device in await networkManager.GetDevicesAsync())
@@ -134,7 +137,8 @@ Monitoring network state changes. Press Ctrl-C to stop.
 wlp4s0: 100 -> 20
 ```
 
-If we look up the documentation of the StateChanged signal, we find the meaning of the magical constants: [enum `NMDeviceState`](https://developer.gnome.org/NetworkManager/stable/nm-dbus-types.html#NMDeviceState).
+When we look up the documentation of the StateChanged signal, we find the meaning of the magical constants:
+[enum `NMDeviceState`](https://developer.gnome.org/NetworkManager/stable/nm-dbus-types.html#NMDeviceState).
 
 We can model this enumeration in C#:
 ```C#

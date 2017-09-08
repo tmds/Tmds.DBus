@@ -452,5 +452,21 @@ namespace Tmds.DBus.Tests
                 Assert.Null(e.DisconnectReason);
             }
         }
+
+        [Fact]
+        public async Task ConnectionFunction()
+        {
+            using (var dbusDaemon = new DBusDaemon())
+            {
+                await dbusDaemon.StartAsync();
+                var address = dbusDaemon.Address;
+
+                var conn1 = new Connection(null, new ConnectionOptions {
+                    ConnectFunction = () => Task.FromResult(new ConnectionContext { ConnectionAddress = address })
+                 });
+
+                 await conn1.ConnectAsync();
+            }
+        }
     }
 }

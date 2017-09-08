@@ -456,17 +456,27 @@ namespace Tmds.DBus.Tests
         [Fact]
         public async Task ConnectionFunction()
         {
+            var tokenTcs = new TaskCompletionSource<object>();
+            var token = new object();
             using (var dbusDaemon = new DBusDaemon())
             {
                 await dbusDaemon.StartAsync();
                 var address = dbusDaemon.Address;
 
                 var conn1 = new Connection(null, new ConnectionOptions {
-                    ConnectFunction = () => Task.FromResult(new ConnectionContext { ConnectionAddress = address })
-                 });
+                    ConnectFunction = () => Task.FromResult(
+                        new ConnectionContext
+                        {
+                            ConnectionAddress = address,
+                            DisposeUserToken = token
+                        }),
+                    DisposeAction = tokenTcs.SetResult});
 
                  await conn1.ConnectAsync();
             }
+
+            var disposeToken = await tokenTcs.Task;
+            Assert.Equal(token, disposeToken);
         }
     }
 }

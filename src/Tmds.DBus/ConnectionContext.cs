@@ -16,5 +16,10 @@ namespace Tmds.DBus
         /// Address of the D-Bus peer.
         /// </summary>
         public string ConnectionAddress { get; set; }
+
+        /// <summary>
+        /// Object passed to ConnectionOptions.DisposeAction.
+        /// </summary>
+        public object DisposeUserToken { get; set; }
     }
 }

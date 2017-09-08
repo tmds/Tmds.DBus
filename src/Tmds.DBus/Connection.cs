@@ -24,6 +24,7 @@ namespace Tmds.DBus
 
         private static Connection s_systemConnection;
         private static Connection s_sessionConnection;
+        private static readonly object NoDispose = new object();
 
         /// <summary>
         /// An AutoConnect Connection to the system bus.
@@ -52,6 +53,7 @@ namespace Tmds.DBus
         private readonly Dictionary<ObjectPath, DBusAdapter> _registeredObjects = new Dictionary<ObjectPath, DBusAdapter>();
         private readonly string _address;
         private readonly Func<Task<ConnectionContext>> _connectFunction;
+        private readonly Action<object> _disposeAction;
         private readonly SynchronizationContext _synchronizationContext;
         private readonly bool _autoConnect;
 
@@ -65,6 +67,7 @@ namespace Tmds.DBus
         private Exception _disconnectReason;
         private IDBus _bus;
         private EventHandler<ConnectionStateChangedEventArgs> _stateChangedEvent;
+        private object _disposeUserToken = NoDispose;
 
         private IDBus DBus
         {
@@ -136,6 +139,7 @@ namespace Tmds.DBus
             _synchronizationContext = connectionOptions.SynchronizationContext;
             _autoConnect = connectionOptions.AutoConnect;
             _connectFunction = connectionOptions.ConnectFunction;
+            _disposeAction = connectionOptions.DisposeAction;
         }
 
         /// <summary>
@@ -195,23 +199,37 @@ namespace Tmds.DBus
             }
 
             DBusConnection connection;
+            object disposeUserToken = NoDispose;
             try
             {
                 string address = _address;
                 if (_connectFunction != null)
                 {
                     var connectionContext = await _connectFunction();
+                    disposeUserToken = connectionContext.DisposeUserToken;
+                    if (disposeUserToken != null && _disposeAction == null)
+                    {
+                        throw new InvalidOperationException($"No {nameof(ConnectionOptions.DisposeAction)} for {nameof(ConnectionContext.DisposeUserToken)}");
+                    }
                     address = connectionContext.ConnectionAddress;
                 }
                 connection = await DBusConnection.OpenAsync(address, OnDisconnect, _connectCts.Token);
             }
             catch (ConnectException ce)
             {
+                if (disposeUserToken != NoDispose)
+                {
+                    _disposeAction?.Invoke(disposeUserToken);
+                }
                 Disconnect(dispose: false, exception: ce);
                 throw;
             }
             catch (Exception e)
             {
+                if (disposeUserToken != NoDispose)
+                {
+                    _disposeAction?.Invoke(disposeUserToken);
+                }
                 var ce = new ConnectException(e.Message, e);
                 Disconnect(dispose: false, exception: ce);
                 throw ce;
@@ -220,6 +238,7 @@ namespace Tmds.DBus
             {
                 if (_state == ConnectionState.Connecting)
                 {
+                    _disposeUserToken = disposeUserToken;
                     _dbusConnection = connection;
                     _connectCts.Dispose();
                     _connectCts = null;
@@ -232,6 +251,10 @@ namespace Tmds.DBus
                 else
                 {
                     connection.Dispose();
+                    if (disposeUserToken != NoDispose)
+                    {
+                        _disposeAction?.Invoke(disposeUserToken);
+                    }
                 }
                 ThrowIfNotConnected();
             }
@@ -886,10 +909,12 @@ namespace Tmds.DBus
                 var connectionCts = _connectCts;;
                 var dbusConnectionTask = _dbusConnectionTask;
                 var dbusConnectionTcs = _dbusConnectionTcs;
+                var disposeUserToken = _disposeUserToken;
                 _dbusConnection = null;
                 _connectCts = null;
                 _dbusConnectionTask = null;
                 _dbusConnectionTcs = null;
+                _disposeUserToken = NoDispose;
 
                 foreach (var registeredObject in _registeredObjects)
                 {
@@ -907,6 +932,10 @@ namespace Tmds.DBus
                     exception.GetType() == typeof(ConnectException) ? exception :
                     new DisconnectedException(exception));
                 connection?.Disconnect(dispose, exception);
+                if (disposeUserToken != NoDispose)
+                {
+                    _disposeAction?.Invoke(disposeUserToken);
+                }
 
                 if (_state == ConnectionState.Disconnecting)
                 {

@@ -28,5 +28,10 @@ namespace Tmds.DBus
         /// Sets up tunnel/connects to the remote peer.
         /// </summary>
         public Func<Task<ConnectionContext>> ConnectFunction { get; set; }
+
+        /// <summary>
+        /// Action to clean up resources created during succesfull execution of ConnectFunction.
+        /// </summary>
+        public Action<object> DisposeAction { get; set; }
     }
 }

@@ -51,6 +51,7 @@ namespace Tmds.DBus
         private readonly object _gate = new object();
         private readonly Dictionary<ObjectPath, DBusAdapter> _registeredObjects = new Dictionary<ObjectPath, DBusAdapter>();
         private readonly string _address;
+        private readonly Func<Task<ConnectionContext>> _connectFunction;
         private readonly SynchronizationContext _synchronizationContext;
         private readonly bool _autoConnect;
 
@@ -125,7 +126,7 @@ namespace Tmds.DBus
         /// <param name="connectionOptions"></param>
         public Connection(string address, ConnectionOptions connectionOptions)
         {
-            if (address == null)
+            if (address == null && (connectionOptions == null || connectionOptions.ConnectFunction == null))
                 throw new ArgumentNullException(nameof(address));
             if (connectionOptions == null)
                 throw new ArgumentNullException(nameof(connectionOptions));
@@ -134,6 +135,7 @@ namespace Tmds.DBus
             _factory = new ProxyFactory(this);
             _synchronizationContext = connectionOptions.SynchronizationContext;
             _autoConnect = connectionOptions.AutoConnect;
+            _connectFunction = connectionOptions.ConnectFunction;
         }
 
         /// <summary>
@@ -195,7 +197,13 @@ namespace Tmds.DBus
             DBusConnection connection;
             try
             {
-                connection = await DBusConnection.OpenAsync(_address, OnDisconnect, _connectCts.Token);
+                string address = _address;
+                if (_connectFunction != null)
+                {
+                    var connectionContext = await _connectFunction();
+                    address = connectionContext.ConnectionAddress;
+                }
+                connection = await DBusConnection.OpenAsync(address, OnDisconnect, _connectCts.Token);
             }
             catch (ConnectException ce)
             {

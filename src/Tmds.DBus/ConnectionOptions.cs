@@ -2,7 +2,9 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
+using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Tmds.DBus
 {
@@ -21,5 +23,10 @@ namespace Tmds.DBus
         /// Automatically connect and re-connect the Connection.
         /// </summary>
         public bool AutoConnect { get; set; }
+
+        /// <summary>
+        /// Sets up tunnel/connects to the remote peer.
+        /// </summary>
+        public Func<Task<ConnectionContext>> ConnectFunction { get; set; }
     }
 }

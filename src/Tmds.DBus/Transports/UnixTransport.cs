@@ -80,7 +80,8 @@ namespace Tmds.DBus.Transports
         private readonly SocketAsyncEventArgs _sendArgs;
         private readonly List<ArraySegment<byte>> _bufferList = new List<ArraySegment<byte>>();
 
-        private UnixTransport()
+        private UnixTransport(ConnectionContext context) :
+            base(context)
         {
             _waitForData = new SocketAsyncEventArgs();
             _waitForData.SetBuffer(Array.Empty<byte>(), 0, 0);
@@ -97,9 +98,9 @@ namespace Tmds.DBus.Transports
             _sendArgs.Completed += SendCompleted;
         }
 
-        public static new async Task<IMessageStream> OpenAsync(AddressEntry entry, CancellationToken cancellationToken)
+        public static new async Task<IMessageStream> OpenAsync(AddressEntry entry, ConnectionContext context, CancellationToken cancellationToken)
         {
-            var messageStream = new UnixTransport();
+            var messageStream = new UnixTransport(context);
             await messageStream.DoOpenAsync(entry, cancellationToken);
             return messageStream;
         }
@@ -140,7 +141,8 @@ namespace Tmds.DBus.Transports
             {
                 await _socket.ConnectAsync(endPoint);
                 await SendAsync(_oneByteArray, 0, 1);
-                await DoSaslAuthenticationAsync(guid, transportSupportsUnixFdPassing: _socketFd != -1);
+                await DoSaslAuthenticationAsync(guid,
+                        transportSupportsUnixFdPassing: _socketFd != -1 && _context?.SupportsFdPassing != false);
             }
             catch
             {

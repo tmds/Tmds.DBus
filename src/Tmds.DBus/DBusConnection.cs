@@ -74,7 +74,7 @@ namespace Tmds.DBus
         public const string DBusInterface = "org.freedesktop.DBus";
         private static readonly char[] s_dot = new[] { '.' };
 
-        public static async Task<DBusConnection> OpenAsync(string address, Action<Exception> onDisconnect, CancellationToken cancellationToken)
+        public static async Task<DBusConnection> OpenAsync(string address, ConnectionContext connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
             var _entries = AddressEntry.ParseEntries(address);
             if (_entries.Length == 0)
@@ -92,7 +92,7 @@ namespace Tmds.DBus
                 _serverId = entry.Guid;
                 try
                 {
-                    stream = await Transport.OpenAsync(entry, cancellationToken).ConfigureAwait(false);
+                    stream = await Transport.OpenAsync(entry, connectionContext, cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {

@@ -480,7 +480,7 @@ namespace Tmds.DBus.Tests
                         new ConnectionContext
                         {
                             ConnectionAddress = address,
-                            DisposeUserToken = token
+                            TeardownToken = token
                         }),
                     DisposeAction = tokenTcs.SetResult});
 

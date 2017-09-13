@@ -198,7 +198,7 @@ namespace Tmds.DBus
             try
             {
                 ConnectionContext connectionContext = await _connectFunction();
-                disposeUserToken = connectionContext.DisposeUserToken;
+                disposeUserToken = connectionContext.TeardownToken;
                 connection = await DBusConnection.OpenAsync(connectionContext, OnDisconnect, _connectCts.Token);
             }
             catch (ConnectException ce)

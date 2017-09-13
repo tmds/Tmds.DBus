@@ -19,12 +19,13 @@ namespace Tmds.DBus.Transports
         private static readonly byte[] _oneByteArray = new[] { (byte)0 };
         private Stream _stream;
 
-        private TcpTransport()
+        private TcpTransport(ConnectionContext context) :
+            base(context)
         {}
 
-        public static new async Task<IMessageStream> OpenAsync(AddressEntry entry, CancellationToken cancellationToken)
+        public static new async Task<IMessageStream> OpenAsync(AddressEntry entry, ConnectionContext context, CancellationToken cancellationToken)
         {
-            var messageStream = new TcpTransport();
+            var messageStream = new TcpTransport(context);
             await messageStream.DoOpenAsync(entry, cancellationToken);
             return messageStream;
         }

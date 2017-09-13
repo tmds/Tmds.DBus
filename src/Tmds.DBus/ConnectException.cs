@@ -15,7 +15,7 @@ namespace Tmds.DBus
         /// Creates an instance of the ConnectException with the specified message.
         /// </summary>
         /// <param name="message">The error message that explains the reason for the exception.</param>
-        internal ConnectException(string message) : base(message)
+        public ConnectException(string message) : base(message)
         { }
 
         /// <summary>
@@ -23,7 +23,7 @@ namespace Tmds.DBus
         /// </summary>
         /// <param name="message">The error message that explains the reason for the exception..</param>
         /// <param name="innerException">The exception that is the cause of the current exception, or a null reference if no inner exception is specified.</param>
-        internal ConnectException(string message, Exception innerException) : base(message, innerException)
+        public ConnectException(string message, Exception innerException) : base(message, innerException)
         { }
     }
 }

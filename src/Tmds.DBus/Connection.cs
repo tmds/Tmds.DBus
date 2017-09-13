@@ -203,9 +203,10 @@ namespace Tmds.DBus
             try
             {
                 string address = _address;
+                ConnectionContext connectionContext = null;
                 if (_connectFunction != null)
                 {
-                    var connectionContext = await _connectFunction();
+                    connectionContext = await _connectFunction();
                     disposeUserToken = connectionContext.DisposeUserToken;
                     if (disposeUserToken != null && _disposeAction == null)
                     {
@@ -213,7 +214,7 @@ namespace Tmds.DBus
                     }
                     address = connectionContext.ConnectionAddress;
                 }
-                connection = await DBusConnection.OpenAsync(address, OnDisconnect, _connectCts.Token);
+                connection = await DBusConnection.OpenAsync(address, connectionContext, OnDisconnect, _connectCts.Token);
             }
             catch (ConnectException ce)
             {

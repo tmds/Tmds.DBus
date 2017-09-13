@@ -18,23 +18,26 @@ namespace Tmds.DBus.Transports
     {
         private readonly byte[] _headerReadBuffer = new byte[16];
         private readonly List<UnixFd> _fileDescriptors = new List<UnixFd>();
+        protected readonly ConnectionContext _context;
         protected bool _supportsFdPassing = false;
 
-        public static Task<IMessageStream> OpenAsync(AddressEntry entry, CancellationToken cancellationToken)
+        public static Task<IMessageStream> OpenAsync(AddressEntry entry, ConnectionContext connectionContext, CancellationToken cancellationToken)
         {
             switch (entry.Method)
             {
                 case "tcp":
-                    return TcpTransport.OpenAsync(entry, cancellationToken);
+                    return TcpTransport.OpenAsync(entry, connectionContext, cancellationToken);
                 case "unix":
-                    return UnixTransport.OpenAsync(entry, cancellationToken);
+                    return UnixTransport.OpenAsync(entry, connectionContext, cancellationToken);
                 default:
                     throw new NotSupportedException("Transport method \"" + entry.Method + "\" not supported");
             }
         }
 
-        protected Transport()
-        {}
+        protected Transport(ConnectionContext context)
+        {
+            _context = context;
+        }
 
         public async Task<Message> ReceiveMessageAsync()
         {
@@ -177,7 +180,8 @@ namespace Tmds.DBus.Transports
 
         private async Task<AuthenticationResult> AuthenticateAsync(bool transportSupportsUnixFdPassing)
         {
-            byte[] bs = Encoding.ASCII.GetBytes(Environment.UserId);
+            var userId = _context?.UserId ?? Environment.UserId;
+            byte[] bs = Encoding.ASCII.GetBytes(userId);
             string initialData = ToHex(bs);
             AuthenticationResult result;
             var commands = new[]

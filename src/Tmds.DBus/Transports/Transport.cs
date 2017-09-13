@@ -180,18 +180,25 @@ namespace Tmds.DBus.Transports
 
         private async Task<AuthenticationResult> AuthenticateAsync(bool transportSupportsUnixFdPassing)
         {
-            var userId = _context?.UserId ?? Environment.UserId;
-            byte[] bs = Encoding.ASCII.GetBytes(userId);
-            string initialData = ToHex(bs);
+            string initialData = null;
+            if (_context.UserId != null)
+            {
+                byte[] bs = Encoding.ASCII.GetBytes(_context.UserId);
+                initialData = ToHex(bs);
+            }
             AuthenticationResult result;
             var commands = new[]
             {
-                "AUTH EXTERNAL " + initialData,
+                initialData != null ? "AUTH EXTERNAL " + initialData : null,
                 "AUTH ANONYMOUS"
             };
 
             foreach (var command in commands)
             {
+                if (command == null)
+                {
+                    continue;
+                }
                 result = await AuthenticateAsync(transportSupportsUnixFdPassing, command);
                 if (result.IsAuthenticated)
                 {

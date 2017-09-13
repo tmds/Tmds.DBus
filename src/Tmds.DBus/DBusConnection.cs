@@ -74,12 +74,12 @@ namespace Tmds.DBus
         public const string DBusInterface = "org.freedesktop.DBus";
         private static readonly char[] s_dot = new[] { '.' };
 
-        public static async Task<DBusConnection> OpenAsync(string address, ConnectionContext connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
+        public static async Task<DBusConnection> OpenAsync(ConnectionContext connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
-            var _entries = AddressEntry.ParseEntries(address);
+            var _entries = AddressEntry.ParseEntries(connectionContext.ConnectionAddress);
             if (_entries.Length == 0)
             {
-                throw new ArgumentException("No addresses were found", nameof(address));
+                throw new ArgumentException("No addresses were found", nameof(connectionContext.ConnectionAddress));
             }
 
             Guid _serverId = Guid.Empty;

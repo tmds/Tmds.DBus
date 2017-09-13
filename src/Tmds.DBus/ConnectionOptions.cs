@@ -8,11 +8,10 @@ using System.Threading.Tasks;
 
 namespace Tmds.DBus
 {
-
     /// <summary>
     /// Options that configure the behavior of a Connection.
     /// </summary>
-    public class ConnectionOptions
+    public abstract class ConnectionOptions
     {
         /// <summary>
         /// SynchronizationContext used for event handlers and callbacks.
@@ -27,11 +26,12 @@ namespace Tmds.DBus
         /// <summary>
         /// Sets up tunnel/connects to the remote peer.
         /// </summary>
-        public Func<Task<ConnectionContext>> ConnectFunction { get; set; }
+        protected internal abstract Task<ConnectionContext> SetupAsync();
 
         /// <summary>
-        /// Action to clean up resources created during succesfull execution of ConnectFunction.
+        /// Action to clean up resources created during succesfull execution of SetupAsync.
         /// </summary>
-        public Action<object> DisposeAction { get; set; }
+        protected internal virtual void Teardown(object token)
+        {}
     }
 }

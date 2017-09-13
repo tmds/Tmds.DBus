@@ -18,9 +18,9 @@ namespace Tmds.DBus
         public string ConnectionAddress { get; set; }
 
         /// <summary>
-        /// Object passed to ConnectionOptions.DisposeAction.
+        /// Object passed to ConnectionOptions.Teardown.
         /// </summary>
-        public object DisposeUserToken { get; set; }
+        public object TeardownToken { get; set; }
 
         /// <summary>
         /// Authentication User ID (Linux UID).

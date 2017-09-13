@@ -51,7 +51,6 @@ namespace Tmds.DBus
 
         private readonly object _gate = new object();
         private readonly Dictionary<ObjectPath, DBusAdapter> _registeredObjects = new Dictionary<ObjectPath, DBusAdapter>();
-        private readonly string _address;
         private readonly Func<Task<ConnectionContext>> _connectFunction;
         private readonly Action<object> _disposeAction;
         private readonly SynchronizationContext _synchronizationContext;
@@ -119,27 +118,23 @@ namespace Tmds.DBus
         /// </summary>
         /// <param name="address">Address of the D-Bus peer.</param>
         public Connection(string address) :
-            this(address, new ConnectionOptions())
+            this(new DefaultConnectionOptions(address))
         { }
 
         /// <summary>
-        /// Creates a new Connection with a specific address and ConnectionOptions.
+        /// Creates a new Connection with specific ConnectionOptions.
         /// </summary>
-        /// <param name="address">Address of the D-Bus peer.</param>
         /// <param name="connectionOptions"></param>
-        public Connection(string address, ConnectionOptions connectionOptions)
+        public Connection(ConnectionOptions connectionOptions)
         {
-            if (address == null && (connectionOptions == null || connectionOptions.ConnectFunction == null))
-                throw new ArgumentNullException(nameof(address));
             if (connectionOptions == null)
                 throw new ArgumentNullException(nameof(connectionOptions));
 
-            _address = address;
             _factory = new ProxyFactory(this);
             _synchronizationContext = connectionOptions.SynchronizationContext;
             _autoConnect = connectionOptions.AutoConnect;
-            _connectFunction = connectionOptions.ConnectFunction;
-            _disposeAction = connectionOptions.DisposeAction;
+            _connectFunction = connectionOptions.SetupAsync;
+            _disposeAction = connectionOptions.Teardown;
         }
 
         /// <summary>
@@ -202,19 +197,9 @@ namespace Tmds.DBus
             object disposeUserToken = NoDispose;
             try
             {
-                string address = _address;
-                ConnectionContext connectionContext = null;
-                if (_connectFunction != null)
-                {
-                    connectionContext = await _connectFunction();
-                    disposeUserToken = connectionContext.DisposeUserToken;
-                    if (disposeUserToken != null && _disposeAction == null)
-                    {
-                        throw new InvalidOperationException($"No {nameof(ConnectionOptions.DisposeAction)} for {nameof(ConnectionContext.DisposeUserToken)}");
-                    }
-                    address = connectionContext.ConnectionAddress;
-                }
-                connection = await DBusConnection.OpenAsync(address, connectionContext, OnDisconnect, _connectCts.Token);
+                ConnectionContext connectionContext = await _connectFunction();
+                disposeUserToken = connectionContext.TeardownToken;
+                connection = await DBusConnection.OpenAsync(connectionContext, OnDisconnect, _connectCts.Token);
             }
             catch (ConnectException ce)
             {
@@ -1026,7 +1011,7 @@ namespace Tmds.DBus
             {
                 return connection;
             }
-            var newConnection = new Connection(address, new ConnectionOptions { AutoConnect = true, SynchronizationContext = null });
+            var newConnection = new Connection(new DefaultConnectionOptions(address) { AutoConnect = true, SynchronizationContext = null });
             Interlocked.CompareExchange(ref connection, newConnection, null);
             return connection;
         }

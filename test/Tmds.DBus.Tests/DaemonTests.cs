@@ -353,7 +353,7 @@ namespace Tmds.DBus.Tests
             string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             string address = $"unix:path={socketPath}";
 
-            var connection = new Connection(address, new ConnectionOptions { AutoConnect = true });
+            var connection = new Connection(new DefaultConnectionOptions(address) { AutoConnect = true });
 
             using (var dbusDaemon = new DBusDaemon())
             {
@@ -378,7 +378,7 @@ namespace Tmds.DBus.Tests
             string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             string address = $"unix:path={socketPath}";
 
-            var connection = new Connection(address, new ConnectionOptions { AutoConnect = true });
+            var connection = new Connection(new DefaultConnectionOptions(address) { AutoConnect = true });
             var changeEvents = new BlockingCollection<ConnectionStateChangedEventArgs>(new ConcurrentQueue<ConnectionStateChangedEventArgs>());
             connection.StateChanged += (o, change) => changeEvents.Add(change);
             ConnectionStateChangedEventArgs e;
@@ -453,6 +453,18 @@ namespace Tmds.DBus.Tests
             }
         }
 
+        private class MyConnectionOptions : ConnectionOptions
+        {
+            public Func<Task<ConnectionContext>> ConnectFunction { get; set; }
+            public Action<object> DisposeAction { get; set; }
+
+            protected internal override Task<ConnectionContext> SetupAsync()
+                => ConnectFunction();
+
+            protected internal override void Teardown(object token)
+                => DisposeAction(token);
+        }
+
         [Fact]
         public async Task ConnectionFunction()
         {
@@ -463,12 +475,12 @@ namespace Tmds.DBus.Tests
                 await dbusDaemon.StartAsync();
                 var address = dbusDaemon.Address;
 
-                var conn1 = new Connection(null, new ConnectionOptions {
+                var conn1 = new Connection(new MyConnectionOptions {
                     ConnectFunction = () => Task.FromResult(
                         new ConnectionContext
                         {
                             ConnectionAddress = address,
-                            DisposeUserToken = token
+                            TeardownToken = token
                         }),
                     DisposeAction = tokenTcs.SetResult});
 

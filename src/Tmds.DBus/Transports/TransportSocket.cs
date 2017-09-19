@@ -1,10 +1,10 @@
-// Copyright 2006 Alp Toker <alp@atoker.com>
-// Copyright 2016 Tom Deseyn <tom.deseyn@gmail.com>
+// Copyright 2017 Tom Deseyn <tom.deseyn@gmail.com>
 // This software is made available under the MIT License
 // See COPYING for details
 
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -15,10 +15,8 @@ using Tmds.DBus.Protocol;
 namespace Tmds.DBus.Transports
 {
     using SizeT = System.UIntPtr;
-    internal class UnixTransport : Transport
+    internal class TransportSocket : Socket
     {
-        private static readonly byte[] _oneByteArray = new[] { (byte)0 };
-
         // Issue https://github.com/dotnet/corefx/issues/6807
         private static PropertyInfo s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
         private static PropertyInfo s_safehandleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
@@ -73,16 +71,20 @@ namespace Tmds.DBus.Transports
             public TaskCompletionSource<object> Tcs;
         }
 
-        private Socket _socket;
         private int _socketFd;
+        private readonly object _gate = new object();
         private readonly SocketAsyncEventArgs _waitForData;
         private readonly SocketAsyncEventArgs _receiveData;
         private readonly SocketAsyncEventArgs _sendArgs;
         private readonly List<ArraySegment<byte>> _bufferList = new List<ArraySegment<byte>>();
+        private bool _supportsFdPassing;
 
-        private UnixTransport(ConnectionContext context) :
-            base(context)
+        private TransportSocket(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType, bool supportsFdPassing) :
+            base(addressFamily, socketType, protocolType)
         {
+            _socketFd = GetFd(this);
+            _supportsFdPassing = supportsFdPassing && _socketFd != -1;
+
             _waitForData = new SocketAsyncEventArgs();
             _waitForData.SetBuffer(Array.Empty<byte>(), 0, 0);
             _waitForData.Completed += DataAvailable;
@@ -98,65 +100,14 @@ namespace Tmds.DBus.Transports
             _sendArgs.Completed += SendCompleted;
         }
 
-        public static new async Task<IMessageStream> OpenAsync(AddressEntry entry, ConnectionContext context, CancellationToken cancellationToken)
+        public bool SupportsFdPassing { get => _supportsFdPassing; set { _supportsFdPassing = value; } }
+
+        public new void Dispose()
         {
-            var messageStream = new UnixTransport(context);
-            await messageStream.DoOpenAsync(entry, cancellationToken);
-            return messageStream;
-        }
-
-        private async Task DoOpenAsync(AddressEntry entry, CancellationToken cancellationToken)
-        {
-            string path;
-            bool abstr;
-
-            if (entry.Properties.TryGetValue("path", out path))
-                abstr = false;
-            else if (entry.Properties.TryGetValue("abstract", out path))
-                abstr = true;
-            else
-                throw new ArgumentException("No path specified for UNIX transport");
-
-            await OpenAsync(entry.Guid, path, abstr, cancellationToken);
-        }
-
-        private async Task OpenAsync(Guid guid, string path, bool abstr, CancellationToken cancellationToken)
-        {
-            if (String.IsNullOrEmpty(path))
-            {
-                throw new ArgumentException("path");
-            }
-
-            if (abstr)
-            {
-                path = (char)'\0' + path;
-            }
-
-            _socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-            _socketFd = GetFd(_socket);
-            cancellationToken.Register(Dispose);
-
-            var endPoint = new UnixDomainSocketEndPoint(path);
-            try
-            {
-                await _socket.ConnectAsync(endPoint);
-                await SendAsync(_oneByteArray, 0, 1);
-                await DoSaslAuthenticationAsync(guid,
-                        transportSupportsUnixFdPassing: _socketFd != -1 && _context?.SupportsFdPassing != false);
-            }
-            catch
-            {
-                Dispose();
-                throw;
-            }
-        }
-
-        public override void Dispose()
-        {
-            lock (_socket)
+            lock (_gate)
             {
                 _socketFd = -1;
-                _socket.Dispose();
+                base.Dispose();
             }
         }
 
@@ -231,7 +182,7 @@ namespace Tmds.DBus.Transports
                     msg.msg_controllen = (SizeT)sizeof (cmsg_fd);
 
                     int rv;
-                    lock (_socket)
+                    lock (_gate)
                     {
                         if (_socketFd == -1)
                         {
@@ -263,7 +214,7 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        protected unsafe override Task<int> ReadAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
+        public unsafe Task<int> ReadAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors)
         {
             if (!_supportsFdPassing)
             {
@@ -271,7 +222,7 @@ namespace Tmds.DBus.Transports
                 readContext.Tcs = readContext.Tcs ?? new TaskCompletionSource<int>();
                 _receiveData.SetBuffer(buffer, offset, count);
                 readContext.FileDescriptors = fileDescriptors;
-                if (!_socket.ReceiveAsync(_receiveData))
+                if (!ReceiveAsync(_receiveData))
                 {
                     if (_receiveData.SocketError == SocketError.Success)
                     {
@@ -297,7 +248,7 @@ namespace Tmds.DBus.Transports
                 readContext.FileDescriptors = fileDescriptors;
                 while (true)
                 {
-                    if (!_socket.ReceiveAsync(_waitForData))
+                    if (!ReceiveAsync(_waitForData))
                     {
                         int rv = DoRead(buffer, offset, count, fileDescriptors);
                         if (rv >= 0)
@@ -325,8 +276,18 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        protected override Task SendAsync(Message message)
+        public Task SendAsync(Message message)
         {
+            if (!_supportsFdPassing && message.Header.NumberOfFds > 0)
+            {
+                foreach (var unixFd in message.UnixFds)
+                {
+                    unixFd.SafeHandle.Dispose();
+                }
+                message.Header.NumberOfFds = 0;
+                message.UnixFds = null;
+            }
+
             if (message.UnixFds != null && message.UnixFds.Length > 0)
             {
                 return SendMessageWithFdsAsync(message);
@@ -350,7 +311,7 @@ namespace Tmds.DBus.Transports
             do
             {
                 IntPtr rv;
-                lock (_socket)
+                lock (_gate)
                 {
                     if (_socketFd == -1)
                     {
@@ -429,7 +390,7 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        protected unsafe override Task SendAsync(byte[] buffer, int offset, int count)
+        public unsafe Task SendAsync(byte[] buffer, int offset, int count)
         {
             _bufferList.Clear();
             _bufferList.Add(new ArraySegment<byte>(buffer, offset, count));
@@ -441,7 +402,7 @@ namespace Tmds.DBus.Transports
             var sendContext = _sendArgs.UserToken as SendContext;
             sendContext.Tcs = sendContext.Tcs ?? new TaskCompletionSource<object>();
             _sendArgs.BufferList = bufferList;
-            if (!_socket.SendAsync(_sendArgs))
+            if (!SendAsync(_sendArgs))
             {
                 if (_sendArgs.SocketError == SocketError.Success)
                 {
@@ -486,6 +447,119 @@ namespace Tmds.DBus.Transports
                 return ((SafeHandle)s_safehandleProperty.GetValue(socket, null)).DangerousGetHandle().ToInt32();
             }
             return -1;
+        }
+
+        public static Task<TransportSocket> ConnectAsync(AddressEntry entry, CancellationToken cancellationToken, bool supportsFdPassing)
+        {
+            switch (entry.Method)
+            {
+                case "tcp":
+                    return ConnectTcpAsync(entry, cancellationToken);
+                case "unix":
+                    return ConnectUnixAsync(entry, cancellationToken, supportsFdPassing);
+                default:
+                    throw new NotSupportedException("Transport method \"" + entry.Method + "\" not supported");
+            }
+        }
+
+        private static async Task<TransportSocket> ConnectUnixAsync(AddressEntry entry, CancellationToken cancellationToken, bool supportsFdPassing)
+        {
+            string path;
+            bool abstr;
+
+            if (entry.Properties.TryGetValue("path", out path))
+                abstr = false;
+            else if (entry.Properties.TryGetValue("abstract", out path))
+                abstr = true;
+            else
+                throw new ArgumentException("No path specified for UNIX transport");
+
+            if (String.IsNullOrEmpty(path))
+            {
+                throw new ArgumentException("path");
+            }
+
+            if (abstr)
+            {
+                path = (char)'\0' + path;
+            }
+
+            TransportSocket socket = null;
+            try
+            {
+                socket = new TransportSocket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified, supportsFdPassing);
+                using (cancellationToken.Register(() => socket.Dispose()))
+                {
+                    var endPoint = new UnixDomainSocketEndPoint(path);
+
+                    await socket.ConnectAsync(endPoint);
+                    return socket;
+                }
+            }
+            catch
+            {
+                socket?.Dispose();
+                throw;
+            }
+        }
+
+        private static async Task<TransportSocket> ConnectTcpAsync(AddressEntry entry, CancellationToken cancellationToken)
+        {
+            string host, portStr, family;
+            int port;
+
+            if (!entry.Properties.TryGetValue ("host", out host))
+                host = "localhost";
+
+            if (!entry.Properties.TryGetValue ("port", out portStr))
+                throw new FormatException ("No port specified");
+
+            if (!Int32.TryParse (portStr, out port))
+                throw new FormatException("Invalid port: \"" + port + "\"");
+
+            if (!entry.Properties.TryGetValue ("family", out family))
+                family = null;
+
+            if (string.IsNullOrEmpty(host))
+            {
+                throw new ArgumentException("host");
+            }
+
+            IPAddress[] addresses;
+            try
+            {
+                addresses = await Dns.GetHostAddressesAsync(host);
+            }
+            catch (System.Exception e)
+            {
+                throw new ConnectException($"No addresses for host '{host}'", e);
+            }
+
+            for (int i = 0; i < addresses.Length; i++)
+            {
+                var address = addresses[i];
+                bool lastAddress = i == (addresses.Length - 1);
+                TransportSocket socket = null;
+                try
+                {
+                    socket = new TransportSocket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp, supportsFdPassing: false);
+                    using (cancellationToken.Register(() => socket.Dispose()))
+                    {
+                        await socket.ConnectAsync(address, port);
+                        return socket;
+                    }
+                }
+                catch
+                {
+                    socket?.Dispose();
+                    if (lastAddress)
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            return null;
         }
     }
 }

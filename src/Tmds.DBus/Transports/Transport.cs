@@ -14,27 +14,37 @@ using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Transports
 {
-    internal abstract class Transport : IMessageStream
+    internal class Transport : IMessageStream
     {
+        private static readonly byte[] _oneByteArray = new[] { (byte)0 };
         private readonly byte[] _headerReadBuffer = new byte[16];
         private readonly List<UnixFd> _fileDescriptors = new List<UnixFd>();
-        protected readonly ConnectionContext _context;
-        protected bool _supportsFdPassing = false;
+        private readonly ConnectionContext _context;
+        private TransportSocket _socket;
 
-        public static Task<IMessageStream> OpenAsync(AddressEntry entry, ConnectionContext connectionContext, CancellationToken cancellationToken)
+        public static async Task<IMessageStream> OpenAsync(AddressEntry entry, ConnectionContext connectionContext, CancellationToken cancellationToken)
         {
-            switch (entry.Method)
+            Transport transport = new Transport(connectionContext);
+            await transport.OpenAsync(entry, cancellationToken);
+            return transport;
+        }
+
+        private async Task OpenAsync(AddressEntry entry, CancellationToken cancellationToken)
+        {
+            try
             {
-                case "tcp":
-                    return TcpTransport.OpenAsync(entry, connectionContext, cancellationToken);
-                case "unix":
-                    return UnixTransport.OpenAsync(entry, connectionContext, cancellationToken);
-                default:
-                    throw new NotSupportedException("Transport method \"" + entry.Method + "\" not supported");
+                _socket = await TransportSocket.ConnectAsync(entry, cancellationToken, _context.SupportsFdPassing);
+                await _socket.SendAsync(_oneByteArray, 0, 1);
+                await DoSaslAuthenticationAsync(entry.Guid);
+            }
+            catch
+            {
+                _socket?.Dispose();
+                throw;
             }
         }
 
-        protected Transport(ConnectionContext context)
+        private Transport(ConnectionContext context)
         {
             _context = context;
         }
@@ -128,7 +138,7 @@ namespace Tmds.DBus.Transports
             int read = 0;
             while (read < count)
             {
-                int nread = await ReadAsync(buffer, offset + read, count - read, fileDescriptors);
+                int nread = await _socket.ReadAsync(buffer, offset + read, count - read, fileDescriptors);
                 if (nread == 0)
                     break;
                 read += nread;
@@ -136,10 +146,10 @@ namespace Tmds.DBus.Transports
             return read;
         }
 
-        protected struct AuthenticationResult
+        private struct AuthenticationResult
         {
             public bool IsAuthenticated;
-            public bool SupportsUnixFdPassing;
+            public bool SupportsFdPassing;
             public Guid Guid;
         }
 
@@ -165,10 +175,10 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        protected async Task DoSaslAuthenticationAsync(Guid guid, bool transportSupportsUnixFdPassing)
+        private async Task DoSaslAuthenticationAsync(Guid guid)
         {
-            var authenticationResult = await AuthenticateAsync(transportSupportsUnixFdPassing);
-            _supportsFdPassing = authenticationResult.SupportsUnixFdPassing;
+            var authenticationResult = await AuthenticateAsync();
+            _socket.SupportsFdPassing = authenticationResult.SupportsFdPassing;
             if (guid != Guid.Empty)
             {
                 if (guid != authenticationResult.Guid)
@@ -178,7 +188,7 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        private async Task<AuthenticationResult> AuthenticateAsync(bool transportSupportsUnixFdPassing)
+        private async Task<AuthenticationResult> AuthenticateAsync()
         {
             string initialData = null;
             if (_context.UserId != null)
@@ -199,7 +209,7 @@ namespace Tmds.DBus.Transports
                 {
                     continue;
                 }
-                result = await AuthenticateAsync(transportSupportsUnixFdPassing, command);
+                result = await AuthenticateAsync(command);
                 if (result.IsAuthenticated)
                 {
                     return result;
@@ -209,7 +219,7 @@ namespace Tmds.DBus.Transports
             throw new ConnectException("Authentication failure");
         }
 
-        private async Task<AuthenticationResult> AuthenticateAsync(bool transportSupportsUnixFdPassing, string command)
+        private async Task<AuthenticationResult> AuthenticateAsync(string command)
         {
             AuthenticationResult result = default(AuthenticationResult);
             await WriteLineAsync(command);
@@ -220,11 +230,11 @@ namespace Tmds.DBus.Transports
                 result.IsAuthenticated = true;
                 result.Guid = reply[1] != string.Empty ? Guid.ParseExact(reply[1], "N") : Guid.Empty;
 
-                if (transportSupportsUnixFdPassing)
+                if (_socket.SupportsFdPassing)
                 {
                     await WriteLineAsync("NEGOTIATE_UNIX_FD");
                     reply = await ReadReplyAsync();
-                    result.SupportsUnixFdPassing = reply[0] == "AGREE_UNIX_FD";
+                    result.SupportsFdPassing = reply[0] == "AGREE_UNIX_FD";
                 }
 
                 await WriteLineAsync("BEGIN");
@@ -245,7 +255,7 @@ namespace Tmds.DBus.Transports
         {
             message += "\r\n";
             var bytes = Encoding.ASCII.GetBytes(message);
-            return SendAsync(bytes, 0, bytes.Length);
+            return _socket.SendAsync(bytes, 0, bytes.Length);
         }
 
         private async Task<AuthCommand> ReadReplyAsync()
@@ -301,21 +311,12 @@ namespace Tmds.DBus.Transports
 
         public Task SendMessageAsync(Message message)
         {
-            if (!_supportsFdPassing && message.Header.NumberOfFds > 0)
-            {
-                foreach (var unixFd in message.UnixFds)
-                {
-                    unixFd.SafeHandle.Dispose();
-                }
-                message.Header.NumberOfFds = 0;
-                message.UnixFds = null;
-            }
-            return SendAsync(message);
+            return _socket.SendAsync(message);
         }
 
-        protected abstract Task<int> ReadAsync(byte[] buffer, int offset, int count, List<UnixFd> fileDescriptors);
-        protected abstract Task SendAsync(byte[] buffer, int offset, int count);
-        protected abstract Task SendAsync(Message message);
-        public abstract void Dispose();
+        public void Dispose()
+        {
+            _socket?.Dispose();
+        }
     }
 }

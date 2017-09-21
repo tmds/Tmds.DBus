@@ -453,7 +453,7 @@ namespace Tmds.DBus.Tests
             }
         }
 
-        private class MyConnectionOptions : ConnectionOptions
+        private class MyConnectionOptions : ClientConnectionOptions
         {
             public Func<Task<ConnectionContext>> ConnectFunction { get; set; }
             public Action<object> DisposeAction { get; set; }

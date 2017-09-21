@@ -48,7 +48,12 @@ namespace Tmds.DBus.Tests
             _writeSemaphore.Release();
             return Task.CompletedTask;
         }
-        
+
+        public void TrySendMessage(Message message)
+        {
+            SendMessageAsync(message);
+        }
+
         public void Dispose()
         {}
     }

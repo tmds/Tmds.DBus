@@ -11,7 +11,7 @@ namespace Tmds.DBus
     /// <summary>
     /// Default ConnectionOptions
     /// </summary>
-    public class DefaultConnectionOptions : ConnectionOptions
+    public class DefaultConnectionOptions : ClientConnectionOptions
     {
         /// <summary>
         /// Creates a new Connection with a specific address.

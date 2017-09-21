@@ -3,6 +3,7 @@
 // See COPYING for details
 
 using System;
+using System.Net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -132,9 +133,24 @@ namespace Tmds.DBus
 
             _factory = new ProxyFactory(this);
             _synchronizationContext = connectionOptions.SynchronizationContext;
-            _autoConnect = connectionOptions.AutoConnect;
-            _connectFunction = connectionOptions.SetupAsync;
-            _disposeAction = connectionOptions.Teardown;
+            if (connectionOptions is ClientConnectionOptions clientConnectionOptions)
+            {
+                _autoConnect = clientConnectionOptions.AutoConnect;
+                _connectFunction = clientConnectionOptions.SetupAsync;
+                _disposeAction = clientConnectionOptions.Teardown;
+            }
+            else if (connectionOptions is ServerConnectionOptions serverConnectionOptions)
+            {
+                _autoConnect = true;
+                _state = ConnectionState.Connected;
+                _dbusConnection = DBusConnection.CreateForServer(); // TODO
+                _dbusConnectionTask = Task.FromResult(_dbusConnection);
+                serverConnectionOptions.Connection = this;
+            }
+            else
+            {
+                throw new NotSupportedException($"Unknown ConnectionOptions type: '{typeof(ConnectionOptions).FullName}'");
+            }
         }
 
         /// <summary>
@@ -754,6 +770,11 @@ namespace Tmds.DBus
         public Task<string[]> ListServicesAsync()
             => DBus.ListNamesAsync();
 
+        internal EndPoint StartServer(string address)
+        {
+            return null;
+        }
+
         // Used by tests
         internal void Connect(DBusConnection dbusConnection)
         {
@@ -871,7 +892,7 @@ namespace Tmds.DBus
         {
             if (_autoConnect == true)
             {
-                throw new InvalidOperationException($"Operation not supported for {nameof(ConnectionOptions.AutoConnect)} Connection.");
+                throw new InvalidOperationException($"Operation not supported for {nameof(ClientConnectionOptions.AutoConnect)} Connection.");
             }
         }
 

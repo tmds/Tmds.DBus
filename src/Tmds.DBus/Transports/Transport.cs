@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -16,11 +17,19 @@ namespace Tmds.DBus.Transports
 {
     internal class Transport : IMessageStream
     {
+        private struct PendingSend
+        {
+            public Message Message;
+            public TaskCompletionSource<bool> CompletionSource;
+        }
+
         private static readonly byte[] _oneByteArray = new[] { (byte)0 };
         private readonly byte[] _headerReadBuffer = new byte[16];
         private readonly List<UnixFd> _fileDescriptors = new List<UnixFd>();
         private readonly ConnectionContext _context;
         private TransportSocket _socket;
+        private ConcurrentQueue<PendingSend> _sendQueue;
+        private SemaphoreSlim _sendSemaphore;
 
         public static async Task<IMessageStream> OpenAsync(AddressEntry entry, ConnectionContext connectionContext, CancellationToken cancellationToken)
         {
@@ -47,6 +56,8 @@ namespace Tmds.DBus.Transports
         private Transport(ConnectionContext context)
         {
             _context = context;
+            _sendQueue = new ConcurrentQueue<PendingSend>();
+            _sendSemaphore = new SemaphoreSlim(1);
         }
 
         public async Task<Message> ReceiveMessageAsync()
@@ -311,7 +322,50 @@ namespace Tmds.DBus.Transports
 
         public Task SendMessageAsync(Message message)
         {
-            return _socket.SendAsync(message);
+            var tcs = new TaskCompletionSource<bool>();
+            var pendingSend = new PendingSend()
+            {
+                Message = message,
+                CompletionSource = tcs
+            };
+            _sendQueue.Enqueue(pendingSend);
+            SendPendingMessages();
+            return tcs.Task;
+        }
+
+        public void TrySendMessage(Message message)
+        {
+            var pendingSend = new PendingSend()
+            {
+                Message = message
+            };
+            _sendQueue.Enqueue(pendingSend);
+            SendPendingMessages();
+        }
+
+        private async void SendPendingMessages()
+        {
+            try
+            {
+                await _sendSemaphore.WaitAsync();
+                PendingSend pendingSend;
+                while (_sendQueue.TryDequeue(out pendingSend))
+                {
+                    try
+                    {
+                        await _socket.SendAsync(pendingSend.Message);
+                        pendingSend.CompletionSource?.SetResult(true);
+                    }
+                    catch (System.Exception)
+                    {
+                        pendingSend.CompletionSource?.SetResult(false);
+                    }
+                }
+            }
+            finally
+            {
+                _sendSemaphore.Release();
+            }
         }
 
         public void Dispose()

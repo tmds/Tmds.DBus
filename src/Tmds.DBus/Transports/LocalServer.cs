@@ -15,13 +15,14 @@ namespace Tmds.DBus.Transports
     {
         private readonly object _gate = new object();
         private readonly DBusConnection _connection;
-        private IMessageStream[] _clientStreams;
+        private IMessageStream[] _clients;
         private Socket _serverSocket;
+        private bool _started;
 
         public LocalServer(DBusConnection connection)
         {
             _connection = connection;
-            _clientStreams = Array.Empty<IMessageStream>();
+            _clients = Array.Empty<IMessageStream>();
         }
 
         public async Task<string> StartAsync(string address)
@@ -40,33 +41,47 @@ namespace Tmds.DBus.Transports
             {
                 throw new ArgumentException("Address does not resolve to an endpoint.", nameof(address));
             }
-            var endpoint = endpoints[0];
-            if (endpoint is IPEndPoint ipEndPoint)
-            {
-                _serverSocket = new Socket(ipEndPoint.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            }
-            else if (endpoint is UnixDomainSocketEndPoint unixEndPoint)
-            {
-                _serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-                if (unixEndPoint.Path[0] == '\0')
-                {
-                    address = $"unix:abstract={unixEndPoint.Path.Substring(1)}";
-                }
-                else
-                {
-                    address = $"unix:path={unixEndPoint.Path}";
-                }
-            }
-            _serverSocket.Bind(endpoint);
-            _serverSocket.Listen(10);
-            AcceptConnections();
 
-            if (endpoint is IPEndPoint)
+            lock (_gate)
             {
-                var boundEndPoint = _serverSocket.LocalEndPoint as IPEndPoint;
-                address = $"tcp:host={boundEndPoint.Address},port={boundEndPoint.Port}";
+                if (IsDisposed)
+                {
+                    throw new ObjectDisposedException(typeof(LocalServer).FullName);
+                }
+                if (_started)
+                {
+                    throw new InvalidOperationException("Server is already started.");
+                }
+                _started = true;
+
+                var endpoint = endpoints[0];
+                if (endpoint is IPEndPoint ipEndPoint)
+                {
+                    _serverSocket = new Socket(ipEndPoint.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+                }
+                else if (endpoint is UnixDomainSocketEndPoint unixEndPoint)
+                {
+                    _serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+                    if (unixEndPoint.Path[0] == '\0')
+                    {
+                        address = $"unix:abstract={unixEndPoint.Path.Substring(1)}";
+                    }
+                    else
+                    {
+                        address = $"unix:path={unixEndPoint.Path}";
+                    }
+                }
+                _serverSocket.Bind(endpoint);
+                _serverSocket.Listen(10);
+                AcceptConnections();
+
+                if (endpoint is IPEndPoint)
+                {
+                    var boundEndPoint = _serverSocket.LocalEndPoint as IPEndPoint;
+                    address = $"tcp:host={boundEndPoint.Address},port={boundEndPoint.Port}";
+                }
+                return address;
             }
-            return address;
         }
 
         public async void AcceptConnections()
@@ -84,20 +99,22 @@ namespace Tmds.DBus.Transports
                     {
                         break;
                     }
-                    var clientStream = await Transport.AcceptAsync(clientSocket,
+
+                    var client = await Transport.AcceptAsync(clientSocket,
                         supportsFdPassing: _serverSocket.AddressFamily == AddressFamily.Unix);
-                    if (clientStream == null) // TODO
-                    {
-                        continue;
-                    }
                     lock (_gate)
                     {
-                        var streams = new IMessageStream[_clientStreams.Length + 1];
-                        Array.Copy(_clientStreams, streams, _clientStreams.Length);
-                        streams[streams.Length - 1] = clientStream;
-                        _clientStreams = streams; // TODO Volatile Write?
+                        if (IsDisposed)
+                        {
+                            client.Dispose();
+                            break;
+                        }
+                        var clientsUpdated = new IMessageStream[_clients.Length + 1];
+                        Array.Copy(_clients, clientsUpdated, _clients.Length);
+                        clientsUpdated[clientsUpdated.Length - 1] = client;
+                        _clients = clientsUpdated;
                     }
-                    _connection.ReceiveMessages(clientStream, RemoveStream);
+                    _connection.ReceiveMessages(client, RemoveStream);
                 }
                 catch
                 {
@@ -106,17 +123,34 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        private void RemoveStream(IMessageStream stream, Exception e)
+        private void RemoveStream(IMessageStream client, Exception e)
         {
-            // TODO
+            lock (_gate)
+            {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
+                var clientsUpdated = new IMessageStream[_clients.Length - 1];
+                for (int i = 0, j = 0; i < _clients.Length; i++)
+                {
+                    if (_clients[i] != client)
+                    {
+                        clientsUpdated[j++] = _clients[i];
+                    }
+                }
+                _clients = clientsUpdated;
+            }
+            client.Dispose();
         }
 
         public void TrySendMessage(Message message)
         {
-            var streams = Volatile.Read(ref _clientStreams);
-            foreach (var stream in streams)
+            var clients = Volatile.Read(ref _clients);
+            foreach (var client in clients)
             {
-                stream.TrySendMessage(message);
+                client.TrySendMessage(message);
             }
         }
 
@@ -127,7 +161,26 @@ namespace Tmds.DBus.Transports
 
         public void Dispose()
         {
-            _serverSocket?.Dispose();
+            IMessageStream[] clients;
+            lock (_gate)
+            {
+                if (IsDisposed)
+                {
+                    return;
+                }
+
+                _serverSocket?.Dispose();
+
+                clients = _clients;
+                _clients = null;
+            }
+
+            foreach (var client in clients)
+            {
+                client.Dispose();
+            }
         }
+
+        private bool IsDisposed => _clients == null;
     }
 }

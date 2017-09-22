@@ -72,7 +72,9 @@ namespace Tmds.DBus
 
         public static DBusConnection CreateForServer()
         {
-            return new DBusConnection(stream: null);
+            var connection = new DBusConnection(stream: null);
+            connection._server = new LocalServer(connection);
+            return connection;
         }
 
         public static async Task<DBusConnection> ConnectAsync(ClientSetupResult connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
@@ -638,6 +640,7 @@ namespace Tmds.DBus
                 _state = ConnectionState.Disconnected;
                 _disposed = dispose;
                 _stream?.Dispose();
+                _server?.Dispose();
                 _disconnectReason = exception;
                 pendingMethods = _pendingMethods;
                 _pendingMethods = null;
@@ -998,13 +1001,9 @@ namespace Tmds.DBus
             }
         }
 
-        public async Task<string> StartServerAsync(string address)
+        public Task<string> StartServerAsync(string address)
         {
-            // TODO: handle state?
-            var server = new LocalServer(this);
-            address = await server.StartAsync(address);
-            _server = server;
-            return address;
+            return _server.StartAsync(address);
         }
     }
 }

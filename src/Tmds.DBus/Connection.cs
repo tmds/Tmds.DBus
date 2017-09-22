@@ -143,7 +143,7 @@ namespace Tmds.DBus
             {
                 _autoConnect = false;
                 _state = ConnectionState.Connected;
-                _dbusConnection = DBusConnection.CreateForServer(); // TODO
+                _dbusConnection = DBusConnection.CreateForServer();
                 _dbusConnectionTask = Task.FromResult(_dbusConnection);
                 serverConnectionOptions.Connection = this;
             }

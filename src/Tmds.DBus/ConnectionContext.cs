@@ -10,7 +10,7 @@ namespace Tmds.DBus
     /// <summary>
     /// Result of ConnectionOptions.ConnectFunction
     /// </summary>
-    public class ConnectionContext
+    public class ConnectionContext // TODO: rename this
     {
         /// <summary>
         /// Address of the D-Bus peer.

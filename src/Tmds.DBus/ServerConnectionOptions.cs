@@ -12,7 +12,7 @@ namespace Tmds.DBus
     /// <summary>
     /// Options that configure the behavior of a Connection for a D-Bus local server.
     /// </summary>
-    public abstract class ServerConnectionOptions : ConnectionOptions
+    public class ServerConnectionOptions : ConnectionOptions
     {
         private Connection _connection;
 
@@ -20,7 +20,7 @@ namespace Tmds.DBus
         /// Starts the server.
         /// </summary>
         /// <param name="address">Address of the D-Bus peer.</param>
-        public EndPoint Start(string address)
+        public string Start(string address) // TODO: make this a type
         {
             if (_connection == null)
             {

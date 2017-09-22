@@ -6,6 +6,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,7 +75,7 @@ namespace Tmds.DBus
             return new DBusConnection(stream: null);
         }
 
-        public static async Task<DBusConnection> OpenAsync(ConnectionContext connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
+        public static async Task<DBusConnection> ConnectAsync(ConnectionContext connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
             var _entries = AddressEntry.ParseEntries(connectionContext.ConnectionAddress);
             if (_entries.Length == 0)
@@ -91,7 +93,7 @@ namespace Tmds.DBus
                 _serverId = entry.Guid;
                 try
                 {
-                    stream = await Transport.OpenAsync(entry, connectionContext, cancellationToken).ConfigureAwait(false);
+                    stream = await Transport.ConnectAsync(entry, connectionContext, cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -107,6 +109,7 @@ namespace Tmds.DBus
         }
 
         private readonly IMessageStream _stream;
+        private IMessageStream[] _clientStreams;
         private readonly object _gate = new object();
         private Dictionary<SignalMatchRule, SignalHandler> _signalHandlers = new Dictionary<SignalMatchRule, SignalHandler>();
         private Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>> _nameOwnerWatchers = new Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>>();
@@ -185,8 +188,15 @@ namespace Tmds.DBus
         public void EmitSignal(Message message)
         {
             message.Header.Serial = GenerateSerial();
-            // TODO: this should broadcast
-            _stream.TrySendMessage(message);
+            _stream?.TrySendMessage(message);
+            var streams = Volatile.Read(ref _clientStreams);
+            if (streams != null)
+            {
+                foreach (var stream in streams)
+                {
+                    stream.TrySendMessage(message);
+                }
+            }
         }
 
         public void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers)
@@ -445,6 +455,10 @@ namespace Tmds.DBus
                 if (isClientConnection)
                 {
                     EmitDisconnected(e);
+                }
+                else
+                {
+                    // TODO: remove from _streams
                 }
             }
         }
@@ -988,6 +1002,89 @@ namespace Tmds.DBus
                 else
                 {
                     return Array.Empty<string>();
+                }
+            }
+        }
+
+        public string StartServer(string address)
+        {
+            var entries = AddressEntry.ParseEntries(address);
+            if (entries.Length != 1)
+            {
+                throw new ArgumentException("Address must contain a single entry.", nameof(address));
+            }
+            var entry = entries[0];
+            var endpoints = TransportSocket.ResolveAddress(entry, listen: true).Result;
+            if (endpoints.Length != 1)
+            {
+                throw new ArgumentException("Address does not resolve to a single endpoint.", nameof(address));
+            }
+            var endpoint = endpoints[0];
+            Socket serverSocket = null;
+            if (endpoint is IPEndPoint ipEndPoint)
+            {
+                serverSocket = new Socket(ipEndPoint.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+            }
+            else if (endpoint is UnixDomainSocketEndPoint unixEndPoint)
+            {
+                serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+                if (unixEndPoint.Path[0] == '\0')
+                {
+                    address = $"unix:abstract={unixEndPoint.Path.Substring(1)}";
+                }
+                else
+                {
+                    address = $"unix:path={unixEndPoint.Path}";
+                }
+            }
+            serverSocket.Bind(endpoint);
+            serverSocket.Listen(10);
+            AcceptConnections(serverSocket);
+
+            if (endpoint is IPEndPoint)
+            {
+                var boundEndPoint = serverSocket.LocalEndPoint as IPEndPoint;
+                address = $"tcp:host={boundEndPoint.Address},port={boundEndPoint.Port}";
+            }
+            return address;
+        }
+
+        public async void AcceptConnections(Socket serverSocket)
+        {
+            while (true)
+            {
+                Socket clientSocket = null;
+                try
+                {
+                    try
+                    {
+                        clientSocket = await serverSocket.AcceptAsync();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        break;
+                    }
+                    var clientStream = await Transport.AcceptAsync(clientSocket,
+                        supportsFdPassing: serverSocket.AddressFamily == AddressFamily.Unix);
+                    if (clientStream == null) // TODO
+                    {
+                        continue;
+                    }
+                    lock (_gate)
+                    {
+                        var streams = new IMessageStream[(_clientStreams?.Length ?? 0) + 1];
+                        if (_clientStreams != null)
+                        {
+                            Array.Copy(_clientStreams, streams, streams.Length - 1);
+                        }
+                        streams[streams.Length - 1] = clientStream;
+                        _clientStreams = streams;
+                    }
+                    ReceiveMessages(clientStream, false);
+                }
+                catch
+                {
+                    clientSocket?.Dispose();
                 }
             }
         }

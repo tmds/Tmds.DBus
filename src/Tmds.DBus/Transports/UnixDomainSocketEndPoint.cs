@@ -85,6 +85,8 @@ namespace Tmds.DBus.Transports
 
         public override AddressFamily AddressFamily => EndPointAddressFamily;
 
+        public string Path => _path;
+
         public override string ToString() => _path;
     }
 }

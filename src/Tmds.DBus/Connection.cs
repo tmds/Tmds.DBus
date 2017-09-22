@@ -141,7 +141,7 @@ namespace Tmds.DBus
             }
             else if (connectionOptions is ServerConnectionOptions serverConnectionOptions)
             {
-                _autoConnect = true;
+                _autoConnect = false;
                 _state = ConnectionState.Connected;
                 _dbusConnection = DBusConnection.CreateForServer(); // TODO
                 _dbusConnectionTask = Task.FromResult(_dbusConnection);
@@ -215,7 +215,7 @@ namespace Tmds.DBus
             {
                 ConnectionContext connectionContext = await _connectFunction();
                 disposeUserToken = connectionContext.TeardownToken;
-                connection = await DBusConnection.OpenAsync(connectionContext, OnDisconnect, _connectCts.Token);
+                connection = await DBusConnection.ConnectAsync(connectionContext, OnDisconnect, _connectCts.Token);
             }
             catch (ConnectException ce)
             {
@@ -770,9 +770,14 @@ namespace Tmds.DBus
         public Task<string[]> ListServicesAsync()
             => DBus.ListNamesAsync();
 
-        internal EndPoint StartServer(string address)
+        internal string StartServer(string address)
         {
-            return null;
+            // TODO: handle state
+            lock (_gate)
+            {
+                ThrowIfNotConnected();
+                return _dbusConnection.StartServer(address);
+            }
         }
 
         // Used by tests

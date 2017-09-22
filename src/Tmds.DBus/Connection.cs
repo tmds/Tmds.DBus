@@ -128,7 +128,7 @@ namespace Tmds.DBus
         /// </summary>
         /// <param name="address">Address of the D-Bus peer.</param>
         public Connection(string address) :
-            this(new DefaultConnectionOptions(address))
+            this(new ClientConnectionOptions(address))
         { }
 
         /// <summary>
@@ -1053,7 +1053,7 @@ namespace Tmds.DBus
             {
                 return connection;
             }
-            var newConnection = new Connection(new DefaultConnectionOptions(address) { AutoConnect = true, SynchronizationContext = null });
+            var newConnection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true, SynchronizationContext = null });
             Interlocked.CompareExchange(ref connection, newConnection, null);
             return connection;
         }

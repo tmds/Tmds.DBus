@@ -353,7 +353,7 @@ namespace Tmds.DBus.Tests
             string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             string address = $"unix:path={socketPath}";
 
-            var connection = new Connection(new DefaultConnectionOptions(address) { AutoConnect = true });
+            var connection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true });
 
             using (var dbusDaemon = new DBusDaemon())
             {
@@ -378,7 +378,7 @@ namespace Tmds.DBus.Tests
             string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             string address = $"unix:path={socketPath}";
 
-            var connection = new Connection(new DefaultConnectionOptions(address) { AutoConnect = true });
+            var connection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true });
             var changeEvents = new BlockingCollection<ConnectionStateChangedEventArgs>(new ConcurrentQueue<ConnectionStateChangedEventArgs>());
             connection.StateChanged += (o, change) => changeEvents.Add(change);
             ConnectionStateChangedEventArgs e;

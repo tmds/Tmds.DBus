@@ -11,8 +11,27 @@ namespace Tmds.DBus
     /// <summary>
     /// Options that configure the behavior of a Connection to a remote peer.
     /// </summary>
-    public abstract class ClientConnectionOptions : ConnectionOptions
+    public class ClientConnectionOptions : ConnectionOptions
     {
+        private string _address;
+
+        /// <summary>
+        /// Creates a new Connection with a specific address.
+        /// </summary>
+        /// <param name="address">Address of the D-Bus peer.</param>
+        public ClientConnectionOptions(string address)
+        {
+            if (address == null)
+                throw new ArgumentNullException(nameof(address));
+            _address = address;
+        }
+
+        /// <summary>
+        /// Base constructor for derived types.
+        /// </summary>
+        protected ClientConnectionOptions()
+        {}
+
         /// <summary>
         /// Automatically connect and re-connect the Connection.
         /// </summary>
@@ -21,7 +40,16 @@ namespace Tmds.DBus
         /// <summary>
         /// Sets up tunnel/connects to the remote peer.
         /// </summary>
-        protected internal abstract Task<ClientSetupResult> SetupAsync();
+        protected internal virtual Task<ClientSetupResult> SetupAsync()
+        {
+            return Task.FromResult(
+                new ClientSetupResult
+                {
+                    ConnectionAddress = _address,
+                    SupportsFdPassing = true,
+                    UserId = Environment.UserId
+                });
+        }
 
         /// <summary>
         /// Action to clean up resources created during succesfull execution of SetupAsync.

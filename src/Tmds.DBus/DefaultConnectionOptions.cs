@@ -30,10 +30,10 @@ namespace Tmds.DBus
         public string Address { get; private set; }
 
         /// <summary><see cref="ConnectionOptions"/></summary>
-        protected override internal Task<ConnectionContext> SetupAsync()
+        protected override internal Task<ClientSetupResult> SetupAsync()
         {
             return Task.FromResult(
-                new ConnectionContext
+                new ClientSetupResult
                 {
                     ConnectionAddress = Address,
                     SupportsFdPassing = true,

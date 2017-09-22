@@ -455,10 +455,10 @@ namespace Tmds.DBus.Tests
 
         private class MyConnectionOptions : ClientConnectionOptions
         {
-            public Func<Task<ConnectionContext>> ConnectFunction { get; set; }
+            public Func<Task<ClientSetupResult>> ConnectFunction { get; set; }
             public Action<object> DisposeAction { get; set; }
 
-            protected internal override Task<ConnectionContext> SetupAsync()
+            protected internal override Task<ClientSetupResult> SetupAsync()
                 => ConnectFunction();
 
             protected internal override void Teardown(object token)
@@ -477,7 +477,7 @@ namespace Tmds.DBus.Tests
 
                 var conn1 = new Connection(new MyConnectionOptions {
                     ConnectFunction = () => Task.FromResult(
-                        new ConnectionContext
+                        new ClientSetupResult
                         {
                             ConnectionAddress = address,
                             TeardownToken = token

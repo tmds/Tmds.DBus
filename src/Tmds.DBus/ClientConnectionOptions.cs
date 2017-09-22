@@ -21,7 +21,7 @@ namespace Tmds.DBus
         /// <summary>
         /// Sets up tunnel/connects to the remote peer.
         /// </summary>
-        protected internal abstract Task<ConnectionContext> SetupAsync();
+        protected internal abstract Task<ClientSetupResult> SetupAsync();
 
         /// <summary>
         /// Action to clean up resources created during succesfull execution of SetupAsync.

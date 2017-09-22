@@ -31,7 +31,7 @@ namespace Tmds.DBus.Transports
         private ConcurrentQueue<PendingSend> _sendQueue;
         private SemaphoreSlim _sendSemaphore;
 
-        public static async Task<IMessageStream> ConnectAsync(AddressEntry entry, ConnectionContext connectionContext, CancellationToken cancellationToken)
+        public static async Task<IMessageStream> ConnectAsync(AddressEntry entry, ClientSetupResult connectionContext, CancellationToken cancellationToken)
         {
             TransportSocket socket = await TransportSocket.ConnectAsync(entry, cancellationToken, connectionContext.SupportsFdPassing);
             try

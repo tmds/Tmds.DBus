@@ -52,7 +52,7 @@ namespace Tmds.DBus
 
         private readonly object _gate = new object();
         private readonly Dictionary<ObjectPath, DBusAdapter> _registeredObjects = new Dictionary<ObjectPath, DBusAdapter>();
-        private readonly Func<Task<ConnectionContext>> _connectFunction;
+        private readonly Func<Task<ClientSetupResult>> _connectFunction;
         private readonly Action<object> _disposeAction;
         private readonly SynchronizationContext _synchronizationContext;
         private readonly bool _autoConnect;
@@ -213,7 +213,7 @@ namespace Tmds.DBus
             object disposeUserToken = NoDispose;
             try
             {
-                ConnectionContext connectionContext = await _connectFunction();
+                ClientSetupResult connectionContext = await _connectFunction();
                 disposeUserToken = connectionContext.TeardownToken;
                 connection = await DBusConnection.ConnectAsync(connectionContext, OnDisconnect, _connectCts.Token);
             }

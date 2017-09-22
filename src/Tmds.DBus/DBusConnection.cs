@@ -75,7 +75,7 @@ namespace Tmds.DBus
             return new DBusConnection(stream: null);
         }
 
-        public static async Task<DBusConnection> ConnectAsync(ConnectionContext connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
+        public static async Task<DBusConnection> ConnectAsync(ClientSetupResult connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
             var _entries = AddressEntry.ParseEntries(connectionContext.ConnectionAddress);
             if (_entries.Length == 0)

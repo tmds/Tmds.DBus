@@ -8,9 +8,9 @@ using System.Threading;
 namespace Tmds.DBus
 {
     /// <summary>
-    /// Result of ConnectionOptions.ConnectFunction
+    /// Result of ClientConnectionOptions.SetupAsync
     /// </summary>
-    public class ConnectionContext // TODO: rename this
+    public class ClientSetupResult
     {
         /// <summary>
         /// Address of the D-Bus peer.

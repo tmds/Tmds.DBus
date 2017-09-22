@@ -18,6 +18,15 @@ namespace Tmds.DBus
     /// </summary>
     public class Connection : IConnection
     {
+        [Flags]
+        private enum ConnectionType
+        {
+            None              = 0,
+            ClientManual      = 1,
+            ClientAutoConnect = 2,
+            Server            = 4
+        }
+
         /// <summary>
         /// Assembly name where the dynamically generated code resides.
         /// </summary>
@@ -55,7 +64,7 @@ namespace Tmds.DBus
         private readonly Func<Task<ClientSetupResult>> _connectFunction;
         private readonly Action<object> _disposeAction;
         private readonly SynchronizationContext _synchronizationContext;
-        private readonly bool _autoConnect;
+        private readonly ConnectionType _connectionType;
 
         private ConnectionState _state = ConnectionState.Created;
         private bool _disposed = false;
@@ -135,13 +144,13 @@ namespace Tmds.DBus
             _synchronizationContext = connectionOptions.SynchronizationContext;
             if (connectionOptions is ClientConnectionOptions clientConnectionOptions)
             {
-                _autoConnect = clientConnectionOptions.AutoConnect;
+                _connectionType = clientConnectionOptions.AutoConnect ? ConnectionType.ClientAutoConnect : ConnectionType.ClientManual ;
                 _connectFunction = clientConnectionOptions.SetupAsync;
                 _disposeAction = clientConnectionOptions.Teardown;
             }
             else if (connectionOptions is ServerConnectionOptions serverConnectionOptions)
             {
-                _autoConnect = false;
+                _connectionType = ConnectionType.Server;
                 _state = ConnectionState.Connected;
                 _dbusConnection = DBusConnection.CreateForServer();
                 _dbusConnectionTask = Task.FromResult(_dbusConnection);
@@ -177,7 +186,7 @@ namespace Tmds.DBus
                     ThrowDisposed();
                 }
 
-                if (!_autoConnect)
+                if (_connectionType == ConnectionType.ClientManual)
                 {
                     if (_state != ConnectionState.Created)
                     {
@@ -282,6 +291,7 @@ namespace Tmds.DBus
         /// </returns>
         public T CreateProxy<T>(string serviceName, ObjectPath path)
         {
+            CheckNotConnectionType(ConnectionType.Server);
             return (T)CreateProxy(typeof(T), serviceName, path);
         }
 
@@ -301,7 +311,7 @@ namespace Tmds.DBus
         /// </remarks>
         public async Task<bool> UnregisterServiceAsync(string serviceName)
         {
-            ThrowIfAutoConnect();
+            CheckNotConnectionType(ConnectionType.ClientAutoConnect);
             var connection = GetConnectedConnection();
             var reply = await connection.ReleaseNameAsync(serviceName);
             return reply == ReleaseNameReply.ReplyReleased;
@@ -324,7 +334,7 @@ namespace Tmds.DBus
         /// </remarks>
         public async Task QueueServiceRegistrationAsync(string serviceName, Action onAquired = null, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
-            ThrowIfAutoConnect();
+            CheckNotConnectionType(ConnectionType.ClientAutoConnect);
             var connection = GetConnectedConnection();
             if (!options.HasFlag(ServiceRegistrationOptions.AllowReplacement) && (onLost != null))
             {
@@ -384,7 +394,7 @@ namespace Tmds.DBus
         /// </remarks>
         public async Task RegisterServiceAsync(string serviceName, Action onLost = null, ServiceRegistrationOptions options = ServiceRegistrationOptions.Default)
         {
-            ThrowIfAutoConnect();
+            CheckNotConnectionType(ConnectionType.ClientAutoConnect);
             var connection = GetConnectedConnection();
             if (!options.HasFlag(ServiceRegistrationOptions.AllowReplacement) && (onLost != null))
             {
@@ -454,7 +464,7 @@ namespace Tmds.DBus
         /// </remarks>
         public async Task RegisterObjectsAsync(IEnumerable<IDBusObject> objects)
         {
-            ThrowIfAutoConnect();
+            CheckNotConnectionType(ConnectionType.ClientAutoConnect);
             var connection = GetConnectedConnection();
             var assembly = DynamicAssembly.Instance;
             var registrations = new List<DBusAdapter>();
@@ -536,7 +546,7 @@ namespace Tmds.DBus
         /// </remarks>
         public void UnregisterObjects(IEnumerable<ObjectPath> paths)
         {
-            ThrowIfAutoConnect();
+            CheckNotConnectionType(ConnectionType.ClientAutoConnect);
             lock (_gate)
             {
                 var connection = GetConnectedConnection();
@@ -772,7 +782,6 @@ namespace Tmds.DBus
 
         internal Task<string> StartServerAsync(string address)
         {
-            // TODO: handle state
             lock (_gate)
             {
                 ThrowIfNotConnected();
@@ -869,13 +878,13 @@ namespace Tmds.DBus
             {
                 return connectionTask;
             }
-            if (!_autoConnect)
+            if (_connectionType == ConnectionType.ClientAutoConnect)
             {
-                return Task.FromResult(GetConnectedConnection());
+                return DoConnectAsync();
             }
             else
             {
-                return DoConnectAsync();
+                return Task.FromResult(GetConnectedConnection());
             }
         }
 
@@ -893,11 +902,18 @@ namespace Tmds.DBus
             }
         }
 
-        private void ThrowIfAutoConnect()
+        private void CheckNotConnectionType(ConnectionType disallowed)
         {
-            if (_autoConnect == true)
+            if ((_connectionType & disallowed) != ConnectionType.None)
             {
-                throw new InvalidOperationException($"Operation not supported for {nameof(ClientConnectionOptions.AutoConnect)} Connection.");
+                if (_connectionType == ConnectionType.ClientAutoConnect)
+                {
+                    throw new InvalidOperationException($"Operation not supported for {nameof(ClientConnectionOptions.AutoConnect)} Connection.");
+                }
+                else if (_connectionType == ConnectionType.Server)
+                {
+                    throw new InvalidOperationException($"Operation not supported for Server-based Connection.");
+                }
             }
         }
 
@@ -1003,7 +1019,7 @@ namespace Tmds.DBus
             {
                 return await connection.CallMethodAsync(message);
             }
-            catch (DisconnectedException) when (_autoConnect)
+            catch (DisconnectedException) when (_connectionType == ConnectionType.ClientAutoConnect)
             {
                 connection = await GetConnectionTask();
                 return await connection.CallMethodAsync(message);
@@ -1017,7 +1033,7 @@ namespace Tmds.DBus
             {
                 return await connection.WatchSignalAsync(path, @interface, signalName, handler);
             }
-            catch (DisconnectedException) when (_autoConnect)
+            catch (DisconnectedException) when (_connectionType == ConnectionType.ClientAutoConnect)
             {
                 connection = await GetConnectionTask();
                 return await connection.WatchSignalAsync(path, @interface, signalName, handler);

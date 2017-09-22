@@ -74,6 +74,7 @@ namespace Tmds.DBus
         {
             var connection = new DBusConnection(stream: null);
             connection._server = new LocalServer(connection);
+            connection.ConnectionInfo = new ConnectionInfo(localName: string.Empty);
             return connection;
         }
 

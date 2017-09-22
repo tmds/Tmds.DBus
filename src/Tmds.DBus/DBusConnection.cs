@@ -1006,15 +1006,18 @@ namespace Tmds.DBus
             }
         }
 
-        public string StartServer(string address)
+        public async Task<string> StartServerAsync(string address)
         {
+            if (address == null)
+                throw new ArgumentNullException(nameof(address));
+
             var entries = AddressEntry.ParseEntries(address);
             if (entries.Length != 1)
             {
                 throw new ArgumentException("Address must contain a single entry.", nameof(address));
             }
             var entry = entries[0];
-            var endpoints = entry.ResolveAsync(listen: true).Result;
+            var endpoints = await entry.ResolveAsync(listen: true);
             if (endpoints.Length == 0)
             {
                 throw new ArgumentException("Address does not resolve to an endpoint.", nameof(address));

@@ -18,7 +18,7 @@ namespace Tmds.DBus
         public static AddressEntry[] ParseEntries(string addresses)
         {
             if (addresses == null)
-                throw new ArgumentNullException(addresses);
+                throw new ArgumentNullException(nameof(addresses));
 
             List<AddressEntry> entries = new List<AddressEntry>();
 
@@ -260,20 +260,7 @@ namespace Tmds.DBus
                             throw new ArgumentException("host");
                         }
 
-                        IPAddress[] addresses;
-                        if (listen && host != "localhost")
-                        {
-                            IPAddress address;
-                            if (!IPAddress.TryParse(host, out address))
-                            {
-                                throw new ArgumentException("host must be an IP address or 'localhost'.", "host");
-                            }
-                            addresses = new [] { address };
-                        }
-                        else
-                        {
-                            addresses =  await Dns.GetHostAddressesAsync(host);;
-                        }
+                        IPAddress[] addresses = await Dns.GetHostAddressesAsync(host);
 
                         var endpoints = new IPEndPoint[addresses.Length];
                         for (int i = 0; i < endpoints.Length; i++)

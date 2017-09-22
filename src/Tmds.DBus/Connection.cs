@@ -770,13 +770,13 @@ namespace Tmds.DBus
         public Task<string[]> ListServicesAsync()
             => DBus.ListNamesAsync();
 
-        internal string StartServer(string address)
+        internal Task<string> StartServerAsync(string address)
         {
             // TODO: handle state
             lock (_gate)
             {
                 ThrowIfNotConnected();
-                return _dbusConnection.StartServer(address);
+                return _dbusConnection.StartServerAsync(address);
             }
         }
 

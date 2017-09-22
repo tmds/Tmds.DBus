@@ -17,17 +17,30 @@ namespace Tmds.DBus
         private Connection _connection;
 
         /// <summary>
-        /// Starts the server.
+        /// Starts the server at the specified address.
         /// </summary>
         /// <param name="address">Address of the D-Bus peer.</param>
-        public string Start(string address) // TODO: make this a type
+        /// <returns>
+        /// Bound address.
+        /// </returns>
+        public Task<string> StartAsync(string address)
+            => StartAsync(new ServerStartOptions { Address = address });
+
+        /// <summary>
+        /// Starts the server with the specified options.
+        /// </summary>
+        /// <param name="options"></param>
+        /// <returns>
+        /// Bound address.
+        /// </returns>
+        public Task<string> StartAsync(ServerStartOptions options)
         {
             if (_connection == null)
             {
-                throw new InvalidOperationException();
+                throw new InvalidOperationException("Not attached to connection.");
             }
 
-            return _connection.StartServer(address);
+            return _connection.StartServerAsync(options.Address);
         }
 
         internal Connection Connection
@@ -37,7 +50,7 @@ namespace Tmds.DBus
             {
                 if (_connection != null)
                 {
-                    throw new InvalidOperationException();
+                    throw new InvalidOperationException("Already attached to another connection.");
                 }
                 if (value == null)
                 {

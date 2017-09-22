@@ -109,7 +109,7 @@ namespace Tmds.DBus
         }
 
         private readonly IMessageStream _stream;
-        private IMessageStream[] _clientStreams;
+        private LocalServer _server;
         private readonly object _gate = new object();
         private Dictionary<SignalMatchRule, SignalHandler> _signalHandlers = new Dictionary<SignalMatchRule, SignalHandler>();
         private Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>> _nameOwnerWatchers = new Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>>();
@@ -158,7 +158,7 @@ namespace Tmds.DBus
 
             _onDisconnect = OnDisconnect;
 
-            ReceiveMessages(_stream, true);
+            ReceiveMessages(_stream, EmitDisconnected);
 
             string localName = await CallHelloAsync();
             ConnectionInfo = new ConnectionInfo(localName);
@@ -189,14 +189,7 @@ namespace Tmds.DBus
         {
             message.Header.Serial = GenerateSerial();
             _stream?.TrySendMessage(message);
-            var streams = Volatile.Read(ref _clientStreams);
-            if (streams != null)
-            {
-                foreach (var stream in streams)
-                {
-                    stream.TrySendMessage(message);
-                }
-            }
+            _server?.TrySendMessage(message);
         }
 
         public void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers)
@@ -436,7 +429,7 @@ namespace Tmds.DBus
             }
         }
 
-        private async void ReceiveMessages(IMessageStream stream, bool isClientConnection)
+        internal async void ReceiveMessages(IMessageStream stream, Action<IMessageStream, Exception> disconnectAction)
         {
             try
             {
@@ -452,18 +445,11 @@ namespace Tmds.DBus
             }
             catch (Exception e)
             {
-                if (isClientConnection)
-                {
-                    EmitDisconnected(e);
-                }
-                else
-                {
-                    // TODO: remove from _streams
-                }
+                disconnectAction?.Invoke(stream, e);
             }
         }
 
-        private void EmitDisconnected(Exception e)
+        private void EmitDisconnected(IMessageStream stream, Exception e)
         {
             lock (_gate)
             {
@@ -883,8 +869,14 @@ namespace Tmds.DBus
 
             try
             {
-                // TODO: we won't support this
-                await _stream.SendMessageAsync(msg);
+                if (_stream != null)
+                {
+                    await _stream.SendMessageAsync(msg);
+                }
+                else if (_server != null)
+                {
+                    await _server.SendMethodCallAsync(msg);
+                }
             }
             catch
             {
@@ -1008,88 +1000,11 @@ namespace Tmds.DBus
 
         public async Task<string> StartServerAsync(string address)
         {
-            if (address == null)
-                throw new ArgumentNullException(nameof(address));
-
-            var entries = AddressEntry.ParseEntries(address);
-            if (entries.Length != 1)
-            {
-                throw new ArgumentException("Address must contain a single entry.", nameof(address));
-            }
-            var entry = entries[0];
-            var endpoints = await entry.ResolveAsync(listen: true);
-            if (endpoints.Length == 0)
-            {
-                throw new ArgumentException("Address does not resolve to an endpoint.", nameof(address));
-            }
-            var endpoint = endpoints[0];
-            Socket serverSocket = null;
-            if (endpoint is IPEndPoint ipEndPoint)
-            {
-                serverSocket = new Socket(ipEndPoint.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-            }
-            else if (endpoint is UnixDomainSocketEndPoint unixEndPoint)
-            {
-                serverSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-                if (unixEndPoint.Path[0] == '\0')
-                {
-                    address = $"unix:abstract={unixEndPoint.Path.Substring(1)}";
-                }
-                else
-                {
-                    address = $"unix:path={unixEndPoint.Path}";
-                }
-            }
-            serverSocket.Bind(endpoint);
-            serverSocket.Listen(10);
-            AcceptConnections(serverSocket);
-
-            if (endpoint is IPEndPoint)
-            {
-                var boundEndPoint = serverSocket.LocalEndPoint as IPEndPoint;
-                address = $"tcp:host={boundEndPoint.Address},port={boundEndPoint.Port}";
-            }
+            // TODO: handle state?
+            var server = new LocalServer(this);
+            address = await server.StartAsync(address);
+            _server = server;
             return address;
-        }
-
-        public async void AcceptConnections(Socket serverSocket)
-        {
-            while (true)
-            {
-                Socket clientSocket = null;
-                try
-                {
-                    try
-                    {
-                        clientSocket = await serverSocket.AcceptAsync();
-                    }
-                    catch (ObjectDisposedException)
-                    {
-                        break;
-                    }
-                    var clientStream = await Transport.AcceptAsync(clientSocket,
-                        supportsFdPassing: serverSocket.AddressFamily == AddressFamily.Unix);
-                    if (clientStream == null) // TODO
-                    {
-                        continue;
-                    }
-                    lock (_gate)
-                    {
-                        var streams = new IMessageStream[(_clientStreams?.Length ?? 0) + 1];
-                        if (_clientStreams != null)
-                        {
-                            Array.Copy(_clientStreams, streams, streams.Length - 1);
-                        }
-                        streams[streams.Length - 1] = clientStream;
-                        _clientStreams = streams;
-                    }
-                    ReceiveMessages(clientStream, false);
-                }
-                catch
-                {
-                    clientSocket?.Dispose();
-                }
-            }
         }
     }
 }

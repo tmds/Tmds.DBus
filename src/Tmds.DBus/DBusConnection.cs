@@ -1014,10 +1014,10 @@ namespace Tmds.DBus
                 throw new ArgumentException("Address must contain a single entry.", nameof(address));
             }
             var entry = entries[0];
-            var endpoints = TransportSocket.ResolveAddress(entry, listen: true).Result;
-            if (endpoints.Length != 1)
+            var endpoints = entry.ResolveAsync(listen: true).Result;
+            if (endpoints.Length == 0)
             {
-                throw new ArgumentException("Address does not resolve to a single endpoint.", nameof(address));
+                throw new ArgumentException("Address does not resolve to an endpoint.", nameof(address));
             }
             var endpoint = endpoints[0];
             Socket serverSocket = null;

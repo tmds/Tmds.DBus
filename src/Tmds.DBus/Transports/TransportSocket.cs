@@ -463,84 +463,6 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        public static async Task<EndPoint[]> ResolveAddress(AddressEntry entry, bool listen = false)
-        {
-            switch (entry.Method)
-            {
-                case "tcp":
-                    {
-                        string host, portStr, family;
-                        int port = 0;
-
-                        if (!entry.Properties.TryGetValue ("host", out host))
-                            host = "localhost";
-
-                        if (!entry.Properties.TryGetValue ("port", out portStr) && !listen)
-                            throw new FormatException ("No port specified");
-
-                        if (portStr != null && !Int32.TryParse (portStr, out port))
-                            throw new FormatException("Invalid port: \"" + port + "\"");
-
-                        if (!entry.Properties.TryGetValue ("family", out family))
-                            family = null;
-
-                        if (string.IsNullOrEmpty(host))
-                        {
-                            throw new ArgumentException("host");
-                        }
-
-                        IPAddress[] addresses;
-                        if (listen || host != "localhost")
-                        {
-                            IPAddress address;
-                            if (!IPAddress.TryParse(host, out address))
-                            {
-                                // TODO: doesn't work
-                                throw new ArgumentException("host must be an IP address or 'localhost'.", "host");
-                            }
-                            addresses = new [] { address };
-                        }
-                        else
-                        {
-                            addresses =  await Dns.GetHostAddressesAsync(host);;
-                        }
-
-                        var endpoints = new IPEndPoint[addresses.Length];
-                        for (int i = 0; i < endpoints.Length; i++)
-                        {
-                            endpoints[i] = new IPEndPoint(addresses[i], port);
-                        }
-                        return endpoints;
-                    }
-                case "unix":
-                    {
-                        string path;
-                        bool abstr;
-
-                        if (entry.Properties.TryGetValue("path", out path))
-                            abstr = false;
-                        else if (entry.Properties.TryGetValue("abstract", out path))
-                            abstr = true;
-                        else
-                            throw new ArgumentException("No path specified for UNIX transport");
-
-                        if (String.IsNullOrEmpty(path))
-                        {
-                            throw new ArgumentException("path");
-                        }
-
-                        if (abstr)
-                        {
-                            path = (char)'\0' + path;
-                        }
-
-                        return new EndPoint[] { new UnixDomainSocketEndPoint(path) };
-                    }
-                default:
-                    throw new NotSupportedException("Transport method \"" + entry.Method + "\" not supported");
-            }
-        }
-
         private static async Task<TransportSocket> ConnectUnixAsync(AddressEntry entry, CancellationToken cancellationToken, bool supportsFdPassing)
         {
             Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
@@ -549,7 +471,7 @@ namespace Tmds.DBus.Transports
                 var transportSocket = new TransportSocket(socket, supportsFdPassing);
                 using (cancellationToken.Register(() => transportSocket.Dispose()))
                 {
-                    var endpoints = await ResolveAddress(entry);
+                    var endpoints = await entry.ResolveAsync();
                     var endPoint = endpoints[0];
 
                     await transportSocket._socket.ConnectAsync(endPoint);
@@ -565,7 +487,7 @@ namespace Tmds.DBus.Transports
 
         private static async Task<TransportSocket> ConnectTcpAsync(AddressEntry entry, CancellationToken cancellationToken)
         {
-            var endpoints = await ResolveAddress(entry);
+            var endpoints = await entry.ResolveAsync();
             for (int i = 0; i < endpoints.Length; i++)
             {
                 var ipEndPoint = endpoints[i] as IPEndPoint;

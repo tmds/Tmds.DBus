@@ -67,8 +67,10 @@ namespace Tmds.DBus.Transports
             try
             {
                 int bytesRead = await ReadCountAsync(_headerReadBuffer, 0, 16, _fileDescriptors);
-                if (bytesRead <  16)
+                if (bytesRead == 0)
                     return null;
+                if (bytesRead != 16)
+                    throw new ProtocolException("Header read length mismatch: " + bytesRead + " of expected " + "16");
 
                 EndianFlag endianness = (EndianFlag)_headerReadBuffer[0];
                 MessageReader reader = new MessageReader(endianness, new ArraySegment<byte>(_headerReadBuffer));
@@ -189,7 +191,7 @@ namespace Tmds.DBus.Transports
         private async Task<bool> DoServerAuth(bool supportsFdPassing)
         {
             bool peerSupportsFdPassing = false;
-            // send 1 byte
+            // receive 1 byte
             byte[] buffer = new byte[1];
             int length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors);
             if (length == 0)
@@ -224,9 +226,7 @@ namespace Tmds.DBus.Transports
                     throw new ProtocolException("Unexpected DATA message during authentication.");
                 }
                 else if (line[0] == "ERROR")
-                {
-
-                }
+                { }
                 else if (line[0] == "NEGOTIATE_UNIX_FD" && supportsFdPassing)
                 {
                     await WriteLineAsync("AGREE_UNIX_FD");
@@ -242,7 +242,7 @@ namespace Tmds.DBus.Transports
 
         private async Task DoClientAuth(Guid guid, string userId)
         {
-            // read 1 byte
+            // send 1 byte
             await _socket.SendAsync(_oneByteArray, 0, 1);
             // auth
             var authenticationResult = await SendAuthCommands(userId);

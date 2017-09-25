@@ -70,14 +70,6 @@ namespace Tmds.DBus
         public const string DBusInterface = "org.freedesktop.DBus";
         private static readonly char[] s_dot = new[] { '.' };
 
-        public static DBusConnection CreateForServer()
-        {
-            var connection = new DBusConnection(stream: null);
-            connection._server = new LocalServer(connection);
-            connection.ConnectionInfo = new ConnectionInfo(localName: string.Empty);
-            return connection;
-        }
-
         public static async Task<DBusConnection> ConnectAsync(ClientSetupResult connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
             var _entries = AddressEntry.ParseEntries(connectionContext.ConnectionAddress);
@@ -112,7 +104,6 @@ namespace Tmds.DBus
         }
 
         private readonly IMessageStream _stream;
-        private LocalServer _server;
         private readonly object _gate = new object();
         private Dictionary<SignalMatchRule, SignalHandler> _signalHandlers = new Dictionary<SignalMatchRule, SignalHandler>();
         private Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>> _nameOwnerWatchers = new Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>>();
@@ -140,6 +131,16 @@ namespace Tmds.DBus
         private DBusConnection(IMessageStream stream)
         {
             _stream = stream;
+        }
+
+        public DBusConnection(bool localServer)
+        {
+            if (localServer != true)
+            {
+                throw new ArgumentException("Constructor for LocalServer.", nameof(localServer));
+            }
+            _stream = new LocalServer(this);
+            ConnectionInfo = new ConnectionInfo(string.Empty);
         }
 
         private async Task ConnectAsync(Action<Exception> onDisconnect)
@@ -191,8 +192,7 @@ namespace Tmds.DBus
         public void EmitSignal(Message message)
         {
             message.Header.Serial = GenerateSerial();
-            _stream?.TrySendMessage(message);
-            _server?.TrySendMessage(message);
+            _stream.TrySendMessage(message);
         }
 
         public void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers)
@@ -432,27 +432,27 @@ namespace Tmds.DBus
             }
         }
 
-        internal async void ReceiveMessages(IMessageStream stream, Action<IMessageStream, Exception> disconnectAction)
+        internal async void ReceiveMessages(IMessageStream peer, Action<IMessageStream, Exception> disconnectAction)
         {
             try
             {
                 while (true)
                 {
-                    Message msg = await stream.ReceiveMessageAsync();
+                    Message msg = await peer.ReceiveMessageAsync();
                     if (msg == null)
                     {
                         throw new IOException("Connection closed by peer");
                     }
-                    HandleMessage(msg, stream);
+                    HandleMessage(msg, peer);
                 }
             }
             catch (Exception e)
             {
-                disconnectAction?.Invoke(stream, e);
+                disconnectAction?.Invoke(peer, e);
             }
         }
 
-        private void EmitDisconnected(IMessageStream stream, Exception e)
+        private void EmitDisconnected(IMessageStream peer, Exception e)
         {
             lock (_gate)
             {
@@ -461,7 +461,7 @@ namespace Tmds.DBus
             }
         }
 
-        private void HandleMessage(Message msg, IMessageStream stream)
+        private void HandleMessage(Message msg, IMessageStream peer)
         {
             uint? serial = msg.Header.ReplySerial;
             if (serial != null)
@@ -489,7 +489,7 @@ namespace Tmds.DBus
             switch (msg.Header.MessageType)
             {
                 case MessageType.MethodCall:
-                    HandleMethodCall(msg, stream);
+                    HandleMethodCall(msg, peer);
                     break;
                 case MessageType.Signal:
                     HandleSignal(msg);
@@ -640,8 +640,7 @@ namespace Tmds.DBus
 
                 _state = ConnectionState.Disconnected;
                 _disposed = dispose;
-                _stream?.Dispose();
-                _server?.Dispose();
+                _stream.Dispose();
                 _disconnectReason = exception;
                 pendingMethods = _pendingMethods;
                 _pendingMethods = null;
@@ -678,16 +677,16 @@ namespace Tmds.DBus
             }
         }
 
-        private void SendMessage(Message message, IMessageStream stream)
+        private void SendMessage(Message message, IMessageStream peer)
         {
             if (message.Header.Serial == 0)
             {
                 message.Header.Serial = GenerateSerial();
             }
-            stream.TrySendMessage(message);
+            peer.TrySendMessage(message);
         }
 
-        private async void HandleMethodCall(Message methodCall, IMessageStream stream)
+        private async void HandleMethodCall(Message methodCall, IMessageStream peer)
         {
             switch (methodCall.Header.Interface)
             {
@@ -696,12 +695,12 @@ namespace Tmds.DBus
                     {
                         case "Ping":
                         {
-                            SendMessage(MessageHelper.ConstructReply(methodCall), stream);
+                            SendMessage(MessageHelper.ConstructReply(methodCall), peer);
                             return;
                         }
                         case "GetMachineId":
                         {
-                            SendMessage(MessageHelper.ConstructReply(methodCall, Environment.MachineId), stream);
+                            SendMessage(MessageHelper.ConstructReply(methodCall, Environment.MachineId), peer);
                             return;
                         }
                     }
@@ -714,7 +713,7 @@ namespace Tmds.DBus
                 var reply = await methodHandler(methodCall);
                 reply.Header.ReplySerial = methodCall.Header.Serial;
                 reply.Header.Destination = methodCall.Header.Sender;
-                SendMessage(reply, stream);
+                SendMessage(reply, peer);
             }
             else
             {
@@ -737,10 +736,10 @@ namespace Tmds.DBus
                         writer.WriteNodeEnd();
                         
                         var xml = writer.ToString();
-                        SendMessage(MessageHelper.ConstructReply(methodCall, xml), stream);
+                        SendMessage(MessageHelper.ConstructReply(methodCall, xml), peer);
                     }
                 }
-                SendUnknownMethodError(methodCall, stream);
+                SendUnknownMethodError(methodCall, peer);
             }
         }
 
@@ -826,7 +825,7 @@ namespace Tmds.DBus
             return (ReleaseNameReply)rv;
         }
 
-        private void SendUnknownMethodError(Message callMessage, IMessageStream stream)
+        private void SendUnknownMethodError(Message callMessage, IMessageStream peer)
         {
             if (!callMessage.Header.ReplyExpected)
             {
@@ -838,12 +837,12 @@ namespace Tmds.DBus
                                            callMessage.Header.Signature?.Value,
                                            callMessage.Header.Interface);
 
-            SendErrorReply(callMessage, "org.freedesktop.DBus.Error.UnknownMethod", errMsg, stream);
+            SendErrorReply(callMessage, "org.freedesktop.DBus.Error.UnknownMethod", errMsg, peer);
         }
 
-        private void SendErrorReply(Message incoming, string errorName, string errorMessage, IMessageStream stream)
+        private void SendErrorReply(Message incoming, string errorName, string errorMessage, IMessageStream peer)
         {
-            SendMessage(MessageHelper.ConstructErrorReply(incoming, errorName, errorMessage), stream);
+            SendMessage(MessageHelper.ConstructErrorReply(incoming, errorName, errorMessage), peer);
         }
 
         private uint GenerateSerial()
@@ -873,14 +872,7 @@ namespace Tmds.DBus
 
             try
             {
-                if (_stream != null)
-                {
-                    await _stream.SendMessageAsync(msg);
-                }
-                else if (_server != null)
-                {
-                    await _server.SendMethodCallAsync(msg);
-                }
+                await _stream.SendMessageAsync(msg);
             }
             catch
             {
@@ -1004,7 +996,12 @@ namespace Tmds.DBus
 
         public Task<string> StartServerAsync(string address)
         {
-            return _server.StartAsync(address);
+            var localServer = _stream as LocalServer;
+            if (localServer == null)
+            {
+                throw new InvalidOperationException("Not a server connection.");
+            }
+            return localServer.StartAsync(address);
         }
     }
 }

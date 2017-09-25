@@ -152,7 +152,7 @@ namespace Tmds.DBus
             {
                 _connectionType = ConnectionType.Server;
                 _state = ConnectionState.Connected;
-                _dbusConnection = DBusConnection.CreateForServer();
+                _dbusConnection = new DBusConnection(localServer: true);
                 _dbusConnectionTask = Task.FromResult(_dbusConnection);
                 serverConnectionOptions.Connection = this;
             }

@@ -11,7 +11,7 @@ using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Transports
 {
-    class LocalServer : IDisposable
+    class LocalServer : IMessageStream
     {
         private readonly object _gate = new object();
         private readonly DBusConnection _connection;
@@ -154,7 +154,12 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        public Task SendMethodCallAsync(Message message)
+        public Task<Message> ReceiveMessageAsync()
+        {
+            return Task.FromException<Message>(new NotSupportedException("Cannot determine destination peer."));
+        }
+
+        public Task SendMessageAsync(Message message)
         {
             return Task.FromException(new NotSupportedException("Cannot determine destination peer."));
         }

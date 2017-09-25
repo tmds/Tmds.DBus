@@ -474,7 +474,7 @@ namespace Tmds.DBus.Transports
                     var endpoints = await entry.ResolveAsync();
                     var endPoint = endpoints[0];
 
-                    await transportSocket._socket.ConnectAsync(endPoint);
+                    await transportSocket.ConnectAsync(endPoint);
                     return transportSocket;
                 }
             }
@@ -498,7 +498,7 @@ namespace Tmds.DBus.Transports
                     var transportSocket = new TransportSocket(socket, supportsFdPassing: false);
                     using (cancellationToken.Register(() => transportSocket.Dispose()))
                     {
-                        await transportSocket._socket.ConnectAsync(ipEndPoint);
+                        await transportSocket.ConnectAsync(ipEndPoint);
                         return transportSocket;
                     }
                 }
@@ -514,5 +514,8 @@ namespace Tmds.DBus.Transports
 
             return null;
         }
+
+        private Task ConnectAsync(EndPoint endPoint)
+            => _socket.ConnectAsync(endPoint);
     }
 }

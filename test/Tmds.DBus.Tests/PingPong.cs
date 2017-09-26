@@ -18,6 +18,11 @@ namespace Tmds.DBus.Tests
             return Task.CompletedTask;
         }
 
+        public Task<string> EchoAsync(string message)
+        {
+            return Task.FromResult(message);
+        }
+
         public Task<IDisposable> WatchPongAsync(Action<string> reply)
         {
             return SignalWatcher.AddAsync(this, nameof(OnPing), reply);

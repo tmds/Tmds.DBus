@@ -41,8 +41,7 @@ namespace Tmds.DBus.Transports
 
         internal UnixDomainSocketEndPoint(SocketAddress socketAddress)
         {
-            throw new NotImplementedException();
-/*            if (socketAddress == null)
+            if (socketAddress == null)
             {
                 throw new ArgumentNullException(nameof(socketAddress));
             }
@@ -66,7 +65,7 @@ namespace Tmds.DBus.Transports
             {
                 _encodedPath = Array.Empty<byte>();
                 _path = string.Empty;
-            }*/
+            }
         }
 
         public override SocketAddress Serialize()

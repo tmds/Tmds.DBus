@@ -7,6 +7,7 @@ namespace Tmds.DBus.Tests
     [DBusInterface("tmds.dbus.tests.PingPong")]
     public interface IPingPong : IDBusObject
     {
+        Task<string> EchoAsync(string message);
         Task PingAsync(string message);
         Task<IDisposable> WatchPongAsync(Action<string> reply);
         Task<IDisposable> WatchPongNoArgAsync(Action reply);

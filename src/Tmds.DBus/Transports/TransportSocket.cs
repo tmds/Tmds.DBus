@@ -15,7 +15,7 @@ using Tmds.DBus.Protocol;
 namespace Tmds.DBus.Transports
 {
     using SizeT = System.UIntPtr;
-    internal class TransportSocket : Socket
+    internal class TransportSocket
     {
         // Issue https://github.com/dotnet/corefx/issues/6807
         private static PropertyInfo s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
@@ -77,12 +77,13 @@ namespace Tmds.DBus.Transports
         private readonly SocketAsyncEventArgs _receiveData;
         private readonly SocketAsyncEventArgs _sendArgs;
         private readonly List<ArraySegment<byte>> _bufferList = new List<ArraySegment<byte>>();
+        private readonly Socket _socket;
         private bool _supportsFdPassing;
 
-        private TransportSocket(AddressFamily addressFamily, SocketType socketType, ProtocolType protocolType, bool supportsFdPassing) :
-            base(addressFamily, socketType, protocolType)
+        public TransportSocket(Socket socket, bool supportsFdPassing)
         {
-            _socketFd = GetFd(this);
+            _socket = socket;
+            _socketFd = GetFd(socket);
             _supportsFdPassing = supportsFdPassing && _socketFd != -1;
 
             _waitForData = new SocketAsyncEventArgs();
@@ -102,12 +103,12 @@ namespace Tmds.DBus.Transports
 
         public bool SupportsFdPassing { get => _supportsFdPassing; set { _supportsFdPassing = value; } }
 
-        public new void Dispose()
+        public void Dispose()
         {
             lock (_gate)
             {
                 _socketFd = -1;
-                base.Dispose();
+                _socket.Dispose();
             }
         }
 
@@ -222,7 +223,7 @@ namespace Tmds.DBus.Transports
                 readContext.Tcs = readContext.Tcs ?? new TaskCompletionSource<int>();
                 _receiveData.SetBuffer(buffer, offset, count);
                 readContext.FileDescriptors = fileDescriptors;
-                if (!ReceiveAsync(_receiveData))
+                if (!_socket.ReceiveAsync(_receiveData))
                 {
                     if (_receiveData.SocketError == SocketError.Success)
                     {
@@ -248,7 +249,7 @@ namespace Tmds.DBus.Transports
                 readContext.FileDescriptors = fileDescriptors;
                 while (true)
                 {
-                    if (!ReceiveAsync(_waitForData))
+                    if (!_socket.ReceiveAsync(_waitForData))
                     {
                         int rv = DoRead(buffer, offset, count, fileDescriptors);
                         if (rv >= 0)
@@ -402,7 +403,7 @@ namespace Tmds.DBus.Transports
             var sendContext = _sendArgs.UserToken as SendContext;
             sendContext.Tcs = sendContext.Tcs ?? new TaskCompletionSource<object>();
             _sendArgs.BufferList = bufferList;
-            if (!SendAsync(_sendArgs))
+            if (!_socket.SendAsync(_sendArgs))
             {
                 if (_sendArgs.SocketError == SocketError.Success)
                 {
@@ -464,94 +465,46 @@ namespace Tmds.DBus.Transports
 
         private static async Task<TransportSocket> ConnectUnixAsync(AddressEntry entry, CancellationToken cancellationToken, bool supportsFdPassing)
         {
-            string path;
-            bool abstr;
-
-            if (entry.Properties.TryGetValue("path", out path))
-                abstr = false;
-            else if (entry.Properties.TryGetValue("abstract", out path))
-                abstr = true;
-            else
-                throw new ArgumentException("No path specified for UNIX transport");
-
-            if (String.IsNullOrEmpty(path))
-            {
-                throw new ArgumentException("path");
-            }
-
-            if (abstr)
-            {
-                path = (char)'\0' + path;
-            }
-
-            TransportSocket socket = null;
+            Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
             try
             {
-                socket = new TransportSocket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified, supportsFdPassing);
-                using (cancellationToken.Register(() => socket.Dispose()))
+                var transportSocket = new TransportSocket(socket, supportsFdPassing);
+                using (cancellationToken.Register(() => transportSocket.Dispose()))
                 {
-                    var endPoint = new UnixDomainSocketEndPoint(path);
+                    var endpoints = await entry.ResolveAsync();
+                    var endPoint = endpoints[0];
 
-                    await socket.ConnectAsync(endPoint);
-                    return socket;
+                    await transportSocket.ConnectAsync(endPoint);
+                    return transportSocket;
                 }
             }
             catch
             {
-                socket?.Dispose();
+                socket.Dispose();
                 throw;
             }
         }
 
         private static async Task<TransportSocket> ConnectTcpAsync(AddressEntry entry, CancellationToken cancellationToken)
         {
-            string host, portStr, family;
-            int port;
-
-            if (!entry.Properties.TryGetValue ("host", out host))
-                host = "localhost";
-
-            if (!entry.Properties.TryGetValue ("port", out portStr))
-                throw new FormatException ("No port specified");
-
-            if (!Int32.TryParse (portStr, out port))
-                throw new FormatException("Invalid port: \"" + port + "\"");
-
-            if (!entry.Properties.TryGetValue ("family", out family))
-                family = null;
-
-            if (string.IsNullOrEmpty(host))
+            var endpoints = await entry.ResolveAsync();
+            for (int i = 0; i < endpoints.Length; i++)
             {
-                throw new ArgumentException("host");
-            }
-
-            IPAddress[] addresses;
-            try
-            {
-                addresses = await Dns.GetHostAddressesAsync(host);
-            }
-            catch (System.Exception e)
-            {
-                throw new ConnectException($"No addresses for host '{host}'", e);
-            }
-
-            for (int i = 0; i < addresses.Length; i++)
-            {
-                var address = addresses[i];
-                bool lastAddress = i == (addresses.Length - 1);
-                TransportSocket socket = null;
+                var ipEndPoint = endpoints[i] as IPEndPoint;
+                bool lastAddress = i == (endpoints.Length - 1);
+                Socket socket = new Socket(ipEndPoint.Address.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
                 try
                 {
-                    socket = new TransportSocket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp, supportsFdPassing: false);
-                    using (cancellationToken.Register(() => socket.Dispose()))
+                    var transportSocket = new TransportSocket(socket, supportsFdPassing: false);
+                    using (cancellationToken.Register(() => transportSocket.Dispose()))
                     {
-                        await socket.ConnectAsync(address, port);
-                        return socket;
+                        await transportSocket.ConnectAsync(ipEndPoint);
+                        return transportSocket;
                     }
                 }
                 catch
                 {
-                    socket?.Dispose();
+                    socket.Dispose();
                     if (lastAddress)
                     {
                         throw;
@@ -561,5 +514,8 @@ namespace Tmds.DBus.Transports
 
             return null;
         }
+
+        private Task ConnectAsync(EndPoint endPoint)
+            => _socket.ConnectAsync(endPoint);
     }
 }

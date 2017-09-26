@@ -353,7 +353,7 @@ namespace Tmds.DBus.Tests
             string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             string address = $"unix:path={socketPath}";
 
-            var connection = new Connection(new DefaultConnectionOptions(address) { AutoConnect = true });
+            var connection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true });
 
             using (var dbusDaemon = new DBusDaemon())
             {
@@ -378,7 +378,7 @@ namespace Tmds.DBus.Tests
             string socketPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
             string address = $"unix:path={socketPath}";
 
-            var connection = new Connection(new DefaultConnectionOptions(address) { AutoConnect = true });
+            var connection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true });
             var changeEvents = new BlockingCollection<ConnectionStateChangedEventArgs>(new ConcurrentQueue<ConnectionStateChangedEventArgs>());
             connection.StateChanged += (o, change) => changeEvents.Add(change);
             ConnectionStateChangedEventArgs e;
@@ -453,12 +453,12 @@ namespace Tmds.DBus.Tests
             }
         }
 
-        private class MyConnectionOptions : ConnectionOptions
+        private class MyConnectionOptions : ClientConnectionOptions
         {
-            public Func<Task<ConnectionContext>> ConnectFunction { get; set; }
+            public Func<Task<ClientSetupResult>> ConnectFunction { get; set; }
             public Action<object> DisposeAction { get; set; }
 
-            protected internal override Task<ConnectionContext> SetupAsync()
+            protected internal override Task<ClientSetupResult> SetupAsync()
                 => ConnectFunction();
 
             protected internal override void Teardown(object token)
@@ -477,7 +477,7 @@ namespace Tmds.DBus.Tests
 
                 var conn1 = new Connection(new MyConnectionOptions {
                     ConnectFunction = () => Task.FromResult(
-                        new ConnectionContext
+                        new ClientSetupResult
                         {
                             ConnectionAddress = address,
                             TeardownToken = token

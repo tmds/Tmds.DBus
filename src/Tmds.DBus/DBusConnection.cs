@@ -6,6 +6,8 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,12 +18,6 @@ namespace Tmds.DBus
 {
     class DBusConnection
     {
-        private struct PendingSend
-        {
-            public Message Message;
-            public TaskCompletionSource<bool> CompletionSource;
-        }
-
         private class SignalHandlerRegistration : IDisposable
         {
             public SignalHandlerRegistration(DBusConnection dbusConnection, SignalMatchRule rule, SignalHandler handler)
@@ -74,7 +70,7 @@ namespace Tmds.DBus
         public const string DBusInterface = "org.freedesktop.DBus";
         private static readonly char[] s_dot = new[] { '.' };
 
-        public static async Task<DBusConnection> OpenAsync(ConnectionContext connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
+        public static async Task<DBusConnection> ConnectAsync(ClientSetupResult connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
             var _entries = AddressEntry.ParseEntries(connectionContext.ConnectionAddress);
             if (_entries.Length == 0)
@@ -92,7 +88,7 @@ namespace Tmds.DBus
                 _serverId = entry.Guid;
                 try
                 {
-                    stream = await Transport.OpenAsync(entry, connectionContext, cancellationToken).ConfigureAwait(false);
+                    stream = await Transport.ConnectAsync(entry, connectionContext, cancellationToken).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -121,8 +117,6 @@ namespace Tmds.DBus
         private Action<Exception> _onDisconnect;
         private Exception _disconnectReason;
         private int _methodSerial;
-        private ConcurrentQueue<PendingSend> _sendQueue;
-        private SemaphoreSlim _sendSemaphore;
 
         public ConnectionInfo ConnectionInfo { get; private set; }
 
@@ -137,8 +131,16 @@ namespace Tmds.DBus
         private DBusConnection(IMessageStream stream)
         {
             _stream = stream;
-            _sendQueue = new ConcurrentQueue<PendingSend>();
-            _sendSemaphore = new SemaphoreSlim(1);
+        }
+
+        public DBusConnection(bool localServer)
+        {
+            if (localServer != true)
+            {
+                throw new ArgumentException("Constructor for LocalServer.", nameof(localServer));
+            }
+            _stream = new LocalServer(this);
+            ConnectionInfo = new ConnectionInfo(string.Empty);
         }
 
         private async Task ConnectAsync(Action<Exception> onDisconnect)
@@ -160,7 +162,7 @@ namespace Tmds.DBus
 
             _onDisconnect = OnDisconnect;
 
-            ReceiveMessages();
+            ReceiveMessages(_stream, EmitDisconnected);
 
             string localName = await CallHelloAsync();
             ConnectionInfo = new ConnectionInfo(localName);
@@ -190,7 +192,7 @@ namespace Tmds.DBus
         public void EmitSignal(Message message)
         {
             message.Header.Serial = GenerateSerial();
-            TrySendMessageAsync(message);
+            _stream.TrySendMessage(message);
         }
 
         public void AddMethodHandlers(IEnumerable<KeyValuePair<ObjectPath, MethodHandler>> handlers)
@@ -430,66 +432,27 @@ namespace Tmds.DBus
             }
         }
 
-        private async void SendPendingMessages()
-        {
-            try
-            {
-                await _sendSemaphore.WaitAsync();
-                PendingSend pendingSend;
-                while (_sendQueue.TryDequeue(out pendingSend))
-                {
-                    try
-                    {
-                        await _stream.SendMessageAsync(pendingSend.Message);
-                        pendingSend.CompletionSource.SetResult(true);
-                    }
-                    catch (System.Exception e)
-                    {
-                        pendingSend.CompletionSource.SetResult(false);
-                        EmitDisconnected(e);
-                    }
-                }
-            }
-            finally
-            {
-                _sendSemaphore.Release();
-            }
-        }
-
-        private Task<bool> TrySendMessageAsync(Message message)
-        {
-            var tcs = new TaskCompletionSource<bool>();
-            var pendingSend = new PendingSend()
-            {
-                Message = message,
-                CompletionSource = tcs
-            };
-            _sendQueue.Enqueue(pendingSend);
-            SendPendingMessages();
-            return tcs.Task;
-        }
-
-        private async void ReceiveMessages()
+        internal async void ReceiveMessages(IMessageStream peer, Action<IMessageStream, Exception> disconnectAction)
         {
             try
             {
                 while (true)
                 {
-                    Message msg = await _stream.ReceiveMessageAsync();
+                    Message msg = await peer.ReceiveMessageAsync();
                     if (msg == null)
                     {
                         throw new IOException("Connection closed by peer");
                     }
-                    HandleMessage(msg);
+                    HandleMessage(msg, peer);
                 }
             }
             catch (Exception e)
             {
-                EmitDisconnected(e);
+                disconnectAction?.Invoke(peer, e);
             }
         }
 
-        private void EmitDisconnected(Exception e)
+        private void EmitDisconnected(IMessageStream peer, Exception e)
         {
             lock (_gate)
             {
@@ -498,7 +461,7 @@ namespace Tmds.DBus
             }
         }
 
-        private void HandleMessage(Message msg)
+        private void HandleMessage(Message msg, IMessageStream peer)
         {
             uint? serial = msg.Header.ReplySerial;
             if (serial != null)
@@ -526,7 +489,7 @@ namespace Tmds.DBus
             switch (msg.Header.MessageType)
             {
                 case MessageType.MethodCall:
-                    HandleMethodCall(msg);
+                    HandleMethodCall(msg, peer);
                     break;
                 case MessageType.Signal:
                     HandleSignal(msg);
@@ -714,16 +677,16 @@ namespace Tmds.DBus
             }
         }
 
-        private void SendMessage(Message message)
+        private void SendMessage(Message message, IMessageStream peer)
         {
             if (message.Header.Serial == 0)
             {
                 message.Header.Serial = GenerateSerial();
             }
-            TrySendMessageAsync(message);
+            peer.TrySendMessage(message);
         }
 
-        private async void HandleMethodCall(Message methodCall)
+        private async void HandleMethodCall(Message methodCall, IMessageStream peer)
         {
             switch (methodCall.Header.Interface)
             {
@@ -732,12 +695,12 @@ namespace Tmds.DBus
                     {
                         case "Ping":
                         {
-                            SendMessage(MessageHelper.ConstructReply(methodCall));
+                            SendMessage(MessageHelper.ConstructReply(methodCall), peer);
                             return;
                         }
                         case "GetMachineId":
                         {
-                            SendMessage(MessageHelper.ConstructReply(methodCall, Environment.MachineId));
+                            SendMessage(MessageHelper.ConstructReply(methodCall, Environment.MachineId), peer);
                             return;
                         }
                     }
@@ -750,7 +713,7 @@ namespace Tmds.DBus
                 var reply = await methodHandler(methodCall);
                 reply.Header.ReplySerial = methodCall.Header.Serial;
                 reply.Header.Destination = methodCall.Header.Sender;
-                SendMessage(reply);
+                SendMessage(reply, peer);
             }
             else
             {
@@ -773,10 +736,10 @@ namespace Tmds.DBus
                         writer.WriteNodeEnd();
                         
                         var xml = writer.ToString();
-                        SendMessage(MessageHelper.ConstructReply(methodCall, xml));
+                        SendMessage(MessageHelper.ConstructReply(methodCall, xml), peer);
                     }
                 }
-                SendUnknownMethodError(methodCall);
+                SendUnknownMethodError(methodCall, peer);
             }
         }
 
@@ -862,7 +825,7 @@ namespace Tmds.DBus
             return (ReleaseNameReply)rv;
         }
 
-        private void SendUnknownMethodError(Message callMessage)
+        private void SendUnknownMethodError(Message callMessage, IMessageStream peer)
         {
             if (!callMessage.Header.ReplyExpected)
             {
@@ -874,12 +837,12 @@ namespace Tmds.DBus
                                            callMessage.Header.Signature?.Value,
                                            callMessage.Header.Interface);
 
-            SendErrorReply(callMessage, "org.freedesktop.DBus.Error.UnknownMethod", errMsg);
+            SendErrorReply(callMessage, "org.freedesktop.DBus.Error.UnknownMethod", errMsg, peer);
         }
 
-        private void SendErrorReply(Message incoming, string errorName, string errorMessage)
+        private void SendErrorReply(Message incoming, string errorName, string errorMessage, IMessageStream peer)
         {
-            SendMessage(MessageHelper.ConstructErrorReply(incoming, errorName, errorMessage));
+            SendMessage(MessageHelper.ConstructErrorReply(incoming, errorName, errorMessage), peer);
         }
 
         private uint GenerateSerial()
@@ -909,7 +872,7 @@ namespace Tmds.DBus
 
             try
             {
-                await TrySendMessageAsync(msg);
+                await _stream.SendMessageAsync(msg);
             }
             catch
             {
@@ -1029,6 +992,16 @@ namespace Tmds.DBus
                     return Array.Empty<string>();
                 }
             }
+        }
+
+        public Task<string> StartServerAsync(string address)
+        {
+            var localServer = _stream as LocalServer;
+            if (localServer == null)
+            {
+                throw new InvalidOperationException("Not a server connection.");
+            }
+            return localServer.StartAsync(address);
         }
     }
 }

@@ -5,8 +5,11 @@
 // See COPYING for details
 
 using System;
+using System.Net;
 using System.Text;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Tmds.DBus.Transports;
 
 namespace Tmds.DBus
 {
@@ -15,7 +18,7 @@ namespace Tmds.DBus
         public static AddressEntry[] ParseEntries(string addresses)
         {
             if (addresses == null)
-                throw new ArgumentNullException(addresses);
+                throw new ArgumentNullException(nameof(addresses));
 
             List<AddressEntry> entries = new List<AddressEntry>();
 
@@ -193,12 +196,10 @@ namespace Tmds.DBus
         {
             AddressEntry entry = new AddressEntry();
 
-            string[] parts = s.Split(':');
+            string[] parts = s.Split(new[] { ':' }, 2);
 
             if (parts.Length < 2)
                 throw new FormatException("No colon found");
-            if (parts.Length > 2)
-                throw new FormatException("Too many colons found");
 
             entry.Method = parts[0];
 
@@ -231,6 +232,70 @@ namespace Tmds.DBus
             }
 
             return entry;
+        }
+
+        public async Task<EndPoint[]> ResolveAsync(bool listen = false)
+        {
+            switch (Method)
+            {
+                case "tcp":
+                    {
+                        string host, portStr, family;
+                        int port = 0;
+
+                        if (!Properties.TryGetValue ("host", out host))
+                            host = "localhost";
+
+                        if (!Properties.TryGetValue ("port", out portStr) && !listen)
+                            throw new FormatException ("No port specified");
+
+                        if (portStr != null && !Int32.TryParse (portStr, out port))
+                            throw new FormatException("Invalid port: \"" + port + "\"");
+
+                        if (!Properties.TryGetValue ("family", out family))
+                            family = null;
+
+                        if (string.IsNullOrEmpty(host))
+                        {
+                            throw new ArgumentException("host");
+                        }
+
+                        IPAddress[] addresses = await Dns.GetHostAddressesAsync(host);
+
+                        var endpoints = new IPEndPoint[addresses.Length];
+                        for (int i = 0; i < endpoints.Length; i++)
+                        {
+                            endpoints[i] = new IPEndPoint(addresses[i], port);
+                        }
+                        return endpoints;
+                    }
+                case "unix":
+                    {
+                        string path;
+                        bool abstr;
+
+                        if (Properties.TryGetValue("path", out path))
+                            abstr = false;
+                        else if (Properties.TryGetValue("abstract", out path))
+                            abstr = true;
+                        else
+                            throw new ArgumentException("No path specified for UNIX transport");
+
+                        if (String.IsNullOrEmpty(path))
+                        {
+                            throw new ArgumentException("path");
+                        }
+
+                        if (abstr)
+                        {
+                            path = (char)'\0' + path;
+                        }
+
+                        return new EndPoint[] { new UnixDomainSocketEndPoint(path) };
+                    }
+                default:
+                    throw new NotSupportedException("Transport method \"" + Method + "\" not supported");
+            }
         }
     }
 }

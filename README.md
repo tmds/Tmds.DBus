@@ -180,3 +180,4 @@ wlp4s0: Activated -> Unavailable
 * [D-Bus](docs/dbus.md): Short overview of D-Bus.
 * [Tmds.DBus Modelling](docs/modelling.md): Describes how to model D-Bus types in C# for use with Tmds.DBus.
 * [Tmds.DBus.Tool](docs/tool.md): Documentation of dotnet dbus tool.
+* [How-to](docs/howto.md): Documents some (advanced) use-cases.

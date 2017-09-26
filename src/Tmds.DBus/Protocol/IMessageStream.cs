@@ -11,5 +11,6 @@ namespace Tmds.DBus.Protocol
     {
         Task<Message> ReceiveMessageAsync();
         Task SendMessageAsync(Message message);
+        void TrySendMessage(Message message);
     }
 }

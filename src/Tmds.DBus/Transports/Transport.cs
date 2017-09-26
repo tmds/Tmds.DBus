@@ -5,8 +5,10 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,37 +18,48 @@ namespace Tmds.DBus.Transports
 {
     internal class Transport : IMessageStream
     {
+        private struct PendingSend
+        {
+            public Message Message;
+            public TaskCompletionSource<bool> CompletionSource;
+        }
+
         private static readonly byte[] _oneByteArray = new[] { (byte)0 };
         private readonly byte[] _headerReadBuffer = new byte[16];
         private readonly List<UnixFd> _fileDescriptors = new List<UnixFd>();
-        private readonly ConnectionContext _context;
         private TransportSocket _socket;
+        private ConcurrentQueue<PendingSend> _sendQueue;
+        private SemaphoreSlim _sendSemaphore;
 
-        public static async Task<IMessageStream> OpenAsync(AddressEntry entry, ConnectionContext connectionContext, CancellationToken cancellationToken)
+        public static async Task<IMessageStream> ConnectAsync(AddressEntry entry, ClientSetupResult connectionContext, CancellationToken cancellationToken)
         {
-            Transport transport = new Transport(connectionContext);
-            await transport.OpenAsync(entry, cancellationToken);
-            return transport;
-        }
-
-        private async Task OpenAsync(AddressEntry entry, CancellationToken cancellationToken)
-        {
+            TransportSocket socket = await TransportSocket.ConnectAsync(entry, cancellationToken, connectionContext.SupportsFdPassing);
             try
             {
-                _socket = await TransportSocket.ConnectAsync(entry, cancellationToken, _context.SupportsFdPassing);
-                await _socket.SendAsync(_oneByteArray, 0, 1);
-                await DoSaslAuthenticationAsync(entry.Guid);
+                Transport transport = new Transport(socket);
+                await transport.DoClientAuth(entry.Guid, connectionContext.UserId);
+                return transport;
             }
             catch
             {
-                _socket?.Dispose();
+                socket.Dispose();
                 throw;
             }
         }
 
-        private Transport(ConnectionContext context)
+        public static async Task<IMessageStream> AcceptAsync(Socket acceptedSocket, bool supportsFdPassing)
         {
-            _context = context;
+            var socket = new TransportSocket(acceptedSocket, supportsFdPassing);
+            Transport transport = new Transport(socket);
+            socket.SupportsFdPassing = await transport.DoServerAuth(socket.SupportsFdPassing);
+            return transport;
+        }
+
+        private Transport(TransportSocket socket)
+        {
+            _socket = socket;
+            _sendQueue = new ConcurrentQueue<PendingSend>();
+            _sendSemaphore = new SemaphoreSlim(1);
         }
 
         public async Task<Message> ReceiveMessageAsync()
@@ -153,12 +166,12 @@ namespace Tmds.DBus.Transports
             public Guid Guid;
         }
 
-        class AuthCommand
+        class SplitLine
         {
             public readonly string Value;
             private readonly List<string> _args = new List<string>();
 
-            public AuthCommand(string value)
+            public SplitLine(string value)
             {
                 this.Value = value.Trim();
                 _args.AddRange(Value.Split(' '));
@@ -175,9 +188,64 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        private async Task DoSaslAuthenticationAsync(Guid guid)
+        private async Task<bool> DoServerAuth(bool supportsFdPassing)
         {
-            var authenticationResult = await AuthenticateAsync();
+            bool peerSupportsFdPassing = false;
+            // receive 1 byte
+            byte[] buffer = new byte[1];
+            int length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors);
+            if (length == 0)
+            {
+                throw new IOException("Connection closed by peer");
+            }
+            // auth
+            while (true)
+            {
+                var line = await ReadLineAsync();
+                if (line[0] == "AUTH")
+                {
+                    if (line[1] == "ANONYMOUS")
+                    {
+                        await WriteLineAsync("OK");
+                    }
+                    else
+                    {
+                        await WriteLineAsync("REJECTED ANONYMOUS");
+                    }
+                }
+                else if (line[0] == "CANCEL")
+                {
+                    await WriteLineAsync("REJECTED ANONYMOUS");
+                }
+                else if (line[0] == "BEGIN")
+                {
+                    break;
+                }
+                else if (line[0] == "DATA")
+                {
+                    throw new ProtocolException("Unexpected DATA message during authentication.");
+                }
+                else if (line[0] == "ERROR")
+                { }
+                else if (line[0] == "NEGOTIATE_UNIX_FD" && supportsFdPassing)
+                {
+                    await WriteLineAsync("AGREE_UNIX_FD");
+                    peerSupportsFdPassing = true;
+                }
+                else
+                {
+                    await WriteLineAsync("ERROR");
+                }
+            }
+            return peerSupportsFdPassing;
+        }
+
+        private async Task DoClientAuth(Guid guid, string userId)
+        {
+            // send 1 byte
+            await _socket.SendAsync(_oneByteArray, 0, 1);
+            // auth
+            var authenticationResult = await SendAuthCommands(userId);
             _socket.SupportsFdPassing = authenticationResult.SupportsFdPassing;
             if (guid != Guid.Empty)
             {
@@ -188,12 +256,12 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        private async Task<AuthenticationResult> AuthenticateAsync()
+        private async Task<AuthenticationResult> SendAuthCommands(string userId)
         {
             string initialData = null;
-            if (_context.UserId != null)
+            if (userId != null)
             {
-                byte[] bs = Encoding.ASCII.GetBytes(_context.UserId);
+                byte[] bs = Encoding.ASCII.GetBytes(userId);
                 initialData = ToHex(bs);
             }
             AuthenticationResult result;
@@ -209,7 +277,7 @@ namespace Tmds.DBus.Transports
                 {
                     continue;
                 }
-                result = await AuthenticateAsync(command);
+                result = await SendAuthCommand(command);
                 if (result.IsAuthenticated)
                 {
                     return result;
@@ -219,11 +287,11 @@ namespace Tmds.DBus.Transports
             throw new ConnectException("Authentication failure");
         }
 
-        private async Task<AuthenticationResult> AuthenticateAsync(string command)
+        private async Task<AuthenticationResult> SendAuthCommand(string command)
         {
             AuthenticationResult result = default(AuthenticationResult);
             await WriteLineAsync(command);
-            AuthCommand reply = await ReadReplyAsync();
+            SplitLine reply = await ReadLineAsync();
 
             if (reply[0] == "OK")
             {
@@ -233,7 +301,7 @@ namespace Tmds.DBus.Transports
                 if (_socket.SupportsFdPassing)
                 {
                     await WriteLineAsync("NEGOTIATE_UNIX_FD");
-                    reply = await ReadReplyAsync();
+                    reply = await ReadLineAsync();
                     result.SupportsFdPassing = reply[0] == "AGREE_UNIX_FD";
                 }
 
@@ -258,19 +326,19 @@ namespace Tmds.DBus.Transports
             return _socket.SendAsync(bytes, 0, bytes.Length);
         }
 
-        private async Task<AuthCommand> ReadReplyAsync()
+        private async Task<SplitLine> ReadLineAsync()
         {
             byte[] buffer = new byte[1];
             StringBuilder sb = new StringBuilder();
             while (true)
             {
                 int length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors);
-                byte b = buffer[0];
                 if (length == 0)
                 {
                     throw new IOException("Connection closed by peer");
                 }
-                else if (b == '\r')
+                byte b = buffer[0];
+                if (b == '\r')
                 {
                     length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors);
                     b = buffer[0];
@@ -279,7 +347,7 @@ namespace Tmds.DBus.Transports
                         string ln = sb.ToString();
                         if (ln != string.Empty)
                         {
-                            return new AuthCommand(ln);
+                            return new SplitLine(ln);
                         }
                         else
                         {
@@ -311,7 +379,50 @@ namespace Tmds.DBus.Transports
 
         public Task SendMessageAsync(Message message)
         {
-            return _socket.SendAsync(message);
+            var tcs = new TaskCompletionSource<bool>();
+            var pendingSend = new PendingSend()
+            {
+                Message = message,
+                CompletionSource = tcs
+            };
+            _sendQueue.Enqueue(pendingSend);
+            SendPendingMessages();
+            return tcs.Task;
+        }
+
+        public void TrySendMessage(Message message)
+        {
+            var pendingSend = new PendingSend()
+            {
+                Message = message
+            };
+            _sendQueue.Enqueue(pendingSend);
+            SendPendingMessages();
+        }
+
+        private async void SendPendingMessages()
+        {
+            try
+            {
+                await _sendSemaphore.WaitAsync();
+                PendingSend pendingSend;
+                while (_sendQueue.TryDequeue(out pendingSend))
+                {
+                    try
+                    {
+                        await _socket.SendAsync(pendingSend.Message);
+                        pendingSend.CompletionSource?.SetResult(true);
+                    }
+                    catch (System.Exception)
+                    {
+                        pendingSend.CompletionSource?.SetResult(false);
+                    }
+                }
+            }
+            finally
+            {
+                _sendSemaphore.Release();
+            }
         }
 
         public void Dispose()

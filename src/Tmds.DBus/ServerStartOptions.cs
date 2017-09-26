@@ -3,22 +3,20 @@
 // See COPYING for details
 
 using System;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace Tmds.DBus
 {
     /// <summary>
-    /// Options that configure the behavior of a Connection.
+    /// Options that configure the behavior of ServerConnectionOptions.Start.
     /// </summary>
-    public abstract class ConnectionOptions
+    public class ServerStartOptions : ConnectionOptions
     {
-        internal ConnectionOptions()
-        {}
-
         /// <summary>
-        /// SynchronizationContext used for event handlers and callbacks.
+        /// Listen address (e.g. 'tcp:host=localhost').
         /// </summary>
-        public SynchronizationContext SynchronizationContext { get; set; }
+        public string Address { get; set; }
     }
 }

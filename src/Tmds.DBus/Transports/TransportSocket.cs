@@ -220,7 +220,8 @@ namespace Tmds.DBus.Transports
             if (!_supportsFdPassing)
             {
                 var readContext = _receiveData.UserToken as ReadContext;
-                readContext.Tcs = readContext.Tcs ?? new TaskCompletionSource<int>();
+                TaskCompletionSource<int> tcs = readContext.Tcs ?? new TaskCompletionSource<int>();
+                readContext.Tcs = tcs;
                 _receiveData.SetBuffer(buffer, offset, count);
                 readContext.FileDescriptors = fileDescriptors;
                 if (!_socket.ReceiveAsync(_receiveData))
@@ -236,13 +237,14 @@ namespace Tmds.DBus.Transports
                 }
                 else
                 {
-                    return readContext.Tcs.Task;
+                    return tcs.Task;
                 }
             }
             else
             {
                 var readContext = _waitForData.UserToken as ReadContext;
-                readContext.Tcs = readContext.Tcs ?? new TaskCompletionSource<int>();
+                TaskCompletionSource<int> tcs = readContext.Tcs ?? new TaskCompletionSource<int>();
+                readContext.Tcs = tcs;
                 readContext.Buffer = buffer;
                 readContext.Offset = offset;
                 readContext.Count = count;
@@ -271,7 +273,7 @@ namespace Tmds.DBus.Transports
                     }
                     else
                     {
-                        return readContext.Tcs.Task;
+                        return tcs.Task;
                     }
                 }
             }
@@ -401,7 +403,8 @@ namespace Tmds.DBus.Transports
         private Task SendBufferListAsync(List<ArraySegment<byte>> bufferList)
         {
             var sendContext = _sendArgs.UserToken as SendContext;
-            sendContext.Tcs = sendContext.Tcs ?? new TaskCompletionSource<object>();
+            TaskCompletionSource<object> tcs = sendContext.Tcs ?? new TaskCompletionSource<object>();
+            sendContext.Tcs = tcs;
             _sendArgs.BufferList = bufferList;
             if (!_socket.SendAsync(_sendArgs))
             {
@@ -416,7 +419,7 @@ namespace Tmds.DBus.Transports
             }
             else
             {
-                return sendContext.Tcs.Task;
+                return tcs.Task;
             }
         }
 

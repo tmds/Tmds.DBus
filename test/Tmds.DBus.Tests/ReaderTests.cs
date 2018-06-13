@@ -314,6 +314,11 @@ namespace Tmds.DBus.Tests
             public string Name;
             public string City;
             public int? PostalCode;
+
+            // This field is added to check the reader does not throw when deserializing 'Name'
+            // https://github.com/tmds/Tmds.DBus/issues/43
+            public string PrefixName;
+
             public override bool Equals(object rhs)
             {
                 var other = rhs as PersonProperties2;

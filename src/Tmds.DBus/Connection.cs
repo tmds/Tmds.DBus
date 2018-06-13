@@ -671,7 +671,7 @@ namespace Tmds.DBus
 
             var synchronizationContext = CaptureSynchronizationContext();
             var wrappedDisposable = new WrappedDisposable(synchronizationContext);
-            bool namespaceLookup = serviceName.EndsWith(".*");
+            bool namespaceLookup = serviceName.EndsWith(".*", StringComparison.Ordinal);
             bool _eventEmitted = false;
             var _gate = new object();
             var _emittedServices = namespaceLookup ? new List<string>() : null;
@@ -724,7 +724,7 @@ namespace Tmds.DBus
                     var services = await ListServicesAsync();
                     foreach (var service in services)
                     {
-                        if (service.StartsWith(serviceName)
+                        if (service.StartsWith(serviceName, StringComparison.Ordinal)
                          && (   (service.Length == serviceName.Length)
                              || (service[serviceName.Length] == '.')
                              || (serviceName.Length == 0 && service[0] != ':')))

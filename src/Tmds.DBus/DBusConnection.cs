@@ -496,7 +496,7 @@ namespace Tmds.DBus
                     break;
                 case MessageType.Error:
                     string errMsg = String.Empty;
-                    if (msg.Header.Signature.Value.Value.StartsWith("s"))
+                    if (msg.Header.Signature.Value.Value.StartsWith("s", StringComparison.Ordinal))
                     {
                         MessageReader reader = new MessageReader(msg, null);
                         errMsg = reader.ReadString();
@@ -893,7 +893,7 @@ namespace Tmds.DBus
                         return reply;
                     case MessageType.Error:
                         string errorMessage = String.Empty;
-                        if (reply.Header.Signature?.Value?.StartsWith("s") == true)
+                        if (reply.Header.Signature?.Value?.StartsWith("s", StringComparison.Ordinal) == true)
                         {
                             MessageReader reader = new MessageReader(reply, null);
                             errorMessage = reader.ReadString();

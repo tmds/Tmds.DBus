@@ -178,7 +178,7 @@ namespace Tmds.DBus.Tool
                 Array.Sort(services);
                 foreach (var service in services)
                 {
-                    if (!service.StartsWith(":"))
+                    if (!service.StartsWith(":", StringComparison.Ordinal))
                     {
                         Console.WriteLine(service);
                     }

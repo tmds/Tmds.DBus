@@ -66,7 +66,7 @@ namespace MediaPlayerRemote
                 {
                     await connection.ConnectAsync();
                     var services = await connection.ListServicesAsync();
-                    var players = services.Where(service => service.StartsWith(s_mediaPlayerService));
+                    var players = services.Where(service => service.StartsWith(s_mediaPlayerService, StringComparison.Ordinal));
 
                     if (!players.Any())
                     {

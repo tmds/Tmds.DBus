@@ -35,9 +35,9 @@ namespace Tmds.DBus
 
         static void Validate(string value)
         {
-            if (!value.StartsWith("/"))
+            if (!value.StartsWith("/", StringComparison.Ordinal))
                 throw new ArgumentException("value");
-            if (value.EndsWith("/") && value.Length > 1)
+            if (value.EndsWith("/", StringComparison.Ordinal) && value.Length > 1)
                 throw new ArgumentException("ObjectPath cannot end in '/'");
 
             bool multipleSlash = false;
@@ -104,7 +104,7 @@ namespace Tmds.DBus
             if (b == null)
                 return false;
 
-            return Value.Equals(b.Value.Value);
+            return Value.Equals(b.Value.Value, StringComparison.Ordinal);
         }
 
         /// <summary>

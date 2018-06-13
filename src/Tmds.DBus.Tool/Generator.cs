@@ -96,10 +96,10 @@ namespace Tmds.DBus.Tool
             => interfaceXml.Elements("property");
 
         private IEnumerable<XElement> ReadableProperties(XElement interfaceXml)
-            => Properties(interfaceXml).Where(p => p.Attribute("access").Value.StartsWith("read"));
+            => Properties(interfaceXml).Where(p => p.Attribute("access").Value.StartsWith("read", StringComparison.Ordinal));
 
         private IEnumerable<XElement> WritableProperties(XElement interfaceXml)
-            => Properties(interfaceXml).Where(p => p.Attribute("access").Value.EndsWith("write"));
+            => Properties(interfaceXml).Where(p => p.Attribute("access").Value.EndsWith("write", StringComparison.Ordinal));
 
         private SyntaxNode InterfaceDeclaration(string name, XElement interfaceXml)
         {

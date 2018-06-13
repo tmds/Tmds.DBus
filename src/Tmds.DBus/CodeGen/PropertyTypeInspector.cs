@@ -12,7 +12,7 @@ namespace Tmds.DBus.CodeGen
         public static void InspectField(FieldInfo field, out string propertyName, out Type propertyType)
         {
             propertyName = field.Name;
-            if (propertyName.StartsWith("_"))
+            if (propertyName.StartsWith("_", StringComparison.Ordinal))
             {
                 propertyName = propertyName.Substring(1);
             }

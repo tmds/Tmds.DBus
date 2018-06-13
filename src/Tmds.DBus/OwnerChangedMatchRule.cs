@@ -2,6 +2,7 @@
 // This software is made available under the MIT License
 // See COPYING for details
 
+using System;
 using System.Text;
 
 namespace Tmds.DBus
@@ -59,7 +60,7 @@ namespace Tmds.DBus
             {
                 if (ServiceName == ".*")
                 {}
-                else if (ServiceName.EndsWith(".*"))
+                else if (ServiceName.EndsWith(".*", StringComparison.Ordinal))
                 {
                     Append(sb, "arg0namespace", ServiceName.Substring(0, ServiceName.Length - 2));
                 }

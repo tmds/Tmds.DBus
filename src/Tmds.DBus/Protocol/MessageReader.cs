@@ -399,7 +399,7 @@ namespace Tmds.DBus.Protocol
 
                 // if the key contains a '-' which is an invalid identifier character,
                 // we try and replace it with '_' and see if we find a match.
-                var field = fis.Where(f => f.Name.EndsWith(key) || (key.Contains("-") && f.Name.Replace('_', '-').EndsWith(key)) &&
+                var field = fis.Where(f => f.Name.EndsWith(key, StringComparison.Ordinal) || (key.Contains("-") && f.Name.Replace('_', '-').EndsWith(key, StringComparison.Ordinal)) &&
                                             ((f.Name.Length == key.Length) ||
                                              (f.Name.Length == key.Length + 1 && f.Name[0] == '_'))).SingleOrDefault();
 

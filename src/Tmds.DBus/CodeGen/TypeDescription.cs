@@ -151,11 +151,11 @@ namespace Tmds.DBus.CodeGen
             foreach (var member in type.GetMethods())
             {
                 string memberName = member.ToString();
-                if (!member.Name.EndsWith("Async"))
+                if (!member.Name.EndsWith("Async", StringComparison.Ordinal))
                 {
                     throw new ArgumentException($"{memberName} does not end with 'Async'");
                 }
-                var isSignal = member.Name.StartsWith("Watch");
+                var isSignal = member.Name.StartsWith("Watch", StringComparison.Ordinal);
                 if (isSignal)
                 {
                     if (member.ReturnType != s_signalReturnType)

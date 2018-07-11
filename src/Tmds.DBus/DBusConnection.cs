@@ -737,6 +737,7 @@ namespace Tmds.DBus
                         
                         var xml = writer.ToString();
                         SendMessage(MessageHelper.ConstructReply(methodCall, xml), peer);
+                        return;
                     }
                 }
                 SendUnknownMethodError(methodCall, peer);

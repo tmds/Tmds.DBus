@@ -17,9 +17,6 @@ namespace Tmds.DBus.Protocol
 {
     internal class MessageReader
     {
-        private static readonly MethodInfo s_createReadDelegateMethod = typeof(ReadMethodFactory)
-            .GetMethod(nameof(ReadMethodFactory.CreateReadMethodDelegate), BindingFlags.Static | BindingFlags.Public);
-
         private readonly EndianFlag _endianness;
         private readonly ArraySegment<byte> _data;
         private readonly Message _message;
@@ -52,9 +49,8 @@ namespace Tmds.DBus.Protocol
         {
             if (type.GetTypeInfo().IsEnum)
             {
-                var delegateMethod = s_createReadDelegateMethod.MakeGenericMethod(type);
-                var readMethodDelegate = (Delegate)delegateMethod.Invoke(null, null);
-                return readMethodDelegate.DynamicInvoke(new object[] { this });
+                var value = Read(Enum.GetUnderlyingType(type));
+                return Enum.ToObject(type, value);
             }
 
             if (type == typeof(bool))
@@ -141,6 +137,13 @@ namespace Tmds.DBus.Protocol
         {
             ObjectPath path = ReadObjectPath();
             return _proxyFactory.CreateProxy<T>(_message.Header.Sender, path);
+        }
+
+        public T ReadEnum<T>()
+        {
+            Type type = typeof(T);
+            var value = Read(Enum.GetUnderlyingType(type));
+            return (T)Enum.ToObject(type, value);
         }
 
         public byte ReadByte ()

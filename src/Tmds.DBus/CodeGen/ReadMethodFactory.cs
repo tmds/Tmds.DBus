@@ -24,7 +24,7 @@ namespace Tmds.DBus.CodeGen
         {
             if (type.GetTypeInfo().IsEnum)
             {
-                type = Enum.GetUnderlyingType(type);
+                return s_messageReaderReadEnum.MakeGenericMethod(new[] { type });
             }
 
             if (type == typeof(bool))
@@ -135,6 +135,7 @@ namespace Tmds.DBus.CodeGen
             throw new ArgumentException($"Cannot (de)serialize Type '{type.FullName}'");
         }
 
+        private static readonly MethodInfo s_messageReaderReadEnum = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadEnum));
         private static readonly MethodInfo s_messageReaderReadBoolean = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadBoolean));
         private static readonly MethodInfo s_messageReaderReadByte = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadByte));
         private static readonly MethodInfo s_messageReaderReadDouble = typeof(MessageReader).GetMethod(nameof(MessageReader.ReadDouble));

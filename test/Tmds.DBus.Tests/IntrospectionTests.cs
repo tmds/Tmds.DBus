@@ -96,6 +96,18 @@ namespace Tmds.DBus.Tests
       <arg direction=""out"" name=""value"" type=""s""/>
     </method>
   </interface>
+  <interface name=""org.freedesktop.DBus.Introspectable"">
+    <method name=""Introspect"">
+      <arg direction=""out"" name=""data"" type=""s""/>
+    </method>
+  </interface>
+  <interface name=""org.freedesktop.DBus.Peer"">
+    <method name=""Ping"">
+    </method>
+    <method name=""GetMachineId"">
+      <arg direction=""out"" name=""machineId"" type=""s""/>
+    </method>
+  </interface>
 </node>
 ");
 
@@ -110,6 +122,18 @@ namespace Tmds.DBus.Tests
       <arg direction=""out"" name=""value"" type=""s""/>
     </method>
   </interface>
+  <interface name=""org.freedesktop.DBus.Introspectable"">
+    <method name=""Introspect"">
+      <arg direction=""out"" name=""data"" type=""s""/>
+    </method>
+  </interface>
+  <interface name=""org.freedesktop.DBus.Peer"">
+    <method name=""Ping"">
+    </method>
+    <method name=""GetMachineId"">
+      <arg direction=""out"" name=""machineId"" type=""s""/>
+    </method>
+  </interface>
   <node name=""child1""/>
   <node name=""child2""/>
 </node>
@@ -119,6 +143,18 @@ namespace Tmds.DBus.Tests
 @"<!DOCTYPE node PUBLIC ""-//freedesktop//DTD D-BUS Object Introspection 1.0//EN""
 ""http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd"">
 <node name=""/tmds/dbus/tests"">
+  <interface name=""org.freedesktop.DBus.Introspectable"">
+    <method name=""Introspect"">
+      <arg direction=""out"" name=""data"" type=""s""/>
+    </method>
+  </interface>
+  <interface name=""org.freedesktop.DBus.Peer"">
+    <method name=""Ping"">
+    </method>
+    <method name=""GetMachineId"">
+      <arg direction=""out"" name=""machineId"" type=""s""/>
+    </method>
+  </interface>
   <node name=""stringoperations""/>
   <node name=""otherstringoperations""/>
 </node>
@@ -143,6 +179,39 @@ namespace Tmds.DBus.Tests
     <property name=""Age"" type=""i"" access=""readwrite""/>
     <property name=""IsMarried"" type=""b"" access=""readwrite""/>
     <property name=""Tuple"" type=""(iiiiiiii)"" access=""readwrite""/>
+  </interface>
+  <interface name=""org.freedesktop.DBus.Properties"">
+    <method name=""Get"">
+      <arg direction=""in"" name=""interfaceName"" type=""s""/>
+      <arg direction=""in"" name=""propertyName"" type=""s""/>
+      <arg direction=""out"" name=""value"" type=""v""/>
+    </method>
+    <method name=""Set"">
+      <arg direction=""in"" name=""interfaceName"" type=""s""/>
+      <arg direction=""in"" name=""propertyName"" type=""s""/>
+      <arg direction=""in"" name=""value"" type=""v""/>
+    </method>
+    <method name=""GetAll"">
+      <arg direction=""in"" name=""interfaceName"" type=""s""/>
+      <arg direction=""out"" name=""properties"" type=""a{sv}""/>
+    </method>
+    <signal name=""PropertiesChanged"">
+      <arg name=""interfaceName"" type=""s""/>
+      <arg name=""changed"" type=""a{sv}""/>
+      <arg name=""invalidated"" type=""as""/>
+    </signal>
+  </interface>
+  <interface name=""org.freedesktop.DBus.Introspectable"">
+    <method name=""Introspect"">
+      <arg direction=""out"" name=""data"" type=""s""/>
+    </method>
+  </interface>
+  <interface name=""org.freedesktop.DBus.Peer"">
+    <method name=""Ping"">
+    </method>
+    <method name=""GetMachineId"">
+      <arg direction=""out"" name=""machineId"" type=""s""/>
+    </method>
   </interface>
 </node>
 ");

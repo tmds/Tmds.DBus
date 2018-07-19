@@ -368,6 +368,7 @@ namespace Tmds.DBus.CodeGen
         private string GenerateIntrospectionXml(TypeDescription description)
         {
             var writer = new IntrospectionWriter();
+            bool hasProperties = false;
 
             foreach (var interf in description.Interfaces)
             {
@@ -398,10 +399,17 @@ namespace Tmds.DBus.CodeGen
 
                 foreach (var prop in interf.Properties)
                 {
+                    hasProperties = true;
                     writer.WriteProperty(prop.Name, prop.Signature, prop.Access);
                 }
                 writer.WriteInterfaceEnd();
             }
+            if (hasProperties)
+            {
+                writer.WritePropertiesInterface();
+            }
+            writer.WriteIntrospectableInterface();
+            writer.WritePeerInterface();
 
             return writer.ToString();
         }

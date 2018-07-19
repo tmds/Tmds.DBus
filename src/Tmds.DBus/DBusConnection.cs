@@ -729,6 +729,8 @@ namespace Tmds.DBus
 
                         writer.WriteDocType();
                         writer.WriteNodeStart(path.Value);
+                        writer.WriteIntrospectableInterface();
+                        writer.WritePeerInterface();
                         foreach (var child in childNames)
                         {
                             writer.WriteChildNode(child);

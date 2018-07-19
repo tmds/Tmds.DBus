@@ -16,6 +16,61 @@ namespace Tmds.DBus.Protocol
             _sb.Append("\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n");
         }
 
+        public void WriteIntrospectableInterface()
+        {
+            WriteInterfaceStart("org.freedesktop.DBus.Introspectable");
+
+            WriteMethodStart("Introspect");
+            WriteOutArg("data", Signature.StringSig);
+            WriteMethodEnd();
+
+            WriteInterfaceEnd();
+        }
+
+        public void WritePropertiesInterface()
+        {
+            WriteInterfaceStart("org.freedesktop.DBus.Properties");
+
+            WriteMethodStart("Get");
+            WriteInArg("interfaceName", Signature.StringSig);
+            WriteInArg("propertyName", Signature.StringSig);
+            WriteOutArg("value", Signature.VariantSig);
+            WriteMethodEnd();
+
+            WriteMethodStart("Set");
+            WriteInArg("interfaceName", Signature.StringSig);
+            WriteInArg("propertyName", Signature.StringSig);
+            WriteInArg("value", Signature.VariantSig);
+            WriteMethodEnd();
+
+            WriteMethodStart("GetAll");
+            WriteInArg("interfaceName", Signature.StringSig);
+            WriteOutArg("properties", new Signature("a{sv}"));
+            WriteMethodEnd();
+
+            WriteSignalStart("PropertiesChanged");
+            WriteArg("interfaceName", Signature.StringSig);
+            WriteArg("changed", new Signature("a{sv}"));
+            WriteArg("invalidated", new Signature("as"));
+            WriteSignalEnd();
+
+            WriteInterfaceEnd();
+        }
+
+        public void WritePeerInterface()
+        {
+            WriteInterfaceStart("org.freedesktop.DBus.Peer");
+
+            WriteMethodStart("Ping");
+            WriteMethodEnd();
+
+            WriteMethodStart("GetMachineId");
+            WriteOutArg("machineId", Signature.StringSig);
+            WriteMethodEnd();
+
+            WriteInterfaceEnd();
+        }
+
         public void WriteInterfaceStart(string name)
         {
             _sb.AppendFormat("  <interface name=\"{0}\">\n", name);

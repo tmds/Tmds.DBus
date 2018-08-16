@@ -11,17 +11,35 @@ namespace Tmds.DBus.CodeGen
     {
         public static void InspectField(FieldInfo field, out string propertyName, out Type propertyType)
         {
-            propertyName = field.Name;
-            if (propertyName.StartsWith("_", StringComparison.Ordinal))
+            PropertyAttribute attribute = field.GetCustomAttribute<PropertyAttribute>();
+
+            if (attribute?.Name != null)
             {
-                propertyName = propertyName.Substring(1);
+                propertyName = attribute.Name;
             }
-            propertyType = field.FieldType;
-            var typeInfo = propertyType.GetTypeInfo();
-            bool isNullableType = typeInfo.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
-            if (isNullableType)
+            else
             {
-                propertyType = Nullable.GetUnderlyingType(propertyType);
+                propertyName = field.Name;
+                if (propertyName.StartsWith("_", StringComparison.Ordinal))
+                {
+                    propertyName = propertyName.Substring(1);
+                }
+            }
+
+            if (attribute?.Type != null)
+            {
+                propertyType = attribute.Type;
+            }
+            else
+            {
+                propertyType = field.FieldType;
+                var typeInfo = propertyType.GetTypeInfo();
+                bool isNullableType =
+                    typeInfo.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
+                if (isNullableType)
+                {
+                    propertyType = Nullable.GetUnderlyingType(propertyType);
+                }
             }
         }
     }

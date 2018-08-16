@@ -120,8 +120,9 @@ namespace Tmds.DBus.Tests
 
             public ObjectPath ObjectPath => Path;
 
-            public Task ThrowAsync()
+            public async Task ThrowAsync()
             {
+                await Task.Yield();
                 throw new Exception(ExceptionMessage);
             }
         }

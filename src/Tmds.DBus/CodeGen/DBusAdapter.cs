@@ -149,7 +149,7 @@ namespace Tmds.DBus.CodeGen
             return $"org.freedesktop.DBus.Properties.{iface}.{member}.s{signature?.Value}";
         }
 
-        public Task<Message> HandleMethodCall(Message methodCall)
+        public async Task<Message> HandleMethodCall(Message methodCall)
         {
             var key = GetMethodLookupKey(methodCall.Header.Interface, methodCall.Header.Member, methodCall.Header.Signature);
             MethodCallHandler handler = null;
@@ -169,15 +169,15 @@ namespace Tmds.DBus.CodeGen
                 {
                     try
                     {
-                        return handler(_object, methodCall, _factory);
+                        return await handler(_object, methodCall, _factory);
                     }
                     catch (DBusException be)
                     {
-                        return Task.FromResult(MessageHelper.ConstructErrorReply(methodCall, be.ErrorName, be.ErrorMessage));
+                        return MessageHelper.ConstructErrorReply(methodCall, be.ErrorName, be.ErrorMessage);
                     }
                     catch (Exception e)
                     {
-                        return Task.FromResult(MessageHelper.ConstructErrorReply(methodCall, e.GetType().FullName, e.Message));
+                        return MessageHelper.ConstructErrorReply(methodCall, e.GetType().FullName, e.Message);
                     }
                 }
                 else
@@ -199,7 +199,7 @@ namespace Tmds.DBus.CodeGen
                         }
                         tcs.SetResult(reply);
                     }, null);
-                    return tcs.Task;
+                    return await tcs.Task;
                 }
             }
             else
@@ -211,7 +211,7 @@ namespace Tmds.DBus.CodeGen
 
                 var replyMessage = MessageHelper.ConstructErrorReply(methodCall, "org.freedesktop.DBus.Error.UnknownMethod", errorMessage);
 
-                return Task.FromResult(replyMessage);
+                return replyMessage;
             }
         }
 

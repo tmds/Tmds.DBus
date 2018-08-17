@@ -20,6 +20,12 @@ namespace Tmds.DBus.Tests
             public int? Age;
             public bool IsMarried;
             public (int, int, int, int, int, int, int, int) Tuple;
+            [Property(Name = "Title")]
+            public string Renamed;
+            [Property(Access = PropertyAccess.Read)]
+            public string ReadOnly;
+            [Property(Name = "SomeFlag", Access = PropertyAccess.Write)]
+            public string Flag;
         }
 
         [DBusInterface("tmds.dbus.tests.personproperties1")]
@@ -179,6 +185,9 @@ namespace Tmds.DBus.Tests
     <property name=""Age"" type=""i"" access=""readwrite""/>
     <property name=""IsMarried"" type=""b"" access=""readwrite""/>
     <property name=""Tuple"" type=""(iiiiiiii)"" access=""readwrite""/>
+    <property name=""Title"" type=""s"" access=""readwrite""/>
+    <property name=""ReadOnly"" type=""s"" access=""read""/>
+    <property name=""SomeFlag"" type=""s"" access=""write""/>
   </interface>
   <interface name=""org.freedesktop.DBus.Properties"">
     <method name=""Get"">

@@ -26,20 +26,13 @@ namespace Tmds.DBus.CodeGen
                 }
             }
 
-            if (attribute?.Type != null)
+            propertyType = field.FieldType;
+            var typeInfo = propertyType.GetTypeInfo();
+            bool isNullableType =
+                typeInfo.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
+            if (isNullableType)
             {
-                propertyType = attribute.Type;
-            }
-            else
-            {
-                propertyType = field.FieldType;
-                var typeInfo = propertyType.GetTypeInfo();
-                bool isNullableType =
-                    typeInfo.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
-                if (isNullableType)
-                {
-                    propertyType = Nullable.GetUnderlyingType(propertyType);
-                }
+                propertyType = Nullable.GetUnderlyingType(propertyType);
             }
         }
     }

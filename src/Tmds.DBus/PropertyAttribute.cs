@@ -18,10 +18,5 @@ namespace Tmds.DBus
         /// Specifies the mutability of the property.
         /// </summary>
         public PropertyAccess Access { get; set; } = PropertyAccess.ReadWrite;
-
-        /// <summary>
-        /// If not null, used to override the type used in the signature.
-        /// </summary>
-        public Type Type { get; set; }
     }
 }

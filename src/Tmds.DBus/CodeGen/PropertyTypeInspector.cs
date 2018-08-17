@@ -28,8 +28,7 @@ namespace Tmds.DBus.CodeGen
 
             propertyType = field.FieldType;
             var typeInfo = propertyType.GetTypeInfo();
-            bool isNullableType =
-                typeInfo.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
+            bool isNullableType = typeInfo.IsGenericType && propertyType.GetGenericTypeDefinition() == typeof(Nullable<>);
             if (isNullableType)
             {
                 propertyType = Nullable.GetUnderlyingType(propertyType);

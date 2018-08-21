@@ -4,7 +4,7 @@
 
 To model a D-Bus interface using Tmds.MDns we create a .NET interface with the `DBusInterface` attribute and inherit `IDBusObject`.
 
-```
+```cs
 [DBusInterface("org.mpris.MediaPlayer2.Player")]
 public interface IPlayer : IDBusObject
 {
@@ -20,7 +20,7 @@ public interface ITrackList : IDBusObject
 
 To model a D-Bus ab object type we can either create an empty interface and make it inherit the D-Bus interfaces of the object. Or we can choose one of the interfaces which is typical for that object and make that inherit the other interfaces. In case we we only need one interface of an object, there is no need to model the object separately.
 
-```
+```cs
 // option 1
 public interface IPlayerObject : IPlayer, ITrackList
 {
@@ -76,7 +76,7 @@ The `float` type is not part of the D-Bus specification. It was implemented as p
 
 A D-Bus method is modeled by a method in the .NET interface. The method must to return `Task` for methods without a return value and `Task<T>` for methods with a return value. Following async naming conventions, we add `Async` to the method name. In case a method has multiple out-arguments, these must be combined in a struct/class as public fields or a C# 7 tuple. The input arguments of the D-Bus method are the method parameters.
 
-```
+```cs
 [DBusInterface("org.mpris.MediaPlayer2.TrackList")]
 public interface ITrackList
 {
@@ -88,7 +88,7 @@ public interface ITrackList
 
 To differentiate between a single output parameter of type STRUCT and multiple output parameters, use the `Argument` attribute to indicate the return value represents a single argument in the STRUCT case.
 
-```
+```cs
 struct RetVal
 {
     public string arg1;
@@ -118,7 +118,7 @@ public interface ITrackList
 
 In case the return type of a method is `Task<object>` the method may me modeled as a generic method of `Task<T>`.
 
-```
+```cs
 [DBusInterface("tmds.dbus.example.variantreturn")]
 public interface ITrackList
 {
@@ -133,7 +133,7 @@ public interface ITrackList
 
 A D-Bus signal is modeled by a method in the .NET interface which matches the D-Bus signal name prefixed with `Watch` and sufixed with `Async` suffix. The method needs to return `Task<IDisposable>`. The returned `IDisposable` can be used to unsubscribe from the signal. The method has a handler parameter. The handler must be of type `Action` for signals without parameters and of type `Action<T>` for methods which do have parameters. In case there are multiple parameters, they must be wrapped in a struct/class as public fields or use a C# 7 tuple. Similar to the method output parameter, the `ArgumentAttribute` can be set on the `Action` to distinguish between a single STRUCT being returned (attribute set) or multiple arguments (no attribute). A second action of type `Action<Exception>` can be specified. This action will be called when the Connection is closed.
 
-```
+```cs
 [DBusInterface("org.freedesktop.NetworkManager")]
 public interface INetworkManager : IDBusObject
 {
@@ -146,7 +146,7 @@ public interface INetworkManager : IDBusObject
 
 Properties are defined per interface and accessed using `org.freedesktop.DBus.Properties`. This interface includes a signal for change detection but it depends on the object or even the specific property whether the signal is emitted. The `org.freedesktop.DBus.Properties` interface is modeled by adding a `GetAsync`, `SetAsync`, `GetAllAsync` and `WatchPropertiesAsync` with specific signatures to the D-Bus interface.
 
-```
+```cs
 [DBusInterface("org.mpris.MediaPlayer2.TrackList")]
 public interface ITrackList
 {
@@ -159,7 +159,7 @@ public interface ITrackList
 
 You may want to list properties in a separate class and even define extension methods to access them.
 
-```
+```cs
 class TrackListProperties
 {
     public ObjectPath[] Tracks;
@@ -176,7 +176,7 @@ static class TrackListPropertyExtensions
 
 By adding the `Dictionary` attribute to the properties class, we can use it as the return type of `GetAllAsync`.
 
-```
+```cs
 [Dictionary]
 class TrackListProperties
 {

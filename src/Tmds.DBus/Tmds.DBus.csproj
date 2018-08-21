@@ -5,7 +5,7 @@
     <Description>Tmds.DBus Library</Description>
     <VersionPrefix>0.7.0</VersionPrefix>
     <Authors>Tom Deseyn</Authors>
-    <TargetFramework>netstandard1.5</TargetFramework>
+    <TargetFrameworks>netstandard1.5;netstandard2.0</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageTags>dbus</PackageTags>
     <RepositoryType>git</RepositoryType>
@@ -13,13 +13,15 @@
     <PackageLicenseUrl>https://raw.githubusercontent.com/tmds/Tmds.DBus/master/COPYING</PackageLicenseUrl>
     <Copyright>Tom Deseyn;Alp Toker</Copyright>
   </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.5' ">
     <PackageReference Include="System.IO.MemoryMappedFiles" Version="4.3.0" />
-    <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
-    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.3.0" />
-    <PackageReference Include="System.ValueTuple" Version="4.3.0" />
+    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.5.0" />
+    <PackageReference Include="System.ValueTuple" Version="4.5.0" />
     <PackageReference Include="System.Security.Principal" Version="4.3.0" />
     <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
-    <PackageReference Include="System.Security.Principal.Windows" Version="4.3.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
+    <PackageReference Include="System.Security.Principal.Windows" Version="4.5.0" />
   </ItemGroup>
 </Project>

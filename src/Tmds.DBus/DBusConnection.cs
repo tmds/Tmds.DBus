@@ -711,9 +711,13 @@ namespace Tmds.DBus
             if (_methodHandlers.TryGetValue(methodCall.Header.Path.Value, out methodHandler))
             {
                 var reply = await methodHandler(methodCall);
-                reply.Header.ReplySerial = methodCall.Header.Serial;
-                reply.Header.Destination = methodCall.Header.Sender;
-                SendMessage(reply, peer);
+                // Only reply if the caller expected it. Otherwise DBus will reject with org.freedesktop.DBus.Error.AccessDenied
+                if (methodCall.Header.ReplyExpected)
+                {
+                    reply.Header.ReplySerial = methodCall.Header.Serial;
+                    reply.Header.Destination = methodCall.Header.Sender;
+                    SendMessage(reply, peer);
+                }
             }
             else
             {

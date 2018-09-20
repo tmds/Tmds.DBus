@@ -150,6 +150,11 @@ namespace Tmds.DBus.CodeGen
 
             foreach (var member in type.GetMethods())
             {
+                // Objects that have properties do not have to have "Async" in their name and is skipped.
+                if (member.IsSpecialName)
+                {
+                    continue;
+                }
                 string memberName = member.ToString();
                 if (!member.Name.EndsWith("Async", StringComparison.Ordinal))
                 {

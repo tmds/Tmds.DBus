@@ -90,7 +90,7 @@ namespace Tmds.DBus.CodeGen
 
             if (ArgTypeInspector.IsDBusObjectType(type, isCompileTimeType: true))
             {
-                return s_messageReaderReadDBusInterface.MakeGenericMethod(new[] { type }); ;
+                return s_messageReaderReadDBusInterface.MakeGenericMethod(new[] { type });
             }
 
             Type elementType;

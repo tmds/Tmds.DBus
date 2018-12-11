@@ -2,7 +2,7 @@
 
 ## Objects Types and Interfaces
 
-To model a D-Bus interface using Tmds.MDns we create a .NET interface with the `DBusInterface` attribute and inherit `IDBusObject`.
+To model a D-Bus interface using Tmds.DBus we create a .NET interface with the `DBusInterface` attribute and inherit `IDBusObject`.
 
 ```cs
 [DBusInterface("org.mpris.MediaPlayer2.Player")]

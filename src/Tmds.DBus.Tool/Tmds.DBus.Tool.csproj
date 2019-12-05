@@ -2,7 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFrameworks>netcoreapp2.1;netcoreapp3.0</TargetFrameworks>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>dotnet-dbus</ToolCommandName>
     <AssemblyName>dotnet-dbus</AssemblyName>
     <PackageId>Tmds.DBus.Tool</PackageId>
     <VersionPrefix>0.7.1</VersionPrefix>

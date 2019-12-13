@@ -12,7 +12,7 @@
     <Authors>Tom Deseyn</Authors>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/tmds/Tmds.DBus</RepositoryUrl>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/tmds/Tmds.DBus/master/COPYING</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Tom Deseyn</Copyright>
     <Description>Tmds.DBus CLI Tool</Description>
   </PropertyGroup>

@@ -29,7 +29,7 @@ $ dotnet new console -o netmon
 $ cd netmon
 ```
 
-Now we add references to `Tmds.DBus` and `Tmds.DBus.Tool` in `netmon.csproj`. We also set the `LangVersion` to be able
+Now we add references to `Tmds.DBus` in `netmon.csproj`. We also set the `LangVersion` to be able
 to use an `async Main` (C# 7.1).
 
 ```xml
@@ -41,7 +41,6 @@ to use an `async Main` (C# 7.1).
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Tmds.DBus" Version="0.5.0" />
-    <DotNetCliToolReference Include="Tmds.DBus.Tool" Version="0.5.0" />
   </ItemGroup>
 </Project>
 ```
@@ -50,6 +49,12 @@ Let's `restore` to fetch these dependencies:
 
 ```
 $ dotnet restore
+```
+
+Now we'll install the `Tmds.DBus.Tool`.
+
+```
+$ dotnet tool install -g Tmds.DBus.Tool
 ```
 
 Next, we use the `list` command to find out some information about the NetworkManager service:

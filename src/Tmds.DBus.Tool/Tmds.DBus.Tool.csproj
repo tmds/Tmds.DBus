@@ -7,7 +7,7 @@
     <ToolCommandName>dotnet-dbus</ToolCommandName>
     <AssemblyName>dotnet-dbus</AssemblyName>
     <PackageId>Tmds.DBus.Tool</PackageId>
-    <VersionPrefix>0.7.1</VersionPrefix>
+    <VersionPrefix>0.8.0</VersionPrefix>
     <PackageType>DotnetCliTool</PackageType>
     <Authors>Tom Deseyn</Authors>
     <RepositoryType>git</RepositoryType>

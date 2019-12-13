@@ -25,8 +25,8 @@ script:
   - pushd src/Tmds.DBus && dotnet restore && dotnet pack -c Release && popd
   - pushd test/Tmds.DBus.Tests && dotnet restore && dotnet test && popd
   - pushd src/Tmds.DBus.Tool && dotnet restore /p:VersionSuffix="$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER" && dotnet build && popd
-  - dotnet pack src/Tmds.DBus --configuration Release --version-suffix "$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER" --output .
-  - dotnet pack src/Tmds.DBus.Tool --configuration Release --version-suffix "$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER" --output .
+  - dotnet pack src/Tmds.DBus --configuration Release --version-suffix "$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER" --output src/Tmds.DBus
+  - dotnet pack src/Tmds.DBus.Tool --configuration Release --version-suffix "$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER" --output src/Tmds.DBus.Tool
 
 after_success:
   - 'if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then

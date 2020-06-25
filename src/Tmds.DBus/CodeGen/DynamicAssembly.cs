@@ -24,8 +24,19 @@ namespace Tmds.DBus.CodeGen
 
         private DynamicAssembly()
         {
-            _assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(Tmds.DBus.Connection.DynamicAssemblyName), AssemblyBuilderAccess.Run);
-            _moduleBuilder = _assemblyBuilder.DefineDynamicModule(Tmds.DBus.Connection.DynamicAssemblyName);
+            using (var keyStream = typeof(DynamicAssembly).GetTypeInfo().Assembly.GetManifestResourceStream("Tmds.DBus.sign.snk"))
+            {
+                if (keyStream == null) throw new InvalidOperationException("'Tmds.DBus.sign.snk' not found in resources");
+                var keyBuffer = new byte[keyStream.Length];
+                keyStream.Read(keyBuffer, 0, keyBuffer.Length);
+                var dynamicAssemblyName = "Tmds.DBus.Emit";
+                var assemblyName = new AssemblyName(dynamicAssemblyName);
+                assemblyName.Version = new Version(1, 0, 0);
+                assemblyName.Flags = AssemblyNameFlags.PublicKey;
+                assemblyName.SetPublicKey(keyBuffer);
+                _assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+                _moduleBuilder = _assemblyBuilder.DefineDynamicModule(dynamicAssemblyName);
+            }
             _proxyTypeMap = new Dictionary<Type, TypeInfo>();
             _adapterTypeMap = new Dictionary<Type, TypeInfo>();
         }

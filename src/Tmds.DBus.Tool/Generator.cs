@@ -15,6 +15,7 @@ namespace Tmds.DBus.Tool
     {
         public string Namespace { get; set; } = "DBus";
         public bool NoInternalsVisibleTo = false;
+        public Accessibility TypesAccessModifier = Accessibility.NotApplicable;
     }
 
     class Generator
@@ -110,7 +111,7 @@ namespace Tmds.DBus.Tool
             var propertiesDeclarations = Properties(interfaceXml).Any() ? PropertiesDeclaration(name) : Array.Empty<SyntaxNode>();
 
             var dbusInterfaceAttribute = _generator.Attribute(_dBusInterfaceAttribute, _generator.LiteralExpression(fullName));
-            var interfaceDeclaration = _generator.InterfaceDeclaration($"I{name}", null, Accessibility.NotApplicable,
+            var interfaceDeclaration = _generator.InterfaceDeclaration($"I{name}", null, _settings.TypesAccessModifier,
                 interfaceTypes: new[] { _iDBusObject },
                 members: methodDeclarations.Concat(signalDeclarations).Concat(propertiesDeclarations));
 
@@ -120,7 +121,7 @@ namespace Tmds.DBus.Tool
         private SyntaxNode PropertiesClassDeclaration(string name, IEnumerable<XElement> propertyXmls)
         {
             var propertyDeclarations = propertyXmls.Select(PropertyToDeclarations);
-            var propClass = _generator.ClassDeclaration($"{name}Properties", null, Accessibility.NotApplicable, DeclarationModifiers.None, null, null, propertyDeclarations.SelectMany(d => d));
+            var propClass = _generator.ClassDeclaration($"{name}Properties", null, _settings.TypesAccessModifier, DeclarationModifiers.None, null, null, propertyDeclarations.SelectMany(d => d));
             return _generator.AddAttributes(propClass, _dictionaryAttribute);
         }
 
@@ -136,7 +137,7 @@ namespace Tmds.DBus.Tool
             {
                 methods.Add(PropertyToSet(interfaceName, propertyXml));
             }
-            return _generator.ClassDeclaration($"{name}Extensions", null, Accessibility.NotApplicable, DeclarationModifiers.Static, null, null, methods);
+            return _generator.ClassDeclaration($"{name}Extensions", null, _settings.TypesAccessModifier, DeclarationModifiers.Static, null, null, methods);
         }
 
         private SyntaxNode PropertyToGet(string interfaceName, XElement propertyXml)

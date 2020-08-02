@@ -44,6 +44,7 @@ Additional argument allow to further control the behavior:
 * `skip`: don't generate C# for certain interfaces
 * `interface`: only generate C# for certain interfaces
 * `no-ivt`: don't add the InternalsVisibleTo Attribute
+* `public`: generate the code with public access modifier to make the types visible to other assemblies
 
 The `interface` argument can also be used to name the interfaces.
 

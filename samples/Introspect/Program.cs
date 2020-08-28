@@ -19,18 +19,19 @@ namespace Introspect
         {
             using (var connection = new Connection(sessionNotSystem ? Address.Session : Address.System))
             {
-                await connection.ConnectAsync(OnDisconnect);
+                connection.StateChanged += (s, e) => OnStateChanged(e);
+                await connection.ConnectAsync();
                 var introspectable = connection.CreateProxy<IIntrospectable>(serviceName, objectPath);
                 var xml = await introspectable.IntrospectAsync();
                 Console.WriteLine(xml);
             }
         }
 
-        public static void OnDisconnect(Exception e)
+        public static void OnStateChanged(ConnectionStateChangedEventArgs e)
         {
-            if (e != null)
+            if (e.State == ConnectionState.Disconnected && e.DisconnectReason != null)
             {
-                Console.WriteLine($"Connection closed: {e.Message}");
+                Console.WriteLine($"Connection closed: {e.DisconnectReason.Message}");
             }
         }
 

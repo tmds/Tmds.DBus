@@ -66,7 +66,7 @@ namespace Tmds.DBus.CodeGen
             var methodBuilder = typeBuilder.DefineMethod(declMethod.Name, attributes); //, declMethod.ReturnType, defineParameters);
             GenericTypeParameterBuilder[] typeParameters = methodBuilder.DefineGenericParameters(new[] { "T" });
             methodBuilder.SetParameters(defineParameters);
-            methodBuilder.SetReturnType(s_parameterTaskType.MakeGenericType(new Type[] { typeParameters[0].AsType() }));
+            methodBuilder.SetReturnType(s_parameterTaskType.MakeGenericType(new Type[] { typeParameters[0] }));
 
             typeBuilder.DefineMethodOverride(methodBuilder, declMethod);
 

@@ -1,7 +1,8 @@
-language: generic
-
+language: csharp
+mono: none
 sudo: required
 dist: focal
+dotnet: 3.1
 env:
   global:
     - DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -11,22 +12,15 @@ env:
 addons:
   apt:
     packages:
-    - gettext
-    - libunwind8
-    - libicu52
     - dbus
-
-before_install:
-  - curl -sSL -o dotnet.tar.gz https://download.visualstudio.microsoft.com/download/pr/4f9b8a64-5e09-456c-a087-527cfc8b4cd2/15e14ec06eab947432de139f172f7a98/dotnet-sdk-3.1.401-linux-x64.tar.gz
-  - sudo mkdir -p /opt/dotnet && sudo tar zxf dotnet.tar.gz -C /opt/dotnet
-  - sudo ln -s /opt/dotnet/dotnet /usr/local/bin
 
 script:
   - pushd src/Tmds.DBus && dotnet restore && dotnet pack -c Release && popd
   - pushd test/Tmds.DBus.Tests && dotnet restore && dotnet test && popd
-  - pushd src/Tmds.DBus.Tool && dotnet restore /p:VersionSuffix="$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER" && dotnet build && popd
-  - dotnet pack src/Tmds.DBus --configuration Release --version-suffix "$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER" --output src/Tmds.DBus
-  - dotnet pack src/Tmds.DBus.Tool --configuration Release --version-suffix "$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER" --output src/Tmds.DBus.Tool
+  - VERSION_SUFFIX="$(date +"%y%m%d")-$TRAVIS_BUILD_NUMBER"
+  - pushd src/Tmds.DBus.Tool && dotnet restore /p:VersionSuffix="$VERSION_SUFFIX" && dotnet build && popd
+  - dotnet pack src/Tmds.DBus --configuration Release --version-suffix "$VERSION_SUFFIX" --output src/Tmds.DBus
+  - dotnet pack src/Tmds.DBus.Tool --configuration Release --version-suffix "$VERSION_SUFFIX" --output src/Tmds.DBus.Tool
 
 after_success:
   - 'if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then

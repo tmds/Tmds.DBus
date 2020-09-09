@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>netcoreapp2.1;netcoreapp3.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.1;netcoreapp3.1</TargetFrameworks>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>dotnet-dbus</ToolCommandName>
     <AssemblyName>dotnet-dbus</AssemblyName>
@@ -21,8 +21,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="2.3.0" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="2.3.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.7.0" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="3.7.0" />
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" Version="1.1.1" />
     <ProjectReference Include="../Tmds.DBus/Tmds.DBus.csproj" />
   </ItemGroup>

@@ -94,7 +94,7 @@ namespace Tmds.DBus.CodeGen
 
             try
             {
-                Task.WaitAll(tasks);
+                await Task.WhenAll(tasks);
                 signalDisposables = tasks.Select(task => task.Result);
 
                 if (signalDisposables.Contains(null))

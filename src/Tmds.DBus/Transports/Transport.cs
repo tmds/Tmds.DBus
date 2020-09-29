@@ -33,11 +33,11 @@ namespace Tmds.DBus.Transports
 
         public static async Task<IMessageStream> ConnectAsync(AddressEntry entry, ClientSetupResult connectionContext, CancellationToken cancellationToken)
         {
-            TransportSocket socket = await TransportSocket.ConnectAsync(entry, cancellationToken, connectionContext.SupportsFdPassing);
+            TransportSocket socket = await TransportSocket.ConnectAsync(entry, cancellationToken, connectionContext.SupportsFdPassing).ConfigureAwait(false);
             try
             {
                 Transport transport = new Transport(socket);
-                await transport.DoClientAuth(entry.Guid, connectionContext.UserId);
+                await transport.DoClientAuth(entry.Guid, connectionContext.UserId).ConfigureAwait(false);
                 return transport;
             }
             catch
@@ -51,7 +51,7 @@ namespace Tmds.DBus.Transports
         {
             var socket = new TransportSocket(acceptedSocket, supportsFdPassing);
             Transport transport = new Transport(socket);
-            socket.SupportsFdPassing = await transport.DoServerAuth(socket.SupportsFdPassing);
+            socket.SupportsFdPassing = await transport.DoServerAuth(socket.SupportsFdPassing).ConfigureAwait(false);
             return transport;
         }
 
@@ -66,7 +66,7 @@ namespace Tmds.DBus.Transports
         {
             try
             {
-                int bytesRead = await ReadCountAsync(_headerReadBuffer, 0, 16, _fileDescriptors);
+                int bytesRead = await ReadCountAsync(_headerReadBuffer, 0, 16, _fileDescriptors).ConfigureAwait(false);
                 if (bytesRead == 0)
                     return null;
                 if (bytesRead != 16)
@@ -101,7 +101,7 @@ namespace Tmds.DBus.Transports
 
                 byte[] header = new byte[16 + toRead];
                 Array.Copy(_headerReadBuffer, header, 16);
-                bytesRead = await ReadCountAsync(header, 16, toRead, _fileDescriptors);
+                bytesRead = await ReadCountAsync(header, 16, toRead, _fileDescriptors).ConfigureAwait(false);
                 if (bytesRead != toRead)
                     throw new ProtocolException("Message header length mismatch: " + bytesRead + " of expected " + toRead);
 
@@ -113,7 +113,7 @@ namespace Tmds.DBus.Transports
                 {
                     body = new byte[bodyLen];
 
-                    bytesRead = await ReadCountAsync(body, 0, bodyLen, _fileDescriptors);
+                    bytesRead = await ReadCountAsync(body, 0, bodyLen, _fileDescriptors).ConfigureAwait(false);
 
                     if (bytesRead != bodyLen)
                         throw new ProtocolException("Message body length mismatch: " + bytesRead + " of expected " + bodyLen);
@@ -151,7 +151,7 @@ namespace Tmds.DBus.Transports
             int read = 0;
             while (read < count)
             {
-                int nread = await _socket.ReadAsync(buffer, offset + read, count - read, fileDescriptors);
+                int nread = await _socket.ReadAsync(buffer, offset + read, count - read, fileDescriptors).ConfigureAwait(false);
                 if (nread == 0)
                     break;
                 read += nread;
@@ -193,7 +193,7 @@ namespace Tmds.DBus.Transports
             bool peerSupportsFdPassing = false;
             // receive 1 byte
             byte[] buffer = new byte[1];
-            int length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors);
+            int length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors).ConfigureAwait(false);
             if (length == 0)
             {
                 throw new IOException("Connection closed by peer");
@@ -201,21 +201,21 @@ namespace Tmds.DBus.Transports
             // auth
             while (true)
             {
-                var line = await ReadLineAsync();
+                var line = await ReadLineAsync().ConfigureAwait(false);
                 if (line[0] == "AUTH")
                 {
                     if (line[1] == "ANONYMOUS")
                     {
-                        await WriteLineAsync("OK");
+                        await WriteLineAsync("OK").ConfigureAwait(false);
                     }
                     else
                     {
-                        await WriteLineAsync("REJECTED ANONYMOUS");
+                        await WriteLineAsync("REJECTED ANONYMOUS").ConfigureAwait(false);
                     }
                 }
                 else if (line[0] == "CANCEL")
                 {
-                    await WriteLineAsync("REJECTED ANONYMOUS");
+                    await WriteLineAsync("REJECTED ANONYMOUS").ConfigureAwait(false);
                 }
                 else if (line[0] == "BEGIN")
                 {
@@ -229,12 +229,12 @@ namespace Tmds.DBus.Transports
                 { }
                 else if (line[0] == "NEGOTIATE_UNIX_FD" && supportsFdPassing)
                 {
-                    await WriteLineAsync("AGREE_UNIX_FD");
+                    await WriteLineAsync("AGREE_UNIX_FD").ConfigureAwait(false);
                     peerSupportsFdPassing = true;
                 }
                 else
                 {
-                    await WriteLineAsync("ERROR");
+                    await WriteLineAsync("ERROR").ConfigureAwait(false);
                 }
             }
             return peerSupportsFdPassing;
@@ -243,9 +243,9 @@ namespace Tmds.DBus.Transports
         private async Task DoClientAuth(Guid guid, string userId)
         {
             // send 1 byte
-            await _socket.SendAsync(_oneByteArray, 0, 1);
+            await _socket.SendAsync(_oneByteArray, 0, 1).ConfigureAwait(false);
             // auth
-            var authenticationResult = await SendAuthCommands(userId);
+            var authenticationResult = await SendAuthCommands(userId).ConfigureAwait(false);
             _socket.SupportsFdPassing = authenticationResult.SupportsFdPassing;
             if (guid != Guid.Empty)
             {
@@ -277,7 +277,7 @@ namespace Tmds.DBus.Transports
                 {
                     continue;
                 }
-                result = await SendAuthCommand(command);
+                result = await SendAuthCommand(command).ConfigureAwait(false);
                 if (result.IsAuthenticated)
                 {
                     return result;
@@ -290,8 +290,8 @@ namespace Tmds.DBus.Transports
         private async Task<AuthenticationResult> SendAuthCommand(string command)
         {
             AuthenticationResult result = default(AuthenticationResult);
-            await WriteLineAsync(command);
-            SplitLine reply = await ReadLineAsync();
+            await WriteLineAsync(command).ConfigureAwait(false);
+            SplitLine reply = await ReadLineAsync().ConfigureAwait(false);
 
             if (reply[0] == "OK")
             {
@@ -300,12 +300,12 @@ namespace Tmds.DBus.Transports
 
                 if (_socket.SupportsFdPassing)
                 {
-                    await WriteLineAsync("NEGOTIATE_UNIX_FD");
-                    reply = await ReadLineAsync();
+                    await WriteLineAsync("NEGOTIATE_UNIX_FD").ConfigureAwait(false);
+                    reply = await ReadLineAsync().ConfigureAwait(false);
                     result.SupportsFdPassing = reply[0] == "AGREE_UNIX_FD";
                 }
 
-                await WriteLineAsync("BEGIN");
+                await WriteLineAsync("BEGIN").ConfigureAwait(false);
                 return result;
             }
             else if (reply[0] == "REJECTED")
@@ -314,7 +314,7 @@ namespace Tmds.DBus.Transports
             }
             else
             {
-                await WriteLineAsync("ERROR");
+                await WriteLineAsync("ERROR").ConfigureAwait(false);
                 return result;
             }
         }
@@ -332,7 +332,7 @@ namespace Tmds.DBus.Transports
             StringBuilder sb = new StringBuilder();
             while (true)
             {
-                int length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors);
+                int length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors).ConfigureAwait(false);
                 if (length == 0)
                 {
                     throw new IOException("Connection closed by peer");
@@ -340,7 +340,7 @@ namespace Tmds.DBus.Transports
                 byte b = buffer[0];
                 if (b == '\r')
                 {
-                    length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors);
+                    length = await ReadCountAsync(buffer, 0, buffer.Length, _fileDescriptors).ConfigureAwait(false);
                     b = buffer[0];
                     if (b == '\n')
                     {
@@ -404,13 +404,13 @@ namespace Tmds.DBus.Transports
         {
             try
             {
-                await _sendSemaphore.WaitAsync();
+                await _sendSemaphore.WaitAsync().ConfigureAwait(false);
                 PendingSend pendingSend;
                 while (_sendQueue.TryDequeue(out pendingSend))
                 {
                     try
                     {
-                        await _socket.SendAsync(pendingSend.Message);
+                        await _socket.SendAsync(pendingSend.Message).ConfigureAwait(false);
                         pendingSend.CompletionSource?.SetResult(true);
                     }
                     catch (System.Exception)

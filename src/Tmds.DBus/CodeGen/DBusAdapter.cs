@@ -108,7 +108,7 @@ namespace Tmds.DBus.CodeGen
                 {
                     try
                     {
-                        var disposable = await task;
+                        var disposable = await task.ConfigureAwait(false);
                         disposable?.Dispose();
                     }
                     finally
@@ -169,7 +169,7 @@ namespace Tmds.DBus.CodeGen
                 {
                     try
                     {
-                        return await handler(_object, methodCall, _factory);
+                        return await handler(_object, methodCall, _factory).ConfigureAwait(false);
                     }
                     catch (DBusException be)
                     {
@@ -187,7 +187,7 @@ namespace Tmds.DBus.CodeGen
                         Message reply;
                         try
                         {
-                            reply = await handler(_object, methodCall, _factory);
+                            reply = await handler(_object, methodCall, _factory).ConfigureAwait(false);
                         }
                         catch (DBusException be)
                         {
@@ -199,7 +199,7 @@ namespace Tmds.DBus.CodeGen
                         }
                         tcs.SetResult(reply);
                     }, null);
-                    return await tcs.Task;
+                    return await tcs.Task.ConfigureAwait(false);
                 }
             }
             else
@@ -251,7 +251,7 @@ namespace Tmds.DBus.CodeGen
         {
             uint serial = methodCall.Header.Serial;
 
-            T result = await resultTask;
+            T result = await resultTask.ConfigureAwait(false);
             MessageWriter retWriter = new MessageWriter();
             writeResult(retWriter, result);
 
@@ -269,7 +269,7 @@ namespace Tmds.DBus.CodeGen
         protected internal async Task<Message> CreateVoidReply(Message methodCall, Task task)
         {
             uint serial = methodCall.Header.Serial;
-            await task;
+            await task.ConfigureAwait(false);
             var replyMsg = new Message(
                 new Header(MessageType.MethodReturn),
                 body: null,

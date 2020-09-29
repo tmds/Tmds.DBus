@@ -260,7 +260,7 @@ namespace Tmds.DBus
                             throw new ArgumentException("host");
                         }
 
-                        IPAddress[] addresses = await Dns.GetHostAddressesAsync(host);
+                        IPAddress[] addresses = await Dns.GetHostAddressesAsync(host).ConfigureAwait(false);
 
                         var endpoints = new IPEndPoint[addresses.Length];
                         for (int i = 0; i < endpoints.Length; i++)

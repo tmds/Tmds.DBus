@@ -36,7 +36,7 @@ namespace Tmds.DBus.Transports
                 throw new ArgumentException("Address must contain a single entry.", nameof(address));
             }
             var entry = entries[0];
-            var endpoints = await entry.ResolveAsync(listen: true);
+            var endpoints = await entry.ResolveAsync(listen: true).ConfigureAwait(false);
             if (endpoints.Length == 0)
             {
                 throw new ArgumentException("Address does not resolve to an endpoint.", nameof(address));
@@ -93,7 +93,7 @@ namespace Tmds.DBus.Transports
                 {
                     try
                     {
-                        clientSocket = await _serverSocket.AcceptAsync();
+                        clientSocket = await _serverSocket.AcceptAsync().ConfigureAwait(false);
                     }
                     catch (ObjectDisposedException)
                     {
@@ -101,7 +101,7 @@ namespace Tmds.DBus.Transports
                     }
 
                     var client = await Transport.AcceptAsync(clientSocket,
-                        supportsFdPassing: _serverSocket.AddressFamily == AddressFamily.Unix);
+                        supportsFdPassing: _serverSocket.AddressFamily == AddressFamily.Unix).ConfigureAwait(false);
                     lock (_gate)
                     {
                         if (IsDisposed)

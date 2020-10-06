@@ -173,7 +173,7 @@ namespace Tmds.DBus
         /// <exception cref="InvalidOperationException">The operation is invalid in the current state.</exception>
         /// <exception cref="DisconnectedException">The connection was closed after it was established.</exception>
         public async Task<ConnectionInfo> ConnectAsync()
-            => (await DoConnectAsync()).ConnectionInfo;
+            => (await DoConnectAsync().ConfigureAwait(false)).ConnectionInfo;
 
         private async Task<DBusConnection> DoConnectAsync()
         {
@@ -215,16 +215,16 @@ namespace Tmds.DBus
 
             if (alreadyConnecting)
             {
-                return await connectionTask;
+                return await connectionTask.ConfigureAwait(false);
             }
 
             DBusConnection connection;
             object disposeUserToken = NoDispose;
             try
             {
-                ClientSetupResult connectionContext = await _connectFunction();
+                ClientSetupResult connectionContext = await _connectFunction().ConfigureAwait(false);
                 disposeUserToken = connectionContext.TeardownToken;
-                connection = await DBusConnection.ConnectAsync(connectionContext, OnDisconnect, _connectCts.Token);
+                connection = await DBusConnection.ConnectAsync(connectionContext, OnDisconnect, _connectCts.Token).ConfigureAwait(false);
             }
             catch (ConnectException ce)
             {
@@ -313,7 +313,7 @@ namespace Tmds.DBus
         {
             CheckNotConnectionType(ConnectionType.ClientAutoConnect);
             var connection = GetConnectedConnection();
-            var reply = await connection.ReleaseNameAsync(serviceName);
+            var reply = await connection.ReleaseNameAsync(serviceName).ConfigureAwait(false);
             return reply == ReleaseNameReply.ReplyReleased;
         }
 
@@ -350,7 +350,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await connection.RequestNameAsync(serviceName, requestOptions, onAquired, onLost, CaptureSynchronizationContext());
+            var reply = await connection.RequestNameAsync(serviceName, requestOptions, onAquired, onLost, CaptureSynchronizationContext()).ConfigureAwait(false);
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -410,7 +410,7 @@ namespace Tmds.DBus
             {
                 requestOptions |= RequestNameOptions.AllowReplacement;
             }
-            var reply = await connection.RequestNameAsync(serviceName, requestOptions, null, onLost, CaptureSynchronizationContext());
+            var reply = await connection.RequestNameAsync(serviceName, requestOptions, null, onLost, CaptureSynchronizationContext()).ConfigureAwait(false);
             switch (reply)
             {
                 case RequestNameReply.PrimaryOwner:
@@ -489,7 +489,7 @@ namespace Tmds.DBus
             {
                 foreach (var registration in registrations)
                 {
-                    await registration.WatchSignalsAsync();
+                    await registration.WatchSignalsAsync().ConfigureAwait(false);
                 }
                 lock (_gate)
                 {
@@ -606,7 +606,7 @@ namespace Tmds.DBus
         {
             try
             {
-                return await DBus.GetNameOwnerAsync(serviceName);
+                return await DBus.GetNameOwnerAsync(serviceName).ConfigureAwait(false);
             }
             catch (DBusException e) when (e.ErrorName == "org.freedesktop.DBus.Error.NameHasNoOwner")
             {
@@ -711,7 +711,7 @@ namespace Tmds.DBus
                 wrappedDisposable.Call(handler, ownerChange);
             };
 
-            var connection = await GetConnectionTask();
+            var connection = await GetConnectionTask().ConfigureAwait(false);
             wrappedDisposable.Disposable = await connection.WatchNameOwnerChangedAsync(serviceName, handleEvent).ConfigureAwait(false);
             if (namespaceLookup)
             {
@@ -721,7 +721,7 @@ namespace Tmds.DBus
             {
                 if (namespaceLookup)
                 {
-                    var services = await ListServicesAsync();
+                    var services = await ListServicesAsync().ConfigureAwait(false);
                     foreach (var service in services)
                     {
                         if (service.StartsWith(serviceName, StringComparison.Ordinal)
@@ -729,7 +729,7 @@ namespace Tmds.DBus
                              || (service[serviceName.Length] == '.')
                              || (serviceName.Length == 0 && service[0] != ':')))
                         {
-                            var currentName = await ResolveServiceOwnerAsync(service);
+                            var currentName = await ResolveServiceOwnerAsync(service).ConfigureAwait(false);
                             lock (_gate)
                             {
                                 if (currentName != null && !_emittedServices.Contains(serviceName))
@@ -747,7 +747,7 @@ namespace Tmds.DBus
                 }
                 else
                 {
-                    var currentName = await ResolveServiceOwnerAsync(serviceName);
+                    var currentName = await ResolveServiceOwnerAsync(serviceName).ConfigureAwait(false);
                     lock (_gate)
                     {
                         if (currentName != null && !_eventEmitted)
@@ -1014,29 +1014,29 @@ namespace Tmds.DBus
 
         internal async Task<Message> CallMethodAsync(Message message)
         {
-            var connection = await GetConnectionTask();
+            var connection = await GetConnectionTask().ConfigureAwait(false);
             try
             {
-                return await connection.CallMethodAsync(message);
+                return await connection.CallMethodAsync(message).ConfigureAwait(false);
             }
             catch (DisconnectedException) when (_connectionType == ConnectionType.ClientAutoConnect)
             {
-                connection = await GetConnectionTask();
-                return await connection.CallMethodAsync(message);
+                connection = await GetConnectionTask().ConfigureAwait(false);
+                return await connection.CallMethodAsync(message).ConfigureAwait(false);
             }
         }
 
         internal async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
         {
-            var connection = await GetConnectionTask();
+            var connection = await GetConnectionTask().ConfigureAwait(false);
             try
             {
-                return await connection.WatchSignalAsync(path, @interface, signalName, handler);
+                return await connection.WatchSignalAsync(path, @interface, signalName, handler).ConfigureAwait(false);
             }
             catch (DisconnectedException) when (_connectionType == ConnectionType.ClientAutoConnect)
             {
-                connection = await GetConnectionTask();
-                return await connection.WatchSignalAsync(path, @interface, signalName, handler);
+                connection = await GetConnectionTask().ConfigureAwait(false);
+                return await connection.WatchSignalAsync(path, @interface, signalName, handler).ConfigureAwait(false);
             }
         }
 

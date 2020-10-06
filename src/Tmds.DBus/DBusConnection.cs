@@ -100,7 +100,7 @@ namespace Tmds.DBus
                 break;
             }
 
-            return await DBusConnection.CreateAndConnectAsync(stream, onDisconnect);
+            return await DBusConnection.CreateAndConnectAsync(stream, onDisconnect).ConfigureAwait(false);
         }
 
         private readonly IMessageStream _stream;
@@ -124,7 +124,7 @@ namespace Tmds.DBus
         internal static async Task<DBusConnection> CreateAndConnectAsync(IMessageStream stream, Action<Exception> onDisconnect = null)
         {
             var connection = new DBusConnection(stream);
-            await connection.ConnectAsync(onDisconnect);
+            await connection.ConnectAsync(onDisconnect).ConfigureAwait(false);
             return connection;
         }
 
@@ -164,7 +164,7 @@ namespace Tmds.DBus
 
             ReceiveMessages(_stream, EmitDisconnected);
 
-            string localName = await CallHelloAsync();
+            string localName = await CallHelloAsync().ConfigureAwait(false);
             ConnectionInfo = new ConnectionInfo(localName);
 
             lock (_gate)
@@ -328,7 +328,7 @@ namespace Tmds.DBus
             {
                 if (task != null)
                 {
-                    await task;
+                    await task.ConfigureAwait(false);
                 }
             }
             catch
@@ -359,7 +359,7 @@ namespace Tmds.DBus
             }
             try
             {
-                var reply = await CallRequestNameAsync(name, options);
+                var reply = await CallRequestNameAsync(name, options).ConfigureAwait(false);
                 return reply;
             }
             catch
@@ -414,7 +414,7 @@ namespace Tmds.DBus
             NameOwnerWatcherRegistration registration = new NameOwnerWatcherRegistration(this, key, rule, handler);
             try
             {
-                await task;
+                await task.ConfigureAwait(false);
             }
             catch
             {
@@ -438,7 +438,7 @@ namespace Tmds.DBus
             {
                 while (true)
                 {
-                    Message msg = await peer.ReceiveMessageAsync();
+                    Message msg = await peer.ReceiveMessageAsync().ConfigureAwait(false);
                     if (msg == null)
                     {
                         throw new IOException("Connection closed by peer");
@@ -710,7 +710,7 @@ namespace Tmds.DBus
             MethodHandler methodHandler;
             if (_methodHandlers.TryGetValue(methodCall.Header.Path.Value, out methodHandler))
             {
-                var reply = await methodHandler(methodCall);
+                var reply = await methodHandler(methodCall).ConfigureAwait(false);
                 if (methodCall.Header.ReplyExpected)
                 {
                     reply.Header.ReplySerial = methodCall.Header.Serial;
@@ -763,7 +763,7 @@ namespace Tmds.DBus
                 unixFds: null
             );
 
-            Message reply = await CallMethodAsync(callMsg, checkConnected: false, checkReplyType: false);
+            Message reply = await CallMethodAsync(callMsg, checkConnected: false, checkReplyType: false).ConfigureAwait(false);
 
             if (reply.Header.MessageType == MessageType.Error)
             {
@@ -799,7 +799,7 @@ namespace Tmds.DBus
                 writer.UnixFds
             );
 
-            Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true);
+            Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true).ConfigureAwait(false);
 
             var reader = new MessageReader(reply, null);
             var rv = reader.ReadUInt32();
@@ -824,7 +824,7 @@ namespace Tmds.DBus
                 writer.UnixFds
             );
 
-            Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true);
+            Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true).ConfigureAwait(false);
 
             var reader = new MessageReader(reply, null);
             var rv = reader.ReadUInt32();
@@ -878,7 +878,7 @@ namespace Tmds.DBus
 
             try
             {
-                await _stream.SendMessageAsync(msg);
+                await _stream.SendMessageAsync(msg).ConfigureAwait(false);
             }
             catch
             {
@@ -889,7 +889,7 @@ namespace Tmds.DBus
                 throw;
             }
 
-            var reply = await pending.Task;
+            var reply = await pending.Task.ConfigureAwait(false);
 
             if (checkReplyType)
             {

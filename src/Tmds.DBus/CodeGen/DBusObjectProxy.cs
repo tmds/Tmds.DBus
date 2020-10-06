@@ -60,11 +60,11 @@ namespace Tmds.DBus.CodeGen
 
             if (isPropertiesChanged)
             {
-                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, "org.freedesktop.DBus.Properties", "PropertiesChanged", handler);
+                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, "org.freedesktop.DBus.Properties", "PropertiesChanged", handler).ConfigureAwait(false);
             }
             else
             {
-                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler);
+                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler).ConfigureAwait(false);
             }
 
             return wrappedDisposable;
@@ -93,20 +93,20 @@ namespace Tmds.DBus.CodeGen
                 wrappedDisposable.Call(action);
             };
 
-            wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler);
+            wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler).ConfigureAwait(false);
 
             return wrappedDisposable;
         }
 
         internal protected async Task<T> CallNonVoidMethodAsync<T>(string iface, string member, Signature? inSignature, MessageWriter writer, ReadMethodDelegate<T> readValue)
         {
-            var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer);
+            var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer).ConfigureAwait(false);
             return readValue(reader);
         }
 
         internal protected async Task<T> CallGenericOutMethodAsync<T>(string iface, string member, Signature? inSignature, MessageWriter writer)
         {
-            var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer);
+            var reader = await SendMethodReturnReaderAsync(iface, member, inSignature, writer).ConfigureAwait(false);
             return reader.ReadVariantAsType<T>();
         }
 
@@ -130,7 +130,7 @@ namespace Tmds.DBus.CodeGen
                 writer?.UnixFds
             );
 
-            var reply = await _connection.CallMethodAsync(callMessage);
+            var reply = await _connection.CallMethodAsync(callMessage).ConfigureAwait(false);
             return new MessageReader(reply, _factory);
         }
 

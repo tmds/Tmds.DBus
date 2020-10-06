@@ -474,10 +474,10 @@ namespace Tmds.DBus.Transports
                 var transportSocket = new TransportSocket(socket, supportsFdPassing);
                 using (cancellationToken.Register(() => transportSocket.Dispose()))
                 {
-                    var endpoints = await entry.ResolveAsync();
+                    var endpoints = await entry.ResolveAsync().ConfigureAwait(false);
                     var endPoint = endpoints[0];
 
-                    await transportSocket.ConnectAsync(endPoint);
+                    await transportSocket.ConnectAsync(endPoint).ConfigureAwait(false);
                     return transportSocket;
                 }
             }
@@ -490,7 +490,7 @@ namespace Tmds.DBus.Transports
 
         private static async Task<TransportSocket> ConnectTcpAsync(AddressEntry entry, CancellationToken cancellationToken)
         {
-            var endpoints = await entry.ResolveAsync();
+            var endpoints = await entry.ResolveAsync().ConfigureAwait(false);
             for (int i = 0; i < endpoints.Length; i++)
             {
                 var ipEndPoint = endpoints[i] as IPEndPoint;
@@ -501,7 +501,7 @@ namespace Tmds.DBus.Transports
                     var transportSocket = new TransportSocket(socket, supportsFdPassing: false);
                     using (cancellationToken.Register(() => transportSocket.Dispose()))
                     {
-                        await transportSocket.ConnectAsync(ipEndPoint);
+                        await transportSocket.ConnectAsync(ipEndPoint).ConfigureAwait(false);
                         return transportSocket;
                     }
                 }

@@ -7,12 +7,30 @@ using System.Text;
 
 namespace Tmds.DBus
 {
-    internal class SignalMatchRule
+    /// <summary>
+    /// Match rules describe the messages that should be sent to a client,
+    /// based on the contents of the message.
+    /// </summary>
+    public class SignalMatchRule
     {
+        /// <summary>
+        /// Match messages sent over or to a particular interface.
+        /// </summary>
         public string Interface { get; set; }
+
+        /// <summary>
+        /// Match messages which have the give method or signal name.
+        /// </summary>
         public string Member { get; set; }
+
+        /// <summary>
+        /// Match messages which are sent from or to the given object.
+        /// </summary>
         public ObjectPath? Path { get; set; }
 
+        /// <summary>
+        /// Returns the hash code for this match rule.
+        /// </summary>
         public override int GetHashCode()
         {
             int hash = 17;
@@ -22,6 +40,9 @@ namespace Tmds.DBus
             return hash;
         }
 
+        /// <summary>
+        /// Determines whether the specified object is equal to the current object.
+        /// </summary>
         public override bool Equals(object o)
         {
             SignalMatchRule r = o as SignalMatchRule;
@@ -33,6 +54,9 @@ namespace Tmds.DBus
                 Path == r.Path;
         }
 
+        /// <summary>
+        /// Returns a string that represents the match rule.
+        /// </summary>
         public override string ToString()
         {
             return ToStringWithSender(null);
@@ -64,7 +88,7 @@ namespace Tmds.DBus
             return sb.ToString();
         }
 
-        protected static void Append(StringBuilder sb, string key, object value)
+        internal static void Append(StringBuilder sb, string key, object value)
         {
             Append(sb, key, value.ToString());
         }

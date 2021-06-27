@@ -56,6 +56,37 @@ namespace Tmds.DBus
         /// </summary>
         public string Arg0Namespace { get; set; }
 
+        internal bool MatchHeader(Header header) 
+        {
+            if (header.MessageType != MessageType.Signal)
+            {
+                return false;
+            }
+
+            if (header.Interface != Interface)
+            {
+                return false;
+            }
+
+            if (header.Member != Member)
+            {
+                return false;
+            }
+
+            if (Path.HasValue && header.Path != Path)
+            {
+                return false;
+            }
+
+            if (PathNamespace.HasValue && (!header.Path.HasValue ||
+                !header.Path.Value.Value.StartsWith(PathNamespace.Value.Value, StringComparison.Ordinal)) )
+            {
+                return false;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Returns the hash code for this match rule.
         /// </summary>

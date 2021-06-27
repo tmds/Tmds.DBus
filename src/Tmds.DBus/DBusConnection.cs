@@ -591,18 +591,17 @@ namespace Tmds.DBus
                     break;
             }
 
-            SignalMatchRule rule = new SignalMatchRule()
-            {
-                Interface = msg.Header.Interface,
-                Member = msg.Header.Member,
-                Path = msg.Header.Path.Value
-            };
-
-            SignalHandler signalHandler = null;
             lock (_gate)
             {
-                if (_signalHandlers?.TryGetValue(rule, out signalHandler) == true)
+                foreach (var item in _signalHandlers)
                 {
+                    var rule = item.Key;
+                    var signalHandler = item.Value;
+
+                    if (!rule.MatchHeader(msg.Header)) {
+                        continue;
+                    }
+
                     try
                     {
                         signalHandler(msg, null);

@@ -138,5 +138,92 @@ namespace Tmds.DBus.Tests
             var exception = await Assert.ThrowsAsync<DBusException>(proxy.ThrowAsync);
             Assert.Equal(Throw.ExceptionMessage, exception.ErrorMessage);
         }
+
+        [Fact]
+        public async Task SignalWatcherPathNamespace()
+        {
+            var connections = await PairedConnection.CreateConnectedPairAsync();
+            var conn1 = connections.Item1;
+            var conn2 = connections.Item2;
+            var proxy = conn1.CreateProxy<IPingPong>("servicename", PingPong.Path);
+            var tcs = new TaskCompletionSource<(ObjectPath @object, string value)>();
+            await conn1.WatchSignalAsync<string>(new SignalMatchRule {
+                Interface = "tmds.dbus.tests.PingPong",
+                Member = "Pong",
+                PathNamespace = PingPong.Path.Parent,
+            }, _ => tcs.SetResult(_));
+            await conn2.RegisterObjectAsync(new PingPong());
+            await proxy.PingAsync("hello world");
+            var reply = await tcs.Task;
+            Assert.Equal(PingPong.Path, reply.@object);
+            Assert.Equal("hello world", reply.value);
+        }
+
+        [Fact]
+        public async Task SignalWatcherMatchArg()
+        {
+            var connections = await PairedConnection.CreateConnectedPairAsync();
+            var conn1 = connections.Item1;
+            var conn2 = connections.Item2;
+            var proxy = conn1.CreateProxy<IPingPong>("servicename", PingPong.Path);
+            var tcs = new TaskCompletionSource<(ObjectPath @object, string value)>();
+            await conn1.WatchSignalAsync<string>(new SignalMatchRule {
+                Interface = "tmds.dbus.tests.PingPong",
+                Member = "Pong",
+                Path = PingPong.Path,
+                Args = new[] { (0, "hello2") },
+            }, _ => tcs.SetResult(_));
+            await conn2.RegisterObjectAsync(new PingPong());
+            await proxy.PingAsync("hello1"); // ignored
+            await proxy.PingAsync("hello2"); // matched
+            var reply = await tcs.Task;
+            Assert.Equal(PingPong.Path, reply.@object);
+            Assert.Equal("hello2", reply.value);
+        }
+
+        [Fact]
+        public async Task SignalWatcherMatchArgPath()
+        {
+            var connections = await PairedConnection.CreateConnectedPairAsync();
+            var conn1 = connections.Item1;
+            var conn2 = connections.Item2;
+            var proxy = conn1.CreateProxy<IPingPong>("servicename", PingPong.Path);
+            var tcs = new TaskCompletionSource<(ObjectPath @object, string value)>();
+            await conn1.WatchSignalAsync<string>(new SignalMatchRule {
+                Interface = "tmds.dbus.tests.PingPong",
+                Member = "Pong",
+                Path = PingPong.Path,
+                ArgPaths = new[] { (0, "/aa/bb") },
+            }, _ => tcs.SetResult(_));
+            await conn2.RegisterObjectAsync(new PingPong());
+            await proxy.PingAsync("/aa/aa/aa"); // ignored
+            await proxy.PingAsync("/aa/bb/cc"); // matched
+            var reply = await tcs.Task;
+            Assert.Equal(PingPong.Path, reply.@object);
+            Assert.Equal("/aa/bb/cc", reply.value);
+        }
+
+        [Fact]
+        public async Task SignalWatcherMatchArg0Namespace()
+        {
+            var connections = await PairedConnection.CreateConnectedPairAsync();
+            var conn1 = connections.Item1;
+            var conn2 = connections.Item2;
+            var proxy = conn1.CreateProxy<IPingPong>("servicename", PingPong.Path);
+            // wrapping string in ValueTuple to exercise additional code paths
+            var tcs = new TaskCompletionSource<(ObjectPath @object, ValueTuple<string> value)>();
+            await conn1.WatchSignalAsync<ValueTuple<string>>(new SignalMatchRule {
+                Interface = "tmds.dbus.tests.PingPong",
+                Member = "Pong",
+                Path = PingPong.Path,
+                Arg0Namespace = "tmds.test",
+            }, _ => tcs.SetResult(_));
+            await conn2.RegisterObjectAsync(new PingPong());
+            await proxy.PingAsync("tmds.other.name"); // ignored
+            await proxy.PingAsync("tmds.test.name"); // matched
+            var reply = await tcs.Task;
+            Assert.Equal(PingPong.Path, reply.@object);
+            Assert.Equal("tmds.test.name", reply.value.Item1);
+        }
     }
 }

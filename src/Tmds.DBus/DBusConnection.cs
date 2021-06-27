@@ -39,7 +39,7 @@ namespace Tmds.DBus
 
         private class NameOwnerWatcherRegistration : IDisposable
         {
-            public NameOwnerWatcherRegistration(DBusConnection dbusConnection, string key, OwnerChangedMatchRule rule, Action<ServiceOwnerChangedEventArgs, Exception> handler)
+            public NameOwnerWatcherRegistration(DBusConnection dbusConnection, string key, SignalMatchRule rule, Action<ServiceOwnerChangedEventArgs, Exception> handler)
             {
                 _connection = dbusConnection;
                 _rule = rule;
@@ -53,7 +53,7 @@ namespace Tmds.DBus
             }
 
             private DBusConnection _connection;
-            private OwnerChangedMatchRule _rule;
+            private SignalMatchRule _rule;
             private Action<ServiceOwnerChangedEventArgs, Exception> _handler;
             private string _key;
         }
@@ -296,7 +296,7 @@ namespace Tmds.DBus
             }
         }
 
-        public async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
+        public Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
         {
             SignalMatchRule rule = new SignalMatchRule()
             {
@@ -305,6 +305,11 @@ namespace Tmds.DBus
                 Path = path
             };
 
+            return WatchSignalAsync(rule, handler);
+        }
+
+        public async Task<IDisposable> WatchSignalAsync(SignalMatchRule rule, SignalHandler handler)
+        {
             Task task = null;
             lock (_gate)
             {
@@ -391,7 +396,27 @@ namespace Tmds.DBus
 
         public async Task<IDisposable> WatchNameOwnerChangedAsync(string serviceName, Action<ServiceOwnerChangedEventArgs, Exception> handler)
         {
-            var rule = new OwnerChangedMatchRule(serviceName);
+
+            var rule = new SignalMatchRule {
+                Interface = DBusConnection.DBusInterface,
+                Member = "NameOwnerChanged",
+                Path = DBusConnection.DBusObjectPath,
+            };
+
+            if (serviceName != null)
+            {
+                if (serviceName == ".*")
+                {}
+                else if (serviceName.EndsWith(".*", StringComparison.Ordinal))
+                {
+                    rule.Arg0Namespace = serviceName.Substring(0, serviceName.Length - 2);
+                }
+                else
+                {
+                    rule.Args = new [] { (0, serviceName) };
+                }
+            }
+            
             string key = serviceName;
 
             Task task = null;
@@ -571,18 +596,17 @@ namespace Tmds.DBus
                     break;
             }
 
-            SignalMatchRule rule = new SignalMatchRule()
-            {
-                Interface = msg.Header.Interface,
-                Member = msg.Header.Member,
-                Path = msg.Header.Path.Value
-            };
-
-            SignalHandler signalHandler = null;
             lock (_gate)
             {
-                if (_signalHandlers?.TryGetValue(rule, out signalHandler) == true)
+                foreach (var item in _signalHandlers)
                 {
+                    var rule = item.Key;
+                    var signalHandler = item.Value;
+
+                    if (!rule.MatchHeader(msg.Header)) {
+                        continue;
+                    }
+
                     try
                     {
                         signalHandler(msg, null);
@@ -932,7 +956,7 @@ namespace Tmds.DBus
             }
         }
 
-        private void RemoveNameOwnerWatcher(string key, OwnerChangedMatchRule rule, Action<ServiceOwnerChangedEventArgs, Exception> dlg)
+        private void RemoveNameOwnerWatcher(string key, SignalMatchRule rule, Action<ServiceOwnerChangedEventArgs, Exception> dlg)
         {
             lock (_gate)
             {

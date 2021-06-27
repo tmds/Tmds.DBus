@@ -1040,6 +1040,84 @@ namespace Tmds.DBus
             }
         }
 
+        /// <summary>
+        /// Watch the bus for a matching signal.
+        /// </summary>
+        /// <param name="rule">
+        /// The match rules.
+        /// </param>
+        /// <param name="handler">
+        /// Callback that is invoked when a matching signal is received.
+        /// </param>
+        /// <param name="onError">
+        /// Callback that is invoked on error.
+        /// </param>
+        public async Task<IDisposable> WatchSignalAsync<TSignalArgs>(SignalMatchRule rule, Action<(ObjectPath @object, TSignalArgs args)> handler, Action<Exception> onError = null)
+        {
+            var synchronizationContext = CaptureSynchronizationContext();
+            var wrappedDisposable = new WrappedDisposable(synchronizationContext);
+            var readValue = ReadMethodFactory.CreateReadMethodDelegate<TSignalArgs>();
+
+            SignalHandler signalHandler = (msg, ex) =>
+            {
+                if (ex != null)
+                {
+                    if (onError == null)
+                    {
+                        return;
+                    }
+                    wrappedDisposable.Call(onError, ex, disposes: true);
+                    return;
+                }
+
+                var reader = new MessageReader(msg, _factory);
+                var value = readValue(reader);
+
+                var args = new List<object>();
+                bool isValueTuple;
+                if (ArgTypeInspector.IsStructType(typeof(TSignalArgs), out isValueTuple))
+                {
+                    var fields = ArgTypeInspector.GetStructFields(typeof(TSignalArgs), isValueTuple);
+                    for (int i = 0; i < fields.Length;)
+                    {
+                        var fi = fields[i];
+                        if (i == 7 && isValueTuple)
+                        {
+                            fields = ArgTypeInspector.GetStructFields(fi.FieldType, isValueTuple);
+                            i = 0;
+                        }
+                        else
+                        {
+                            args.Add(fi.GetValue(value));
+                            i++;
+                        }
+                    }
+                }
+                else
+                {
+                    args.Add(value);
+                }
+
+                if (!rule.MatchArgs(args))
+                {
+                    return;
+                }
+
+                wrappedDisposable.Call(handler, (msg.Header.Path.Value, value));
+            };
+
+            var connection = await GetConnectionTask().ConfigureAwait(false);
+            try
+            {
+                return await connection.WatchSignalAsync(rule, signalHandler).ConfigureAwait(false);
+            }
+            catch (DisconnectedException) when (_connectionType == ConnectionType.ClientAutoConnect)
+            {
+                connection = await GetConnectionTask().ConfigureAwait(false);
+                return await connection.WatchSignalAsync(rule, signalHandler).ConfigureAwait(false);
+            }
+        }
+
         internal SynchronizationContext CaptureSynchronizationContext() => _synchronizationContext;
 
         private static Connection CreateSessionConnection() => CreateConnection(Address.Session, ref s_sessionConnection);

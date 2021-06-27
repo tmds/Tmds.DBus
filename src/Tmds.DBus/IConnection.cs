@@ -72,5 +72,8 @@ namespace Tmds.DBus
 
         /// <summary><see cref="Connection"/></summary>
         void UnregisterObjects(IEnumerable<IDBusObject> objects);
+
+        /// <summary><see cref="Connection"/></summary>
+        Task<IDisposable> WatchSignalAsync<TSignalArgs>(SignalMatchRule rule, Action<(ObjectPath @object, TSignalArgs args)> handler, Action<Exception> onError = null);
     }
 }

@@ -5,6 +5,7 @@
 // See COPYING for details
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 using Tmds.DBus.Protocol;
 
@@ -82,6 +83,41 @@ namespace Tmds.DBus
                 !header.Path.Value.Value.StartsWith(PathNamespace.Value.Value, StringComparison.Ordinal)) )
             {
                 return false;
+            }
+
+            return true;
+        }
+
+        internal bool MatchArgs(IReadOnlyList<object> args)
+        {
+            if (Args != null)
+            {
+                foreach (var (index, arg) in Args)
+                {
+                    if ((string)args[index] != arg)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            if (ArgPaths != null)
+            {
+                foreach (var (index, argPath) in ArgPaths)
+                {
+                    if (!((string)args[index]).StartsWith(argPath, StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            if (Arg0Namespace != null)
+            {
+                if (!((string)args[0]).StartsWith(Arg0Namespace, StringComparison.Ordinal))
+                {
+                    return false;
+                }
             }
 
             return true;

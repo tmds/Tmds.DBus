@@ -296,7 +296,7 @@ namespace Tmds.DBus
             }
         }
 
-        public async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
+        public Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
         {
             SignalMatchRule rule = new SignalMatchRule()
             {
@@ -305,6 +305,11 @@ namespace Tmds.DBus
                 Path = path
             };
 
+            return WatchSignalAsync(rule, handler);
+        }
+
+        public async Task<IDisposable> WatchSignalAsync(SignalMatchRule rule, SignalHandler handler)
+        {
             Task task = null;
             lock (_gate)
             {

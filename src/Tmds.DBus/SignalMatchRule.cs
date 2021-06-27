@@ -14,7 +14,7 @@ namespace Tmds.DBus
     /// Match rules describe the messages that should be sent to a client,
     /// based on the contents of the message.
     /// </summary>
-    public class SignalMatchRule
+    public sealed class SignalMatchRule
     {
         /// <summary>
         /// Match messages sent over or to a particular interface.
@@ -169,7 +169,7 @@ namespace Tmds.DBus
             return sb.ToString();
         }
 
-        internal static void Append(StringBuilder sb, string key, object value)
+        static void Append(StringBuilder sb, string key, object value)
         {
             Append(sb, key, value.ToString());
         }

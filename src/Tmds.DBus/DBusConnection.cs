@@ -39,7 +39,7 @@ namespace Tmds.DBus
 
         private class NameOwnerWatcherRegistration : IDisposable
         {
-            public NameOwnerWatcherRegistration(DBusConnection dbusConnection, string key, OwnerChangedMatchRule rule, Action<ServiceOwnerChangedEventArgs, Exception> handler)
+            public NameOwnerWatcherRegistration(DBusConnection dbusConnection, string key, SignalMatchRule rule, Action<ServiceOwnerChangedEventArgs, Exception> handler)
             {
                 _connection = dbusConnection;
                 _rule = rule;
@@ -53,7 +53,7 @@ namespace Tmds.DBus
             }
 
             private DBusConnection _connection;
-            private OwnerChangedMatchRule _rule;
+            private SignalMatchRule _rule;
             private Action<ServiceOwnerChangedEventArgs, Exception> _handler;
             private string _key;
         }
@@ -391,7 +391,27 @@ namespace Tmds.DBus
 
         public async Task<IDisposable> WatchNameOwnerChangedAsync(string serviceName, Action<ServiceOwnerChangedEventArgs, Exception> handler)
         {
-            var rule = new OwnerChangedMatchRule(serviceName);
+
+            var rule = new SignalMatchRule {
+                Interface = DBusConnection.DBusInterface,
+                Member = "NameOwnerChanged",
+                Path = DBusConnection.DBusObjectPath,
+            };
+
+            if (serviceName != null)
+            {
+                if (serviceName == ".*")
+                {}
+                else if (serviceName.EndsWith(".*", StringComparison.Ordinal))
+                {
+                    rule.Arg0Namespace = serviceName.Substring(0, serviceName.Length - 2);
+                }
+                else
+                {
+                    rule.Args = new [] { (0, serviceName) };
+                }
+            }
+            
             string key = serviceName;
 
             Task task = null;
@@ -932,7 +952,7 @@ namespace Tmds.DBus
             }
         }
 
-        private void RemoveNameOwnerWatcher(string key, OwnerChangedMatchRule rule, Action<ServiceOwnerChangedEventArgs, Exception> dlg)
+        private void RemoveNameOwnerWatcher(string key, SignalMatchRule rule, Action<ServiceOwnerChangedEventArgs, Exception> dlg)
         {
             lock (_gate)
             {

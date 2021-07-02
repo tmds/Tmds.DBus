@@ -1,0 +1,34 @@
+name: Build
+on: [push, pull_request ]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - run: |
+        pushd src/Tmds.DBus && dotnet restore && dotnet pack -c Release && popd
+        pushd test/Tmds.DBus.Tests && dotnet restore && dotnet test && popd
+        VERSION_SUFFIX="$(date +"%y%m%d")-${{ github.run_id	}}"
+        pushd src/Tmds.DBus.Tool && dotnet restore /p:VersionSuffix="$VERSION_SUFFIX" && dotnet build && popd
+        dotnet pack src/Tmds.DBus --configuration Release --version-suffix "$VERSION_SUFFIX" --output src/Tmds.DBus
+        dotnet pack src/Tmds.DBus.Tool --configuration Release --version-suffix "$VERSION_SUFFIX" --output src/Tmds.DBus.Tool
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: nuget
+        path: |
+          src/Tmds.DBus/Tmds.Dbus.*.nupkg
+          src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg
+
+    - run: |
+        if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+          curl -H "X-NuGet-ApiKey: $NUGET_APIKEY" -T src/Tmds.DBus https://www.myget.org/F/tmds/api/v2/package ;
+          curl -H "X-NuGet-ApiKey: $NUGET_APIKEY" -T src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg https://www.myget.org/F/tmds/api/v2/package ;
+        fi
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}

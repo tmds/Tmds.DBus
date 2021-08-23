@@ -27,8 +27,6 @@ jobs:
           src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg
 
     - run: |
-        if [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
-          curl -H "X-NuGet-ApiKey: $NUGET_APIKEY" -T src/Tmds.DBus https://www.myget.org/F/tmds/api/v2/package ;
-          curl -H "X-NuGet-ApiKey: $NUGET_APIKEY" -T src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg https://www.myget.org/F/tmds/api/v2/package ;
-        fi
+        curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus https://www.myget.org/F/tmds/api/v2/package
+        curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg https://www.myget.org/F/tmds/api/v2/package
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}

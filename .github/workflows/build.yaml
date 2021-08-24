@@ -19,13 +19,6 @@ jobs:
         dotnet pack src/Tmds.DBus --configuration Release --version-suffix "$VERSION_SUFFIX" --output src/Tmds.DBus
         dotnet pack src/Tmds.DBus.Tool --configuration Release --version-suffix "$VERSION_SUFFIX" --output src/Tmds.DBus.Tool
 
-    - uses: actions/upload-artifact@v2
-      with:
-        name: nuget
-        path: |
-          src/Tmds.DBus/Tmds.Dbus.*.nupkg
-          src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg
-
     - run: |
         curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus/Tmds.DBus.*.nupkg https://www.myget.org/F/tmds/api/v2/package
         curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg https://www.myget.org/F/tmds/api/v2/package

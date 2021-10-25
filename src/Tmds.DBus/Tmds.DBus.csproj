@@ -3,13 +3,10 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Description>Tmds.DBus Library</Description>
-    <VersionPrefix>0.9.1</VersionPrefix>
     <Authors>Tom Deseyn</Authors>
     <TargetFramework>netstandard2.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageTags>dbus</PackageTags>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/tmds/Tmds.DBus</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Tom Deseyn;Alp Toker</Copyright>
     <SignAssembly>true</SignAssembly>

@@ -10,14 +10,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - run: |
         pushd src/Tmds.DBus && dotnet restore && dotnet pack -c Release && popd
         pushd test/Tmds.DBus.Tests && dotnet restore && dotnet test && popd
         VERSION_SUFFIX="$(date +"%y%m%d")-${{ github.run_id	}}"
-        pushd src/Tmds.DBus.Tool && dotnet restore /p:VersionSuffix="$VERSION_SUFFIX" && dotnet build && popd
-        dotnet pack src/Tmds.DBus --configuration Release --version-suffix "$VERSION_SUFFIX" --output src/Tmds.DBus
-        dotnet pack src/Tmds.DBus.Tool --configuration Release --version-suffix "$VERSION_SUFFIX" --output src/Tmds.DBus.Tool
+        pushd src/Tmds.DBus.Tool && dotnet restore && dotnet build && popd
+        dotnet pack src/Tmds.DBus --configuration Release --output src/Tmds.DBus
+        dotnet pack src/Tmds.DBus.Tool --configuration Release --output src/Tmds.DBus.Tool
 
     - run: |
         curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus/Tmds.DBus.*.nupkg https://www.myget.org/F/tmds/api/v2/package

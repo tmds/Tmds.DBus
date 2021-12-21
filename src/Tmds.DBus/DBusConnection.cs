@@ -862,7 +862,7 @@ namespace Tmds.DBus
             var serial = GenerateSerial();
             msg.Header.Serial = serial;
 
-            TaskCompletionSource<Message> pending = new TaskCompletionSource<Message>();
+            TaskCompletionSource<Message> pending = new TaskCompletionSource<Message>(TaskCreationOptions.RunContinuationsAsynchronously);
             lock (_gate)
             {
                 if (checkConnected)

@@ -18,16 +18,14 @@ jobs:
         fetch-depth: 0
 
     - run: |
-        pushd src/Tmds.DBus && dotnet restore && dotnet pack -c Release && popd
-        pushd src/Tmds.DBus.Protocol && dotnet restore && dotnet pack -c Release && popd
-        pushd test/Tmds.DBus.Tests && dotnet restore && dotnet test && popd
-        pushd src/Tmds.DBus.Tool && dotnet restore && dotnet build && popd
+        pushd test/Tmds.DBus.Tests && dotnet test && popd
+        pushd src/Tmds.DBus.Tool && dotnet build && popd
         dotnet pack src/Tmds.DBus --configuration Release --output src/Tmds.DBus
         dotnet pack src/Tmds.DBus.Protocol --configuration Release --output src/Tmds.DBus.Protocol
         dotnet pack src/Tmds.DBus.Tool --configuration Release --output src/Tmds.DBus.Tool
 
     - run: |
-        curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus/Tmds.DBus.*.nupkg https://www.myget.org/F/tmds/api/v2/package
-        curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus.Protocol/Tmds.DBus.Protocol.*.nupkg https://www.myget.org/F/tmds/api/v2/package
-        curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg https://www.myget.org/F/tmds/api/v2/package
+        dotnet nuget push -s https://www.myget.org/F/tmds/api/v2/package -k "${{ secrets.NUGET_APIKEY }}" src/Tmds.DBus/*.nupkg
+        dotnet nuget push -s https://www.myget.org/F/tmds/api/v2/package -k "${{ secrets.NUGET_APIKEY }}" src/Tmds.DBus.Protocol/*.nupkg
+        dotnet nuget push -s https://www.myget.org/F/tmds/api/v2/package -k "${{ secrets.NUGET_APIKEY }}" src/Tmds.DBus.Tool/*.nupkg
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}

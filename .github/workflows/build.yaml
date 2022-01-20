@@ -9,19 +9,25 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
+    - uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '6.0.x'
+
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
 
     - run: |
         pushd src/Tmds.DBus && dotnet restore && dotnet pack -c Release && popd
+        pushd src/Tmds.DBus.Protocol && dotnet restore && dotnet pack -c Release && popd
         pushd test/Tmds.DBus.Tests && dotnet restore && dotnet test && popd
-        VERSION_SUFFIX="$(date +"%y%m%d")-${{ github.run_id	}}"
         pushd src/Tmds.DBus.Tool && dotnet restore && dotnet build && popd
         dotnet pack src/Tmds.DBus --configuration Release --output src/Tmds.DBus
+        dotnet pack src/Tmds.DBus.Protocol --configuration Release --output src/Tmds.DBus.Protocol
         dotnet pack src/Tmds.DBus.Tool --configuration Release --output src/Tmds.DBus.Tool
 
     - run: |
         curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus/Tmds.DBus.*.nupkg https://www.myget.org/F/tmds/api/v2/package
+        curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus.Protocol/Tmds.DBus.Protocol.*.nupkg https://www.myget.org/F/tmds/api/v2/package
         curl -H "X-NuGet-ApiKey: ${{ secrets.NUGET_APIKEY }}" -T src/Tmds.DBus.Tool/Tmds.DBus.Tool.*.nupkg https://www.myget.org/F/tmds/api/v2/package
-      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+      if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}

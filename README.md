@@ -1,4 +1,3 @@
-[![Travis](https://api.travis-ci.org/tmds/Tmds.DBus.svg?branch=master)](https://travis-ci.org/tmds/Tmds.DBus)
 [![NuGet](https://img.shields.io/nuget/v/Tmds.DBus.svg)](https://www.nuget.org/packages/Tmds.DBus)
 
 # Introduction

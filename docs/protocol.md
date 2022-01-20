@@ -19,7 +19,7 @@ dotnet new nugetconfig
 Add the `tmds` feed into the file:
 ```xml
 <add key="tmds" value="https://www.myget.org/F/tmds/api/v3/index.json" />
-``
+```
 
 Now add the `Tmds.DBus.Protocol` package:
 ```

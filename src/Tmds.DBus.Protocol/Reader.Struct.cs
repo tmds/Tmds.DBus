@@ -398,4 +398,480 @@ public ref partial struct Reader
         Type readerType = typeof(TupleTypeReader<,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5 });
         return (ITypeReader)Activator.CreateInstance(readerType)!;
     }
+
+    public ValueTuple<T1, T2, T3, T4, T5, T6> ReadStruct<T1, T2, T3, T4, T5, T6>()
+    {
+        AlignStruct();
+        return ValueTuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>());
+    }
+
+    private Tuple<T1, T2, T3, T4, T5, T6> ReadStructAsTuple<T1, T2, T3, T4, T5, T6>()
+    {
+        AlignStruct();
+        return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>());
+    }
+
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+    {
+        public ValueTuple<T1, T2, T3, T4, T5, T6> Read(ref Reader reader)
+        {
+            return reader.ReadStruct<T1, T2, T3, T4, T5, T6>();
+        }
+    }
+
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+    {
+        public Tuple<T1, T2, T3, T4, T5, T6> Read(ref Reader reader)
+        {
+            return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6>();
+        }
+    }
+
+    public static void AddValueTupleTypeReader<T1, T2, T3, T4, T5, T6>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(ValueTuple<T1, T2, T3, T4, T5, T6>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new ValueTupleTypeReader<T1, T2, T3, T4, T5, T6>());
+            }
+        }
+    }
+
+    public static void AddTupleTypeReader<T1, T2, T3, T4, T5, T6>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(Tuple<T1, T2, T3, T4, T5, T6>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new TupleTypeReader<T1, T2, T3, T4, T5, T6>());
+            }
+        }
+    }
+
+    private ITypeReader CreateValueTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6)
+    {
+        Type readerType = typeof(ValueTupleTypeReader<,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    private ITypeReader CreateTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6)
+    {
+        Type readerType = typeof(TupleTypeReader<,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    public ValueTuple<T1, T2, T3, T4, T5, T6, T7> ReadStruct<T1, T2, T3, T4, T5, T6, T7>()
+    {
+        AlignStruct();
+        return ValueTuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>());
+    }
+
+    private Tuple<T1, T2, T3, T4, T5, T6, T7> ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7>()
+    {
+        AlignStruct();
+        return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>());
+    }
+
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+    {
+        public ValueTuple<T1, T2, T3, T4, T5, T6, T7> Read(ref Reader reader)
+        {
+            return reader.ReadStruct<T1, T2, T3, T4, T5, T6, T7>();
+        }
+    }
+
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+    {
+        public Tuple<T1, T2, T3, T4, T5, T6, T7> Read(ref Reader reader)
+        {
+            return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7>();
+        }
+    }
+
+    public static void AddValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(ValueTuple<T1, T2, T3, T4, T5, T6, T7>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7>());
+            }
+        }
+    }
+
+    public static void AddTupleTypeReader<T1, T2, T3, T4, T5, T6, T7>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(Tuple<T1, T2, T3, T4, T5, T6, T7>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new TupleTypeReader<T1, T2, T3, T4, T5, T6, T7>());
+            }
+        }
+    }
+
+    private ITypeReader CreateValueTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6, Type type7)
+    {
+        Type readerType = typeof(ValueTupleTypeReader<,,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6, type7 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    private ITypeReader CreateTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6, Type type7)
+    {
+        Type readerType = typeof(TupleTypeReader<,,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6, type7 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8>()
+    {
+        AlignStruct();
+        return ValueTuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Read<T8>());
+    }
+
+    private Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8>> ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8>()
+    {
+        AlignStruct();
+        return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Read<T8>());
+    }
+
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+    {
+        public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> Read(ref Reader reader)
+        {
+            return reader.ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8>();
+        }
+    }
+
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8>>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+    {
+        public Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8>> Read(ref Reader reader)
+        {
+            return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8>();
+        }
+    }
+
+    public static void AddValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8>());
+            }
+        }
+    }
+
+    public static void AddTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T8 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8>>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8>());
+            }
+        }
+    }
+
+    private ITypeReader CreateValueTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6, Type type7, Type type8)
+    {
+        Type readerType = typeof(ValueTupleTypeReader<,,,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6, type7, type8 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    private ITypeReader CreateTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6, Type type7, Type type8)
+    {
+        Type readerType = typeof(TupleTypeReader<,,,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6, type7, type8 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>> ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9>()
+    {
+        AlignStruct();
+        return (Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Read<T8>(), Read<T9>());
+    }
+
+    private Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>> ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8, T9>()
+    {
+        AlignStruct();
+        return new Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>>(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Tuple.Create(Read<T8>(), Read<T9>()));
+    }
+
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+        where T9 : notnull
+    {
+        public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>> Read(ref Reader reader)
+        {
+            return reader.ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9>();
+        }
+    }
+
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+        where T9 : notnull
+    {
+        public Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>> Read(ref Reader reader)
+        {
+            return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8, T9>();
+        }
+    }
+
+    public static void AddValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+        where T9 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9>());
+            }
+        }
+    }
+
+    public static void AddTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T8 : notnull
+        where T9 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9>());
+            }
+        }
+    }
+
+    private ITypeReader CreateValueTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6, Type type7, Type type8, Type type9)
+    {
+        Type readerType = typeof(ValueTupleTypeReader<,,,,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6, type7, type8, type9 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    private ITypeReader CreateTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6, Type type7, Type type8, Type type9)
+    {
+        Type readerType = typeof(TupleTypeReader<,,,,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6, type7, type8, type9 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>> ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>()
+    {
+        AlignStruct();
+        return (Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Read<T8>(), Read<T9>(), Read<T10>());
+    }
+
+    private Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>> ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>()
+    {
+        AlignStruct();
+        return new Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>>(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Tuple.Create(Read<T8>(), Read<T9>(), Read<T10>()));
+    }
+
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+        where T9 : notnull
+        where T10 : notnull
+    {
+        public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>> Read(ref Reader reader)
+        {
+            return reader.ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>();
+        }
+    }
+
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>>>
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+        where T9 : notnull
+        where T10 : notnull
+    {
+        public Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>> Read(ref Reader reader)
+        {
+            return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>();
+        }
+    }
+
+    public static void AddValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+        where T9 : notnull
+        where T10 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>());
+            }
+        }
+    }
+
+    public static void AddTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>()
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T8 : notnull
+        where T9 : notnull
+        where T10 : notnull
+    {
+        lock (_typeReaders)
+        {
+            Type keyType = typeof(Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>>);
+            if (!_typeReaders.ContainsKey(keyType))
+            {
+                _typeReaders.Add(keyType, new TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>());
+            }
+        }
+    }
+
+    private ITypeReader CreateValueTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6, Type type7, Type type8, Type type9, Type type10)
+    {
+        Type readerType = typeof(ValueTupleTypeReader<,,,,,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6, type7, type8, type9, type10 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
+
+    private ITypeReader CreateTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5, Type type6, Type type7, Type type8, Type type9, Type type10)
+    {
+        Type readerType = typeof(TupleTypeReader<,,,,,,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type6, type7, type8, type9, type10 });
+        return (ITypeReader)Activator.CreateInstance(readerType)!;
+    }
 }

@@ -128,6 +128,57 @@ public ref partial struct Reader
                                                       type.GenericTypeArguments[2],
                                                       type.GenericTypeArguments[3],
                                                       type.GenericTypeArguments[4]);
+
+                case 6:
+                    return CreateValueTupleTypeReader(type.GenericTypeArguments[0],
+                                                 type.GenericTypeArguments[1],
+                                                 type.GenericTypeArguments[2],
+                                                 type.GenericTypeArguments[3],
+                                                 type.GenericTypeArguments[4],
+                                                 type.GenericTypeArguments[5]);
+                case 7:
+                    return CreateValueTupleTypeReader(type.GenericTypeArguments[0],
+                                                 type.GenericTypeArguments[1],
+                                                 type.GenericTypeArguments[2],
+                                                 type.GenericTypeArguments[3],
+                                                 type.GenericTypeArguments[4],
+                                                 type.GenericTypeArguments[5],
+                                                 type.GenericTypeArguments[6]);
+                case 8:
+                    switch (type.GenericTypeArguments[7].GenericTypeArguments.Length)
+                    {
+                        case 1:
+                            return CreateValueTupleTypeReader(type.GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[1],
+                                                        type.GenericTypeArguments[2],
+                                                        type.GenericTypeArguments[3],
+                                                        type.GenericTypeArguments[4],
+                                                        type.GenericTypeArguments[5],
+                                                        type.GenericTypeArguments[6],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[0]);
+                        case 2:
+                            return CreateValueTupleTypeReader(type.GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[1],
+                                                        type.GenericTypeArguments[2],
+                                                        type.GenericTypeArguments[3],
+                                                        type.GenericTypeArguments[4],
+                                                        type.GenericTypeArguments[5],
+                                                        type.GenericTypeArguments[6],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[1]);
+                        case 3:
+                            return CreateValueTupleTypeReader(type.GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[1],
+                                                        type.GenericTypeArguments[2],
+                                                        type.GenericTypeArguments[3],
+                                                        type.GenericTypeArguments[4],
+                                                        type.GenericTypeArguments[5],
+                                                        type.GenericTypeArguments[6],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[1],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[2]);
+                    }
+                    break;
             }
         }
         // Struct (ValueTuple)
@@ -154,6 +205,56 @@ public ref partial struct Reader
                                                  type.GenericTypeArguments[2],
                                                  type.GenericTypeArguments[3],
                                                  type.GenericTypeArguments[4]);
+                case 6:
+                    return CreateTupleTypeReader(type.GenericTypeArguments[0],
+                                                 type.GenericTypeArguments[1],
+                                                 type.GenericTypeArguments[2],
+                                                 type.GenericTypeArguments[3],
+                                                 type.GenericTypeArguments[4],
+                                                 type.GenericTypeArguments[5]);
+                case 7:
+                    return CreateTupleTypeReader(type.GenericTypeArguments[0],
+                                                 type.GenericTypeArguments[1],
+                                                 type.GenericTypeArguments[2],
+                                                 type.GenericTypeArguments[3],
+                                                 type.GenericTypeArguments[4],
+                                                 type.GenericTypeArguments[5],
+                                                 type.GenericTypeArguments[6]);
+                case 8:
+                    switch (type.GenericTypeArguments[7].GenericTypeArguments.Length)
+                    {
+                        case 1:
+                            return CreateTupleTypeReader(type.GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[1],
+                                                        type.GenericTypeArguments[2],
+                                                        type.GenericTypeArguments[3],
+                                                        type.GenericTypeArguments[4],
+                                                        type.GenericTypeArguments[5],
+                                                        type.GenericTypeArguments[6],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[0]);
+                        case 2:
+                            return CreateTupleTypeReader(type.GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[1],
+                                                        type.GenericTypeArguments[2],
+                                                        type.GenericTypeArguments[3],
+                                                        type.GenericTypeArguments[4],
+                                                        type.GenericTypeArguments[5],
+                                                        type.GenericTypeArguments[6],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[1]);
+                        case 3:
+                            return CreateTupleTypeReader(type.GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[1],
+                                                        type.GenericTypeArguments[2],
+                                                        type.GenericTypeArguments[3],
+                                                        type.GenericTypeArguments[4],
+                                                        type.GenericTypeArguments[5],
+                                                        type.GenericTypeArguments[6],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[0],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[1],
+                                                        type.GenericTypeArguments[7].GenericTypeArguments[2]);
+                    }
+                    break;
             }
         }
 

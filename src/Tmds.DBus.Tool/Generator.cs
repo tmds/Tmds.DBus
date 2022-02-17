@@ -18,7 +18,7 @@ namespace Tmds.DBus.Tool
         public Accessibility TypesAccessModifier = Accessibility.NotApplicable;
     }
 
-    class Generator
+    class Generator : IGenerator
     {
         private readonly AdhocWorkspace _workspace;
         private readonly SyntaxGenerator _generator;

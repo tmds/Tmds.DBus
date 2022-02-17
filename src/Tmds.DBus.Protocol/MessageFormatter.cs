@@ -82,12 +82,12 @@ class MessageFormatter
                     break;
                 case DBusType.String:
                     sb.Append("string ");
-                    sb.AppendUTF8(reader.ReadString()); // TODO: handle long strings without allocating.
+                    sb.AppendUTF8(reader.ReadObjectPathAsSpan()); // TODO: handle long strings without allocating.
                     sb.AppendLine();
                     break;
                 case DBusType.ObjectPath:
                     sb.Append("path   ");
-                    sb.AppendUTF8(reader.ReadObjectPath()); // TODO: handle long strings without allocating.
+                    sb.AppendUTF8(reader.ReadObjectPathAsSpan()); // TODO: handle long strings without allocating.
                     sb.AppendLine();
                     break;
                 case DBusType.Signature:

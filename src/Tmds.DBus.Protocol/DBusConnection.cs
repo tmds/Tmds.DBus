@@ -863,7 +863,7 @@ class DBusConnection : IDisposable
                     return false;
                 }
 
-                ReadOnlySpan<byte> arg0 = message.GetBodyReader().ReadString();
+                ReadOnlySpan<byte> arg0 = message.GetBodyReader().ReadStringAsSpan();
 
                 if (_arg0Path is not null && !IsEqualParentOrChildOfPath(arg0, _arg0Path))
                 {

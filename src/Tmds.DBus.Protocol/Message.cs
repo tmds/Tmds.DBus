@@ -54,25 +54,25 @@ public readonly ref struct Message
             switch (hdrType)
             {
                 case MessageHeader.Path:
-                    Path = reader.ReadObjectPath();
+                    Path = reader.ReadObjectPathAsSpan();
                     break;
                 case MessageHeader.Interface:
-                    Interface = reader.ReadString();
+                    Interface = reader.ReadStringAsSpan();
                     break;
                 case MessageHeader.Member:
-                    Member = reader.ReadString();
+                    Member = reader.ReadStringAsSpan();
                     break;
                 case MessageHeader.ErrorName:
-                    ErrorName = reader.ReadString();
+                    ErrorName = reader.ReadStringAsSpan();
                     break;
                 case MessageHeader.ReplySerial:
                     ReplySerial = reader.ReadUInt32();
                     break;
                 case MessageHeader.Destination:
-                    Destination = reader.ReadString();
+                    Destination = reader.ReadStringAsSpan();
                     break;
                 case MessageHeader.Sender:
-                    Sender = reader.ReadString();
+                    Sender = reader.ReadStringAsSpan();
                     break;
                 case MessageHeader.Signature:
                     Signature = reader.ReadSignature();

@@ -65,7 +65,11 @@ public ref partial struct Reader
         }
         else if (type == typeof(string))
         {
-            return (T)(object)ReadString().ToString();
+            return (T)(object)ReadString();
+        }
+        else if (type == typeof(ObjectPath))
+        {
+            return (T)(object)ReadObjectPath();
         }
         else
         {

@@ -1,5 +1,6 @@
-// Strongly-typed signature string for writing a variant with a signature.
-struct Signature
+namespace Tmds.DBus.Protocol;
+
+public struct Signature
 {
     private string _value;
 

@@ -73,9 +73,13 @@ public ref partial struct Reader
         return ReadSpan(length);
     }
 
-    public Utf8Span ReadObjectPath() => ReadSpan();
+    public Utf8Span ReadObjectPathAsSpan() => ReadSpan();
 
-    public Utf8Span ReadString() => ReadSpan();
+    public ObjectPath ReadObjectPath() => new ObjectPath(ReadString());
+
+    public Utf8Span ReadStringAsSpan() => ReadSpan();
+
+    public string ReadString() => Encoding.UTF8.GetString(ReadSpan());
 
     private ReadOnlySpan<byte> ReadSpan()
     {
@@ -86,10 +90,10 @@ public ref partial struct Reader
     private ReadOnlySpan<byte> ReadSpan(int length)
     {
         var span = _reader.UnreadSpan;
-        if (span.Length <= length)
+        if (span.Length >= length)
         {
             _reader.Advance(length + 1);
-            return span.Slice(length);
+            return span.Slice(0, length);
         }
         else
         {

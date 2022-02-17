@@ -555,6 +555,7 @@ public ref partial struct Reader
         where T4 : notnull
         where T5 : notnull
         where T6 : notnull
+        where T7 : notnull
     {
         lock (_typeReaders)
         {
@@ -649,6 +650,7 @@ public ref partial struct Reader
         where T4 : notnull
         where T5 : notnull
         where T6 : notnull
+        where T7 : notnull
         where T8 : notnull
     {
         lock (_typeReaders)
@@ -747,6 +749,7 @@ public ref partial struct Reader
         where T4 : notnull
         where T5 : notnull
         where T6 : notnull
+        where T7 : notnull
         where T8 : notnull
         where T9 : notnull
     {
@@ -849,6 +852,7 @@ public ref partial struct Reader
         where T4 : notnull
         where T5 : notnull
         where T6 : notnull
+        where T7 : notnull
         where T8 : notnull
         where T9 : notnull
         where T10 : notnull

@@ -85,70 +85,56 @@ static class TypeModel
 
     public static Type DetermineVariantType(Utf8Span signature)
     {
-        // TODO: add caching.
-        switch ((DBusType)signature.Span[0])
+        Func<DBusType, Type[], Type> map = (dbusType, innerTypes) =>
         {
-            case DBusType.Byte:
-                return typeof(byte);
-            case DBusType.Bool:
-                return typeof(bool);
-            case DBusType.Int16:
-                return typeof(Int16);
-            case DBusType.UInt16:
-                return typeof(UInt16);
-            case DBusType.Int32:
-                return typeof(Int32);
-            case DBusType.UInt32:
-                return typeof(UInt32);
-            case DBusType.Int64:
-                return typeof(Int64);
-            case DBusType.UInt64:
-                return typeof(UInt64);
-            case DBusType.Double:
-                return typeof(double);
-            case DBusType.String:
-                return typeof(string);
-            case DBusType.ObjectPath:
-                return typeof(string);
-            case DBusType.Signature:
-                return typeof(string);
-            case DBusType.UnixFd:
-                return typeof(SafeHandle);
+            switch (dbusType)
+            {
+                case DBusType.Byte: return typeof(byte);
+                case DBusType.Bool: return typeof(bool);
+                case DBusType.Int16: return typeof(Int16);
+                case DBusType.UInt16: return typeof(UInt16);
+                case DBusType.Int32: return typeof(Int32);
+                case DBusType.UInt32: return typeof(UInt32);
+                case DBusType.Int64: return typeof(Int64);
+                case DBusType.UInt64: return typeof(UInt64);
+                case DBusType.Double: return typeof(double);
+                case DBusType.String: return typeof(string);
+                case DBusType.ObjectPath: return typeof(string);
+                case DBusType.Signature: return typeof(string);
+                case DBusType.UnixFd: return typeof(SafeHandle);
+                case DBusType.Array: return innerTypes[0].MakeArrayType();
+                case DBusType.DictEntry: return typeof(Dictionary<,>).MakeGenericType(innerTypes);
+                case DBusType.Struct:
+                    switch (innerTypes.Length)
+                    {
+                        case 1: return typeof(ValueTuple<>).MakeGenericType(innerTypes);
+                        case 2: return typeof(ValueTuple<,>).MakeGenericType(innerTypes);
+                        case 3: return typeof(ValueTuple<,,>).MakeGenericType(innerTypes);
+                        case 4: return typeof(ValueTuple<,,,>).MakeGenericType(innerTypes);
+                        case 5: return typeof(ValueTuple<,,,,>).MakeGenericType(innerTypes);
+                        case 6: return typeof(ValueTuple<,,,,,>).MakeGenericType(innerTypes);
+                        case 7: return typeof(ValueTuple<,,,,,,>).MakeGenericType(innerTypes);
+                        case 8:
+                        case 9:
+                        case 10:
+                            var types = new Type[8];
+                            innerTypes.AsSpan(0, 7).CopyTo(types);
+                            types[7] = innerTypes.Length switch
+                            {
+                                8 => typeof(ValueTuple<>).MakeGenericType(new[] { innerTypes[7] }),
+                                9 => typeof(ValueTuple<,>).MakeGenericType(new[] { innerTypes[7], innerTypes[8] }),
+                                10 => typeof(ValueTuple<,,>).MakeGenericType(new[] { innerTypes[7], innerTypes[8], innerTypes[9] }),
+                                _ => null!
+                            };
+                            return typeof(ValueTuple<,,,,,,,>).MakeGenericType(types);
+                    }
+                    break;
+            }
+            return typeof(object);
+        };
 
-            case DBusType.Array:
-                if ((DBusType)signature.Span[1] == DBusType.DictEntry)
-                {
-                    Type keyType = DetermineVariantType(signature.Span.Slice(2));
-                    Type valueType = DetermineVariantType(signature.Span.Slice(3));
-                    return typeof(Dictionary<,>).MakeGenericType(new[] { keyType, valueType });
-                }
-                return DetermineVariantType(signature.Span.Slice(1)).MakeArrayType();
-
-            case DBusType.Struct:
-                ReadOnlySpan<byte> structTypeSignatures = signature.Span.Slice(1, signature.Span.Length - 2);
-                int typeCount = SignatureReader.CountTypes(structTypeSignatures);
-                SignatureReader reader = new(structTypeSignatures);
-                Type[] types = new Type[typeCount];
-                for (int i = 0; i < typeCount; i++)
-                {
-                    types[i] = DetermineVariantType(SignatureReader.ReadSingleType(ref structTypeSignatures));
-                }
-                switch (typeCount)
-                {
-                    case 1:
-                        return typeof(ValueTuple<>).MakeGenericType(types);
-                    case 2:
-                        return typeof(ValueTuple<,>).MakeGenericType(types);
-                    case 3:
-                        return typeof(ValueTuple<,,>).MakeGenericType(types);
-                    case 4:
-                        return typeof(ValueTuple<,,,>).MakeGenericType(types);
-                    case 5:
-                        return typeof(ValueTuple<,,,,>).MakeGenericType(types);
-                }
-                break;
-        }
-        return typeof(object);
+        // TODO: add caching.
+        return SignatureReader.Transform(signature, map);
     }
 
     private static bool IsGenericInstantiation(Type candidate, Type interfaceType)

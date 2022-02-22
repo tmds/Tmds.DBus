@@ -194,6 +194,7 @@ internal ref struct SignatureReader
                 signature = signature.Slice(2);
                 ReadOnlySpan<byte> keySignature = SignatureReader.ReadSingleType(ref signature);
                 ReadOnlySpan<byte> valueSignature = SignatureReader.ReadSingleType(ref signature);
+                signature = signature.Slice(1);
                 T keyType = Transform(keySignature, map);
                 T valueType = Transform(valueSignature, map);
                 return map(DBusType.DictEntry, new[] { keyType, valueType });
@@ -202,6 +203,7 @@ internal ref struct SignatureReader
             {
                 signature = signature.Slice(1);
                 T elementType = Transform(signature, map);
+                signature = signature.Slice(1);
                 return map(DBusType.Array, new[] { elementType });
             }
         }

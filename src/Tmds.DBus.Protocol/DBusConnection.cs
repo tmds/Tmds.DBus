@@ -512,9 +512,8 @@ class DBusConnection : IDisposable
         MatchRuleData data = rule.Data;
         MatchMaker? matchMaker;
         string ruleString;
-        uint nextSerial = 0;
-        bool sendMessage;
         Observer observer;
+        MessageBuffer? addMatchMessage = null;
 
         lock (_gate)
         {
@@ -539,10 +538,10 @@ class DBusConnection : IDisposable
             observer = new Observer(matchMaker, handler, subscribe);
             matchMaker.Observers.Add(observer);
 
-            sendMessage = subscribe && matchMaker.AddMatchTcs is null;
-
+            bool sendMessage = subscribe && matchMaker.AddMatchTcs is null;
             if (sendMessage)
             {
+                addMatchMessage = CreateAddMatchMessage(matchMaker.RuleString);
                 matchMaker.AddMatchTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
                 MessageHandlerDelegate fn = static (Exception? exception, in Message message, object? state1, object? state2, object? state3) =>
@@ -555,18 +554,17 @@ class DBusConnection : IDisposable
                     CompleteCallTaskCompletionSource(exception, in message, mm.AddMatchTcs!);
                 };
 
-                _pendingCalls.Add(nextSerial, new(fn, matchMaker));
+                _pendingCalls.Add(addMatchMessage.Serial, new(fn, matchMaker));
             }
         }
 
         if (subscribe)
         {
-            if (sendMessage)
+            if (addMatchMessage is not null)
             {
-                var message = CreateAddMatchMessage(matchMaker.RuleString);
-                if (!await _messageStream!.TrySendMessageAsync(message))
+                if (!await _messageStream!.TrySendMessageAsync(addMatchMessage))
                 {
-                    message.ReturnToPool();
+                    addMatchMessage.ReturnToPool();
                 }
             }
 

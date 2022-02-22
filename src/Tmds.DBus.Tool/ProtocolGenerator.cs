@@ -16,7 +16,6 @@ namespace Tmds.DBus.Tool
 
     class ProtocolGenerator : IGenerator
     {
-        private const string ConnectionType = "Connection";
         private readonly ProtocolGeneratorSettings _settings;
         private readonly StringBuilder _sb;
         private int _indentation = 0;
@@ -56,15 +55,16 @@ namespace Tmds.DBus.Tool
 
             AppendLine($"using Tmds.DBus.Protocol;");
             AppendLine($"using SafeHandle = System.Runtime.InteropServices.SafeHandle;");
+            AppendLine($"using System.Collections.Generic;");
 
             AppendLine("");
             AppendLine($"class DBusObject");
             StartBlock();
-            AppendLine("public Connection Connection { get; }");
+            AppendLine("public Tmds.DBus.Protocol.Connection Connection { get; }");
             AppendLine("public string Service { get; }");
             AppendLine("public ObjectPath Path { get; }");
             AppendLine("");
-            AppendLine("protected DBusObject(Connection connection, string service, ObjectPath path)");
+            AppendLine("protected DBusObject(Tmds.DBus.Protocol.Connection connection, string service, ObjectPath path)");
             StartBlock();
             AppendLine("(Connection, Service, Path) = (connection, service, path);");
             EndBlock();
@@ -90,7 +90,7 @@ namespace Tmds.DBus.Tool
             AppendLine($"private const string Interface = \"{interfaceName}\";");
 
             AppendLine("");
-            AppendLine($"public {name}({ConnectionType} connection, string service, ObjectPath path) : base(connection, service, path)");
+            AppendLine($"public {name}(Tmds.DBus.Protocol.Connection connection, string service, ObjectPath path) : base(connection, service, path)");
             AppendLine("{ }");
 
             foreach (var method in interfaceXml.Elements("method"))
@@ -99,6 +99,34 @@ namespace Tmds.DBus.Tool
                 AppendMethod(method);
             }
 
+            foreach (var signal in interfaceXml.Elements("signal"))
+            {
+                AppendLine("");
+                AppendSignal(signal);
+            }
+
+            EndBlock();
+        }
+
+        private void AppendSignal(XElement signalXml)
+        {
+            string dbusSignalName = (string)signalXml.Attribute("name");
+
+            var args = signalXml.Elements("arg").Select(ToArgument).ToArray();
+            string watchType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetType : TupleOf(args.Select(arg => $"{arg.DotnetType} {arg.NameUpper}"));
+            string methodArg = watchType == null ? "Action<Exception?>" : $"Action<Exception?, {watchType}>";
+            string dotnetMethodName = "Watch" + Prettify(dbusSignalName) + "Async";
+            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({methodArg} handler)");
+            StartBlock();
+            if (watchType == null)
+            {
+                AppendLine($"return this.Connection.WatchSignalAsync(Service, Path, \"{dbusSignalName}\", handler);");
+            }
+            else
+            {
+                AppendLine($"return this.Connection.WatchSignalAsync(Service, Path, \"{dbusSignalName}\", handler, (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), this);");
+                AppendReadMessageMethod(args, watchType);
+            }
             EndBlock();
         }
 
@@ -112,7 +140,7 @@ namespace Tmds.DBus.Tool
             var inArgs = methodXml.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
             var outArgs = methodXml.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").Select(ToArgument).ToArray();
 
-            string dotnetReturnType = outArgs.Length == 0 ? null : outArgs.Length == 1 ? outArgs[0].DotnetType : $"({string.Join(", ", outArgs.Select(arg => $"{arg.DotnetType} {arg.NameUpper}"))})";
+            string dotnetReturnType = outArgs.Length == 0 ? null : outArgs.Length == 1 ? outArgs[0].DotnetType : TupleOf(outArgs.Select(arg => $"{arg.DotnetType} {arg.NameUpper}"));
 
             string retType = dotnetReturnType == null ? "Task" : $"Task<{dotnetReturnType}>";
 
@@ -123,17 +151,17 @@ namespace Tmds.DBus.Tool
             StartBlock();
             if (dotnetReturnType != null)
             {
-                AppendLine($"return Connection.CallMethodAsync(CreateMessage(), (in Message m, object? s) => ReadResponse(in m, ({ConnectionType})s!), Connection);");
+                AppendLine($"return this.Connection.CallMethodAsync(CreateMessage(), (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), this);");
             }
             else
             {
-                AppendLine($"return Connection.CallMethodAsync(CreateMessage());");
+                AppendLine($"return this.Connection.CallMethodAsync(CreateMessage());");
             }
             AppendLine("");
 
             AppendLine("MessageBuffer CreateMessage()");
             StartBlock();
-            AppendLine("using var writer = Connection.GetMessageWriter();");
+            AppendLine("using var writer = this.Connection.GetMessageWriter();");
             AppendLine("");
             AppendLine("writer.WriteMethodCallHeader(");
             AppendLine($"    destination: Service,");
@@ -180,46 +208,51 @@ namespace Tmds.DBus.Tool
 
             if (dotnetReturnType != null)
             {
-                AppendLine("");
-                AppendLine($"static {dotnetReturnType} ReadResponse(in Message message, {ConnectionType} connection)");
-                StartBlock();
-                AppendLine("var reader = message.GetBodyReader();");
-                foreach (var outArg in outArgs)
-                {
-                    string readMethod = outArg.DBusType switch
-                    {
-                        DBusType.Byte => "ReadByte",
-                        DBusType.Bool => "ReadBool",
-                        DBusType.Int16 => "ReadInt16",
-                        DBusType.UInt16 => "ReadUInt15",
-                        DBusType.Int32 => "ReadInt32",
-                        DBusType.UInt32 => "ReadUInt32",
-                        DBusType.Int64 => "ReadInt64",
-                        DBusType.UInt64 => "ReadUInt64",
-                        DBusType.Double => "ReadDouble",
-                        DBusType.String => "ReadString",
-                        DBusType.ObjectPath => "ReadObjectPath",
-                        DBusType.Signature => "ReadSignature",
-                        DBusType.Array => $"ReadArray<{outArg.DotnetInnerTypes[0]}>",
-                        DBusType.Struct => $"ReadStruct<{string.Join(", ", outArg.DotnetInnerTypes)}>",
-                        DBusType.Variant => "ReadVariant",
-                        DBusType.DictEntry => $"ReadDictionary<{outArg.DotnetInnerTypes[0]}, {outArg.DotnetInnerTypes[1]}>",
-                        DBusType.UnixFd => "ReadHandle<SafeHandle>",
-                        _ => throw new IndexOutOfRangeException("Unknown type")
-                    };
-                    AppendLine($"var {outArg.NameLower} = reader.{readMethod}();");
-                }
-                if (outArgs.Length == 1)
-                {
-                    AppendLine($"return {outArgs[0].NameLower};");
-                }
-                else
-                {
-                    AppendLine($"return {TupleOf(outArgs.Select(a => a.NameLower))};");
-                }
-                EndBlock();
+                AppendReadMessageMethod(outArgs, dotnetReturnType);
             }
 
+            EndBlock();
+        }
+
+        private void AppendReadMessageMethod(Argument[] args, string dotnetReturnType)
+        {
+            AppendLine("");
+            AppendLine($"static {dotnetReturnType} ReadMessage(in Message message, DBusObject _)");
+            StartBlock();
+            AppendLine("var reader = message.GetBodyReader();");
+            foreach (var outArg in args)
+            {
+                string readMethod = outArg.DBusType switch
+                {
+                    DBusType.Byte => "ReadByte",
+                    DBusType.Bool => "ReadBool",
+                    DBusType.Int16 => "ReadInt16",
+                    DBusType.UInt16 => "ReadUInt15",
+                    DBusType.Int32 => "ReadInt32",
+                    DBusType.UInt32 => "ReadUInt32",
+                    DBusType.Int64 => "ReadInt64",
+                    DBusType.UInt64 => "ReadUInt64",
+                    DBusType.Double => "ReadDouble",
+                    DBusType.String => "ReadString",
+                    DBusType.ObjectPath => "ReadObjectPath",
+                    DBusType.Signature => "ReadSignature",
+                    DBusType.Array => $"ReadArray<{outArg.DotnetInnerTypes[0]}>",
+                    DBusType.Struct => $"ReadStruct<{string.Join(", ", outArg.DotnetInnerTypes)}>",
+                    DBusType.Variant => "ReadVariant",
+                    DBusType.DictEntry => $"ReadDictionary<{outArg.DotnetInnerTypes[0]}, {outArg.DotnetInnerTypes[1]}>",
+                    DBusType.UnixFd => "ReadHandle<SafeHandle>",
+                    _ => throw new IndexOutOfRangeException("Unknown type")
+                };
+                AppendLine($"var {outArg.NameLower} = reader.{readMethod}();");
+            }
+            if (args.Length == 1)
+            {
+                AppendLine($"return {args[0].NameLower};");
+            }
+            else
+            {
+                AppendLine($"return {TupleOf(args.Select(a => a.NameLower))};");
+            }
             EndBlock();
         }
 
@@ -249,34 +282,34 @@ namespace Tmds.DBus.Tool
             {
                 DBusType dbusType = (DBusType)signature[0];
 
-                Func<DBusType, (string, string[])[], (string, string[])> map = (dbusType, inner) =>
+                Func<DBusType, (string, string[], DBusType)[], (string, string[], DBusType)> map = (dbusType, inner) =>
                 {
                     string[] innerTypes = inner.Select(s => s.Item1).ToArray();
                     switch (dbusType)
                     {
-                        case DBusType.Byte: return ("byte", innerTypes);
-                        case DBusType.Bool: return ("bool", innerTypes);
-                        case DBusType.Int16: return ("short", innerTypes);
-                        case DBusType.UInt16: return ("ushort", innerTypes);
-                        case DBusType.Int32: return ("int", innerTypes);
-                        case DBusType.UInt32: return ("uint", innerTypes);
-                        case DBusType.Int64: return ("long", innerTypes);
-                        case DBusType.UInt64: return ("ulong", innerTypes);
-                        case DBusType.Double: return ("double", innerTypes);
-                        case DBusType.String: return ("string", innerTypes);
-                        case DBusType.ObjectPath: return ("ObjectPath", innerTypes);
-                        case DBusType.Signature: return ("Signature", innerTypes);
-                        case DBusType.Variant: return ("object", innerTypes);
-                        case DBusType.UnixFd: return ("SafeHandle", innerTypes);
-                        case DBusType.Array: return ($"{innerTypes[0]}[]", innerTypes);
-                        case DBusType.DictEntry: return ($"Dictionary<{innerTypes[0]}, {innerTypes[1]}>", innerTypes);
-                        case DBusType.Struct: return ($"({string.Join(", ", innerTypes)})", innerTypes);
+                        case DBusType.Byte: return ("byte", innerTypes, dbusType);
+                        case DBusType.Bool: return ("bool", innerTypes, dbusType);
+                        case DBusType.Int16: return ("short", innerTypes, dbusType);
+                        case DBusType.UInt16: return ("ushort", innerTypes, dbusType);
+                        case DBusType.Int32: return ("int", innerTypes, dbusType);
+                        case DBusType.UInt32: return ("uint", innerTypes, dbusType);
+                        case DBusType.Int64: return ("long", innerTypes, dbusType);
+                        case DBusType.UInt64: return ("ulong", innerTypes, dbusType);
+                        case DBusType.Double: return ("double", innerTypes, dbusType);
+                        case DBusType.String: return ("string", innerTypes, dbusType);
+                        case DBusType.ObjectPath: return ("ObjectPath", innerTypes, dbusType);
+                        case DBusType.Signature: return ("Signature", innerTypes, dbusType);
+                        case DBusType.Variant: return ("object", innerTypes, dbusType);
+                        case DBusType.UnixFd: return ("SafeHandle", innerTypes, dbusType);
+                        case DBusType.Array: return ($"{innerTypes[0]}[]", innerTypes, dbusType);
+                        case DBusType.DictEntry: return ($"Dictionary<{innerTypes[0]}, {innerTypes[1]}>", innerTypes, dbusType);
+                        case DBusType.Struct: return ($"({string.Join(", ", innerTypes)})", innerTypes, dbusType);
                     }
                     throw new IndexOutOfRangeException($"Invalid type {dbusType}");
                 };
-                (string dotnetType, string[] dotnetInnerTypes) = Tmds.DBus.Protocol.SignatureReader.Transform<(string, string[])>(Encoding.ASCII.GetBytes(signature), map);
+                (string dotnetType, string[] dotnetInnerTypes, DBusType dbusType2) = Tmds.DBus.Protocol.SignatureReader.Transform(Encoding.ASCII.GetBytes(signature), map);
 
-                return (dotnetType, dotnetInnerTypes, dbusType);
+                return (dotnetType, dotnetInnerTypes, dbusType2);
             }
         }
 

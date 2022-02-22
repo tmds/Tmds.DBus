@@ -217,6 +217,30 @@ public class Connection : IDisposable
         return await connection.CallMethodAsync(message, reader, readerState);
     }
 
+    public ValueTask<IDisposable> WatchSignalAsync<T>(string sender, ObjectPath path, string signal, Action<Exception?, T> handler, MessageValueReader<T> reader, object? readerState = null)
+    {
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Member = signal
+        };
+        return AddMatchAsync<T>(rule, reader, (Exception? ex, T value, object? s) => ((Action<Exception?, T>)s!).Invoke(ex, value), readerState, handler, subscribe: true);
+    }
+
+    public ValueTask<IDisposable> WatchSignalAsync(string sender, ObjectPath path, string signal, Action<Exception?> handler)
+    {
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Member = signal
+        };
+        return AddMatchAsync<object>(rule, (in Message message, object? state) => null!, (Exception? ex, object v, object? s) => ((Action<Exception?>)s!).Invoke(ex), null, handler, subscribe: true);
+    }
+
     public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?> handler, object? readerState = null, object? handlerState = null, bool subscribe = true)
     {
         DBusConnection connection = await ConnectCoreAsync();

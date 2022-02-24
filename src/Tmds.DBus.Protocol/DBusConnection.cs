@@ -423,7 +423,15 @@ class DBusConnection : IDisposable
             }
             else if (message.MessageType == MessageType.MethodReturn)
             {
-                tcsState.SetResult(valueReaderState(in message, state3));
+                try
+                {
+                    tcsState.SetResult(valueReaderState(in message, state3));
+                    
+                }
+                catch (Exception ex)
+                {
+                    tcsState.SetException(ex);
+                }
             }
             else if (message.MessageType == MessageType.Error)
             {

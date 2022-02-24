@@ -389,13 +389,13 @@ public ref partial struct Reader
 
     private ITypeReader CreateValueTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5)
     {
-        Type readerType = typeof(ValueTupleTypeReader<,,,,>).MakeGenericType(new[] { type1, type2, type3, type4 });
+        Type readerType = typeof(ValueTupleTypeReader<,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5 });
         return (ITypeReader)Activator.CreateInstance(readerType)!;
     }
 
     private ITypeReader CreateTupleTypeReader(Type type1, Type type2, Type type3, Type type4, Type type5)
     {
-        Type readerType = typeof(TupleTypeReader<,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5 });
+        Type readerType = typeof(TupleTypeReader<,,,,>).MakeGenericType(new[] { type1, type2, type3, type4, type5, type5 });
         return (ITypeReader)Activator.CreateInstance(readerType)!;
     }
 

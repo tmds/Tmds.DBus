@@ -73,6 +73,22 @@ public ref partial struct Reader
         return ReadSpan(length);
     }
 
+    public void ReadSignature(string expected)
+    {
+        ReadOnlySpan<byte> signature = ReadSignature().Span;
+        if (signature.Length != expected.Length)
+        {
+            ThrowHelper.ThrowUnexpectedSignature(signature, expected);
+        }
+        for (int i = 0; i < signature.Length; i++)
+        {
+            if (signature[i] != expected[i])
+            {
+                ThrowHelper.ThrowUnexpectedSignature(signature, expected);
+            }
+        }
+    }
+
     public Utf8Span ReadObjectPathAsSpan() => ReadSpan();
 
     public ObjectPath ReadObjectPath() => new ObjectPath(ReadString());

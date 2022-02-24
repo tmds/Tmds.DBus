@@ -18,12 +18,14 @@ namespace Tmds.DBus.Tool
     {
         private readonly ProtocolGeneratorSettings _settings;
         private readonly StringBuilder _sb;
+        private readonly Dictionary<string, (bool, Argument[])> _messageReadMethods;
         private int _indentation = 0;
 
         public ProtocolGenerator(ProtocolGeneratorSettings settings)
         {
             _settings = settings;
             _sb = new StringBuilder();
+            _messageReadMethods = new Dictionary<string, (bool, Argument[])>();
         }
 
         private void StartBlock()
@@ -57,6 +59,21 @@ namespace Tmds.DBus.Tool
             AppendLine($"using SafeHandle = System.Runtime.InteropServices.SafeHandle;");
             AppendLine($"using System.Collections.Generic;");
 
+            foreach (var interf in interfaceDescriptions)
+            {
+                AppendLine("");
+                AppendInterface(interf.Name, interf.InterfaceXml);
+            }
+
+            AppendDbusObject();
+
+            EndBlock();
+
+            return _sb.ToString();
+        }
+
+        private void AppendDbusObject()
+        {
             AppendLine("");
             AppendLine($"class DBusObject");
             StartBlock();
@@ -68,21 +85,69 @@ namespace Tmds.DBus.Tool
             StartBlock();
             AppendLine("(Connection, Service, Path) = (connection, service, path);");
             EndBlock();
+
+            AppendLine("");
+            AppendLine("protected MessageBuffer CreateGetPropertyMessage(string @interface, string property)");
+            StartBlock();
+            AppendLine("using var writer = this.Connection.GetMessageWriter();");
+            AppendLine("");
+            AppendLine("writer.WriteMethodCallHeader(");
+            AppendLine("    destination: Service,");
+            AppendLine("    path: Path,");
+            AppendLine("    @interface: \"org.freedesktop.DBus.Properties\",");
+            AppendLine("    signature: \"ss\",");
+            AppendLine("    member: \"Get\");");
+            AppendLine("");
+            AppendLine("writer.WriteString(@interface);");
+            AppendLine("writer.WriteString(property);");
+            AppendLine("");
+            AppendLine("return writer.CreateMessage();");
             EndBlock();
 
-            foreach (var interf in interfaceDescriptions)
+            AppendLine("");
+            AppendLine("protected MessageBuffer CreateGetAllPropertiesMessage(string @interface)");
+            StartBlock();
+            AppendLine("using var writer = this.Connection.GetMessageWriter();");
+            AppendLine("");
+            AppendLine("writer.WriteMethodCallHeader(");
+            AppendLine("    destination: Service,");
+            AppendLine("    path: Path,");
+            AppendLine("    @interface: \"org.freedesktop.DBus.Properties\",");
+            AppendLine("    signature: \"s\",");
+            AppendLine("    member: \"GetAll\");");
+            AppendLine("");
+            AppendLine("writer.WriteString(@interface);");
+            AppendLine("");
+            AppendLine("return writer.CreateMessage();");
+            EndBlock();
+
+            foreach (var readMethod in _messageReadMethods)
             {
-                AppendLine("");
-                AppendInterface(interf.Name, interf.InterfaceXml);
+                AppendReadMessageMethod(readMethod.Key, readMethod.Value.Item1, readMethod.Value.Item2);
             }
 
             EndBlock();
-
-            return _sb.ToString();
         }
 
         private void AppendInterface(string name, XElement interfaceXml)
         {
+            var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument);
+            var writableProperties = ReadableProperties(interfaceXml).Select(ToArgument);
+
+            string propertiesClassName = $"{name}Properties";
+
+            if (readableProperties.Any())
+            {
+                AppendLine("");
+                AppendLine($"record {propertiesClassName}");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"public {property.DotnetType} {property.NameUpper} {{ get; set; }} = default!;");
+                }
+                EndBlock();
+            }
+
             AppendLine($"partial class {name} : DBusObject");
             StartBlock();
 
@@ -105,8 +170,103 @@ namespace Tmds.DBus.Tool
                 AppendSignal(signal);
             }
 
+            foreach (var property in writableProperties)
+            {
+                AppendPropertySetMethod(property);
+            }
+
+            if (readableProperties.Any())
+            {
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"public Task<{property.DotnetType}> Get{property.NameUpper}Async()");
+                    _indentation++;
+                    string readMessageName = GetReadMessageMethodName(new[] { property }, variant: true);
+                    AppendLine($"=> this.Connection.CallMethodAsync(CreateGetPropertyMessage(Interface, \"{property.Name}\"), (in Message m, object? s) => {readMessageName}(in m, (DBusObject)s!), this);");
+                    _indentation--;
+                }
+
+                AppendLine($"public Task<{propertiesClassName}> GetPropertiesAsync()");
+                StartBlock();
+                AppendLine($"return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(Interface), (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), this);");
+                
+                AppendLine($"static {propertiesClassName} ReadMessage(in Message message, DBusObject _)");
+                StartBlock();
+                AppendLine($"var props = new {propertiesClassName}();");
+                AppendLine("var reader = message.GetBodyReader();");
+                AppendLine("ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);");
+                AppendLine("while (reader.HasNext(headersEnd))");
+                StartBlock();
+
+                AppendLine("var property = reader.ReadString();");
+                AppendLine("switch (property)");
+                StartBlock();
+
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"case \"{property.Name}\":");
+                    _indentation++;
+                    AppendLine($"reader.ReadSignature(\"{property.Type}\");");
+                    AppendLine($"props.{property.NameUpper} = reader.{GetArgumentReadMethodName(property)}();");
+                    AppendLine("break;");
+                    _indentation--;
+                }
+                AppendLine("default:");
+                _indentation++;
+                AppendLine($"reader.ReadVariant();");
+                AppendLine("break;");
+                _indentation--;
+
+                EndBlock(); // switch
+
+                EndBlock(); // while
+
+                AppendLine("return props;");
+
+                EndBlock(); // ReadMessage
+
+                EndBlock(); // method
+            }
+
             EndBlock();
         }
+
+        private void AppendPropertySetMethod(Argument property)
+        {
+            string methodName = $"Set{property.NameUpper}Async";
+            AppendLine($"public Task {methodName}({property.DotnetType} value)");
+            StartBlock();
+            AppendLine($"return this.Connection.CallMethodAsync(CreateMessage());");
+            AppendLine("");
+            AppendLine("MessageBuffer CreateMessage()");
+            StartBlock();
+            AppendLine("using var writer = this.Connection.GetMessageWriter();");
+            AppendLine("");
+            AppendLine("writer.WriteMethodCallHeader(");
+            AppendLine("    destination: Service,");
+            AppendLine("    path: Path,");
+            AppendLine("    @interface: \"org.freedesktop.DBus.Properties\",");
+            AppendLine("    signature: \"ssv\",");
+            AppendLine("    member: \"Set\");");
+            AppendLine("");
+            AppendLine("writer.WriteString(Interface);");
+            AppendLine($"writer.WriteString(\"{property.Name}\");");
+            AppendLine($"writer.WriteSignature(\"{property.Type}\");");
+            AppendLine($"writer.{GetArgumentWriteMethodName(property)}(value);");
+            AppendLine("");
+            AppendLine("return writer.CreateMessage();");
+            EndBlock();
+            EndBlock();
+        }
+
+        private IEnumerable<XElement> Properties(XElement interfaceXml)
+            => interfaceXml.Elements("property");
+
+        private IEnumerable<XElement> ReadableProperties(XElement interfaceXml)
+            => Properties(interfaceXml).Where(p => p.Attribute("access").Value.StartsWith("read", StringComparison.Ordinal));
+
+        private IEnumerable<XElement> WritableProperties(XElement interfaceXml)
+            => Properties(interfaceXml).Where(p => p.Attribute("access").Value.EndsWith("write", StringComparison.Ordinal));
 
         private void AppendSignal(XElement signalXml)
         {
@@ -124,10 +284,25 @@ namespace Tmds.DBus.Tool
             }
             else
             {
-                AppendLine($"return this.Connection.WatchSignalAsync(Service, Path, \"{dbusSignalName}\", handler, (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), this);");
-                AppendReadMessageMethod(args, watchType);
+                string readMessageName = GetReadMessageMethodName(args, variant: false);
+                AppendLine($"return this.Connection.WatchSignalAsync(Service, Path, \"{dbusSignalName}\", handler, (in Message m, object? s) => {readMessageName}(in m, (DBusObject)s!), this);");
             }
             EndBlock();
+        }
+
+        private string GetReadMessageMethodName(Argument[] args, bool variant)
+        {
+            string mangle = string.Join("", args.Select(arg => arg.Type)).Replace('{', 'e').Replace('(', 'r').Replace("}", "").Replace(")", "z");
+            if (variant)
+            {
+                mangle = "v_" + mangle;
+            }
+            string methodName = "ReadMessage_" + mangle;
+            if (!_messageReadMethods.ContainsKey(methodName))
+            {
+                _messageReadMethods.Add(methodName, (variant, args));
+            }
+            return methodName;
         }
 
         private static string TupleOf(IEnumerable<string> elements)
@@ -139,9 +314,7 @@ namespace Tmds.DBus.Tool
             string dbusMethodName = (string)methodXml.Attribute("name");
             var inArgs = methodXml.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
             var outArgs = methodXml.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").Select(ToArgument).ToArray();
-
             string dotnetReturnType = outArgs.Length == 0 ? null : outArgs.Length == 1 ? outArgs[0].DotnetType : TupleOf(outArgs.Select(arg => $"{arg.DotnetType} {arg.NameUpper}"));
-
             string retType = dotnetReturnType == null ? "Task" : $"Task<{dotnetReturnType}>";
 
             string args = TupleOf(inArgs.Select(arg => $"{arg.DotnetType} {arg.NameLower}"));
@@ -151,7 +324,8 @@ namespace Tmds.DBus.Tool
             StartBlock();
             if (dotnetReturnType != null)
             {
-                AppendLine($"return this.Connection.CallMethodAsync(CreateMessage(), (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), this);");
+                string readMessageName = GetReadMessageMethodName(outArgs, variant: false);
+                AppendLine($"return this.Connection.CallMethodAsync(CreateMessage(), (in Message m, object? s) => {readMessageName}(in m, (DBusObject)s!), this);");
             }
             else
             {
@@ -179,81 +353,92 @@ namespace Tmds.DBus.Tool
             }
             foreach (var inArg in inArgs)
             {
-                string writeMethod = inArg.DBusType switch
-                {
-                    DBusType.Byte => "WriteByte",
-                    DBusType.Bool => "WriteBool",
-                    DBusType.Int16 => "WriteInt16",
-                    DBusType.UInt16 => "WriteUInt16",
-                    DBusType.Int32 => "WriteInt32",
-                    DBusType.UInt32 => "WriteUInt32",
-                    DBusType.Int64 => "WriteInt64",
-                    DBusType.UInt64 => "WriteUInt64",
-                    DBusType.Double => "WriteDouble",
-                    DBusType.String => "WriteString",
-                    DBusType.ObjectPath => "WriteObjectPath",
-                    DBusType.Signature => "WriteSignature",
-                    DBusType.Array => "WriteArray",
-                    DBusType.Struct => "WriteStruct",
-                    DBusType.Variant => "WriteVariant",
-                    DBusType.DictEntry => "WriteDictionary",
-                    DBusType.UnixFd => "WriteHandle",
-                    _ => throw new IndexOutOfRangeException("Unknown type")
-                };
+                string writeMethod = GetArgumentWriteMethodName(inArg);
                 AppendLine($"writer.{writeMethod}({inArg.NameLower});");
             }
             AppendLine("");
             AppendLine("return writer.CreateMessage();");
             EndBlock();
 
-            if (dotnetReturnType != null)
-            {
-                AppendReadMessageMethod(outArgs, dotnetReturnType);
-            }
-
             EndBlock();
         }
 
-        private void AppendReadMessageMethod(Argument[] args, string dotnetReturnType)
+        private static string GetArgumentWriteMethodName(Argument inArg)
         {
-            AppendLine("");
-            AppendLine($"static {dotnetReturnType} ReadMessage(in Message message, DBusObject _)");
-            StartBlock();
-            AppendLine("var reader = message.GetBodyReader();");
-            foreach (var outArg in args)
+            return inArg.DBusType switch
             {
-                string readMethod = outArg.DBusType switch
-                {
-                    DBusType.Byte => "ReadByte",
-                    DBusType.Bool => "ReadBool",
-                    DBusType.Int16 => "ReadInt16",
-                    DBusType.UInt16 => "ReadUInt15",
-                    DBusType.Int32 => "ReadInt32",
-                    DBusType.UInt32 => "ReadUInt32",
-                    DBusType.Int64 => "ReadInt64",
-                    DBusType.UInt64 => "ReadUInt64",
-                    DBusType.Double => "ReadDouble",
-                    DBusType.String => "ReadString",
-                    DBusType.ObjectPath => "ReadObjectPath",
-                    DBusType.Signature => "ReadSignature",
-                    DBusType.Array => $"ReadArray<{outArg.DotnetInnerTypes[0]}>",
-                    DBusType.Struct => $"ReadStruct<{string.Join(", ", outArg.DotnetInnerTypes)}>",
-                    DBusType.Variant => "ReadVariant",
-                    DBusType.DictEntry => $"ReadDictionary<{outArg.DotnetInnerTypes[0]}, {outArg.DotnetInnerTypes[1]}>",
-                    DBusType.UnixFd => "ReadHandle<SafeHandle>",
-                    _ => throw new IndexOutOfRangeException("Unknown type")
-                };
-                AppendLine($"var {outArg.NameLower} = reader.{readMethod}();");
+                DBusType.Byte => "WriteByte",
+                DBusType.Bool => "WriteBool",
+                DBusType.Int16 => "WriteInt16",
+                DBusType.UInt16 => "WriteUInt16",
+                DBusType.Int32 => "WriteInt32",
+                DBusType.UInt32 => "WriteUInt32",
+                DBusType.Int64 => "WriteInt64",
+                DBusType.UInt64 => "WriteUInt64",
+                DBusType.Double => "WriteDouble",
+                DBusType.String => "WriteString",
+                DBusType.ObjectPath => "WriteObjectPath",
+                DBusType.Signature => "WriteSignature",
+                DBusType.Array => "WriteArray",
+                DBusType.Struct => "WriteStruct",
+                DBusType.Variant => "WriteVariant",
+                DBusType.DictEntry => "WriteDictionary",
+                DBusType.UnixFd => "WriteHandle",
+                _ => throw new IndexOutOfRangeException("Unknown type")
+            };
+        }
+
+        private void AppendReadMessageMethod(string name, bool variant, Argument[] args)
+        {
+            string dotnetReturnType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetType : TupleOf(args.Select(arg => arg.DotnetType));
+            AppendLine($"protected static {dotnetReturnType} {name}(in Message message, DBusObject _)");
+            StartBlock();
+            string signature = string.Join("", args.Select(a => a.Type));
+            AppendLine("var reader = message.GetBodyReader();");
+            if (variant)
+            {
+                AppendLine($"reader.ReadSignature(\"{signature}\");");
             }
             if (args.Length == 1)
             {
-                AppendLine($"return {args[0].NameLower};");
+                AppendLine($"return reader.{GetArgumentReadMethodName(args[0])}();");
             }
             else
             {
-                AppendLine($"return {TupleOf(args.Select(a => a.NameLower))};");
+                for (int i = 0; i < args.Length; i++)
+                {
+                    Argument arg = args[i];
+                    string readMethod = GetArgumentReadMethodName(arg);
+                    AppendLine($"var arg{i} = reader.{GetArgumentReadMethodName(args[i])}();");
+                }
+                AppendLine($"return {TupleOf(args.Select((a, i) => $"arg{i}"))};");
             }
             EndBlock();
+        }
+
+        private static string GetArgumentReadMethodName(Argument arg)
+        {
+            return arg.DBusType switch
+            {
+                DBusType.Byte => "ReadByte",
+                DBusType.Bool => "ReadBool",
+                DBusType.Int16 => "ReadInt16",
+                DBusType.UInt16 => "ReadUInt15",
+                DBusType.Int32 => "ReadInt32",
+                DBusType.UInt32 => "ReadUInt32",
+                DBusType.Int64 => "ReadInt64",
+                DBusType.UInt64 => "ReadUInt64",
+                DBusType.Double => "ReadDouble",
+                DBusType.String => "ReadString",
+                DBusType.ObjectPath => "ReadObjectPath",
+                DBusType.Signature => "ReadSignature",
+                DBusType.Array => $"ReadArray<{arg.DotnetInnerTypes[0]}>",
+                DBusType.Struct => $"ReadStruct<{string.Join(", ", arg.DotnetInnerTypes)}>",
+                DBusType.Variant => "ReadVariant",
+                DBusType.DictEntry => $"ReadDictionary<{arg.DotnetInnerTypes[0]}, {arg.DotnetInnerTypes[1]}>",
+                DBusType.UnixFd => "ReadHandle<SafeHandle>",
+                _ => throw new IndexOutOfRangeException("Unknown type")
+            };
         }
 
         private Argument ToArgument(XElement argXml)

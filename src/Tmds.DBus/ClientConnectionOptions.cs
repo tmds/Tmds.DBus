@@ -56,5 +56,10 @@ namespace Tmds.DBus
         /// </summary>
         protected internal virtual void Teardown(object token)
         {}
+
+        /// <summary>
+        /// Run Task continuations asynchronously.
+        /// </summary>
+        public bool RunContinuationsAsynchronously { get; set; }
     }
 }

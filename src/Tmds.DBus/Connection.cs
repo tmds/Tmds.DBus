@@ -64,6 +64,7 @@ namespace Tmds.DBus
         private readonly Func<Task<ClientSetupResult>> _connectFunction;
         private readonly Action<object> _disposeAction;
         private readonly SynchronizationContext _synchronizationContext;
+        private readonly bool _runContinuationsAsynchronously;
         private readonly ConnectionType _connectionType;
 
         private ConnectionState _state = ConnectionState.Created;
@@ -147,12 +148,13 @@ namespace Tmds.DBus
                 _connectionType = clientConnectionOptions.AutoConnect ? ConnectionType.ClientAutoConnect : ConnectionType.ClientManual ;
                 _connectFunction = clientConnectionOptions.SetupAsync;
                 _disposeAction = clientConnectionOptions.Teardown;
+                _runContinuationsAsynchronously = clientConnectionOptions.RunContinuationsAsynchronously;
             }
             else if (connectionOptions is ServerConnectionOptions serverConnectionOptions)
             {
                 _connectionType = ConnectionType.Server;
                 _state = ConnectionState.Connected;
-                _dbusConnection = new DBusConnection(localServer: true);
+                _dbusConnection = new DBusConnection(localServer: true, runContinuationsAsynchronously: false);
                 _dbusConnectionTask = Task.FromResult(_dbusConnection);
                 serverConnectionOptions.Connection = this;
             }
@@ -224,7 +226,7 @@ namespace Tmds.DBus
             {
                 ClientSetupResult connectionContext = await _connectFunction().ConfigureAwait(false);
                 disposeUserToken = connectionContext.TeardownToken;
-                connection = await DBusConnection.ConnectAsync(connectionContext, OnDisconnect, _connectCts.Token).ConfigureAwait(false);
+                connection = await DBusConnection.ConnectAsync(connectionContext, _runContinuationsAsynchronously, OnDisconnect, _connectCts.Token).ConfigureAwait(false);
             }
             catch (ConnectException ce)
             {

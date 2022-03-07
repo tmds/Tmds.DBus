@@ -30,4 +30,8 @@ public class ClientConnectionOptions : ConnectionOptions
 
     protected internal virtual void Teardown(object? token)
     { }
+
+    public SynchronizationContext? SynchronizationContext { get; set; } = null;
+
+    public bool RunContinuationsAsynchronously {get; set; } = false;
 }

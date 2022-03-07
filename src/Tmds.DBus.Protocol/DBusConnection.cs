@@ -124,7 +124,7 @@ class DBusConnection : IDisposable
     private readonly List<Observer> _matchedObservers;
     private readonly Dictionary<string, IMethodHandler> _pathHandlers;
     private readonly SynchronizationContext? _synchronizationContext;
-    private readonly bool _runContinuationsAsynchronosly;
+    private readonly bool _runContinuationsAsynchronously;
 
     private IMessageStream? _messageStream;
     private ConnectionState _state;
@@ -146,7 +146,7 @@ class DBusConnection : IDisposable
     {
         _parentConnection = parent;
         _synchronizationContext = synchronizationContext;
-        _runContinuationsAsynchronosly = runContinuationsAsynchronously;
+        _runContinuationsAsynchronously = runContinuationsAsynchronously;
         _connectCts = new();
         _pendingCalls = new();
         _matchMakers = new();
@@ -238,7 +238,7 @@ class DBusConnection : IDisposable
 
     private async Task<string?> GetLocalNameAsync()
     {
-        MyValueTaskSource<string?> vts = new(_runContinuationsAsynchronosly);
+        MyValueTaskSource<string?> vts = new(_runContinuationsAsynchronously);
 
         await CallMethodAsync(
             message: CreateHelloMessage(),
@@ -528,7 +528,7 @@ class DBusConnection : IDisposable
             }
         };
 
-        MyValueTaskSource<T> vts = new(_runContinuationsAsynchronosly);
+        MyValueTaskSource<T> vts = new(_runContinuationsAsynchronously);
         MessageHandler handler = new(fn, valueReader, vts, state);
 
         await CallMethodAsync(message, handler).ConfigureAwait(false);
@@ -538,7 +538,7 @@ class DBusConnection : IDisposable
 
     public async Task CallMethodAsync(MessageBuffer message)
     {
-        MyValueTaskSource<object?> vts = new(_runContinuationsAsynchronosly);
+        MyValueTaskSource<object?> vts = new(_runContinuationsAsynchronously);
 
         await CallMethodAsync(message,
             static (Exception? exception, in Message message, object? state) => CompleteCallValueTaskSource(exception, in message, state), vts).ConfigureAwait(false);
@@ -629,7 +629,7 @@ class DBusConnection : IDisposable
             if (sendMessage)
             {
                 addMatchMessage = CreateAddMatchMessage(matchMaker.RuleString);
-                matchMaker.AddMatchTcs = new(_runContinuationsAsynchronosly);
+                matchMaker.AddMatchTcs = new(_runContinuationsAsynchronously);
 
                 MessageHandlerDelegate fn = static (Exception? exception, in Message message, object? state1, object? state2, object? state3) =>
                 {

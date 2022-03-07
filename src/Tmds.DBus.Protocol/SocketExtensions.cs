@@ -191,7 +191,7 @@ static class SocketExtensions
     const int SOL_SOCKET = 1;
     const int EINTR = 4;
     const int EBADF = 9;
-    const int EAGAIN = 11;
+    static readonly int EAGAIN = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 35 : 11;
     const int SCM_RIGHTS = 1;
 
     private unsafe struct msghdr

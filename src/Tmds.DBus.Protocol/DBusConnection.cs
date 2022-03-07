@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using System.Threading.Tasks.Sources;
 
 #pragma warning disable VSTHRD100 // Avoid "async void" methods
 
@@ -9,6 +10,51 @@ class DBusConnection : IDisposable
 {
     private delegate void MessageReceivedHandler(Exception? exception, in Message message, object? state);
     private static readonly Exception s_disposedSentinel = new ObjectDisposedException(typeof(Connection).FullName);
+
+    class MyValueTaskSource<T> : IValueTaskSource<T>, IValueTaskSource
+    {
+        private ManualResetValueTaskSourceCore<T> _core;
+        private volatile bool _continuationSet;
+
+        public MyValueTaskSource(bool runContinuationsAsynchronously)
+        {
+            RunContinuationsAsynchronously = runContinuationsAsynchronously;
+        }
+
+        public bool RunContinuationsAsynchronously
+        {
+            get => _core.RunContinuationsAsynchronously;
+            set => _core.RunContinuationsAsynchronously = value;
+        }
+
+        public void SetResult(T result)
+        {
+            // Ensure we complete the Task from the read loop.
+            if (!RunContinuationsAsynchronously)
+            {
+                SpinWait wait = new();
+                while (!_continuationSet)
+                {
+                    wait.SpinOnce();
+                }
+            }
+            _core.SetResult(result);
+        }
+
+        public void SetException(Exception exception) => _core.SetException(exception);
+
+        public ValueTaskSourceStatus GetStatus(short token) => _core.GetStatus(token);
+
+        public void OnCompleted(Action<object> continuation, object state, short token, ValueTaskSourceOnCompletedFlags flags)
+        {
+            _core.OnCompleted(continuation, state, token, flags);
+            _continuationSet = true;
+        }
+
+        T IValueTaskSource<T>.GetResult(short token) => _core.GetResult(token);
+
+        void IValueTaskSource.GetResult(short token) => _core.GetResult(token);
+    }
 
     enum ConnectionState
     {
@@ -77,11 +123,14 @@ class DBusConnection : IDisposable
     private readonly Dictionary<string, MatchMaker> _matchMakers;
     private readonly List<Observer> _matchedObservers;
     private readonly Dictionary<string, IMethodHandler> _pathHandlers;
+    private readonly SynchronizationContext? _synchronizationContext;
+    private readonly bool _runContinuationsAsynchronosly;
 
     private IMessageStream? _messageStream;
     private ConnectionState _state;
     private Exception? _disconnectReason;
     private string? _localName;
+    private Message.MessageData _currentMessage;
 
     public string? UniqueName => _localName;
 
@@ -93,9 +142,11 @@ class DBusConnection : IDisposable
 
     public bool RemoteIsBus => _localName is not null;
 
-    public DBusConnection(Connection parent)
+    public DBusConnection(Connection parent, SynchronizationContext? synchronizationContext, bool runContinuationsAsynchronously)
     {
         _parentConnection = parent;
+        _synchronizationContext = synchronizationContext;
+        _runContinuationsAsynchronosly = runContinuationsAsynchronously;
         _connectCts = new();
         _pendingCalls = new();
         _matchMakers = new();
@@ -166,7 +217,7 @@ class DBusConnection : IDisposable
                     _state = ConnectionState.Connected;
                 }
 
-                _localName = await GetLocalNameAsync();
+                _localName = await GetLocalNameAsync().ConfigureAwait(false);
 
                 return;
             }
@@ -187,29 +238,29 @@ class DBusConnection : IDisposable
 
     private async Task<string?> GetLocalNameAsync()
     {
-        TaskCompletionSource<string?> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        MyValueTaskSource<string?> vts = new(_runContinuationsAsynchronosly);
 
         await CallMethodAsync(
             message: CreateHelloMessage(),
             static (Exception? exception, in Message message, object? state) =>
             {
-                var tcsState = (TaskCompletionSource<string?>)state!;
+                var vtsState = (MyValueTaskSource<string?>)state!;
 
                 if (exception is not null)
                 {
-                    tcsState.SetException(exception);
+                    vtsState.SetException(exception);
                 }
                 else if (message.MessageType == MessageType.MethodReturn)
                 {
-                    tcsState.SetResult(message.GetBodyReader().ReadString().ToString());
+                    vtsState.SetResult(message.GetBodyReader().ReadString().ToString());
                 }
                 else
                 {
-                    tcsState.SetResult(null);
+                    vtsState.SetResult(null);
                 }
-            }, tcs);
+            }, vts).ConfigureAwait(false);
 
-        return await tcs.Task;
+        return await new ValueTask<string?>(vts, token: 0).ConfigureAwait(false);
 
         MessageBuffer CreateHelloMessage()
         {
@@ -268,11 +319,30 @@ class DBusConnection : IDisposable
                 }
             }
 
-            foreach (var observer in _matchedObservers)
+            if (_matchedObservers.Count != 0)
             {
-                observer.Emit(in message);
+                if (_synchronizationContext != null)
+                {
+                    // Use Synchronization.Send to switch to the SynchronizationContext
+                    // without having to copy Message to extend its life.
+                    // We may change to create a Copy and use Post at some later time.
+
+                    _currentMessage = message.Data; // shallow copy data because we can't pass a ref.
+
+#pragma warning disable VSTHRD001 // Await JoinableTaskFactory.SwitchToMainThreadAsync() to switch to the UI thread instead of APIs that can deadlock or require specifying a priority.
+                    _synchronizationContext.Send(static o => {
+                        DBusConnection conn = (DBusConnection)o;
+                        Message msg = new Message(conn._currentMessage);
+                        conn.EmitToMatchedObservers(in msg);
+                    }, this);
+
+                    _currentMessage = default;
+                }
+                else
+                {
+                    EmitToMatchedObservers(in message);
+                }
             }
-            _matchedObservers.Clear();
 
             if (pendingCall.HasValue)
             {
@@ -304,6 +374,15 @@ class DBusConnection : IDisposable
 
             SendErrorReplyMessage(methodCall, "org.freedesktop.DBus.Error.UnknownMethod", errMsg);
         }
+    }
+
+    private void EmitToMatchedObservers(in Message message)
+    {
+        foreach (var observer in _matchedObservers)
+        {
+            observer.Emit(in message);
+        }
+        _matchedObservers.Clear();
     }
 
     public void AddMethodHandlers(IList<IMethodHandler> methodHandlers)
@@ -399,7 +478,7 @@ class DBusConnection : IDisposable
                 _pendingCalls.Add(message.Serial, handler);
             }
 
-            messageSent = await _messageStream!.TrySendMessageAsync(message);
+            messageSent = await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false);
         }
         finally
         {
@@ -415,22 +494,22 @@ class DBusConnection : IDisposable
         MessageHandlerDelegate fn = static (Exception? exception, in Message message, object? state1, object? state2, object? state3) =>
         {
             var valueReaderState = (MessageValueReader<T>)state1!;
-            var tcsState = (TaskCompletionSource<T>)state2!;
+            var vtsState = (MyValueTaskSource<T>)state2!;
 
             if (exception is not null)
             {
-                tcsState.SetException(exception);
+                vtsState.SetException(exception);
             }
             else if (message.MessageType == MessageType.MethodReturn)
             {
                 try
                 {
-                    tcsState.SetResult(valueReaderState(in message, state3));
+                    vtsState.SetResult(valueReaderState(in message, state3));
                     
                 }
                 catch (Exception ex)
                 {
-                    tcsState.SetException(ex);
+                    vtsState.SetException(ex);
                 }
             }
             else if (message.MessageType == MessageType.Error)
@@ -441,43 +520,43 @@ class DBusConnection : IDisposable
                 {
                     errMessage = message.GetBodyReader().ReadString().ToString();
                 }
-                tcsState.SetException(new DBusException(errorName, errMessage));
+                vtsState.SetException(new DBusException(errorName, errMessage));
             }
             else
             {
-                tcsState.SetException(new ProtocolException($"Unexpected reply type: {message.MessageType}."));
+                vtsState.SetException(new ProtocolException($"Unexpected reply type: {message.MessageType}."));
             }
         };
 
-        TaskCompletionSource<T> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        MessageHandler handler = new(fn, valueReader, tcs, state);
+        MyValueTaskSource<T> vts = new(_runContinuationsAsynchronosly);
+        MessageHandler handler = new(fn, valueReader, vts, state);
 
-        await CallMethodAsync(message, handler);
+        await CallMethodAsync(message, handler).ConfigureAwait(false);
 
-        return await tcs.Task;
+        return await new ValueTask<T>(vts, 0).ConfigureAwait(false);
     }
 
     public async Task CallMethodAsync(MessageBuffer message)
     {
-        TaskCompletionSource<object?> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        MyValueTaskSource<object?> vts = new(_runContinuationsAsynchronosly);
 
         await CallMethodAsync(message,
-            static (Exception? exception, in Message message, object? state) => CompleteCallTaskCompletionSource(exception, in message, state), tcs);
+            static (Exception? exception, in Message message, object? state) => CompleteCallValueTaskSource(exception, in message, state), vts).ConfigureAwait(false);
 
-        await tcs.Task;
+        await new ValueTask(vts, 0).ConfigureAwait(false);
     }
 
-    private static void CompleteCallTaskCompletionSource(Exception? exception, in Message message, object? tcs)
+    private static void CompleteCallValueTaskSource(Exception? exception, in Message message, object? vts)
     {
-        var tcsState = (TaskCompletionSource<object?>)tcs!;
+        var vtsState = (MyValueTaskSource<object?>)vts!;
 
         if (exception is not null)
         {
-            tcsState.SetException(exception);
+            vtsState.SetException(exception);
         }
         else if (message.MessageType == MessageType.MethodReturn)
         {
-            tcsState.SetResult(null);
+            vtsState.SetResult(null);
         }
         else if (message.MessageType == MessageType.Error)
         {
@@ -487,11 +566,11 @@ class DBusConnection : IDisposable
             {
                 errMessage = message.GetBodyReader().ReadString().ToString();
             }
-            tcsState.SetException(new DBusException(errorName, errMessage));
+            vtsState.SetException(new DBusException(errorName, errMessage));
         }
         else
         {
-            tcsState.SetException(new ProtocolException($"Unexpected reply type: {message.MessageType}."));
+            vtsState.SetException(new ProtocolException($"Unexpected reply type: {message.MessageType}."));
         }
     }
 
@@ -550,7 +629,7 @@ class DBusConnection : IDisposable
             if (sendMessage)
             {
                 addMatchMessage = CreateAddMatchMessage(matchMaker.RuleString);
-                matchMaker.AddMatchTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                matchMaker.AddMatchTcs = new(_runContinuationsAsynchronosly);
 
                 MessageHandlerDelegate fn = static (Exception? exception, in Message message, object? state1, object? state2, object? state3) =>
                 {
@@ -559,7 +638,7 @@ class DBusConnection : IDisposable
                     {
                         mm.HasSubscribed = true;
                     }
-                    CompleteCallTaskCompletionSource(exception, in message, mm.AddMatchTcs!);
+                    CompleteCallValueTaskSource(exception, in message, mm.AddMatchTcs!);
                 };
 
                 _pendingCalls.Add(addMatchMessage.Serial, new(fn, matchMaker));
@@ -570,7 +649,7 @@ class DBusConnection : IDisposable
         {
             if (addMatchMessage is not null)
             {
-                if (!await _messageStream!.TrySendMessageAsync(addMatchMessage))
+                if (!await _messageStream!.TrySendMessageAsync(addMatchMessage).ConfigureAwait(false))
                 {
                     addMatchMessage.ReturnToPool();
                 }
@@ -578,7 +657,7 @@ class DBusConnection : IDisposable
 
             try
             {
-                await matchMaker.AddMatchTcs!.Task;
+                await matchMaker.AddMatchTask!.ConfigureAwait(false);
             }
             catch
             {
@@ -701,7 +780,7 @@ class DBusConnection : IDisposable
         if (sendMessage)
         {
             var message = CreateRemoveMatchMessage();
-            if (!await _messageStream!.TrySendMessageAsync(message))
+            if (!await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false))
             {
                 message.ReturnToPool();
             }
@@ -739,9 +818,24 @@ class DBusConnection : IDisposable
         private readonly byte[]? _arg0Namespace;
         private readonly string _rule;
 
+        private MyValueTaskSource<object?>? _vts;
+
         public List<Observer> Observers { get; } = new();
 
-        public TaskCompletionSource<object?>? AddMatchTcs { get; set; }
+        public MyValueTaskSource<object?>? AddMatchTcs
+        {
+            get => _vts;
+            set
+            {
+                _vts = value;
+                if (value != null)
+                {
+                    AddMatchTask = new ValueTask<object?>(value, token: 0).AsTask();
+                }
+            }
+        }
+
+        public Task<object?>? AddMatchTask { get; private set; }
 
         public bool HasSubscribed { get; set; }
 
@@ -926,7 +1020,7 @@ class DBusConnection : IDisposable
 
     public async void SendMessage(MessageBuffer message)
     {
-        bool messageSent = await _messageStream!.TrySendMessageAsync(message);
+        bool messageSent = await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false);
         if (!messageSent)
         {
             message.ReturnToPool();

@@ -13,11 +13,54 @@ using System.Threading;
 using System.Threading.Tasks;
 using Tmds.DBus.Protocol;
 using Tmds.DBus.Transports;
-
+using System.Threading.Tasks.Sources;
 namespace Tmds.DBus
 {
     class DBusConnection
     {
+        class MyValueTaskSource<T> : IValueTaskSource<T>
+        {
+            private ManualResetValueTaskSourceCore<T> _core;
+            private volatile bool _continuationSet;
+
+            public MyValueTaskSource(bool runContinuationsAsynchronously)
+            {
+                RunContinuationsAsynchronously = runContinuationsAsynchronously;
+            }
+
+            public bool RunContinuationsAsynchronously
+            {
+                get => _core.RunContinuationsAsynchronously;
+                set => _core.RunContinuationsAsynchronously = value;
+            }
+
+            public void SetResult(T result)
+            {
+                // Ensure we complete the Task from the read loop.
+                if (!RunContinuationsAsynchronously)
+                {
+                    SpinWait wait = default;
+                    while (!_continuationSet)
+                    {
+                        wait.SpinOnce();
+                    }
+                }
+                _core.SetResult(result);
+            }
+
+            public void SetException(Exception exception) => _core.SetException(exception);
+
+            public ValueTaskSourceStatus GetStatus(short token) => _core.GetStatus(token);
+
+            public void OnCompleted(Action<object> continuation, object state, short token, ValueTaskSourceOnCompletedFlags flags)
+            {
+                _core.OnCompleted(continuation, state, token, flags);
+                _continuationSet = true;
+            }
+
+            T IValueTaskSource<T>.GetResult(short token) => _core.GetResult(token);
+        }
+
         private class SignalHandlerRegistration : IDisposable
         {
             public SignalHandlerRegistration(DBusConnection dbusConnection, SignalMatchRule rule, SignalHandler handler)
@@ -70,7 +113,7 @@ namespace Tmds.DBus
         public const string DBusInterface = "org.freedesktop.DBus";
         private static readonly char[] s_dot = new[] { '.' };
 
-        public static async Task<DBusConnection> ConnectAsync(ClientSetupResult connectionContext, Action<Exception> onDisconnect, CancellationToken cancellationToken)
+        public static async Task<DBusConnection> ConnectAsync(ClientSetupResult connectionContext, bool runContinuationsAsynchronously, Action<Exception> onDisconnect, CancellationToken cancellationToken)
         {
             var _entries = AddressEntry.ParseEntries(connectionContext.ConnectionAddress);
             if (_entries.Length == 0)
@@ -100,7 +143,7 @@ namespace Tmds.DBus
                 break;
             }
 
-            return await DBusConnection.CreateAndConnectAsync(stream, onDisconnect).ConfigureAwait(false);
+            return await DBusConnection.CreateAndConnectAsync(stream, runContinuationsAsynchronously, onDisconnect).ConfigureAwait(false);
         }
 
         private readonly IMessageStream _stream;
@@ -111,6 +154,7 @@ namespace Tmds.DBus
         private readonly Dictionary<ObjectPath, MethodHandler> _methodHandlers = new Dictionary<ObjectPath, MethodHandler>();
         private readonly Dictionary<ObjectPath, string[]> _childNames = new Dictionary<ObjectPath, string[]>();
         private readonly Dictionary<string, ServiceNameRegistration> _serviceNameRegistrations = new Dictionary<string, ServiceNameRegistration>();
+        private readonly bool _runContinuationsAsynchronously;
 
         private ConnectionState _state = ConnectionState.Created;
         private bool _disposed = false;
@@ -121,25 +165,27 @@ namespace Tmds.DBus
         public ConnectionInfo ConnectionInfo { get; private set; }
 
         // For testing
-        internal static async Task<DBusConnection> CreateAndConnectAsync(IMessageStream stream, Action<Exception> onDisconnect = null)
+        internal static async Task<DBusConnection> CreateAndConnectAsync(IMessageStream stream, bool runContinuationsAsynchronously = false, Action<Exception> onDisconnect = null)
         {
-            var connection = new DBusConnection(stream);
+            var connection = new DBusConnection(stream, runContinuationsAsynchronously);
             await connection.ConnectAsync(onDisconnect).ConfigureAwait(false);
             return connection;
         }
 
-        private DBusConnection(IMessageStream stream)
+        private DBusConnection(IMessageStream stream, bool runContinuationsAsynchronously)
         {
             _stream = stream;
+            _runContinuationsAsynchronously = runContinuationsAsynchronously;
         }
 
-        public DBusConnection(bool localServer)
+        public DBusConnection(bool localServer, bool runContinuationsAsynchronously)
         {
             if (localServer != true)
             {
                 throw new ArgumentException("Constructor for LocalServer.", nameof(localServer));
             }
             _stream = new LocalServer(this);
+            _runContinuationsAsynchronously = runContinuationsAsynchronously;
             ConnectionInfo = new ConnectionInfo(string.Empty);
         }
 
@@ -517,52 +563,52 @@ namespace Tmds.DBus
                     {
                         case "NameAcquired":
                         case "NameLost":
-                        {
-                            MessageReader reader = new MessageReader(msg, null);
-                            var name = reader.ReadString();
-                            bool aquiredNotLost = msg.Header.Member == "NameAcquired";
-                            OnNameAcquiredOrLost(name, aquiredNotLost);
-                            return;
-                        }
-                        case "NameOwnerChanged":
-                        {
-                            MessageReader reader = new MessageReader(msg, null);
-                            var serviceName = reader.ReadString();
-                            if (serviceName[0] == ':')
                             {
+                                MessageReader reader = new MessageReader(msg, null);
+                                var name = reader.ReadString();
+                                bool aquiredNotLost = msg.Header.Member == "NameAcquired";
+                                OnNameAcquiredOrLost(name, aquiredNotLost);
                                 return;
                             }
-                            var oldOwner = reader.ReadString();
-                            oldOwner = string.IsNullOrEmpty(oldOwner) ? null : oldOwner;
-                            var newOwner = reader.ReadString();
-                            newOwner = string.IsNullOrEmpty(newOwner) ? null : newOwner;
-                            Action<ServiceOwnerChangedEventArgs, Exception> watchers = null;
-                            var splitName = serviceName.Split(s_dot);
-                            var keys = new string[splitName.Length + 2];
-                            keys[0] = ".*";
-                            var sb = new StringBuilder();
-                            for (int i = 0; i < splitName.Length; i++)
+                        case "NameOwnerChanged":
                             {
-                                sb.Append(splitName[i]);
-                                sb.Append(".*");
-                                keys[i + 1] = sb.ToString();
-                                sb.Remove(sb.Length - 1, 1);
-                            }
-                            keys[keys.Length - 1] = serviceName;
-                            lock (_gate)
-                            {
-                                foreach (var key in keys)
+                                MessageReader reader = new MessageReader(msg, null);
+                                var serviceName = reader.ReadString();
+                                if (serviceName[0] == ':')
                                 {
-                                    Action<ServiceOwnerChangedEventArgs, Exception> keyWatchers = null;
-                                    if (_nameOwnerWatchers?.TryGetValue(key, out keyWatchers) == true)
+                                    return;
+                                }
+                                var oldOwner = reader.ReadString();
+                                oldOwner = string.IsNullOrEmpty(oldOwner) ? null : oldOwner;
+                                var newOwner = reader.ReadString();
+                                newOwner = string.IsNullOrEmpty(newOwner) ? null : newOwner;
+                                Action<ServiceOwnerChangedEventArgs, Exception> watchers = null;
+                                var splitName = serviceName.Split(s_dot);
+                                var keys = new string[splitName.Length + 2];
+                                keys[0] = ".*";
+                                var sb = new StringBuilder();
+                                for (int i = 0; i < splitName.Length; i++)
+                                {
+                                    sb.Append(splitName[i]);
+                                    sb.Append(".*");
+                                    keys[i + 1] = sb.ToString();
+                                    sb.Remove(sb.Length - 1, 1);
+                                }
+                                keys[keys.Length - 1] = serviceName;
+                                lock (_gate)
+                                {
+                                    foreach (var key in keys)
                                     {
-                                        watchers += keyWatchers;
+                                        Action<ServiceOwnerChangedEventArgs, Exception> keyWatchers = null;
+                                        if (_nameOwnerWatchers?.TryGetValue(key, out keyWatchers) == true)
+                                        {
+                                            watchers += keyWatchers;
+                                        }
                                     }
                                 }
+                                watchers?.Invoke(new ServiceOwnerChangedEventArgs(serviceName, oldOwner, newOwner), null);
+                                return;
                             }
-                            watchers?.Invoke(new ServiceOwnerChangedEventArgs(serviceName, oldOwner, newOwner), null);
-                            return;
-                        }
                         default:
                             break;
                     }
@@ -694,15 +740,15 @@ namespace Tmds.DBus
                     switch (methodCall.Header.Member)
                     {
                         case "Ping":
-                        {
-                            SendMessage(MessageHelper.ConstructReply(methodCall), peer);
-                            return;
-                        }
+                            {
+                                SendMessage(MessageHelper.ConstructReply(methodCall), peer);
+                                return;
+                            }
                         case "GetMachineId":
-                        {
-                            SendMessage(MessageHelper.ConstructReply(methodCall, Environment.MachineId), peer);
-                            return;
-                        }
+                            {
+                                SendMessage(MessageHelper.ConstructReply(methodCall, Environment.MachineId), peer);
+                                return;
+                            }
                     }
                     break;
             }
@@ -739,7 +785,7 @@ namespace Tmds.DBus
                             writer.WriteChildNode(child);
                         }
                         writer.WriteNodeEnd();
-                        
+
                         var xml = writer.ToString();
                         SendMessage(MessageHelper.ConstructReply(methodCall, xml), peer);
                         return;
@@ -862,7 +908,7 @@ namespace Tmds.DBus
             var serial = GenerateSerial();
             msg.Header.Serial = serial;
 
-            TaskCompletionSource<Message> pending = new TaskCompletionSource<Message>(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<Message> pending = new TaskCompletionSource<Message>(_runContinuationsAsynchronously ? TaskCreationOptions.RunContinuationsAsynchronously : default);
             lock (_gate)
             {
                 if (checkConnected)

@@ -18,13 +18,13 @@ namespace Tmds.DBus.Transports
     internal class TransportSocket
     {
         // Issue https://github.com/dotnet/corefx/issues/6807
-        private static PropertyInfo s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
-        private static PropertyInfo s_safehandleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
+        private static readonly PropertyInfo s_handleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("Handle");
+        private static readonly PropertyInfo s_safehandleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
 
         const int SOL_SOCKET = 1;
         const int EINTR = 4;
         const int EBADF = 9;
-        const int EAGAIN = 11;
+        static readonly int EAGAIN = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 35 : 11;
         const int SCM_RIGHTS = 1;
 
         private unsafe struct msghdr

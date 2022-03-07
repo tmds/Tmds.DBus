@@ -2,15 +2,34 @@ namespace Tmds.DBus.Protocol;
 
 public readonly ref struct Message
 {
-    private const int HeaderFieldsLengthOffset = 12;
+    internal readonly struct MessageData
+    {
+        public readonly bool IsBigEndian;
+        public readonly ReadOnlySequence<byte> Sequence;
+        public readonly UnixFdCollection? Handles;
+        public readonly MessageType MessageType;
+        public readonly MessageFlags MessageFlags;
+        public readonly uint Serial;
 
-    private readonly bool _isBigEndian;
-    private readonly UnixFdCollection? _handles;
+        public MessageData(ReadOnlySequence<byte> sequence, bool isBigEndian, MessageType msgType, MessageFlags flags, uint serial, UnixFdCollection? handles) : this()
+        {
+            Sequence = sequence;
+            IsBigEndian = isBigEndian;
+            MessageType = msgType;
+            MessageFlags = flags;
+            Serial = serial;
+            Handles = handles;
+        }
+    }
+
+    internal readonly MessageData Data;
     private readonly ReadOnlySequence<byte> _body;
 
-    public MessageType MessageType { get; }
-    public MessageFlags MessageFlags { get; }
-    public uint Serial { get; }
+    private const int HeaderFieldsLengthOffset = 12;
+
+    public MessageType MessageType => Data.MessageType;
+    public MessageFlags MessageFlags => Data.MessageFlags;
+    public uint Serial => Data.Serial;
 
     // Header Fields
     public Utf8Span Path { get; }
@@ -23,15 +42,11 @@ public readonly ref struct Message
     public Utf8Span Signature { get; }
     public int UnixFdCount { get; }
 
-    public Reader GetBodyReader() => new Reader(_isBigEndian, _body, _handles);
+    public Reader GetBodyReader() => new Reader(Data.IsBigEndian, _body, Data.Handles);
 
-    private Message(ReadOnlySequence<byte> sequence, bool isBigEndian, MessageType type, MessageFlags flags, uint serial, UnixFdCollection? handles)
+    internal Message(in MessageData data)
     {
-        _isBigEndian = isBigEndian;
-        MessageType = type;
-        MessageFlags = flags;
-        Serial = serial;
-        _handles = handles;
+        Data = data;
 
         Path = default;
         Interface = default;
@@ -43,7 +58,7 @@ public readonly ref struct Message
         Signature = default;
         UnixFdCount = default;
 
-        var reader = new Reader(isBigEndian, sequence, null);
+        var reader = new Reader(Data.IsBigEndian, Data.Sequence, null);
         reader.Advance(HeaderFieldsLengthOffset);
 
         ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -126,12 +141,12 @@ public readonly ref struct Message
             return false;
         }
 
-        message = new Message(sequence.Slice(0, totalLength),
-                                    isBigEndian,
-                                    (MessageType)msgType,
-                                    (MessageFlags)flags,
-                                    serial,
-                                    handles);
+        message = new Message(new MessageData(sequence.Slice(0, totalLength),
+                                              isBigEndian,
+                                              (MessageType)msgType,
+                                              (MessageFlags)flags,
+                                              serial,
+                                              handles));
 
         sequence = sequence.Slice(totalLength);
 

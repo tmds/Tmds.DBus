@@ -23,7 +23,7 @@ static class SocketExtensions
     {
         while (true)
         {
-            await socket.ReceiveAsync(new Memory<byte>(), SocketFlags.None);
+            await socket.ReceiveAsync(new Memory<byte>(), SocketFlags.None).ConfigureAwait(false);
 
             int rv = recvmsg(socket, memory, fdCollection);
 

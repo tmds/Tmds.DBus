@@ -52,7 +52,7 @@ public class Connection : IDisposable
 
     public async ValueTask ConnectAsync()
     {
-        await ConnectCoreAsync(autoConnect: false);
+        await ConnectCoreAsync(autoConnect: false).ConfigureAwait(false);
     }
 
     private ValueTask<DBusConnection> ConnectCoreAsync(bool autoConnect = true)
@@ -96,10 +96,10 @@ public class Connection : IDisposable
         try
         {
             _connectCts = new();
-            _setupResult = await _connectionOptions.SetupAsync(_connectCts.Token);
-            connection = _connection = new DBusConnection(this);
+            _setupResult = await _connectionOptions.SetupAsync(_connectCts.Token).ConfigureAwait(false);
+            connection = _connection = new DBusConnection(this, _connectionOptions.SynchronizationContext, _connectionOptions.RunContinuationsAsynchronously);
 
-            await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token);
+            await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token).ConfigureAwait(false);
 
             lock (_gate)
             {
@@ -192,14 +192,14 @@ public class Connection : IDisposable
         DBusConnection connection;
         try
         {
-            connection = await ConnectCoreAsync();
+            connection = await ConnectCoreAsync().ConfigureAwait(false);
         }
         catch
         {
             message.ReturnToPool();
             throw;
         }
-        await connection.CallMethodAsync(message);
+        await connection.CallMethodAsync(message).ConfigureAwait(false);
     }
 
     public async Task<T> CallMethodAsync<T>(MessageBuffer message, MessageValueReader<T> reader, object? readerState = null)
@@ -207,14 +207,14 @@ public class Connection : IDisposable
         DBusConnection connection;
         try
         {
-            connection = await ConnectCoreAsync();
+            connection = await ConnectCoreAsync().ConfigureAwait(false);
         }
         catch
         {
             message.ReturnToPool();
             throw;
         }
-        return await connection.CallMethodAsync(message, reader, readerState);
+        return await connection.CallMethodAsync(message, reader, readerState).ConfigureAwait(false);
     }
 
     public ValueTask<IDisposable> WatchSignalAsync<T>(string sender, ObjectPath path, string signal, Action<Exception?, T> handler, MessageValueReader<T> reader, object? readerState = null)
@@ -243,8 +243,8 @@ public class Connection : IDisposable
 
     public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?> handler, object? readerState = null, object? handlerState = null, bool subscribe = true)
     {
-        DBusConnection connection = await ConnectCoreAsync();
-        return await connection.AddMatchAsync(rule, reader, handler, readerState, handlerState, subscribe);
+        DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
+        return await connection.AddMatchAsync(rule, reader, handler, readerState, handlerState, subscribe).ConfigureAwait(false);
     }
 
     public void AddMethodHandler(IMethodHandler methodHandler)

@@ -47,14 +47,14 @@ class MessageStream : IMessageStream
             while (true)
             {
                 Memory<byte> memory = writer.GetMemory(1024);
-                int bytesRead = await _socket.ReceiveAsync(memory, _fdCollection);
+                int bytesRead = await _socket.ReceiveAsync(memory, _fdCollection).ConfigureAwait(false);
                 if (bytesRead == 0)
                 {
                     throw new IOException("Connection closed by peer");
                 }
                 writer.Advance(bytesRead);
 
-                await writer.FlushAsync();
+                await writer.FlushAsync().ConfigureAwait(false);
             }
         }
         catch (Exception e)
@@ -68,26 +68,26 @@ class MessageStream : IMessageStream
     {
         while (true)
         {
-            if (!await _messageReader.WaitToReadAsync())
+            if (!await _messageReader.WaitToReadAsync().ConfigureAwait(false))
             {
                 // No more messages will be coming.
                 return;
             }
-            var message = await _messageReader.ReadAsync();
+            var message = await _messageReader.ReadAsync().ConfigureAwait(false);
             try
             {
                 IReadOnlyList<SafeHandle>? handles = _supportsFdPassing ? message.Handles : null;
                 var buffer = message.AsReadOnlySequence();
                 if (buffer.IsSingleSegment)
                 {
-                    await _socket.SendAsync(buffer.First, handles);
+                    await _socket.SendAsync(buffer.First, handles).ConfigureAwait(false);
                 }
                 else
                 {
                     SequencePosition position = buffer.Start;
                     while (buffer.TryGet(ref position, out ReadOnlyMemory<byte> memory))
                     {
-                        await _socket.SendAsync(buffer.First, handles);
+                        await _socket.SendAsync(buffer.First, handles).ConfigureAwait(false);
                         handles = null;
                     }
                 }
@@ -111,7 +111,7 @@ class MessageStream : IMessageStream
         {
             while (true)
             {
-                ReadResult result = await reader.ReadAsync();
+                ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
                 ReadOnlySequence<byte> buffer = result.Buffer;
 
                 ReadMessages(ref buffer, _fdCollection, handler, state);
@@ -321,7 +321,7 @@ class MessageStream : IMessageStream
     {
         int length = Encoding.ASCII.GetBytes(message.AsSpan(), lineBuffer.Span);
         lineBuffer = lineBuffer.Slice(0, length);
-        await _socket.SendAsync(lineBuffer, SocketFlags.None);
+        await _socket.SendAsync(lineBuffer, SocketFlags.None).ConfigureAwait(false);
     }
 
     private async ValueTask<int> ReadLineAsync(Memory<byte> lineBuffer)
@@ -329,7 +329,7 @@ class MessageStream : IMessageStream
         var reader = _pipeReader;
         while (true)
         {
-            ReadResult result = await reader.ReadAsync();
+            ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
             ReadOnlySequence<byte> buffer = result.Buffer;
 
             // TODO: check length.

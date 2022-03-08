@@ -2,7 +2,7 @@
 
 # Introduction
 
-From https://www.freedesktop.org/wiki/Software/dbus/
+From, https://www.freedesktop.org/wiki/Software/dbus/
 
 > D-Bus is a message bus system, a simple way for applications to talk to one another. In addition to interprocess
 communication, D-Bus helps coordinate process lifecycle; it makes it simple and reliable to code a "single instance"
@@ -12,9 +12,7 @@ Higher-level bindings are available for various popular frameworks and languages
 [dbus-sharp](https://github.com/mono/dbus-sharp) (a fork of [ndesk-dbus](http://www.ndesk.org/DBusSharp)) is a C#
 implementation which targets Mono and .NET 2.0.
 
-Tmds.DBus builds on top of the protocol implementation of dbus-sharp and
-provides an API based on the asynchronous programming model introduced in .NET 4.5. The library targets NetStandard 2.0
-which means it runs on .NET Framework 4.6.1 (Windows 7 SP1 and later), .NET Core, and .NET 6. You can get Tmds.DBus from [NuGet](https://www.nuget.org/packages/Tmds.DBus).
+Tmds.DBus builds on top of the protocol implementation of dbus-sharp and provides an API based on the asynchronous programming model introduced in .NET 4.5. The library targets .NET Standard 2.0 which means it runs on .NET Framework 4.6.1 (Windows 7 SP1 and later), .NET Core, and .NET 6. You can get Tmds.DBus from [NuGet](https://www.nuget.org/packages/Tmds.DBus).
 
 # Example
 

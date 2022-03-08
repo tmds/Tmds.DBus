@@ -28,15 +28,13 @@ $ dotnet new console -o netmon
 $ cd netmon
 ```
 
-Now we add references to `Tmds.DBus` in `netmon.csproj`. We also set the `LangVersion` to be able
-to use an `async Main` (C# 7.1).
+Now we add references to `Tmds.DBus` in `netmon.csproj`. If you need to target framework, `netcoreapp2.0`, add `<LangVersion>7.1</LangVersion>` below `<TargetFramework>...` to use `async Task Main` (C# 7.1).
 
 ```xml
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <LangVersion>7.1</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Tmds.DBus" Version="0.10.1" />

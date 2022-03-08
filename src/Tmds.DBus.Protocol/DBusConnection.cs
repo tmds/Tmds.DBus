@@ -957,7 +957,7 @@ class DBusConnection : IDisposable
 
                 DBusType arg0Type = (DBusType)message.Signature.Span[0];
 
-                if (arg0Type != DBusType.String ||
+                if (arg0Type != DBusType.String &&
                     arg0Type != DBusType.ObjectPath)
                 {
                     return false;

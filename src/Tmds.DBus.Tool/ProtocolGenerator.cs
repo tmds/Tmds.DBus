@@ -42,6 +42,10 @@ namespace Tmds.DBus.Tool
 
         private void AppendLine(string line)
         {
+            if (line.Length == 0)
+            {
+                return;
+            }
             if (line.Length != 0)
             {
                 _sb.Append(' ', _indentation * 4);
@@ -67,9 +71,26 @@ namespace Tmds.DBus.Tool
 
             AppendDbusObject();
 
+            AppendPropertiesChangedClass();
+
             EndBlock();
 
             return _sb.ToString();
+        }
+
+        private void AppendPropertiesChangedClass()
+        {
+            AppendLine("");
+            AppendLine("class PropertyChanges<TProperties>");
+            StartBlock();
+            AppendLine("public PropertyChanges(TProperties properties, string[] invalidated, string[] changed)");
+            AppendLine("	=> (Properties, Invalidated, Changed) = (properties, invalidated, changed);");
+            AppendLine("public TProperties Properties { get; }");
+            AppendLine("public string[] Invalidated { get; }");
+            AppendLine("public string[] Changed { get; }");
+            AppendLine("public bool HasChanged(string property) => Array.IndexOf(Changed, property) != -1;");
+            AppendLine("public bool IsInvalidated(string property) => Array.IndexOf(Invalidated, property) != -1;");
+            EndBlock();
         }
 
         private void AppendDbusObject()
@@ -119,6 +140,23 @@ namespace Tmds.DBus.Tool
             AppendLine("writer.WriteString(@interface);");
             AppendLine("");
             AppendLine("return writer.CreateMessage();");
+            EndBlock();
+
+            AppendLine("");
+            AppendLine("protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, PropertyChanges<TProperties>> handler)");
+            StartBlock();
+            AppendLine("var rule = new MatchRule");
+            AppendLine("{");
+            AppendLine("    Type = MessageType.Signal,");
+            AppendLine("    Sender = Service,");
+            AppendLine("    Path = Path,");
+            AppendLine("    Interface = \"org.freedesktop.DBus.Properties\",");
+            AppendLine("    Member = \"PropertiesChanged\",");
+            AppendLine("    Arg0 = @interface");
+            AppendLine("};");
+            AppendLine("return this.Connection.AddMatchAsync(rule, reader,");
+            AppendLine("                                     (Exception? ex, PropertyChanges<TProperties> changes, object? s) => ((Action<Exception?, PropertyChanges<TProperties>?>)s!).Invoke(ex, changes),");
+            AppendLine("                                     this, handler);");
             EndBlock();
 
             foreach (var readMethod in _messageReadMethods)
@@ -186,14 +224,55 @@ namespace Tmds.DBus.Tool
                     _indentation--;
                 }
 
+                // GetPropertiesAsync
                 AppendLine($"public Task<{propertiesClassName}> GetPropertiesAsync()");
                 StartBlock();
                 AppendLine($"return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(Interface), (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), this);");
                 
                 AppendLine($"static {propertiesClassName} ReadMessage(in Message message, DBusObject _)");
                 StartBlock();
-                AppendLine($"var props = new {propertiesClassName}();");
                 AppendLine("var reader = message.GetBodyReader();");
+                AppendLine("return ReadProperties(ref reader);");
+                EndBlock(); // ReadMessage
+
+                EndBlock(); // method
+
+                // WatchPropertiesChangedAsync
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<{propertiesClassName}>> handler)");
+                StartBlock();
+                AppendLine("return this.WatchPropertiesChangedAsync(Interface, (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), handler);");
+                AppendLine("");
+                AppendLine($"static PropertyChanges<{propertiesClassName}> ReadMessage(in Message message, DBusObject _)");
+                StartBlock();
+                AppendLine("var reader = message.GetBodyReader();");
+                AppendLine("reader.ReadString(); // interface");
+                AppendLine("List<string> changed = new(), invalidated = new();");
+                AppendLine($"return new PropertyChanges<{propertiesClassName}>(ReadProperties(ref reader, changed), changed.ToArray(), ReadInvalidated(ref reader));");
+                EndBlock();
+                AppendLine($"static string[] ReadInvalidated(ref Reader reader)");
+                StartBlock();
+                AppendLine("List<string>? invalidated = null;");
+                AppendLine("ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.String);");
+                AppendLine("while (reader.HasNext(headersEnd))");
+                StartBlock();
+                AppendLine("invalidated ??= new();");
+                AppendLine("var property = reader.ReadString();");
+                AppendLine("switch (property)");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"case \"{property.Name}\": invalidated.Add(\"{property.NameUpper}\"); break;");
+                }
+                EndBlock();
+                EndBlock();
+                AppendLine("return invalidated?.ToArray() ?? Array.Empty<string>();");
+                EndBlock();
+                EndBlock();
+
+                // ReadProperties
+                AppendLine($"private static {propertiesClassName} ReadProperties(ref Reader reader, List<string>? changedList = null)");
+                StartBlock();
+                AppendLine($"var props = new {propertiesClassName}();");
                 AppendLine("ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);");
                 AppendLine("while (reader.HasNext(headersEnd))");
                 StartBlock();
@@ -208,6 +287,7 @@ namespace Tmds.DBus.Tool
                     _indentation++;
                     AppendLine($"reader.ReadSignature(\"{property.Type}\");");
                     AppendLine($"props.{property.NameUpper} = reader.{GetArgumentReadMethodName(property)}();");
+                    AppendLine($"changedList?.Add(\"{property.NameUpper}\");");
                     AppendLine("break;");
                     _indentation--;
                 }
@@ -222,10 +302,7 @@ namespace Tmds.DBus.Tool
                 EndBlock(); // while
 
                 AppendLine("return props;");
-
-                EndBlock(); // ReadMessage
-
-                EndBlock(); // method
+                EndBlock();
             }
 
             EndBlock();

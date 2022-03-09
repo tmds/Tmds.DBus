@@ -19,10 +19,12 @@ public ref partial struct Reader
         return dictionary;
     }
 
-    sealed class DictionaryTypeReader<TKey, TValue> : ITypeReader<Dictionary<TKey, TValue>>
+    sealed class DictionaryTypeReader<TKey, TValue> : ITypeReader<Dictionary<TKey, TValue>>, ITypeReader<object>
         where TKey : notnull
         where TValue : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Dictionary<TKey, TValue> Read(ref Reader reader)
         {
             return reader.ReadDictionary<TKey, TValue>();

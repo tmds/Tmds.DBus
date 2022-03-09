@@ -16,18 +16,22 @@ public ref partial struct Reader
         return Tuple.Create(Read<T1>());
     }
 
-    sealed class ValueTupleTypeReader<T1> : ITypeReader<ValueTuple<T1>>
+    sealed class ValueTupleTypeReader<T1> : ITypeReader<ValueTuple<T1>>, ITypeReader<object>
         where T1 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1>();
         }
     }
 
-    sealed class TupleTypeReader<T1> : ITypeReader<Tuple<T1>>
+    sealed class TupleTypeReader<T1> : ITypeReader<Tuple<T1>>, ITypeReader<object>
         where T1 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1>();
@@ -88,20 +92,24 @@ public ref partial struct Reader
         return Tuple.Create(Read<T1>(), Read<T2>());
     }
 
-    sealed class ValueTupleTypeReader<T1, T2> : ITypeReader<ValueTuple<T1, T2>>
+    sealed class ValueTupleTypeReader<T1, T2> : ITypeReader<ValueTuple<T1, T2>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2> : ITypeReader<Tuple<T1, T2>>
+    sealed class TupleTypeReader<T1, T2> : ITypeReader<Tuple<T1, T2>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2>();
@@ -163,22 +171,26 @@ public ref partial struct Reader
         return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>());
     }
 
-    sealed class ValueTupleTypeReader<T1, T2, T3> : ITypeReader<ValueTuple<T1, T2, T3>>
+    sealed class ValueTupleTypeReader<T1, T2, T3> : ITypeReader<ValueTuple<T1, T2, T3>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2, T3> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2, T3>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2, T3> : ITypeReader<Tuple<T1, T2, T3>>
+    sealed class TupleTypeReader<T1, T2, T3> : ITypeReader<Tuple<T1, T2, T3>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2, T3> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2, T3>();
@@ -247,24 +259,28 @@ public ref partial struct Reader
         return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>());
     }
 
-    sealed class ValueTupleTypeReader<T1, T2, T3, T4> : ITypeReader<ValueTuple<T1, T2, T3, T4>>
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4> : ITypeReader<ValueTuple<T1, T2, T3, T4>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
         where T4 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2, T3, T4> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2, T3, T4>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2, T3, T4> : ITypeReader<Tuple<T1, T2, T3, T4>>
+    sealed class TupleTypeReader<T1, T2, T3, T4> : ITypeReader<Tuple<T1, T2, T3, T4>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
         where T4 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2, T3, T4> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2, T3, T4>();
@@ -327,26 +343,30 @@ public ref partial struct Reader
         return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>());
     }
 
-    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5>>
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
         where T4 : notnull
         where T5 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2, T3, T4, T5> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2, T3, T4, T5>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2, T3, T4, T5> : ITypeReader<Tuple<T1, T2, T3, T4, T5>>
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5> : ITypeReader<Tuple<T1, T2, T3, T4, T5>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
         where T4 : notnull
         where T5 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2, T3, T4, T5> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2, T3, T4, T5>();
@@ -411,7 +431,7 @@ public ref partial struct Reader
         return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>());
     }
 
-    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6>>
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -419,13 +439,15 @@ public ref partial struct Reader
         where T5 : notnull
         where T6 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2, T3, T4, T5, T6> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2, T3, T4, T5, T6>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6>>
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -433,6 +455,8 @@ public ref partial struct Reader
         where T5 : notnull
         where T6 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2, T3, T4, T5, T6> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6>();
@@ -499,7 +523,7 @@ public ref partial struct Reader
         return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>());
     }
 
-    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7>>
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -508,13 +532,15 @@ public ref partial struct Reader
         where T6 : notnull
         where T7 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2, T3, T4, T5, T6, T7> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2, T3, T4, T5, T6, T7>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7>>
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -523,6 +549,8 @@ public ref partial struct Reader
         where T6 : notnull
         where T7 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2, T3, T4, T5, T6, T7> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7>();
@@ -591,7 +619,7 @@ public ref partial struct Reader
         return Tuple.Create(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Read<T8>());
     }
 
-    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>>
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -601,13 +629,15 @@ public ref partial struct Reader
         where T7 : notnull
         where T8 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8>>>
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8>>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -617,6 +647,8 @@ public ref partial struct Reader
         where T7 : notnull
         where T8 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8>> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8>();
@@ -687,7 +719,7 @@ public ref partial struct Reader
         return new Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>>(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Tuple.Create(Read<T8>(), Read<T9>()));
     }
 
-    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>>>
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -698,13 +730,15 @@ public ref partial struct Reader
         where T8 : notnull
         where T9 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>>>
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -715,6 +749,8 @@ public ref partial struct Reader
         where T8 : notnull
         where T9 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9>> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8, T9>();
@@ -787,7 +823,7 @@ public ref partial struct Reader
         return new Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>>(Read<T1>(), Read<T2>(), Read<T3>(), Read<T4>(), Read<T5>(), Read<T6>(), Read<T7>(), Tuple.Create(Read<T8>(), Read<T9>(), Read<T10>()));
     }
 
-    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>>>
+    sealed class ValueTupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : ITypeReader<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -799,13 +835,15 @@ public ref partial struct Reader
         where T9 : notnull
         where T10 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>> Read(ref Reader reader)
         {
             return reader.ReadStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>();
         }
     }
 
-    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>>>
+    sealed class TupleTypeReader<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> : ITypeReader<Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>>>, ITypeReader<object>
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
@@ -817,6 +855,8 @@ public ref partial struct Reader
         where T9 : notnull
         where T10 : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public Tuple<T1, T2, T3, T4, T5, T6, T7, Tuple<T8, T9, T10>> Read(ref Reader reader)
         {
             return reader.ReadStructAsTuple<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>();

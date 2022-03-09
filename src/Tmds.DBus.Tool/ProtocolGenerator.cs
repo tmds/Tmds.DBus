@@ -64,9 +64,11 @@ namespace Tmds.DBus.Tool
             AppendLine($"namespace {_settings.Namespace}");
             StartBlock();
 
+            AppendLine($"using System;");
             AppendLine($"using Tmds.DBus.Protocol;");
             AppendLine($"using SafeHandle = System.Runtime.InteropServices.SafeHandle;");
             AppendLine($"using System.Collections.Generic;");
+            AppendLine("using System.Threading.Tasks;");
 
             foreach (var interf in interfaceDescriptions)
             {
@@ -538,16 +540,16 @@ namespace Tmds.DBus.Tool
             };
         }
 
-        private Argument ToArgument(XElement argXml)
+        private Argument ToArgument(XElement argXml, int i)
         {
-            return new Argument(argXml);
+            return new Argument(i, argXml);
         }
 
         class Argument
         {
-            public Argument(XElement argXml)
+            public Argument(int i, XElement argXml)
             {
-                Name = (string)argXml.Attribute("name");
+                Name = (string)argXml.Attribute("name") ?? $"a{i}";
                 Type = (string)argXml.Attribute("type");
                 (DotnetType, DotnetInnerTypes, DBusType) = DetermineType(Type);
             }

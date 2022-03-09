@@ -1,171 +1,131 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
-using Tmds.DBus;
+using Tmds.DBus.Protocol;
+using Mpris.DBus;
+using System.Collections.Generic;
 
-#pragma warning disable 0649 // Field is never assigned to, and will always have its default value
+Console.WriteLine("MediaPlayerRemote Sample");
 
-namespace MediaPlayerRemote
+string? CurrentTitle = null;
+Player? player = null;
+
+Task.Run(async () =>
 {
-    class TrackListProperties
+    using (var connection = new Connection(Address.Session!))
     {
-        public ObjectPath[] Tracks;
-    }
+        const string MediaPlayerService = "org.mpris.MediaPlayer2.";
 
-    [DBusInterface("org.mpris.MediaPlayer2.TrackList")]
-    public interface ITrackList : IDBusObject
-    {
-        Task<IDictionary<string, object>[]> GetTracksMetadataAsync(ObjectPath[] trackIds);
+        await connection.ConnectAsync();
+        var services = await connection.ListServicesAsync();
+        var players = services.Where(service => service.StartsWith(MediaPlayerService, StringComparison.Ordinal));
 
-        Task<IDictionary<string, object>> GetAllAsync();
-        Task<T> GetAsync<T>(string prop);
-        Task SetAsync(string prop, object val);
-        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler);
-    }
-
-    class PlayerProperties
-    {
-        public long Position;
-        public string PlaybackStatus;
-        public IDictionary<string, object> Metadata;
-    }
-
-    [DBusInterface("org.mpris.MediaPlayer2.Player")]
-    public interface IPlayer : IDBusObject
-    {
-        Task PlayPauseAsync();
-        Task NextAsync();
-        Task PreviousAsync();
-
-        Task<IDictionary<string, object>> GetAllAsync();
-        Task<T> GetAsync<T>(string prop);
-        Task SetAsync(string prop, object val);
-        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler);
-    }
-
-    [DBusInterface("org.mpris.MediaPlayer2")]
-    public interface IMediaPlayer : IPlayer, ITrackList
-    {
-        Task QuitAsync();
-    }
-
-    public class Program
-    {
-        private static string s_mediaPlayerService = "org.mpris.MediaPlayer2.";
-        private static ObjectPath s_mediaPlayerPath = new ObjectPath("/org/mpris/MediaPlayer2");
-
-        public static void Main(string[] args)
+        if (!players.Any())
         {
-            Console.WriteLine("MediaPlayerRemote Sample");
-
-            Task.Run(async () =>
-            {
-                using (var connection = new Connection(Address.Session))
-                {
-                    await connection.ConnectAsync();
-                    var services = await connection.ListServicesAsync();
-                    var players = services.Where(service => service.StartsWith(s_mediaPlayerService, StringComparison.Ordinal));
-
-                    if (!players.Any())
-                    {
-                        Console.WriteLine("No media players are running");
-                        Console.WriteLine("Start a player like 'vlc', 'xmms2', 'bmp', 'audacious', ...");
-                        return;
-                    }
-                    Console.WriteLine("Available players:");
-                    foreach (var p in players)
-                    {
-                        Console.WriteLine($"* {p.Substring(s_mediaPlayerService.Length)}");
-                    }
-
-                    var playerService = players.First();
-                    Console.WriteLine($"Using: {playerService}");
-                    var mediaPlayer = connection.CreateProxy<IMediaPlayer>(playerService, s_mediaPlayerPath);
-                    var player = mediaPlayer as IPlayer;
-                    var trackList = mediaPlayer as ITrackList;
-
-                    Console.WriteLine("Tracks:");
-                    var trackIds = await trackList.GetAsync<ObjectPath[]>(nameof(TrackListProperties.Tracks));
-                    var trackMetadatas = await trackList.GetTracksMetadataAsync(trackIds);
-                    foreach (var trackMetadata in trackMetadatas)
-                    {
-                        Console.WriteLine($"* {GetTitle(trackMetadata)}");
-                    }
-
-                    await player.WatchPropertiesAsync(OnPropertiesChanged);
-                    var metadata = await player.GetAsync<IDictionary<string, object>>(nameof(PlayerProperties.Metadata));
-                    UpdateCurrentTitle(metadata, initial: true);
-
-                    Console.WriteLine("Controls:");
-                    Console.WriteLine("* P or Left Arrow:  Previous Song");
-                    Console.WriteLine("* N or Right Arrow: Next Song");
-                    Console.WriteLine("* Spacebar:         Play/Pause");
-                    while (true)
-                    {
-                        var key = await ReadConsoleKeyAsync();
-                        switch (key)
-                        {
-                            case ConsoleKey.P:
-                            case ConsoleKey.LeftArrow:
-                                await player.PreviousAsync();
-                                break;
-                            case ConsoleKey.N:
-                            case ConsoleKey.RightArrow:
-                                await player.NextAsync();
-                                break;
-                            case ConsoleKey.Spacebar:
-                                await player.PlayPauseAsync();
-                                break;
-                        }
-                    }
-                }
-            }).Wait();
+            Console.WriteLine("No media players are running");
+            Console.WriteLine("Start a player like 'vlc', 'xmms2', 'bmp', 'audacious', ...");
+            return;
+        }
+        Console.WriteLine("Available players:");
+        foreach (var p in players)
+        {
+            Console.WriteLine($"* {p.Substring(MediaPlayerService.Length)}");
         }
 
-        private static async Task<ConsoleKey> ReadConsoleKeyAsync()
+        var playerService = new MprisService(connection, players.First());
+        Console.WriteLine($"Using: {playerService}");
+        var mediaPlayer = playerService.CreateMediaPlayer2("/org/mpris/MediaPlayer2");
+        player = playerService.CreatePlayer("/org/mpris/MediaPlayer2");
+
+        Console.WriteLine("Tracks:");
+        var trackList = playerService.CreateTrackList("/org/mpris/MediaPlayer2");
+        var trackIds = await trackList.GetTracksAsync();
+        var trackMetadatas = await trackList.GetTracksMetadataAsync(trackIds);
+        foreach (var trackMetadata in trackMetadatas)
         {
-            await Task.Yield();
-            return Console.ReadKey(true).Key;
+            Console.WriteLine($"* {GetTitle(trackMetadata)}");
         }
 
-        private static void OnPropertiesChanged(PropertyChanges changes)
+        await player.WatchPropertiesChangedAsync(OnPropertiesChanged);
+        var metadata = await player.GetMetadataAsync();
+        UpdateCurrentTitle(metadata, initial: true);
+
+        Console.WriteLine("Controls:");
+        Console.WriteLine("* P or Left Arrow:  Previous Song");
+        Console.WriteLine("* N or Right Arrow: Next Song");
+        Console.WriteLine("* Spacebar:         Play/Pause");
+        while (true)
         {
-            var metadata = changes.Get<IDictionary<string, object>>(nameof(PlayerProperties.Metadata));
-            if (metadata != null)
+            var key = await ReadConsoleKeyAsync();
+            switch (key)
             {
-                UpdateCurrentTitle(metadata);
+                case ConsoleKey.P:
+                case ConsoleKey.LeftArrow:
+                    await player.PreviousAsync();
+                    break;
+                case ConsoleKey.N:
+                case ConsoleKey.RightArrow:
+                    await player.NextAsync();
+                    break;
+                case ConsoleKey.Spacebar:
+                    await player.PlayPauseAsync();
+                    break;
             }
         }
+    }
+}).Wait();
 
-        private static string s_currentTitle;
+async Task<ConsoleKey> ReadConsoleKeyAsync()
+{
+    await Task.Yield();
+    return Console.ReadKey(true).Key;
+}
 
-        private static void UpdateCurrentTitle(IDictionary<string, object> metadata, bool initial = false)
-        {
-            if (initial && (s_currentTitle != null))
-            {
-                return;
-            };
-            var title = GetTitle(metadata);
-            if (s_currentTitle == title)
-            {
-                return;
-            }
-            Console.WriteLine($"Current track: {title}");
-            s_currentTitle = title;
-        }
+string GetTitle(Dictionary<string, object> metadata)
+{
+    if (metadata.ContainsKey("xesam:title"))
+    {
+        return metadata["xesam:title"] as string ?? "???";
+    }
+    else
+    {
+        return "???";
+    }
+}
 
-        private static string GetTitle(IDictionary<string, object> metadata)
-        {
-            if (metadata.ContainsKey("xesam:title"))
-            {
-                return metadata["xesam:title"] as string;
-            }
-            else
-            {
-                return "???";
-            }
-        }
+void UpdateCurrentTitle(Dictionary<string, object> metadata, bool initial = false)
+{
+    if (initial && (CurrentTitle != null))
+    {
+        return;
+    };
+    var title = GetTitle(metadata);
+    if (CurrentTitle == title)
+    {
+        return;
+    }
+    Console.WriteLine($"Current track: {title}");
+    CurrentTitle = title;
+}
+
+async void OnPropertiesChanged(Exception? ex, PropertyChanges<PlayerProperties> changes)
+{
+    if (ex is not null)
+    {
+        return;
+    }
+
+    Dictionary<string, object>? metadata = null;
+    if (changes.HasChanged(nameof(PlayerProperties.Metadata)))
+    {
+        metadata = changes.Properties.Metadata;
+    }
+    else if (changes.IsInvalidated(nameof(PlayerProperties.Metadata)))
+    {
+        metadata = await player.GetMetadataAsync();
+    }
+    if (metadata is not null)
+    {
+        UpdateCurrentTitle(metadata);
     }
 }

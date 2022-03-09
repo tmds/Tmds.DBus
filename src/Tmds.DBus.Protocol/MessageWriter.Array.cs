@@ -10,7 +10,6 @@ public ref partial struct MessageWriter
         ArrayStart arrayStart = WriteArrayStart(TypeModel.GetTypeAlignment<T>());
         foreach (var item in value)
         {
-            WriteStructureStart();
             Write<T>(item);
         }
         WriteArrayEnd(ref arrayStart);
@@ -22,24 +21,9 @@ public ref partial struct MessageWriter
         ArrayStart arrayStart = WriteArrayStart(TypeModel.GetTypeAlignment<T>());
         foreach (var item in value)
         {
-            WriteStructureStart();
             Write<T>(item);
         }
         WriteArrayEnd(ref arrayStart);
-    }
-
-    public void WriteVariantDictionary<T>(IEnumerable<T> value)
-        where T : notnull
-    {
-        WriteArraySignature<T>(ref this);
-        WriteArray(value);
-    }
-
-    public void WriteVariantDictionary<T>(T[] value)
-        where T : notnull
-    {
-        WriteArraySignature<T>(ref this);
-        WriteArray(value);
     }
 
     sealed class ArrayTypeWriter<T> : ITypeWriter<IEnumerable<T>>

@@ -9,7 +9,7 @@ public interface IMethodHandler
     string Path { get; }
 }
 
-public class Connection : IDisposable
+public partial class Connection : IDisposable
 {
     private static readonly Exception s_disposedSentinel = new ObjectDisposedException(typeof(Connection).FullName);
     private static Connection? s_systemConnection;

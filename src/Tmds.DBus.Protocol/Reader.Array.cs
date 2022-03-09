@@ -28,19 +28,23 @@ public ref partial struct Reader
         return items.ToArray();
     }
 
-    sealed class KeyValueArrayTypeReader<TKey, TValue> : ITypeReader<KeyValuePair<TKey, TValue>[]>
+    sealed class KeyValueArrayTypeReader<TKey, TValue> : ITypeReader<KeyValuePair<TKey, TValue>[]>, ITypeReader<object>
         where TKey : notnull
         where TValue : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public KeyValuePair<TKey, TValue>[] Read(ref Reader reader)
         {
             return reader.ReadKeyValueArray<TKey, TValue>();
         }
     }
 
-    sealed class ArrayTypeReader<T> : ITypeReader<T[]>
+    sealed class ArrayTypeReader<T> : ITypeReader<T[]>, ITypeReader<object>
         where T : notnull
     {
+        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
+
         public T[] Read(ref Reader reader)
         {
             return reader.ReadArray<T>();

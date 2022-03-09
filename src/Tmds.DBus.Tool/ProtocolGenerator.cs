@@ -11,6 +11,7 @@ namespace Tmds.DBus.Tool
     class ProtocolGeneratorSettings
     {
         public string Namespace { get; set; } = "DBus";
+        public string ServiceName { get; set; }
         public Accessibility TypesAccessModifier = Accessibility.NotApplicable;
     }
 
@@ -19,6 +20,8 @@ namespace Tmds.DBus.Tool
         private readonly ProtocolGeneratorSettings _settings;
         private readonly StringBuilder _sb;
         private readonly Dictionary<string, (bool, Argument[])> _messageReadMethods;
+        private readonly string _objectName;
+        private readonly string _serviceClassName;
         private int _indentation = 0;
 
         public ProtocolGenerator(ProtocolGeneratorSettings settings)
@@ -26,6 +29,8 @@ namespace Tmds.DBus.Tool
             _settings = settings;
             _sb = new StringBuilder();
             _messageReadMethods = new Dictionary<string, (bool, Argument[])>();
+            _objectName = $"{settings.ServiceName}Object";
+            _serviceClassName = $"{settings.ServiceName}Service";
         }
 
         private void StartBlock()
@@ -69,7 +74,8 @@ namespace Tmds.DBus.Tool
                 AppendInterface(interf.Name, interf.InterfaceXml);
             }
 
-            AppendDbusObject();
+            AppendServiceClass(interfaceDescriptions);
+            AppendObjectClass();
 
             AppendPropertiesChangedClass();
 
@@ -93,19 +99,33 @@ namespace Tmds.DBus.Tool
             EndBlock();
         }
 
-        private void AppendDbusObject()
+        private void AppendServiceClass(IEnumerable<InterfaceDescription> interfaceDescriptions)
         {
-            AppendLine("");
-            AppendLine($"class DBusObject");
+            AppendLine($"partial class {_serviceClassName}");
             StartBlock();
             AppendLine("public Tmds.DBus.Protocol.Connection Connection { get; }");
-            AppendLine("public string Service { get; }");
-            AppendLine("public ObjectPath Path { get; }");
-            AppendLine("");
-            AppendLine("protected DBusObject(Tmds.DBus.Protocol.Connection connection, string service, ObjectPath path)");
-            StartBlock();
-            AppendLine("(Connection, Service, Path) = (connection, service, path);");
+            AppendLine("public string Destination { get; }");
+            AppendLine($"public {_serviceClassName}(Tmds.DBus.Protocol.Connection connection, string destination)");
+            AppendLine("    => (Connection, Destination) = (connection, destination);");
+            foreach (var interf in interfaceDescriptions)
+            {
+                string interfaceName = interf.Name;
+                AppendLine($"public {interfaceName} Create{interfaceName}(string path) => new {interfaceName}(this, path);");
+            }
             EndBlock();
+        }
+
+        private void AppendObjectClass()
+        {
+            AppendLine("");
+            AppendLine($"class {_objectName}");
+            StartBlock();
+            AppendLine($"public {_serviceClassName} Service {{ get; }}");
+            AppendLine("public ObjectPath Path { get; }");
+            AppendLine("protected Tmds.DBus.Protocol.Connection Connection => Service.Connection;");
+            AppendLine("");
+            AppendLine($"protected {_objectName}({_serviceClassName} service, ObjectPath path)");
+            AppendLine("    => (Service, Path) = (service, path);");
 
             AppendLine("");
             AppendLine("protected MessageBuffer CreateGetPropertyMessage(string @interface, string property)");
@@ -113,7 +133,7 @@ namespace Tmds.DBus.Tool
             AppendLine("using var writer = this.Connection.GetMessageWriter();");
             AppendLine("");
             AppendLine("writer.WriteMethodCallHeader(");
-            AppendLine("    destination: Service,");
+            AppendLine("    destination: Service.Destination,");
             AppendLine("    path: Path,");
             AppendLine("    @interface: \"org.freedesktop.DBus.Properties\",");
             AppendLine("    signature: \"ss\",");
@@ -131,7 +151,7 @@ namespace Tmds.DBus.Tool
             AppendLine("using var writer = this.Connection.GetMessageWriter();");
             AppendLine("");
             AppendLine("writer.WriteMethodCallHeader(");
-            AppendLine("    destination: Service,");
+            AppendLine("    destination: Service.Destination,");
             AppendLine("    path: Path,");
             AppendLine("    @interface: \"org.freedesktop.DBus.Properties\",");
             AppendLine("    signature: \"s\",");
@@ -148,7 +168,7 @@ namespace Tmds.DBus.Tool
             AppendLine("var rule = new MatchRule");
             AppendLine("{");
             AppendLine("    Type = MessageType.Signal,");
-            AppendLine("    Sender = Service,");
+            AppendLine("    Sender = Service.Destination,");
             AppendLine("    Path = Path,");
             AppendLine("    Interface = \"org.freedesktop.DBus.Properties\",");
             AppendLine("    Member = \"PropertiesChanged\",");
@@ -186,14 +206,14 @@ namespace Tmds.DBus.Tool
                 EndBlock();
             }
 
-            AppendLine($"partial class {name} : DBusObject");
+            AppendLine($"partial class {name} : {_objectName}");
             StartBlock();
 
             string interfaceName = (string)interfaceXml.Attribute("name");
-            AppendLine($"private const string Interface = \"{interfaceName}\";");
+            AppendLine($"private const string __Interface = \"{interfaceName}\";");
 
             AppendLine("");
-            AppendLine($"public {name}(Tmds.DBus.Protocol.Connection connection, string service, ObjectPath path) : base(connection, service, path)");
+            AppendLine($"public {name}({_serviceClassName} service, ObjectPath path) : base(service, path)");
             AppendLine("{ }");
 
             foreach (var method in interfaceXml.Elements("method"))
@@ -220,16 +240,16 @@ namespace Tmds.DBus.Tool
                     AppendLine($"public Task<{property.DotnetType}> Get{property.NameUpper}Async()");
                     _indentation++;
                     string readMessageName = GetReadMessageMethodName(new[] { property }, variant: true);
-                    AppendLine($"=> this.Connection.CallMethodAsync(CreateGetPropertyMessage(Interface, \"{property.Name}\"), (in Message m, object? s) => {readMessageName}(in m, (DBusObject)s!), this);");
+                    AppendLine($"=> this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, \"{property.Name}\"), (in Message m, object? s) => {readMessageName}(in m, ({_objectName})s!), this);");
                     _indentation--;
                 }
 
                 // GetPropertiesAsync
                 AppendLine($"public Task<{propertiesClassName}> GetPropertiesAsync()");
                 StartBlock();
-                AppendLine($"return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(Interface), (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), this);");
+                AppendLine($"return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (in Message m, object? s) => ReadMessage(in m, ({_objectName})s!), this);");
                 
-                AppendLine($"static {propertiesClassName} ReadMessage(in Message message, DBusObject _)");
+                AppendLine($"static {propertiesClassName} ReadMessage(in Message message, {_objectName} _)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("return ReadProperties(ref reader);");
@@ -240,9 +260,9 @@ namespace Tmds.DBus.Tool
                 // WatchPropertiesChangedAsync
                 AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<{propertiesClassName}>> handler)");
                 StartBlock();
-                AppendLine("return this.WatchPropertiesChangedAsync(Interface, (in Message m, object? s) => ReadMessage(in m, (DBusObject)s!), handler);");
+                AppendLine($"return this.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, ({_objectName})s!), handler);");
                 AppendLine("");
-                AppendLine($"static PropertyChanges<{propertiesClassName}> ReadMessage(in Message message, DBusObject _)");
+                AppendLine($"static PropertyChanges<{propertiesClassName}> ReadMessage(in Message message, {_objectName} _)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
@@ -320,13 +340,13 @@ namespace Tmds.DBus.Tool
             AppendLine("using var writer = this.Connection.GetMessageWriter();");
             AppendLine("");
             AppendLine("writer.WriteMethodCallHeader(");
-            AppendLine("    destination: Service,");
+            AppendLine("    destination: Service.Destination,");
             AppendLine("    path: Path,");
             AppendLine("    @interface: \"org.freedesktop.DBus.Properties\",");
             AppendLine("    signature: \"ssv\",");
             AppendLine("    member: \"Set\");");
             AppendLine("");
-            AppendLine("writer.WriteString(Interface);");
+            AppendLine("writer.WriteString(__Interface);");
             AppendLine($"writer.WriteString(\"{property.Name}\");");
             AppendLine($"writer.WriteSignature(\"{property.Type}\");");
             AppendLine($"writer.{GetArgumentWriteMethodName(property)}(value);");
@@ -357,12 +377,12 @@ namespace Tmds.DBus.Tool
             StartBlock();
             if (watchType == null)
             {
-                AppendLine($"return this.Connection.WatchSignalAsync(Service, Path, \"{dbusSignalName}\", handler);");
+                AppendLine($"return this.Connection.WatchSignalAsync(Service.Destination, Path, \"{dbusSignalName}\", handler);");
             }
             else
             {
                 string readMessageName = GetReadMessageMethodName(args, variant: false);
-                AppendLine($"return this.Connection.WatchSignalAsync(Service, Path, \"{dbusSignalName}\", handler, (in Message m, object? s) => {readMessageName}(in m, (DBusObject)s!), this);");
+                AppendLine($"return this.Connection.WatchSignalAsync(Service.Destination, Path, \"{dbusSignalName}\", handler, (in Message m, object? s) => {readMessageName}(in m, ({_objectName})s!), this);");
             }
             EndBlock();
         }
@@ -402,7 +422,7 @@ namespace Tmds.DBus.Tool
             if (dotnetReturnType != null)
             {
                 string readMessageName = GetReadMessageMethodName(outArgs, variant: false);
-                AppendLine($"return this.Connection.CallMethodAsync(CreateMessage(), (in Message m, object? s) => {readMessageName}(in m, (DBusObject)s!), this);");
+                AppendLine($"return this.Connection.CallMethodAsync(CreateMessage(), (in Message m, object? s) => {readMessageName}(in m, ({_objectName})s!), this);");
             }
             else
             {
@@ -415,9 +435,9 @@ namespace Tmds.DBus.Tool
             AppendLine("using var writer = this.Connection.GetMessageWriter();");
             AppendLine("");
             AppendLine("writer.WriteMethodCallHeader(");
-            AppendLine($"    destination: Service,");
+            AppendLine($"    destination: Service.Destination,");
             AppendLine($"    path: Path,");
-            AppendLine($"    @interface: Interface,");
+            AppendLine($"    @interface: __Interface,");
             if (inArgs.Length > 0)
             {
                 string signature = string.Join("", inArgs.Select(a => a.Type));
@@ -468,7 +488,7 @@ namespace Tmds.DBus.Tool
         private void AppendReadMessageMethod(string name, bool variant, Argument[] args)
         {
             string dotnetReturnType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetType : TupleOf(args.Select(arg => arg.DotnetType));
-            AppendLine($"protected static {dotnetReturnType} {name}(in Message message, DBusObject _)");
+            AppendLine($"protected static {dotnetReturnType} {name}(in Message message, {_objectName} _)");
             StartBlock();
             string signature = string.Join("", args.Select(a => a.Type));
             AppendLine("var reader = message.GetBodyReader();");

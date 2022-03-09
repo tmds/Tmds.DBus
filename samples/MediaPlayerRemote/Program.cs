@@ -32,14 +32,19 @@ Console.WriteLine($"Using: {players.First()}");
 var playerService = new MprisService(connection, players.First());
 player = playerService.CreatePlayer("/org/mpris/MediaPlayer2");
 
-Console.WriteLine("Tracks:");
-var trackList = playerService.CreateTrackList("/org/mpris/MediaPlayer2");
-var trackIds = await trackList.GetTracksAsync();
-var trackMetadatas = await trackList.GetTracksMetadataAsync(trackIds);
-foreach (var trackMetadata in trackMetadatas)
+try
 {
-    Console.WriteLine($"* {GetTitle(trackMetadata)}");
+    var trackList = playerService.CreateTrackList("/org/mpris/MediaPlayer2");
+    Console.WriteLine("Tracks:");
+    var trackIds = await trackList.GetTracksAsync();
+    var trackMetadatas = await trackList.GetTracksMetadataAsync(trackIds);
+    foreach (var trackMetadata in trackMetadatas)
+    {
+        Console.WriteLine($"* {GetTitle(trackMetadata)}");
+    }
 }
+catch (DBusException)
+{ }
 
 await player.WatchPropertiesChangedAsync(OnPropertiesChanged);
 var metadata = await player.GetMetadataAsync();

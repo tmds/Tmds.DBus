@@ -574,20 +574,20 @@ class DBusConnection : IDisposable
         }
     }
 
-    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?> valueHandler, object? readerState, object? handlerState, bool subscribe)
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> valueReader,Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, bool subscribe)
     {
-        MessageHandlerDelegate4 fn = static (Exception? exception, in Message message, object? state1, object? state2, object? state3, object? state4) =>
+        MessageHandlerDelegate4 fn = static (Exception? exception, in Message message, object? reader, object? handler, object? rs, object? hs) =>
         {
-            var valueHandlerState = (Action<Exception?, T, object?>)state2!;
+            var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
             if (exception is not null)
             {
-                valueHandlerState(exception, default(T)!, state4);
+                valueHandlerState(exception, default(T)!, rs, hs);
             }
             else
             {
-                var valueReaderState = (MessageValueReader<T>)state1!;
-                T value = valueReaderState(in message, state3);
-                valueHandlerState(null, value, state4);
+                var valueReaderState = (MessageValueReader<T>)reader!;
+                T value = valueReaderState(in message, rs);
+                valueHandlerState(null, value, rs, hs);
             }
         };
 

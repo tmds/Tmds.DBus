@@ -1,37 +1,41 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Tmds.DBus.Protocol;
 using Mpris.DBus;
-using System.Collections.Generic;
 
 Console.WriteLine("MediaPlayerRemote Sample");
 
 string? CurrentTitle = null;
-Player? player = null;
 
+// Connect to the session bus.
 using var connection = new Connection(Address.Session!);
 await connection.ConnectAsync();
 
+// Find all players.
 const string MediaPlayerService = "org.mpris.MediaPlayer2.";
 var services = await connection.ListServicesAsync();
-var players = services.Where(service => service.StartsWith(MediaPlayerService, StringComparison.Ordinal));
-if (!players.Any())
+var availablePlayers = services.Where(service => service.StartsWith(MediaPlayerService, StringComparison.Ordinal));
+if (!availablePlayers.Any())
 {
     Console.WriteLine("No media players are running");
     Console.WriteLine("Start a player like 'vlc', 'xmms2', 'bmp', 'audacious', ...");
     return;
 }
 Console.WriteLine("Available players:");
-foreach (var p in players)
+foreach (var p in availablePlayers)
 {
     Console.WriteLine($"* {p.Substring(MediaPlayerService.Length)}");
 }
 
-Console.WriteLine($"Using: {players.First()}");
-var playerService = new MprisService(connection, players.First());
-player = playerService.CreatePlayer("/org/mpris/MediaPlayer2");
+// Use the first.
+string firstPlayer = availablePlayers.First();
+Console.WriteLine($"Using: {firstPlayer}");
+var playerService = new MprisService(connection,firstPlayer);
+var player = playerService.CreatePlayer("/org/mpris/MediaPlayer2");
 
+// Try list tracks (if the player supports it).
 try
 {
     var trackList = playerService.CreateTrackList("/org/mpris/MediaPlayer2");
@@ -46,10 +50,12 @@ try
 catch (DBusException)
 { }
 
+// Subscribe for title changes, and get the current title.
 await player.WatchPropertiesChangedAsync(OnPropertiesChanged);
 var metadata = await player.GetMetadataAsync();
 UpdateCurrentTitle(metadata, initial: true);
 
+// Control the player.
 Console.WriteLine("Controls:");
 Console.WriteLine("* P or Left Arrow:  Previous Song");
 Console.WriteLine("* N or Right Arrow: Next Song");
@@ -75,35 +81,25 @@ while (true)
 
 async Task<ConsoleKey> ReadConsoleKeyAsync()
 {
-    await Task.Yield();
-    return Console.ReadKey(true).Key;
+    await Task.Yield(); // Don't block the continuation.
+    return Console.ReadKey(true).Key; // block a ThreadPool thread instead.
 }
 
 string GetTitle(Dictionary<string, object> metadata)
-{
-    if (metadata.ContainsKey("xesam:title"))
-    {
-        return metadata["xesam:title"] as string ?? "???";
-    }
-    else
-    {
-        return "???";
-    }
-}
+    => (metadata.TryGetValue("xesam:title", out object? value) ? value.ToString() : null) ?? "???";
 
 void UpdateCurrentTitle(Dictionary<string, object> metadata, bool initial = false)
 {
-    if (initial && (CurrentTitle != null))
+    if (initial && CurrentTitle is not null)
     {
         return;
     };
     var title = GetTitle(metadata);
-    if (CurrentTitle == title)
+    if (CurrentTitle != title)
     {
-        return;
+        Console.WriteLine($"Current track: {title}");
+        CurrentTitle = title;
     }
-    Console.WriteLine($"Current track: {title}");
-    CurrentTitle = title;
 }
 
 async void OnPropertiesChanged(Exception? ex, Player player, PropertyChanges<PlayerProperties> changes)
@@ -113,17 +109,24 @@ async void OnPropertiesChanged(Exception? ex, Player player, PropertyChanges<Pla
         return;
     }
 
-    Dictionary<string, object>? metadata = null;
-    if (changes.HasChanged(nameof(PlayerProperties.Metadata)))
+    try
     {
-        metadata = changes.Properties.Metadata;
+        Dictionary<string, object>? metadata = null;
+        if (changes.HasChanged(nameof(PlayerProperties.Metadata)))
+        {
+            metadata = changes.Properties.Metadata;
+        }
+        else if (changes.IsInvalidated(nameof(PlayerProperties.Metadata)))
+        {
+            metadata = await player.GetMetadataAsync();
+        }
+        if (metadata is not null)
+        {
+            UpdateCurrentTitle(metadata);
+        }
     }
-    else if (changes.IsInvalidated(nameof(PlayerProperties.Metadata)))
+    catch (Exception e)
     {
-        metadata = await player.GetMetadataAsync();
-    }
-    if (metadata is not null)
-    {
-        UpdateCurrentTitle(metadata);
+        Console.WriteLine($"Error while handling player properties changed: {e}");
     }
 }

@@ -106,7 +106,7 @@ void UpdateCurrentTitle(Dictionary<string, object> metadata, bool initial = fals
     CurrentTitle = title;
 }
 
-async void OnPropertiesChanged(Exception? ex, PropertyChanges<PlayerProperties> changes)
+async void OnPropertiesChanged(Exception? ex, Player player, PropertyChanges<PlayerProperties> changes)
 {
     if (ex is not null)
     {

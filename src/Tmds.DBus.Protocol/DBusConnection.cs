@@ -9,7 +9,6 @@ namespace Tmds.DBus.Protocol;
 class DBusConnection : IDisposable
 {
     private delegate void MessageReceivedHandler(Exception? exception, in Message message, object? state);
-    private static readonly Exception s_disposedSentinel = new ObjectDisposedException(typeof(Connection).FullName);
 
     class MyValueTaskSource<T> : IValueTaskSource<T>, IValueTaskSource
     {
@@ -131,6 +130,7 @@ class DBusConnection : IDisposable
     private Exception? _disconnectReason;
     private string? _localName;
     private Message.MessageData _currentMessage;
+    private TaskCompletionSource<Exception?>? _disconnectedTcs;
 
     public string? UniqueName => _localName;
 
@@ -389,6 +389,11 @@ class DBusConnection : IDisposable
     {
         lock (_gate)
         {
+            if (_state == ConnectionState.Disconnected)
+            {
+                return;
+            }
+
             int registeredCount = 0;
 
             try
@@ -450,6 +455,8 @@ class DBusConnection : IDisposable
             }
             _matchMakers.Clear();
         }
+
+        _disconnectedTcs?.SetResult(GetWaitForDisconnectException());
     }
 
     private ValueTask CallMethodAsync(MessageBuffer message, MessageReceivedHandler returnHandler, object? state)
@@ -1026,6 +1033,28 @@ class DBusConnection : IDisposable
             message.ReturnToPool();
         }
     }
+
+    public Task<Exception?> DisconnectedAsync()
+    {
+        lock (_gate)
+        {
+            if (_disconnectedTcs is null)
+            {
+                if (_state == ConnectionState.Disconnected)
+                {
+                    return Task.FromResult(GetWaitForDisconnectException());
+                }
+                else
+                {
+                    _disconnectedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                }
+            }
+            return _disconnectedTcs.Task;
+        }
+    }
+
+    private Exception? GetWaitForDisconnectException()
+        => _disconnectReason is ObjectDisposedException ? null : _disconnectReason;
 
     private void SendErrorReplyMessage(in Message methodCall, string errorName, string errorMsg)
     {

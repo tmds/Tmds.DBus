@@ -18,7 +18,7 @@ public partial class Connection : IDisposable
     public static Connection System => s_systemConnection ?? CreateConnection(ref s_systemConnection, Address.System);
     public static Connection Session => s_sessionConnection ?? CreateConnection(ref s_sessionConnection, Address.Session);
 
-    public string? UniqueName => GetConnection()?.UniqueName;
+    public string? UniqueName => GetConnection().UniqueName;
 
     enum ConnectionState
     {
@@ -168,7 +168,6 @@ public partial class Connection : IDisposable
             setupResult = _setupResult;
             connectCts = _connectCts;
 
-            _connection = null;
             _connectingTask = null;
             _setupResult = null;
             _connectCts = null;
@@ -228,7 +227,7 @@ public partial class Connection : IDisposable
 
     public void AddMethodHandlers(IList<IMethodHandler> methodHandlers)
     {
-        GetConnection()?.AddMethodHandlers(methodHandlers);
+        GetConnection().AddMethodHandlers(methodHandlers);
     }
 
     private static Connection CreateConnection(ref Connection? field, string? address)
@@ -253,7 +252,7 @@ public partial class Connection : IDisposable
 
     public bool TrySendMessage(MessageBuffer message)
     {
-        DBusConnection? connection = GetConnection();
+        DBusConnection? connection = GetConnection(ifConnected: true);
         if (connection is null)
         {
             message.ReturnToPool();
@@ -263,7 +262,15 @@ public partial class Connection : IDisposable
         return true;
     }
 
-    private DBusConnection? GetConnection()
+    public Task<Exception?> DisconnectedAsync()
+    {
+        DBusConnection connection = GetConnection();
+        return connection.DisconnectedAsync();
+    }
+
+    private DBusConnection GetConnection() => GetConnection(ifConnected: false)!;
+
+    private DBusConnection? GetConnection(bool ifConnected)
     {
         lock (_gate)
         {
@@ -280,6 +287,11 @@ public partial class Connection : IDisposable
                 state == ConnectionState.Connecting)
             {
                 throw new InvalidOperationException("Connect before using this method.");
+            }
+
+            if (ifConnected && state != ConnectionState.Connected)
+            {
+                return null;
             }
 
             return _connection;

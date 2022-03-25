@@ -4,11 +4,12 @@ public class ClientConnectionOptions : ConnectionOptions
 {
     private string _address;
 
-    public ClientConnectionOptions(string address)
+    public ClientConnectionOptions(string address, SynchronizationContext? synchronizationContext = null)
     {
         if (address == null)
             throw new ArgumentNullException(nameof(address));
         _address = address;
+        SynchronizationContext = synchronizationContext;
     }
 
     protected ClientConnectionOptions()

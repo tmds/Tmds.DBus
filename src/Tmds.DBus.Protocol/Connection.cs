@@ -38,8 +38,8 @@ public partial class Connection : IDisposable
     private bool _disposed;
     private int _nextSerial;
 
-    public Connection(string address) :
-        this(new ClientConnectionOptions(address))
+    public Connection(string address, SynchronizationContext? synchronizationContext = null) :
+        this(new ClientConnectionOptions(address, synchronizationContext))
     { }
 
     public Connection(ConnectionOptions connectionOptions)

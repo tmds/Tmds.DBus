@@ -7,7 +7,7 @@ public ref partial struct MessageWriter
     private const int HeaderFieldsLengthOffset = 12;
     private const int UnixFdLengthOffset = 20;
 
-    private readonly MessageBuffer _message;
+    private MessageBuffer _message;
     private readonly uint _serial;
     private Span<byte> _firstSpan;
     private Span<byte> _span;
@@ -20,7 +20,11 @@ public ref partial struct MessageWriter
 
         CompleteMessage();
 
-        return _message;
+        var message = _message;
+
+        _message = null!;
+
+        return message;
     }
 
     private void CompleteMessage()
@@ -144,9 +148,8 @@ public ref partial struct MessageWriter
 
     public void Dispose()
     {
-        // TODO:
-        // _message must be set to null in CreateMessage.
-        // return _message to pool if not null.
+        _message?.ReturnToPool();
+        _message = null!;
     }
 }
 

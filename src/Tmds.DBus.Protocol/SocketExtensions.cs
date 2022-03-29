@@ -174,7 +174,7 @@ static class SocketExtensions
                         int msgFdCount = ((int)cm.hdr.cmsg_len - sizeof(cmsghdr)) / sizeof(int);
                         for (int i = 0; i < msgFdCount; i++)
                         {
-                            handles.Add((new IntPtr(cm.fds[i]), true));
+                            handles.AddHandle(new IntPtr(cm.fds[i]));
                         }
                     }
                 }

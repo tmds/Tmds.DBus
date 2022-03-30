@@ -248,9 +248,9 @@ namespace Mpris.DBus
                 return ReadProperties(ref reader);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, MediaPlayer2, PropertyChanges<MediaPlayer2Properties>> handler)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<MediaPlayer2Properties>> handler, bool emitOnCapturedContext = true)
         {
-            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler);
+            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler, emitOnCapturedContext);
             static PropertyChanges<MediaPlayer2Properties> ReadMessage(in Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
@@ -780,9 +780,9 @@ namespace Mpris.DBus
                 return ReadProperties(ref reader);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, Player, PropertyChanges<PlayerProperties>> handler)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<PlayerProperties>> handler, bool emitOnCapturedContext = true)
         {
-            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler);
+            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler, emitOnCapturedContext);
             static PropertyChanges<PlayerProperties> ReadMessage(in Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
@@ -976,14 +976,14 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
-        public ValueTask<IDisposable> WatchTrackListReplacedAsync(Action<Exception?, TrackList, (ObjectPath[] A0, ObjectPath A1)> handler)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackListReplaced", (in Message m, object? s) => ReadMessage_aoo(in m, (MprisObject)s!), handler);
-        public ValueTask<IDisposable> WatchTrackAddedAsync(Action<Exception?, TrackList, (Dictionary<string, object> A0, ObjectPath A1)> handler)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackAdded", (in Message m, object? s) => ReadMessage_aesvo(in m, (MprisObject)s!), handler);
-        public ValueTask<IDisposable> WatchTrackRemovedAsync(Action<Exception?, TrackList, ObjectPath> handler)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackRemoved", (in Message m, object? s) => ReadMessage_o(in m, (MprisObject)s!), handler);
-        public ValueTask<IDisposable> WatchTrackMetadataChangedAsync(Action<Exception?, TrackList, (ObjectPath A0, Dictionary<string, object> A1)> handler)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackMetadataChanged", (in Message m, object? s) => ReadMessage_oaesv(in m, (MprisObject)s!), handler);
+        public ValueTask<IDisposable> WatchTrackListReplacedAsync(Action<Exception?, (ObjectPath[] A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
+            => base.WatchSignalAsync(Service.Destination, Path, "TrackListReplaced", (in Message m, object? s) => ReadMessage_aoo(in m, (MprisObject)s!), handler, emitOnCapturedContext);
+        public ValueTask<IDisposable> WatchTrackAddedAsync(Action<Exception?, (Dictionary<string, object> A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
+            => base.WatchSignalAsync(Service.Destination, Path, "TrackAdded", (in Message m, object? s) => ReadMessage_aesvo(in m, (MprisObject)s!), handler, emitOnCapturedContext);
+        public ValueTask<IDisposable> WatchTrackRemovedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true)
+            => base.WatchSignalAsync(Service.Destination, Path, "TrackRemoved", (in Message m, object? s) => ReadMessage_o(in m, (MprisObject)s!), handler, emitOnCapturedContext);
+        public ValueTask<IDisposable> WatchTrackMetadataChangedAsync(Action<Exception?, (ObjectPath A0, Dictionary<string, object> A1)> handler, bool emitOnCapturedContext = true)
+            => base.WatchSignalAsync(Service.Destination, Path, "TrackMetadataChanged", (in Message m, object? s) => ReadMessage_oaesv(in m, (MprisObject)s!), handler, emitOnCapturedContext);
         public Task SetTracksAsync(ObjectPath[] value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
@@ -1035,9 +1035,9 @@ namespace Mpris.DBus
                 return ReadProperties(ref reader);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, TrackList, PropertyChanges<TrackListProperties>> handler)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<TrackListProperties>> handler, bool emitOnCapturedContext = true)
         {
-            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler);
+            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler, emitOnCapturedContext);
             static PropertyChanges<TrackListProperties> ReadMessage(in Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
@@ -1131,7 +1131,7 @@ namespace Mpris.DBus
             writer.WriteString(@interface);
             return writer.CreateMessage();
         }
-        protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TObject, TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, TObject, PropertyChanges<TProperties>> handler)
+        protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, PropertyChanges<TProperties>> handler, bool emitOnCapturedContext)
         {
             var rule = new MatchRule
             {
@@ -1143,10 +1143,10 @@ namespace Mpris.DBus
                 Arg0 = @interface
             };
             return this.Connection.AddMatchAsync(rule, reader,
-                                                    (Exception? ex, PropertyChanges<TProperties> changes, object? rs, object? hs) => ((Action<Exception?, TObject, PropertyChanges<TProperties>>)hs!).Invoke(ex, (TObject)rs!,changes),
-                                                    this, handler);
+                                                    (Exception? ex, PropertyChanges<TProperties> changes, object? rs, object? hs) => ((Action<Exception?, PropertyChanges<TProperties>>)hs!).Invoke(ex, changes),
+                                                    this, handler, emitOnCapturedContext);
         }
-        public ValueTask<IDisposable> WatchSignalAsync<TObject, TArg>(string sender, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TObject, TArg> handler)
+        public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext)
         {
             var rule = new MatchRule
             {
@@ -1156,10 +1156,10 @@ namespace Mpris.DBus
                 Member = signal
             };
             return this.Connection.AddMatchAsync(rule, reader,
-                                                    (Exception? ex, TArg arg, object? rs, object? hs) => ((Action<Exception?, TObject, TArg>)hs!).Invoke(ex, (TObject)rs!, arg),
-                                                    this, handler);
+                                                    (Exception? ex, TArg arg, object? rs, object? hs) => ((Action<Exception?, TArg>)hs!).Invoke(ex, arg),
+                                                    this, handler, emitOnCapturedContext);
         }
-        public ValueTask<IDisposable> WatchSignalAsync<TObject>(string sender, ObjectPath path, string signal, Action<Exception?, TObject?> handler)
+        public ValueTask<IDisposable> WatchSignalAsync(string sender, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext)
         {
             var rule = new MatchRule
             {
@@ -1169,7 +1169,7 @@ namespace Mpris.DBus
                 Member = signal
             };
             return this.Connection.AddMatchAsync<object>(rule, (in Message message, object? state) => null!,
-                                                            (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?, TObject?>)hs!).Invoke(ex, (TObject)rs!), this, handler);
+                                                            (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);
         }
         protected static string ReadMessage_v_s(in Message message, MprisObject _)
         {

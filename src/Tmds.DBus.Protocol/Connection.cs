@@ -38,8 +38,8 @@ public partial class Connection : IDisposable
     private bool _disposed;
     private int _nextSerial;
 
-    public Connection(string address, SynchronizationContext? synchronizationContext = null) :
-        this(new ClientConnectionOptions(address, synchronizationContext))
+    public Connection(string address) :
+        this(new ClientConnectionOptions(address))
     { }
 
     public Connection(ConnectionOptions connectionOptions)
@@ -97,7 +97,7 @@ public partial class Connection : IDisposable
         {
             _connectCts = new();
             _setupResult = await _connectionOptions.SetupAsync(_connectCts.Token).ConfigureAwait(false);
-            connection = _connection = new DBusConnection(this, _connectionOptions.SynchronizationContext, _connectionOptions.RunContinuationsAsynchronously);
+            connection = _connection = new DBusConnection(this);
 
             await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token).ConfigureAwait(false);
 
@@ -216,10 +216,11 @@ public partial class Connection : IDisposable
         return await connection.CallMethodAsync(message, reader, readerState).ConfigureAwait(false);
     }
 
-    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState = null, object? handlerState = null, bool subscribe = true)
+    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true, bool subscribe = true)
     {
+        SynchronizationContext? synchronizationContext = emitOnCapturedContext ? SynchronizationContext.Current : null;
         DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
-        return await connection.AddMatchAsync(rule, reader, handler, readerState, handlerState, subscribe).ConfigureAwait(false);
+        return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, subscribe).ConfigureAwait(false);
     }
 
     public void AddMethodHandler(IMethodHandler methodHandler)

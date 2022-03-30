@@ -7,8 +7,6 @@ using Mpris.DBus;
 
 Console.WriteLine("MediaPlayerRemote Sample");
 
-string? CurrentTitle = null;
-
 // Connect to the session bus.
 using var connection = new Connection(Address.Session!);
 await connection.ConnectAsync();
@@ -32,28 +30,15 @@ foreach (var p in availablePlayers)
 // Use the first.
 string firstPlayer = availablePlayers.First();
 Console.WriteLine($"Using: {firstPlayer}");
-var playerService = new MprisService(connection,firstPlayer);
-var player = playerService.CreatePlayer("/org/mpris/MediaPlayer2");
 
-// Try list tracks (if the player supports it).
-try
+Player player = new Player(new MprisService(connection,firstPlayer));
+foreach (var track in await player.GetTracksAsync())
 {
-    var trackList = playerService.CreateTrackList("/org/mpris/MediaPlayer2");
-    Console.WriteLine("Tracks:");
-    var trackIds = await trackList.GetTracksAsync();
-    var trackMetadatas = await trackList.GetTracksMetadataAsync(trackIds);
-    foreach (var trackMetadata in trackMetadatas)
-    {
-        Console.WriteLine($"* {GetTitle(trackMetadata)}");
-    }
+    Console.WriteLine($"* {track}");
 }
-catch (DBusException)
-{ }
 
-// Subscribe for title changes, and get the current title.
-await player.WatchPropertiesChangedAsync(OnPropertiesChanged);
-var metadata = await player.GetMetadataAsync();
-UpdateCurrentTitle(metadata, initial: true);
+// Print the title that is playing.
+await player.WatchTitleAsync(title => Console.WriteLine($"Current track: {title}"));
 
 // Control the player.
 Console.WriteLine("Controls:");
@@ -85,48 +70,103 @@ async Task<ConsoleKey> ReadConsoleKeyAsync()
     return Console.ReadKey(true).Key; // block a ThreadPool thread instead.
 }
 
-string GetTitle(Dictionary<string, object> metadata)
-    => (metadata.TryGetValue("xesam:title", out object? value) ? value.ToString() : null) ?? "???";
-
-void UpdateCurrentTitle(Dictionary<string, object> metadata, bool initial = false)
+class Player
 {
-    if (initial && CurrentTitle is not null)
-    {
-        return;
-    };
-    var title = GetTitle(metadata);
-    if (CurrentTitle != title)
-    {
-        Console.WriteLine($"Current track: {title}");
-        CurrentTitle = title;
-    }
-}
+    private readonly MprisService _service;
+    private readonly Mpris.DBus.Player _player;
 
-async void OnPropertiesChanged(Exception? ex, Player player, PropertyChanges<PlayerProperties> changes)
-{
-    if (ex is not null)
+    public Player(MprisService service)
     {
-        return;
+        _service = service;
+        _player = service.CreatePlayer("/org/mpris/MediaPlayer2");
     }
 
-    try
+    public async Task<IDisposable> WatchTitleAsync(Action<string> action, bool emitOnCapturedContext = false)
     {
-        Dictionary<string, object>? metadata = null;
-        if (changes.HasChanged(nameof(PlayerProperties.Metadata)))
+        string? CurrentTitle = null;
+
+        // Subscribe for changes.
+        IDisposable watcher = await _player.WatchPropertiesChangedAsync(OnPropertiesChanged, emitOnCapturedContext).ConfigureAwait(emitOnCapturedContext);
+
+        // Get the current title.
+        var metadata = await _player.GetMetadataAsync().ConfigureAwait(emitOnCapturedContext);
+        UpdateCurrentTitle(metadata, initial: true);
+
+        return watcher;
+
+        async void OnPropertiesChanged(Exception? ex, PropertyChanges<PlayerProperties> changes)
         {
-            metadata = changes.Properties.Metadata;
+            if (ex is not null)
+            {
+                return;
+            }
+
+            try
+            {
+                Dictionary<string, object>? metadata = null;
+                if (changes.HasChanged(nameof(PlayerProperties.Metadata)))
+                {
+                    metadata = changes.Properties.Metadata;
+                }
+                else if (changes.IsInvalidated(nameof(PlayerProperties.Metadata)))
+                {
+                    metadata = await _player.GetMetadataAsync();
+                }
+                if (metadata is not null)
+                {
+                    UpdateCurrentTitle(metadata);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error while handling player properties changed: {e}");
+            }
         }
-        else if (changes.IsInvalidated(nameof(PlayerProperties.Metadata)))
+
+        void UpdateCurrentTitle(Dictionary<string, object> metadata, bool initial = false)
         {
-            metadata = await player.GetMetadataAsync();
-        }
-        if (metadata is not null)
-        {
-            UpdateCurrentTitle(metadata);
+            if (initial && CurrentTitle is not null)
+            {
+                // Property changed occurs before we fetched the initial value.
+                return;
+            };
+            var newTitle = GetTitle(metadata);
+            if (CurrentTitle != newTitle)
+            {
+                CurrentTitle = newTitle;
+                action(newTitle);
+            }
         }
     }
-    catch (Exception e)
+
+    public async Task<string[]> GetTracksAsync()
     {
-        Console.WriteLine($"Error while handling player properties changed: {e}");
+        try
+        {
+            var trackList = _service.CreateTrackList("/org/mpris/MediaPlayer2");
+            Console.WriteLine("Tracks:");
+            var trackIds = await trackList.GetTracksAsync();
+            var trackMetadatas = await trackList.GetTracksMetadataAsync(trackIds);
+            List<string> titles = new();
+            foreach (var trackMetadata in trackMetadatas)
+            {
+                titles.Add(GetTitle(trackMetadata));
+            }
+            return titles.ToArray();
+        }
+        catch (DBusException)
+        {
+            // Listing tracks not supported by player.
+            return Array.Empty<string>();
+        }
     }
+
+    private static string GetTitle(Dictionary<string, object> metadata)
+        => (metadata.TryGetValue("xesam:title", out object? value) ? value.ToString() : null) ?? "???";
+
+    public Task PreviousAsync() => _player.PreviousAsync();
+
+    public Task NextAsync() => _player.NextAsync();
+
+    public Task PlayPauseAsync() => _player.PlayPauseAsync();
 }

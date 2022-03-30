@@ -15,27 +15,13 @@ class DBusConnection : IDisposable
         private ManualResetValueTaskSourceCore<T> _core;
         private volatile bool _continuationSet;
 
-        public MyValueTaskSource(bool runContinuationsAsynchronously)
-        {
-            RunContinuationsAsynchronously = runContinuationsAsynchronously;
-        }
-
-        public bool RunContinuationsAsynchronously
-        {
-            get => _core.RunContinuationsAsynchronously;
-            set => _core.RunContinuationsAsynchronously = value;
-        }
-
         public void SetResult(T result)
         {
             // Ensure we complete the Task from the read loop.
-            if (!RunContinuationsAsynchronously)
+            SpinWait wait = new();
+            while (!_continuationSet)
             {
-                SpinWait wait = new();
-                while (!_continuationSet)
-                {
-                    wait.SpinOnce();
-                }
+                wait.SpinOnce();
             }
             _core.SetResult(result);
         }
@@ -122,14 +108,13 @@ class DBusConnection : IDisposable
     private readonly Dictionary<string, MatchMaker> _matchMakers;
     private readonly List<Observer> _matchedObservers;
     private readonly Dictionary<string, IMethodHandler> _pathHandlers;
-    private readonly SynchronizationContext? _synchronizationContext;
-    private readonly bool _runContinuationsAsynchronously;
 
     private IMessageStream? _messageStream;
     private ConnectionState _state;
     private Exception? _disconnectReason;
     private string? _localName;
     private Message.MessageData _currentMessage;
+    private Observer? _currentObserver;
     private TaskCompletionSource<Exception?>? _disconnectedTcs;
 
     public string? UniqueName => _localName;
@@ -142,11 +127,9 @@ class DBusConnection : IDisposable
 
     public bool RemoteIsBus => _localName is not null;
 
-    public DBusConnection(Connection parent, SynchronizationContext? synchronizationContext, bool runContinuationsAsynchronously)
+    public DBusConnection(Connection parent)
     {
         _parentConnection = parent;
-        _synchronizationContext = synchronizationContext;
-        _runContinuationsAsynchronously = runContinuationsAsynchronously;
         _connectCts = new();
         _pendingCalls = new();
         _matchMakers = new();
@@ -238,7 +221,7 @@ class DBusConnection : IDisposable
 
     private async Task<string?> GetLocalNameAsync()
     {
-        MyValueTaskSource<string?> vts = new(_runContinuationsAsynchronously);
+        MyValueTaskSource<string?> vts = new();
 
         await CallMethodAsync(
             message: CreateHelloMessage(),
@@ -321,27 +304,11 @@ class DBusConnection : IDisposable
 
             if (_matchedObservers.Count != 0)
             {
-                if (_synchronizationContext != null)
+                foreach (var observer in _matchedObservers)
                 {
-                    // Use Synchronization.Send to switch to the SynchronizationContext
-                    // without having to copy Message to extend its life.
-                    // We may change to create a Copy and use Post at some later time.
-
-                    _currentMessage = message.Data; // shallow copy data because we can't pass a ref.
-
-#pragma warning disable VSTHRD001 // Await JoinableTaskFactory.SwitchToMainThreadAsync() to switch to the UI thread instead of APIs that can deadlock or require specifying a priority.
-                    _synchronizationContext.Send(static o => {
-                        DBusConnection conn = (DBusConnection)o;
-                        Message msg = new Message(conn._currentMessage);
-                        conn.EmitToMatchedObservers(in msg);
-                    }, this);
-
-                    _currentMessage = default;
+                    observer.Emit(in message);
                 }
-                else
-                {
-                    EmitToMatchedObservers(in message);
-                }
+                _matchedObservers.Clear();
             }
 
             if (pendingCall.HasValue)
@@ -376,13 +343,19 @@ class DBusConnection : IDisposable
         }
     }
 
-    private void EmitToMatchedObservers(in Message message)
+    private void EmitOnSynchronizationContextHelper(Observer observer, SynchronizationContext synchronizationContext, in Message message)
     {
-        foreach (var observer in _matchedObservers)
-        {
-            observer.Emit(in message);
-        }
-        _matchedObservers.Clear();
+        _currentMessage = message.Data; // shallow copy data because we can't pass a ref.
+        _currentObserver = observer;
+
+#pragma warning disable VSTHRD001 // Await JoinableTaskFactory.SwitchToMainThreadAsync() to switch to the UI thread instead of APIs that can deadlock or require specifying a priority.
+        synchronizationContext.Send(static o => {
+            DBusConnection conn = (DBusConnection)o;
+            Message msg = new Message(conn._currentMessage);
+            conn._currentObserver!.Emit(in msg);
+        }, this);
+
+        _currentMessage = default;
     }
 
     public void AddMethodHandlers(IList<IMethodHandler> methodHandlers)
@@ -535,7 +508,7 @@ class DBusConnection : IDisposable
             }
         };
 
-        MyValueTaskSource<T> vts = new(_runContinuationsAsynchronously);
+        MyValueTaskSource<T> vts = new();
         MessageHandler handler = new(fn, valueReader, vts, state);
 
         await CallMethodAsync(message, handler).ConfigureAwait(false);
@@ -545,7 +518,7 @@ class DBusConnection : IDisposable
 
     public async Task CallMethodAsync(MessageBuffer message)
     {
-        MyValueTaskSource<object?> vts = new(_runContinuationsAsynchronously);
+        MyValueTaskSource<object?> vts = new();
 
         await CallMethodAsync(message,
             static (Exception? exception, in Message message, object? state) => CompleteCallValueTaskSource(exception, in message, state), vts).ConfigureAwait(false);
@@ -581,7 +554,7 @@ class DBusConnection : IDisposable
         }
     }
 
-    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> valueReader,Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, bool subscribe)
+    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader,Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, bool subscribe)
     {
         MessageHandlerDelegate4 fn = static (Exception? exception, in Message message, object? reader, object? handler, object? rs, object? hs) =>
         {
@@ -598,10 +571,10 @@ class DBusConnection : IDisposable
             }
         };
 
-        return AddMatchAsync(rule, new(fn, valueReader, valueHandler, readerState, handlerState), subscribe);
+        return AddMatchAsync(synchronizationContext, rule, new(fn, valueReader, valueHandler, readerState, handlerState), subscribe);
     }
 
-    private async ValueTask<IDisposable> AddMatchAsync(MatchRule rule, MessageHandler4 handler, bool subscribe)
+    private async ValueTask<IDisposable> AddMatchAsync(SynchronizationContext? synchronizationContext, MatchRule rule, MessageHandler4 handler, bool subscribe)
     {
         MatchRuleData data = rule.Data;
         MatchMaker? matchMaker;
@@ -629,14 +602,14 @@ class DBusConnection : IDisposable
                 _matchMakers.Add(ruleString, matchMaker);
             }
 
-            observer = new Observer(matchMaker, handler, subscribe);
+            observer = new Observer(synchronizationContext, matchMaker, handler, subscribe);
             matchMaker.Observers.Add(observer);
 
             bool sendMessage = subscribe && matchMaker.AddMatchTcs is null;
             if (sendMessage)
             {
                 addMatchMessage = CreateAddMatchMessage(matchMaker.RuleString);
-                matchMaker.AddMatchTcs = new(_runContinuationsAsynchronously);
+                matchMaker.AddMatchTcs = new();
 
                 MessageHandlerDelegate fn = static (Exception? exception, in Message message, object? state1, object? state2, object? state3) =>
                 {
@@ -696,14 +669,16 @@ class DBusConnection : IDisposable
     sealed class Observer : IDisposable
     {
         private readonly object _gate = new object();
+        private readonly SynchronizationContext? _synchronizationContext;
         private readonly MatchMaker _matchMaker;
         private readonly MessageHandler4 _messageHandler;
         private bool _disposed;
 
         public bool Subscribes { get; }
 
-        public Observer(MatchMaker matchMaker, in MessageHandler4 messageHandler, bool subscribes)
+        public Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, bool subscribes)
         {
+            _synchronizationContext = synchronizationContext;
             _matchMaker = matchMaker;
             _messageHandler = messageHandler;
             Subscribes = subscribes;
@@ -725,6 +700,18 @@ class DBusConnection : IDisposable
             }
 
             _matchMaker.Connection.RemoveObserver(_matchMaker, this);
+        }
+
+        public void EmitOnSynchronizationContext(in Message message)
+        {
+            if (_synchronizationContext is null)
+            {
+                Emit(in message);
+            }
+            else
+            {
+                _matchMaker.Connection.EmitOnSynchronizationContextHelper(this, _synchronizationContext, in message);
+            }
         }
 
         public void Emit(in Message message)

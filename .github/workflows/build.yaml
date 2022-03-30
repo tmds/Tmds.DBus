@@ -50,5 +50,5 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: coverage-reports
-        path: report
+        path: coverage-reports
 

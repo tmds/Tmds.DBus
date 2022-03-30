@@ -24,7 +24,8 @@ jobs:
 
     - name: Run tests
       run: |
-        pushd test/Tmds.DBus.Tests && dotnet test --collect:"XPlat Code Coverage" && popd
+        pushd test/Tmds.DBus.Tests && dotnet test && popd
+        pushd test/Tmds.DBus.Protocol.Tests && dotnet test --collect:"XPlat Code Coverage" && popd
 
     - name: Build tool
       run: |
@@ -44,7 +45,7 @@ jobs:
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
 
     - name: Generate coverage report
-      run: ~/.dotnet/tools/reportgenerator -reports:test/Tmds.DBus.Tests/TestResults/*/coverage.cobertura.xml -targetdir:coverage-reports
+      run: ~/.dotnet/tools/reportgenerator -reports:test/Tmds.DBus.Protocol.Tests/TestResults/*/coverage.cobertura.xml -targetdir:coverage-reports
 
     - name: Upload coverage reports to artifacts
       uses: actions/upload-artifact@v2

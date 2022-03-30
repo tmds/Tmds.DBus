@@ -9,23 +9,46 @@ jobs:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
 
     steps:
-    - uses: actions/setup-dotnet@v1
+    - name: Install .NET
+      uses: actions/setup-dotnet@v1
       with:
         dotnet-version: '6.0.x'
 
-    - uses: actions/checkout@v2
+    - name: Install reportgenerator tool
+      run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+    - name: Fetch sources
+      uses: actions/checkout@v2
       with:
         fetch-depth: 0
 
-    - run: |
-        pushd test/Tmds.DBus.Tests && dotnet test && popd
+    - name: Run tests
+      run: |
+        pushd test/Tmds.DBus.Tests && dotnet test --collect:"XPlat Code Coverage" && popd
+
+    - name: Build tool
+      run: |
         pushd src/Tmds.DBus.Tool && dotnet build && popd
+
+    - name: Build packages
+      run: |
         dotnet pack src/Tmds.DBus --configuration Release --output src/Tmds.DBus
         dotnet pack src/Tmds.DBus.Protocol --configuration Release --output src/Tmds.DBus.Protocol
         dotnet pack src/Tmds.DBus.Tool --configuration Release --output src/Tmds.DBus.Tool
 
-    - run: |
+    - name: Publish packages
+      run: |
         dotnet nuget push -s https://www.myget.org/F/tmds/api/v2/package -k "${{ secrets.NUGET_APIKEY }}" src/Tmds.DBus/*.nupkg
         dotnet nuget push -s https://www.myget.org/F/tmds/api/v2/package -k "${{ secrets.NUGET_APIKEY }}" src/Tmds.DBus.Protocol/*.nupkg
         dotnet nuget push -s https://www.myget.org/F/tmds/api/v2/package -k "${{ secrets.NUGET_APIKEY }}" src/Tmds.DBus.Tool/*.nupkg
       if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+
+    - name: Generate coverage report
+      run: ~/.dotnet/tools/reportgenerator -reports:test/Tmds.DBus.Tests/TestResults/*/coverage.cobertura.xml -targetdir:coverage-reports
+
+    - name: Upload coverage reports to artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage-reports
+        path: report
+

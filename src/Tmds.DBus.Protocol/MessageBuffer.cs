@@ -1,13 +1,10 @@
-using System.Collections.ObjectModel;
-
 namespace Tmds.DBus.Protocol;
 
-public sealed class MessageBuffer
+public sealed class MessageBuffer : IDisposable
 {
     private readonly MessagePool _messagePool;
     private readonly Sequence<byte> _sequence;
-    private List<SafeHandle>? _handles;
-    private ReadOnlyCollection<SafeHandle>? _readonlyCollection;
+    private UnixFdCollection? _handles;
 
     internal int HandleCount => _handles?.Count ?? 0;
 
@@ -21,30 +18,41 @@ public sealed class MessageBuffer
         _sequence = sequence;
     }
 
+    public void Dispose() => ReturnToPool();
+
     internal void ReturnToPool()
     {
         _sequence.Reset();
+        _handles?.DisposeHandles();
         _messagePool.Return(this);
-        // TODO: dispose handles.
-        // TODO: return to pool...
     }
 
+    // APIs for writing
     internal IBufferWriter<byte> Writer => _sequence;
 
     internal Span<byte> GetSpan(int sizeHint) => _sequence.GetSpan(sizeHint);
 
     internal void Advance(int count) => _sequence.Advance(count);
 
+    internal void AddHandle(SafeHandle handle)
+    {
+        if (_handles is null)
+        {
+            _handles = new(isRawHandleCollection: false);
+        }
+        _handles.AddHandle(handle);
+    }
+
+    // APIs for reading
     internal ReadOnlySequence<byte> AsReadOnlySequence() => _sequence.AsReadOnlySequence;
+
+    internal UnixFdCollection? Handles => _handles;
 
     internal Message GetMessage()
     {
         var sequence = AsReadOnlySequence();
-        bool messageRead = Message.TryReadMessage(ref sequence, out Message message, null);
+        bool messageRead = Message.TryReadMessage(ref sequence, out Message message, Handles);
         Debug.Assert(messageRead);
         return message;
     }
-
-    internal IReadOnlyList<SafeHandle>? Handles =>
-        _readonlyCollection ?? (_readonlyCollection = _handles?.AsReadOnly());
 }

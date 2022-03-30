@@ -916,7 +916,7 @@ class DBusConnection : IDisposable
 
         public override string ToString() => _rule;
 
-        internal bool Matches(in Message message) // TODO: 'in' arg
+        internal bool Matches(in Message message)
         {
             if (_type.HasValue && _type != message.MessageType)
             {

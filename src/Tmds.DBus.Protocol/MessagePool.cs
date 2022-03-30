@@ -8,7 +8,6 @@ class MessagePool
 
     private readonly int _maxSize;
     private readonly Stack<MessageBuffer> _pool = new Stack<MessageBuffer>();
-
     private readonly ArrayPool<byte> _arrayPool = ArrayPool<byte>.Create(80 * 1024, 100);
 
     internal MessagePool(int maxSize)

@@ -4,24 +4,23 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
-    public T ReadHandle<T>() where T : notnull
+    public T? ReadHandle<T>() where T : SafeHandle
     {
-        throw new NotImplementedException();
+        int idx = (int)ReadUInt32();
+        if (_handles is not null)
+        {
+            return _handles.RemoveHandle<T>(idx);
+        }
+        return null;
     }
 
-    public IntPtr ReadHandle(bool own)
+    public IntPtr ReadHandleRaw()
     {
-        throw new NotImplementedException();
-        // int idx = (int)ReadUInt32();
-        // IntPtr handle = (IntPtr)(-1);
-        // if (_handles is not null)
-        // {
-        //     (handle, bool dispose) = _handles[idx];
-        //     if (own)
-        //     {
-        //         _handles[idx] = (handle, false);
-        //     }
-        // }
-        // return handle;
+        int idx = (int)ReadUInt32();
+        if (_handles is not null)
+        {
+            return _handles.DangerousGetHandle(idx);
+        }
+        return new IntPtr(-1);
     }
 }

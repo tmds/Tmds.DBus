@@ -4,6 +4,8 @@ public ref partial struct MessageWriter
 {
     public void WriteHandle(SafeHandle value)
     {
-        throw new NotImplementedException();
+        int idx = _message.HandleCount;
+        _message.AddHandle(value);
+        WriteInt32(idx);
     }
 }

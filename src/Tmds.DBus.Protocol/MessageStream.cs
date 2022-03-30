@@ -134,6 +134,7 @@ class MessageStream : IMessageStream
             while (Message.TryReadMessage(ref buffer, out Message message, fdCollection))
             {
                 handler(closeReason: null, in message, state);
+                fdCollection?.DisposeHandles(message.UnixFdCount);
             }
         }
 

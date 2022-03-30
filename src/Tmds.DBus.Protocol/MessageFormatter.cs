@@ -78,7 +78,7 @@ class MessageFormatter
                 //     sb.Append($"double {msg.ReadDouble()}");
                 //     break;
                 case DBusType.UnixFd:
-                    sb.AppendLine($"fd     {reader.ReadHandle(own: false)}");
+                    sb.AppendLine($"fd     {reader.ReadHandleRaw()}");
                     break;
                 case DBusType.String:
                     sb.Append("string ");

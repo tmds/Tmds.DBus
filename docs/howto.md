@@ -13,7 +13,7 @@ synchronously, and (b.) a Task can complete on the threadpool when using `TaskCr
 
 When the application has a single-threaded `SynchronizationContext`, it can be set on `ConnectionOptions`.
 All signals will be emitted on that context. The user is assumed to be using that `SynchronizationContext` while making method calls,
-causing the completions to be executed on that context. This casues the `SynchronizationContext` to be used as the single logical thread.
+causing the completions to be executed on that context. This causes the `SynchronizationContext` to be used as the single logical thread.
 
 Otherwise, the `SynchronizationContext` should be kept at the default value of `null`.
 All signals will be emitted directly from the read loop, and all method continuations will be completed synchronously from that loop.
@@ -23,6 +23,10 @@ The user must ensure the loop is not blocked by not making synchronous calls on 
 If you are writing some re-usable code (like a library), you can either let the user provide a `SynchronizationContext` and set it on `ConnectionOptions`. Or, you can choose to use a `null` `SynchronizationContext` and ensure all method are awaited `ConfigureAwait(false)`.
 
 If your API usage doesn't require ordering to be preserved, you can set the `RunContinuationsAsynchronously` `ConnectionOption` to `true`.
+
+`Tmds.DBus.Protocol` doesn't provide these options. It follows the default model of .NET Tasks which is to use the `SynchronizationContext` if there is one.
+For methods, you can opt-out by using the well-known `ConfigureAwait(false)`.
+For subscriptions, you can opt-out by setting the `emitOnCapturedContext` argument to `false`.
 
 ## Local Server
 

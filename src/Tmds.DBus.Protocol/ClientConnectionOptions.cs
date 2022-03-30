@@ -4,12 +4,11 @@ public class ClientConnectionOptions : ConnectionOptions
 {
     private string _address;
 
-    public ClientConnectionOptions(string address, SynchronizationContext? synchronizationContext = null)
+    public ClientConnectionOptions(string address)
     {
         if (address == null)
             throw new ArgumentNullException(nameof(address));
         _address = address;
-        SynchronizationContext = synchronizationContext;
     }
 
     protected ClientConnectionOptions()
@@ -31,8 +30,4 @@ public class ClientConnectionOptions : ConnectionOptions
 
     protected internal virtual void Teardown(object? token)
     { }
-
-    public SynchronizationContext? SynchronizationContext { get; set; } = null;
-
-    public bool RunContinuationsAsynchronously {get; set; } = false;
 }

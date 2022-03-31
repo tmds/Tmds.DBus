@@ -26,10 +26,15 @@ class MessageStream : IMessageStream
     public MessageStream(Socket socket)
     {
         _socket = socket;
-        Channel<MessageBuffer> channel = Channel.CreateUnbounded<MessageBuffer>(); // TODO: review options.
+        Channel<MessageBuffer> channel = Channel.CreateUnbounded<MessageBuffer>(new UnboundedChannelOptions
+        {
+            AllowSynchronousContinuations = true,
+            SingleReader = true,
+            SingleWriter = false
+        });
         _messageReader = channel.Reader;
         _messageWriter = channel.Writer;
-        var pipe = new Pipe(); // TODO: review options.
+        var pipe = new Pipe(new PipeOptions(useSynchronizationContext: false));
         _pipeReader = pipe.Reader;
         _pipeWriter = pipe.Writer;
         if (_supportsFdPassing)

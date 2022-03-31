@@ -97,6 +97,8 @@ public ref partial struct Reader
 
     public string ReadString() => Encoding.UTF8.GetString(ReadSpan());
 
+    public Signature ReadSignatureAsSignature() => new Signature(ReadSignature().ToString());
+
     private ReadOnlySpan<byte> ReadSpan()
     {
         int length = (int)ReadUInt32();

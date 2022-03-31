@@ -99,8 +99,8 @@ static class TypeModel
                 case DBusType.UInt64: return typeof(UInt64);
                 case DBusType.Double: return typeof(double);
                 case DBusType.String: return typeof(string);
-                case DBusType.ObjectPath: return typeof(string);
-                case DBusType.Signature: return typeof(string);
+                case DBusType.ObjectPath: return typeof(ObjectPath);
+                case DBusType.Signature: return typeof(Signature);
                 case DBusType.UnixFd: return typeof(SafeHandle);
                 case DBusType.Array: return innerTypes[0].MakeArrayType();
                 case DBusType.DictEntry: return typeof(Dictionary<,>).MakeGenericType(innerTypes);

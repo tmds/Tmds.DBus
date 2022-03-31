@@ -417,17 +417,14 @@ class DBusConnection : IDisposable
             _pendingCalls.Clear();
         }
 
-        if (_matchMakers is not null)
+        foreach (var matchMaker in _matchMakers.Values)
         {
-            foreach (var matchMaker in _matchMakers.Values)
+            foreach (var observer in matchMaker.Observers)
             {
-                foreach (var observer in matchMaker.Observers)
-                {
-                    observer.Disconnect(new DisconnectedException(disconnectReason));
-                }
+                observer.Disconnect(new DisconnectedException(disconnectReason));
             }
-            _matchMakers.Clear();
         }
+        _matchMakers.Clear();
 
         _disconnectedTcs?.SetResult(GetWaitForDisconnectException());
     }
@@ -454,8 +451,10 @@ class DBusConnection : IDisposable
                 {
                     throw new DisconnectedException(DisconnectReason!);
                 }
-                // TODO: don't add pending call when NoReplyExpected.
-                _pendingCalls.Add(message.Serial, handler);
+                if ((message.MessageFlags & MessageFlags.NoReplyExpected) == 0)
+                {
+                    _pendingCalls.Add(message.Serial, handler);
+                }
             }
 
             messageSent = await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false);
@@ -641,7 +640,7 @@ class DBusConnection : IDisposable
             }
             catch
             {
-                observer.Dispose();
+                observer.Dispose(invokeHandler: false);
 
                 throw;
             }
@@ -668,6 +667,7 @@ class DBusConnection : IDisposable
 
     sealed class Observer : IDisposable
     {
+        private static readonly ObjectDisposedException s_objectDisposedException = new ObjectDisposedException(typeof(Observer).FullName);
         private readonly object _gate = new object();
         private readonly SynchronizationContext? _synchronizationContext;
         private readonly MatchMaker _matchMaker;
@@ -684,7 +684,9 @@ class DBusConnection : IDisposable
             Subscribes = subscribes;
         }
 
-        public void Dispose()
+        public void Dispose() => Dispose(invokeHandler: true);
+
+        public void Dispose(bool invokeHandler)
         {
             lock (_gate)
             {
@@ -693,10 +695,12 @@ class DBusConnection : IDisposable
                     return;
                 }
                 _disposed = true;
+            }
 
+            if (invokeHandler)
+            {
                 Message message = default;
-                // TODO: signal Dispose without allocating an Exception?
-                _messageHandler.Invoke(new ObjectDisposedException(GetType().FullName), in message);
+                _messageHandler.Invoke(s_objectDisposedException, in message);
             }
 
             _matchMaker.Connection.RemoveObserver(_matchMaker, this);
@@ -741,7 +745,19 @@ class DBusConnection : IDisposable
                     return;
                 }
                 _disposed = true;
+            }
 
+            if (_synchronizationContext is null)
+            {
+                InvokeHandler(disconnectedException);
+            }
+            else
+            {
+                _synchronizationContext.Send(delegate { InvokeHandler(disconnectedException); }, null);
+            }
+
+            void InvokeHandler(DisconnectedException disconnectedException)
+            {
                 Message message = default;
                 _messageHandler.Invoke(disconnectedException, in message);
             }

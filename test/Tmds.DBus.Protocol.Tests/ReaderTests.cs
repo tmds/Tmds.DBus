@@ -147,7 +147,7 @@ public class ReaderTests
         byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex };
         Assert.Equal(expected, fds.DangerousGetHandle(handleIndex));
 
-        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds);
+        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
         using var handle = reader.ReadHandle<SafeFileHandle>();
 
         Assert.Equal(expected, handle!.DangerousGetHandle());
@@ -213,7 +213,7 @@ public class ReaderTests
             byte[] data = isBigEndian ? bigEndianData : littleEndianData;
             data = new byte[alignment].Concat(data).ToArray();
 
-            Reader reader = new Reader(isBigEndian, new System.Buffers.ReadOnlySequence<byte>(data), handles: null);
+            Reader reader = new Reader(isBigEndian, new System.Buffers.ReadOnlySequence<byte>(data));
 
             // Require the read function to align.
             if (alignment != 0)

@@ -10,6 +10,8 @@ public sealed class MessageBuffer : IDisposable
 
     internal uint Serial { get; set; }
 
+    internal MessageFlags MessageFlags { get; set; }
+
     internal long Length => _sequence.Length;
 
     internal MessageBuffer(MessagePool messagePool, Sequence<byte> sequence)
@@ -24,6 +26,7 @@ public sealed class MessageBuffer : IDisposable
     {
         _sequence.Reset();
         _handles?.DisposeHandles();
+        _handles = null; // TODO (perf): pool
         _messagePool.Return(this);
     }
 

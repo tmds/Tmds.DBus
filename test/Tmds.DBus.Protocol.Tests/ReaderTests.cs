@@ -117,9 +117,10 @@ public class ReaderTests
     [Theory]
     [InlineData(8, new byte[] { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 104, 119, 0 },
                    new byte[] { 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 104, 119, 0 })]
-    public void ReadTupleOfTwo(int alignment, byte[] bigEndianData, byte[] littleEndianData)
+    public void ReadStructOf2(int alignment, byte[] bigEndianData, byte[] littleEndianData)
     {
         var expected = new ValueTuple<long, string> { Item1 = 1, Item2 = "hw" };
+        TestRead(expected, (ref Reader reader) => reader.ReadStruct<long, string>(), alignment, bigEndianData, littleEndianData);
     }
 
     [Theory]

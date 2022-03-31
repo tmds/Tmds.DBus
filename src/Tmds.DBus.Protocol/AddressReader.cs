@@ -18,21 +18,18 @@ static class AddressParser
 
     public static bool TryGetNextEntry(string addresses, ref AddressEntry address)
     {
-        if (address.String is null)
-        {
-            address = new AddressEntry(addresses, 0, 0);
-        }
-        ReadOnlySpan<char> span = addresses.AsSpan().Slice(address.Offset + address.Count);
+        int offset = address.String is null ? 0 : address.Offset + address.Count + 1;
+        ReadOnlySpan<char> span = addresses.AsSpan().Slice(offset);
         if (span.Length == 0)
         {
             return false;
         }
-        int end = addresses.IndexOf(';');
-        if (end == -1)
+        int length = span.IndexOf(';');
+        if (length == -1)
         {
-            end = addresses.Length;
+            length = span.Length;
         }
-        address = new AddressEntry(address.String, address.Offset + address.Count, end);
+        address = new AddressEntry(addresses, offset, length);
         return true;
     }
 

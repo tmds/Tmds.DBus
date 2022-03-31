@@ -42,7 +42,7 @@ public readonly ref struct Message
     public Utf8Span Signature { get; }
     public int UnixFdCount { get; }
 
-    public Reader GetBodyReader() => new Reader(Data.IsBigEndian, _body, Data.Handles);
+    public Reader GetBodyReader() => new Reader(Data.IsBigEndian, _body, Data.Handles, UnixFdCount);
 
     internal Message(in MessageData data)
     {
@@ -58,7 +58,7 @@ public readonly ref struct Message
         Signature = default;
         UnixFdCount = default;
 
-        var reader = new Reader(Data.IsBigEndian, Data.Sequence, null);
+        var reader = new Reader(Data.IsBigEndian, Data.Sequence);
         reader.Advance(HeaderFieldsLengthOffset);
 
         ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -94,7 +94,10 @@ public readonly ref struct Message
                     break;
                 case MessageHeader.UnixFds:
                     UnixFdCount = (int)reader.ReadUInt32();
-                    // TODO: throw if handles contains less.
+                    if (Data.Handles is not null && UnixFdCount > Data.Handles.Count)
+                    {
+                        throw new ProtocolException("Received less handles than UNIX_FDS.");
+                    }
                     break;
                 default:
                     throw new NotSupportedException();

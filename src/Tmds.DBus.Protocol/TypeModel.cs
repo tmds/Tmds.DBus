@@ -5,7 +5,7 @@ static class TypeModel
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DBusType GetTypeAlignment<T>()
     {
-        // TODO: add caching.
+        // TODO (perf): add caching.
         if (typeof(T) == typeof(object))
         {
             return DBusType.Variant;
@@ -133,7 +133,7 @@ static class TypeModel
             return typeof(object);
         };
 
-        // TODO: add caching.
+        // TODO (perf): add caching.
         return SignatureReader.Transform(signature, map);
     }
 

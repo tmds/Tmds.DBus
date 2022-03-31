@@ -10,19 +10,23 @@ public ref partial struct Reader
     private delegate object ValueReader(ref Reader reader);
 
     private readonly bool _isBigEndian;
-    private UnixFdCollection? _handles;
+    private readonly UnixFdCollection? _handles;
+    private readonly int _handleCount;
     private SequenceReader<byte> _reader;
 
     internal ReadOnlySequence<byte> UnreadSequence => _reader.Sequence.Slice(_reader.Position);
 
     internal void Advance(long count) => _reader.Advance(count);
 
-    internal Reader(bool isBigEndian, ReadOnlySequence<byte> sequence, UnixFdCollection? handles)
+    internal Reader(bool isBigEndian, ReadOnlySequence<byte> sequence) : this(isBigEndian, sequence, handles: null, 0) { }
+
+    internal Reader(bool isBigEndian, ReadOnlySequence<byte> sequence, UnixFdCollection? handles, int handleCount)
     {
         _reader = new(sequence);
 
         _isBigEndian = isBigEndian;
         _handles = handles;
+        _handleCount = handleCount;
     }
 
     public void AlignStruct() => AlignReader(DBusType.Struct);

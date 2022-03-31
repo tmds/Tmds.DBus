@@ -19,5 +19,5 @@ public enum DBusType : byte
     Struct = (byte)'(',
     Variant = (byte)'v',
     DictEntry = (byte)'{',
-    UnixFd = (byte)'h', // TODO: rename to Handle
+    UnixFd = (byte)'h',
 }

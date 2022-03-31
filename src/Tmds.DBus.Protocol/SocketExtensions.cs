@@ -86,7 +86,7 @@ static class SocketExtensions
                 {
                     continue;
                 }
-                // TODO: handle EAGAIN.
+                // TODO (low prio): handle EAGAIN.
                 return new ValueTask(Task.FromException(new SocketException(errno)));
             }
         } while (true);

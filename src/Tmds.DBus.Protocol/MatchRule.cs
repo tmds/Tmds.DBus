@@ -24,7 +24,7 @@ struct MatchRuleData
 
     public string GetRuleString()
     {
-        var sb = new StringBuilder(); // TODO: pool
+        var sb = new StringBuilder(); // TODO (perf): pool
 
         if (MessageType.HasValue)
         {

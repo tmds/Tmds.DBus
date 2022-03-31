@@ -12,7 +12,7 @@ public ref partial struct MessageWriter
         {
             Write<T>(item);
         }
-        WriteArrayEnd(ref arrayStart);
+        WriteArrayEnd(arrayStart);
     }
 
     public void WriteArray<T>(T[] value)
@@ -23,7 +23,7 @@ public ref partial struct MessageWriter
         {
             Write<T>(item);
         }
-        WriteArrayEnd(ref arrayStart);
+        WriteArrayEnd(arrayStart);
     }
 
     sealed class ArrayTypeWriter<T> : ITypeWriter<IEnumerable<T>>

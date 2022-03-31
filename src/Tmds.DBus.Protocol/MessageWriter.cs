@@ -9,6 +9,7 @@ public ref partial struct MessageWriter
 
     private MessageBuffer _message;
     private readonly uint _serial;
+    private MessageFlags _flags;
     private Span<byte> _firstSpan;
     private Span<byte> _span;
     private int _offset;
@@ -48,6 +49,7 @@ public ref partial struct MessageWriter
         Unsafe.WriteUnaligned<uint>(ref MemoryMarshal.GetReference(span.Slice(UnixFdLengthOffset)), (uint)_message.HandleCount);
 
         _message.Serial = _serial;
+        _message.MessageFlags = _flags;
     }
 
     private IBufferWriter<byte> Writer
@@ -62,6 +64,7 @@ public ref partial struct MessageWriter
     internal MessageWriter(MessageBuffer message, uint serial)
     {
         _message = message;
+        _flags = default;
         _offset = 0;
         _buffered = 0;
         _serial = serial;
@@ -80,7 +83,7 @@ public ref partial struct MessageWriter
         return new ArrayStart(lengthSpan, _offset);
     }
 
-    public void WriteArrayEnd(ref ArrayStart start) // TODO?: remove 'ref'
+    public void WriteArrayEnd(ArrayStart start)
     {
         start.WriteLength(_offset);
     }
@@ -166,12 +169,7 @@ public ref struct ArrayStart
 
     internal void WriteLength(int offset)
     {
-        if (_span.IsEmpty)
-        {
-            return;
-        }
         uint length = (uint)(offset - _offset);
         Unsafe.WriteUnaligned<uint>(ref MemoryMarshal.GetReference(_span), length);
-        _span = default;
     }
 }

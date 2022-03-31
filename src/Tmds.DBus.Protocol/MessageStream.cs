@@ -304,10 +304,10 @@ class MessageStream : IMessageStream
             {
                 span = span.Slice(0, spaceIndex);
             }
-            Span<char> charBuffer = stackalloc char[span.Length]; // TODO: check length
+            Span<char> charBuffer = stackalloc char[span.Length]; // TODO (low prio): check length
             for (int i = 0; i < span.Length; i++)
             {
-                // TODO: validate char
+                // TODO (low prio): validate char
                 charBuffer[i] = (char)span[i];
             }
 #if NETSTANDARD2_0
@@ -333,7 +333,7 @@ class MessageStream : IMessageStream
             ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
             ReadOnlySequence<byte> buffer = result.Buffer;
 
-            // TODO: check length.
+            // TODO (low prio): check length.
 
             SequencePosition? position = buffer.PositionOf((byte)'\n');
 

@@ -52,7 +52,7 @@ public ref partial struct MessageWriter
             WriteVariantSignature(signature);
         }
 
-        WriteHeaderEnd(ref start);
+        WriteHeaderEnd(start);
     }
 
     public void WriteMethodReturnHeader(
@@ -83,7 +83,7 @@ public ref partial struct MessageWriter
             WriteVariantSignature(signature);
         }
 
-        WriteHeaderEnd(ref start);
+        WriteHeaderEnd(start);
     }
 
     public void WriteError(
@@ -123,7 +123,7 @@ public ref partial struct MessageWriter
             WriteVariantSignature(ProtocolConstants.StringSignature);
         }
 
-        WriteHeaderEnd(ref start);
+        WriteHeaderEnd(start);
 
         if (errorMsg is not null)
         {
@@ -180,17 +180,19 @@ public ref partial struct MessageWriter
             WriteVariantSignature(signature);
         }
 
-        WriteHeaderEnd(ref start);
+        WriteHeaderEnd(start);
     }
 
-    private void WriteHeaderEnd(ref ArrayStart start)
+    private void WriteHeaderEnd(ArrayStart start)
     {
-        WriteArrayEnd(ref start);
+        WriteArrayEnd(start);
         WritePadding(DBusType.Struct);
     }
 
     private ArrayStart WriteHeaderStart(MessageType type, MessageFlags flags)
     {
+        _flags = flags;
+
         WriteByte(BitConverter.IsLittleEndian ? (byte)'l' : (byte)'B'); // endianness
         WriteByte((byte)type);
         WriteByte((byte)flags);

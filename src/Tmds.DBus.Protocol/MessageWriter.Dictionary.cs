@@ -13,7 +13,7 @@ public ref partial struct MessageWriter
             Write<TKey>(item.Key);
             Write<TValue>(item.Value);
         }
-        WriteArrayEnd(ref arrayStart);
+        WriteArrayEnd(arrayStart);
     }
 
     public void WriteDictionary<TKey, TValue>(KeyValuePair<TKey, TValue>[] value)
@@ -27,7 +27,7 @@ public ref partial struct MessageWriter
             Write<TKey>(item.Key);
             Write<TValue>(item.Value);
         }
-        WriteArrayEnd(ref arrayStart);
+        WriteArrayEnd(arrayStart);
     }
 
     public void WriteDictionary<TKey, TValue>(Dictionary<TKey, TValue> value)
@@ -41,7 +41,7 @@ public ref partial struct MessageWriter
             Write<TKey>(item.Key);
             Write<TValue>(item.Value);
         }
-        WriteArrayEnd(ref arrayStart);
+        WriteArrayEnd(arrayStart);
     }
 
     public void WriteVariantDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)

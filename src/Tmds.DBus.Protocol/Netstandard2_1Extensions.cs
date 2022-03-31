@@ -21,7 +21,6 @@ static partial class NetstandardExtensions
         {
             return (SafeHandle)s_safehandleProperty.GetValue(socket, null);
         }
-        // TODO: return m_Handle for NetFX.
         ThrowHelper.ThrowNotSupportedException();
         return null!;
     }
@@ -66,13 +65,23 @@ static partial class NetstandardExtensions
         bytesUsed = totalBytesWritten;
     }
 
-    public static Task ConnectAsync(this Socket socket, EndPoint remoteEP, CancellationToken cancellationToken /* TODO */)
+    public static async Task ConnectAsync(this Socket socket, EndPoint remoteEP, CancellationToken cancellationToken)
     {
-        return Task.Factory.FromAsync(
-            (targetEndPoint, callback, state) => ((Socket)state).BeginConnect(targetEndPoint, callback, state),
-            asyncResult => ((Socket)asyncResult.AsyncState).EndConnect(asyncResult),
-            remoteEP,
-            state: socket);
+        using var ctr = cancellationToken.Register(state => ((Socket)state!).Dispose(), socket, useSynchronizationContext: false);
+        try
+        {
+            await Task.Factory.FromAsync(
+                (targetEndPoint, callback, state) => ((Socket)state).BeginConnect(targetEndPoint, callback, state),
+                asyncResult => ((Socket)asyncResult.AsyncState).EndConnect(asyncResult),
+                remoteEP,
+                state: socket);
+        }
+        catch (ObjectDisposedException)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            throw;
+        }
     }
 }
 #else

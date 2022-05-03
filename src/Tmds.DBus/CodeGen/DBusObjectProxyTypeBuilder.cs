@@ -20,12 +20,12 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_callNonVoidMethod = typeof(DBusObjectProxy).GetMethod(nameof(DBusObjectProxy.CallNonVoidMethodAsync), BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo s_callGenericOutMethod = typeof(DBusObjectProxy).GetMethod(nameof(DBusObjectProxy.CallGenericOutMethodAsync), BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo s_callVoidMethod = typeof(DBusObjectProxy).GetMethod(nameof(DBusObjectProxy.CallVoidMethodAsync), BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo s_createReadMethodDelegate = typeof(ReadMethodFactory).GetMethod(nameof(ReadMethodFactory.CreateReadMethodDelegate), BindingFlags.Static | BindingFlags.Public);
         private static readonly MethodInfo s_watchNonVoidSignal = typeof(DBusObjectProxy).GetMethod(nameof(DBusObjectProxy.WatchNonVoidSignalAsync), BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo s_watchVoidSignal = typeof(DBusObjectProxy).GetMethod(nameof(DBusObjectProxy.WatchVoidSignalAsync), BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly Type s_nullableSignatureType = typeof(Signature?);
         private static readonly Type s_dbusObjectProxyType = typeof(DBusObjectProxy);
         private static readonly Type s_messageWriterType = typeof(MessageWriter);
-        private static readonly Type s_readMethodDelegateGenericType = typeof(ReadMethodDelegate<>);
 
         private readonly ModuleBuilder _moduleBuilder;
         private TypeBuilder _typeBuilder;
@@ -145,10 +145,7 @@ namespace Tmds.DBus.CodeGen
             if (signalDescription.SignalType != null)
             {
                 // ReadMethodDelegate
-                ilg.Emit(OpCodes.Ldnull);
-                ilg.Emit(OpCodes.Ldftn, ReadMethodFactory.CreateReadMethodForType(signalDescription.SignalType));
-                var readDelegateConstructor = s_readMethodDelegateGenericType.MakeGenericType(new[] { signalDescription.SignalType }).GetConstructors()[0];
-                ilg.Emit(OpCodes.Newobj, readDelegateConstructor);
+                ilg.Emit(OpCodes.Call, s_createReadMethodDelegate.MakeGenericMethod(new[] { signalDescription.SignalType }));
 
                 // isPropertiesChanged
                 ilg.Emit(isPropertiesChanged ? OpCodes.Ldc_I4_1 : OpCodes.Ldc_I4_0);
@@ -256,10 +253,7 @@ namespace Tmds.DBus.CodeGen
                 else
                 {
                     // ReadMethodDelegate
-                    ilg.Emit(OpCodes.Ldnull);
-                    ilg.Emit(OpCodes.Ldftn, ReadMethodFactory.CreateReadMethodForType(methodDescription.OutType));
-                    var readDelegateConstructor = s_readMethodDelegateGenericType.MakeGenericType(new[] { methodDescription.OutType }).GetConstructors()[0];
-                    ilg.Emit(OpCodes.Newobj, readDelegateConstructor);
+                    ilg.Emit(OpCodes.Call, s_createReadMethodDelegate.MakeGenericMethod(new[] { methodDescription.OutType }));
 
                     ilg.Emit(OpCodes.Call, s_callNonVoidMethod.MakeGenericMethod(new[] { methodDescription.OutType }));
                 }

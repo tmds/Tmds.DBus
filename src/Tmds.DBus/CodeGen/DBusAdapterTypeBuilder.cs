@@ -30,13 +30,13 @@ namespace Tmds.DBus.CodeGen
         private static readonly MethodInfo s_emitNonVoidSignal = typeof(DBusAdapter).GetMethod(nameof(DBusAdapter.EmitNonVoidSignal), BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo s_createNonVoidReply = typeof(DBusAdapter).GetMethod(nameof(DBusAdapter.CreateNonVoidReply), BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly MethodInfo s_createVoidReply = typeof(DBusAdapter).GetMethod(nameof(DBusAdapter.CreateVoidReply), BindingFlags.Instance | BindingFlags.NonPublic);
+        private static readonly MethodInfo s_createWriteMethodDelegate = typeof(WriteMethodFactory).GetMethod(nameof(WriteMethodFactory.CreateWriteMethodDelegate), BindingFlags.Static | BindingFlags.Public);
         private static readonly MethodInfo s_readerSkipString = typeof(MessageReader).GetMethod(nameof(MessageReader.SkipString), BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo s_writerWriteString = typeof(MessageWriter).GetMethod(nameof(MessageWriter.WriteString), BindingFlags.Instance | BindingFlags.Public);
         private static readonly MethodInfo s_writerSetSkipNextStructPadding = typeof(MessageWriter).GetMethod(nameof(MessageWriter.SetSkipNextStructPadding), BindingFlags.Instance | BindingFlags.Public);
         private static readonly FieldInfo s_setTypeIntrospectionField = typeof(DBusAdapter).GetField(nameof(DBusAdapter._typeIntrospection), BindingFlags.Instance | BindingFlags.NonPublic);
         private static readonly Type s_taskOfMessageType = typeof(Task<Message>);
         private static readonly Type s_nullableSignatureType = typeof(Signature?);
-        private static readonly Type s_action2GenericType = typeof(Action<,>);
         private static readonly Type s_messageWriterType = typeof(MessageWriter);
         private static readonly Type s_messageReaderType = typeof(MessageReader);
         private static readonly Type s_stringType = typeof(string);
@@ -331,10 +331,7 @@ namespace Tmds.DBus.CodeGen
             if (dbusMethod.OutType != null)
             {
                 //  Action<MessageWriter, T>
-                ilg.Emit(OpCodes.Ldnull);
-                ilg.Emit(OpCodes.Ldftn, WriteMethodFactory.CreateWriteMethodForType(dbusMethod.OutType, isCompileTimeType: true));
-                var actionConstructor = s_action2GenericType.MakeGenericType(new[] { s_messageWriterType, dbusMethod.OutType }).GetConstructors()[0];
-                ilg.Emit(OpCodes.Newobj, actionConstructor);
+                ilg.Emit(OpCodes.Call, s_createWriteMethodDelegate.MakeGenericMethod(new[] { s_messageWriterType, dbusMethod.OutType }));
 
                 // signature
                 if (dbusMethod.OutSignature.HasValue)

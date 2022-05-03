@@ -154,6 +154,16 @@ public ref partial struct MessageWriter
         _message?.ReturnToPool();
         _message = null!;
     }
+
+
+    // For Tests.
+    internal ReadOnlySequence<byte> AsReadOnlySequence()
+    {
+        Flush();
+        return _message.AsReadOnlySequence();
+    }
+    // For Tests.
+    internal UnixFdCollection? Handles => _message.Handles;
 }
 
 public ref struct ArrayStart

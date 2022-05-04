@@ -258,10 +258,26 @@ static class TypeModel
         {
             int bytesWritten = 0;
             signature[bytesWritten++] = (byte)'(';
-            foreach (var itemType in type.GenericTypeArguments)
+            Type[] typeArguments = type.GenericTypeArguments;
+            do
             {
-                bytesWritten += AppendTypeSignature(itemType, signature.Slice(bytesWritten));
-            }
+                for (int i = 0; i < typeArguments.Length; i++)
+                {
+                    if (i == 7)
+                    {
+                        break;
+                    }
+                    bytesWritten += AppendTypeSignature(typeArguments[i], signature.Slice(bytesWritten));
+                }
+                if (typeArguments.Length == 8)
+                {
+                    typeArguments = typeArguments[7].GenericTypeArguments;
+                }
+                else
+                {
+                    break;
+                }
+            } while (true);
             signature[bytesWritten++] = (byte)')';
             return bytesWritten;
         }

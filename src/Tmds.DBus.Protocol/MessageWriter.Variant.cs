@@ -58,7 +58,7 @@ public ref partial struct MessageWriter
         }
         else if (type == typeof(ObjectPath))
         {
-            WriteVariantString(value.ToString()!);
+            WriteVariantObjectPath(value.ToString()!);
             return;
         }
         else if (type == typeof(Signature))

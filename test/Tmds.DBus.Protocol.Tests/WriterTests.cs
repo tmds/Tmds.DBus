@@ -173,7 +173,7 @@ public class WriterTests
     }
 
     [Theory, MemberData(nameof(WriteVariantTestDAta))]
-    private void ReadVariant(object expected, byte[] bigEndianData, byte[] littleEndianData)
+    private void WriteVariant(object expected, byte[] bigEndianData, byte[] littleEndianData)
     {
         TestWrite(expected, (ref MessageWriter writer, object value) => writer.WriteVariant(value), alignment: 0, bigEndianData, littleEndianData);
     }

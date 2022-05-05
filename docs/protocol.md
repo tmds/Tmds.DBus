@@ -77,7 +77,7 @@ class AddProxy
     {
         return _connection.CallMethodAsync(
             CreateAddMessage(),
-            (in Message message, object? state) =>
+            (Message message, object? state) =>
             {
                 return message.GetBodyReader().ReadInt32();
             });
@@ -105,12 +105,9 @@ class AddImplementation : IMethodHandler
 {
     public string Path => "/org/example/Adder";
 
-    public bool TryHandleMethod(Connection connection, in Message message)
+    public async ValueTask<bool> TryHandleMethodAsync(Connection connection, Message message)
     {
-        string method = message.Member.ToString();
-        string sig = message.Signature.ToString();
-
-        switch ((method, sig))
+        switch ((message.Member, message.Signature))
         {
             case ("Add", "ii"):
                 Add(connection, message);
@@ -120,7 +117,9 @@ class AddImplementation : IMethodHandler
         return false;
     }
 
-    private void Add(Connection connection, in Message message)
+    bool RunMethodHandlerSynchronously(Message message) => true;
+
+    private void Add(Connection connection, Message message)
     {
         var reader = message.GetBodyReader();
 
@@ -131,7 +130,7 @@ class AddImplementation : IMethodHandler
 
         connection.TrySendMessage(CreateResponseMessage(connection, message, sum));
 
-        static MessageBuffer CreateResponseMessage(Connection connection, in Message message, int sum)
+        static MessageBuffer CreateResponseMessage(Connection connection, Message message, int sum)
         {
             using var writer = connection.GetMessageWriter();
 

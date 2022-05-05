@@ -2,60 +2,42 @@ namespace Tmds.DBus.Protocol;
 
 public sealed class MessageBuffer : IDisposable
 {
-    private readonly MessagePool _messagePool;
-    private readonly Sequence<byte> _sequence;
-    private UnixFdCollection? _handles;
+    private readonly MessageBufferPool _messagePool;
 
-    internal int HandleCount => _handles?.Count ?? 0;
+    private readonly Sequence<byte> _data;
 
-    internal uint Serial { get; set; }
+    internal uint Serial { get; private set; }
 
-    internal MessageFlags MessageFlags { get; set; }
+    internal MessageFlags MessageFlags { get; private set; }
 
-    internal long Length => _sequence.Length;
+    internal UnixFdCollection? Handles { get; private set; }
 
-    internal MessageBuffer(MessagePool messagePool, Sequence<byte> sequence)
+    internal MessageBuffer(MessageBufferPool messagePool, Sequence<byte> sequence)
     {
         _messagePool = messagePool;
-        _sequence = sequence;
+        _data = sequence;
+    }
+
+    internal void Init(uint serial, MessageFlags flags, UnixFdCollection? handles)
+    {
+        Serial = serial;
+        MessageFlags = flags;
+        Handles = handles;
     }
 
     public void Dispose() => ReturnToPool();
 
     internal void ReturnToPool()
     {
-        _sequence.Reset();
-        _handles?.DisposeHandles();
-        _handles = null; // TODO (perf): pool
+        _data.Reset();
+        Handles?.DisposeHandles();
+        Handles = null;
         _messagePool.Return(this);
     }
 
-    // APIs for writing
-    internal IBufferWriter<byte> Writer => _sequence;
+    // For writing data.
+    internal Sequence<byte> Sequence => _data;
 
-    internal Span<byte> GetSpan(int sizeHint) => _sequence.GetSpan(sizeHint);
-
-    internal void Advance(int count) => _sequence.Advance(count);
-
-    internal void AddHandle(SafeHandle handle)
-    {
-        if (_handles is null)
-        {
-            _handles = new(isRawHandleCollection: false);
-        }
-        _handles.AddHandle(handle);
-    }
-
-    // APIs for reading
-    internal ReadOnlySequence<byte> AsReadOnlySequence() => _sequence.AsReadOnlySequence;
-
-    internal UnixFdCollection? Handles => _handles;
-
-    internal Message GetMessage()
-    {
-        var sequence = AsReadOnlySequence();
-        bool messageRead = Message.TryReadMessage(ref sequence, out Message message, Handles);
-        Debug.Assert(messageRead);
-        return message;
-    }
+    // For reading data.
+    internal ReadOnlySequence<byte> AsReadOnlySequence() => _data.AsReadOnlySequence;
 }

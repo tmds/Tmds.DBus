@@ -8,7 +8,7 @@ public partial class Connection
 
     public Task<string[]> ListServicesAsync()
     {
-        return CallMethodAsync(CreateMessage(), (in Message m, object? s) => m.GetBodyReader().ReadArray<string>());
+        return CallMethodAsync(CreateMessage(), (Message m, object? s) => m.GetBodyReader().ReadArray<string>());
         MessageBuffer CreateMessage()
         {
             using var writer = GetMessageWriter();

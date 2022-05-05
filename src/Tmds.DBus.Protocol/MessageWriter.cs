@@ -8,6 +8,8 @@ public ref partial struct MessageWriter
     private const int UnixFdLengthOffset = 20;
 
     private MessageBuffer _message;
+    private Sequence<byte> _data;
+    private UnixFdCollection? _handles;
     private readonly uint _serial;
     private MessageFlags _flags;
     private Span<byte> _firstSpan;
@@ -19,17 +21,6 @@ public ref partial struct MessageWriter
     {
         Flush();
 
-        CompleteMessage();
-
-        var message = _message;
-
-        _message = null!;
-
-        return message;
-    }
-
-    private void CompleteMessage()
-    {
         Span<byte> span = _firstSpan;
 
         // Length
@@ -39,17 +30,28 @@ public ref partial struct MessageWriter
         {
             headerFieldsLength += (8 - pad);
         }
-        uint length = (uint)_message.Length             // Total length
+        uint length = (uint)_data.Length                 // Total length
                       - headerFieldsLength               // Header fields
                       - 4                                // Header fields length
                       - (uint)HeaderFieldsLengthOffset;  // Preceeding header fields
         Unsafe.WriteUnaligned<uint>(ref MemoryMarshal.GetReference(span.Slice(LengthOffset)), length);
 
         // UnixFdLength
-        Unsafe.WriteUnaligned<uint>(ref MemoryMarshal.GetReference(span.Slice(UnixFdLengthOffset)), (uint)_message.HandleCount);
+        Unsafe.WriteUnaligned<uint>(ref MemoryMarshal.GetReference(span.Slice(UnixFdLengthOffset)), (uint)HandleCount);
 
-        _message.Serial = _serial;
-        _message.MessageFlags = _flags;
+        uint serial = _serial;
+        MessageFlags flags = _flags;
+        ReadOnlySequence<byte> data = _data;
+        UnixFdCollection? handles = _handles;
+        var message = _message;
+
+        _message = null!;
+        _handles = null;
+        _data = null!;
+
+        message.Init(serial, flags, handles);
+
+        return message;
     }
 
     private IBufferWriter<byte> Writer
@@ -57,18 +59,20 @@ public ref partial struct MessageWriter
         get
         {
             Flush();
-            return _message.Writer;
+            return _data;
         }
     }
 
-    internal MessageWriter(MessageBuffer message, uint serial)
+    internal MessageWriter(MessageBufferPool messagePool, uint serial)
     {
-        _message = message;
+        _message = messagePool.Rent();
+        _data = _message.Sequence;
+        _handles = null;
         _flags = default;
         _offset = 0;
         _buffered = 0;
         _serial = serial;
-        _firstSpan = _span = _message.GetSpan(sizeHint: 0);
+        _firstSpan = _span = _data.GetSpan(sizeHint: 0);
     }
 
     public ArrayStart WriteArrayStart(DBusType elementType)
@@ -134,7 +138,7 @@ public ref partial struct MessageWriter
             Flush();
         }
 
-        _span = _message.GetSpan(count);
+        _span = _data.GetSpan(count);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -144,7 +148,7 @@ public ref partial struct MessageWriter
         if (buffered > 0)
         {
             _buffered = 0;
-            _message.Advance(buffered);
+            _data.Advance(buffered);
             _span = default;
         }
     }
@@ -152,18 +156,21 @@ public ref partial struct MessageWriter
     public void Dispose()
     {
         _message?.ReturnToPool();
-        _message = null!;
-    }
+        _handles?.Dispose();
 
+        _message = null!;
+        _data = null!;
+        _handles = null!;
+    }
 
     // For Tests.
     internal ReadOnlySequence<byte> AsReadOnlySequence()
     {
         Flush();
-        return _message.AsReadOnlySequence();
+        return _data.AsReadOnlySequence;
     }
     // For Tests.
-    internal UnixFdCollection? Handles => _message.Handles;
+    internal UnixFdCollection? Handles => _handles;
 }
 
 public ref struct ArrayStart

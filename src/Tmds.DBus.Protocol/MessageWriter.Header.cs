@@ -88,7 +88,7 @@ public ref partial struct MessageWriter
 
     public void WriteError(
         uint replySerial,
-        Utf8Span destination = default,
+        string? destination = null,
         string? errorName = null,
         string? errorMsg = null)
     {
@@ -100,7 +100,7 @@ public ref partial struct MessageWriter
         WriteVariantUInt32(replySerial);
 
         // Destination.
-        if (!destination.IsEmpty)
+        if (destination is not null)
         {
             WriteStructureStart();
             WriteByte((byte)MessageHeader.Destination);

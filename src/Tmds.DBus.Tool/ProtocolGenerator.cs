@@ -206,7 +206,7 @@ namespace Tmds.DBus.Tool
             AppendLine("    Path = path,");
             AppendLine("    Member = signal");
             AppendLine("};");
-            AppendLine("return this.Connection.AddMatchAsync<object>(rule, (in Message message, object? state) => null!,");
+            AppendLine("return this.Connection.AddMatchAsync<object>(rule, (Message message, object? state) => null!,");
             AppendLine("                                                (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);");
             EndBlock();
 
@@ -271,16 +271,16 @@ namespace Tmds.DBus.Tool
                     AppendLine($"public Task<{property.DotnetType}> Get{property.NameUpper}Async()");
                     _indentation++;
                     string readMessageName = GetReadMessageMethodName(new[] { property }, variant: true);
-                    AppendLine($"=> this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, \"{property.Name}\"), (in Message m, object? s) => {readMessageName}(in m, ({_objectName})s!), this);");
+                    AppendLine($"=> this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, \"{property.Name}\"), (Message m, object? s) => {readMessageName}(m, ({_objectName})s!), this);");
                     _indentation--;
                 }
 
                 // GetPropertiesAsync
                 AppendLine($"public Task<{propertiesClassName}> GetPropertiesAsync()");
                 StartBlock();
-                AppendLine($"return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (in Message m, object? s) => ReadMessage(in m, ({_objectName})s!), this);");
+                AppendLine($"return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m, ({_objectName})s!), this);");
                 
-                AppendLine($"static {propertiesClassName} ReadMessage(in Message message, {_objectName} _)");
+                AppendLine($"static {propertiesClassName} ReadMessage(Message message, {_objectName} _)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("return ReadProperties(ref reader);");
@@ -291,9 +291,9 @@ namespace Tmds.DBus.Tool
                 // WatchPropertiesChangedAsync
                 AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<{propertiesClassName}>> handler, bool emitOnCapturedContext = true)");
                 StartBlock();
-                AppendLine($"return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, ({_objectName})s!), handler, emitOnCapturedContext);");
+                AppendLine($"return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, ({_objectName})s!), handler, emitOnCapturedContext);");
                 AppendLine("");
-                AppendLine($"static PropertyChanges<{propertiesClassName}> ReadMessage(in Message message, {_objectName} _)");
+                AppendLine($"static PropertyChanges<{propertiesClassName}> ReadMessage(Message message, {_objectName} _)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
@@ -412,7 +412,7 @@ namespace Tmds.DBus.Tool
             else
             {
                 string readMessageName = GetReadMessageMethodName(args, variant: false);
-                AppendLine($"    => base.WatchSignalAsync(Service.Destination, Path, \"{dbusSignalName}\", (in Message m, object? s) => {readMessageName}(in m, ({_objectName})s!), handler, emitOnCapturedContext);");
+                AppendLine($"    => base.WatchSignalAsync(Service.Destination, Path, \"{dbusSignalName}\", (Message m, object? s) => {readMessageName}(m, ({_objectName})s!), handler, emitOnCapturedContext);");
             }
         }
 
@@ -451,7 +451,7 @@ namespace Tmds.DBus.Tool
             if (dotnetReturnType != null)
             {
                 string readMessageName = GetReadMessageMethodName(outArgs, variant: false);
-                AppendLine($"return this.Connection.CallMethodAsync(CreateMessage(), (in Message m, object? s) => {readMessageName}(in m, ({_objectName})s!), this);");
+                AppendLine($"return this.Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => {readMessageName}(m, ({_objectName})s!), this);");
             }
             else
             {
@@ -517,7 +517,7 @@ namespace Tmds.DBus.Tool
         private void AppendReadMessageMethod(string name, bool variant, Argument[] args)
         {
             string dotnetReturnType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetType : TupleOf(args.Select(arg => arg.DotnetType));
-            AppendLine($"protected static {dotnetReturnType} {name}(in Message message, {_objectName} _)");
+            AppendLine($"protected static {dotnetReturnType} {name}(Message message, {_objectName} _)");
             StartBlock();
             string signature = string.Join("", args.Select(a => a.Type));
             AppendLine("var reader = message.GetBodyReader();");

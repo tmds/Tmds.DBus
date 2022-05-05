@@ -222,27 +222,27 @@ namespace Mpris.DBus
             }
         }
         public Task<string> GetIdentityAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Identity"), (in Message m, object? s) => ReadMessage_v_s(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Identity"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
         public Task<string> GetDesktopEntryAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "DesktopEntry"), (in Message m, object? s) => ReadMessage_v_s(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "DesktopEntry"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
         public Task<string[]> GetSupportedMimeTypesAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedMimeTypes"), (in Message m, object? s) => ReadMessage_v_as(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedMimeTypes"), (Message m, object? s) => ReadMessage_v_as(m, (MprisObject)s!), this);
         public Task<string[]> GetSupportedUriSchemesAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedUriSchemes"), (in Message m, object? s) => ReadMessage_v_as(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedUriSchemes"), (Message m, object? s) => ReadMessage_v_as(m, (MprisObject)s!), this);
         public Task<bool> GetHasTrackListAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "HasTrackList"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "HasTrackList"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanQuitAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanQuit"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanQuit"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanSetFullscreenAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSetFullscreen"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSetFullscreen"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetFullscreenAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Fullscreen"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Fullscreen"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanRaiseAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanRaise"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanRaise"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<MediaPlayer2Properties> GetPropertiesAsync()
         {
-            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), this);
-            static MediaPlayer2Properties ReadMessage(in Message message, MprisObject _)
+            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m, (MprisObject)s!), this);
+            static MediaPlayer2Properties ReadMessage(Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
                 return ReadProperties(ref reader);
@@ -250,8 +250,8 @@ namespace Mpris.DBus
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<MediaPlayer2Properties>> handler, bool emitOnCapturedContext = true)
         {
-            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler, emitOnCapturedContext);
-            static PropertyChanges<MediaPlayer2Properties> ReadMessage(in Message message, MprisObject _)
+            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            static PropertyChanges<MediaPlayer2Properties> ReadMessage(Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
@@ -746,35 +746,35 @@ namespace Mpris.DBus
             }
         }
         public Task<Dictionary<string, object>> GetMetadataAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Metadata"), (in Message m, object? s) => ReadMessage_v_aesv(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Metadata"), (Message m, object? s) => ReadMessage_v_aesv(m, (MprisObject)s!), this);
         public Task<string> GetPlaybackStatusAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "PlaybackStatus"), (in Message m, object? s) => ReadMessage_v_s(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "PlaybackStatus"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
         public Task<string> GetLoopStatusAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "LoopStatus"), (in Message m, object? s) => ReadMessage_v_s(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "LoopStatus"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
         public Task<double> GetVolumeAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Volume"), (in Message m, object? s) => ReadMessage_v_d(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Volume"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
         public Task<double> GetShuffleAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Shuffle"), (in Message m, object? s) => ReadMessage_v_d(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Shuffle"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
         public Task<int> GetPositionAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Position"), (in Message m, object? s) => ReadMessage_v_i(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Position"), (Message m, object? s) => ReadMessage_v_i(m, (MprisObject)s!), this);
         public Task<double> GetRateAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Rate"), (in Message m, object? s) => ReadMessage_v_d(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Rate"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
         public Task<double> GetMinimumRateAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "MinimumRate"), (in Message m, object? s) => ReadMessage_v_d(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "MinimumRate"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
         public Task<double> GetMaximumRateAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "MaximumRate"), (in Message m, object? s) => ReadMessage_v_d(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "MaximumRate"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
         public Task<bool> GetCanControlAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanControl"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanControl"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanPlayAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanPlay"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanPlay"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanPauseAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanPause"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanPause"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanSeekAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSeek"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSeek"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<PlayerProperties> GetPropertiesAsync()
         {
-            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), this);
-            static PlayerProperties ReadMessage(in Message message, MprisObject _)
+            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m, (MprisObject)s!), this);
+            static PlayerProperties ReadMessage(Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
                 return ReadProperties(ref reader);
@@ -782,8 +782,8 @@ namespace Mpris.DBus
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<PlayerProperties>> handler, bool emitOnCapturedContext = true)
         {
-            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler, emitOnCapturedContext);
-            static PropertyChanges<PlayerProperties> ReadMessage(in Message message, MprisObject _)
+            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            static PropertyChanges<PlayerProperties> ReadMessage(Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
@@ -912,7 +912,7 @@ namespace Mpris.DBus
         { }
         public Task<Dictionary<string, object>[]> GetTracksMetadataAsync(ObjectPath[] a0)
         {
-            return this.Connection.CallMethodAsync(CreateMessage(), (in Message m, object? s) => ReadMessage_aaesv(in m, (MprisObject)s!), this);
+            return this.Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => ReadMessage_aaesv(m, (MprisObject)s!), this);
             MessageBuffer CreateMessage()
             {
                 using var writer = this.Connection.GetMessageWriter();
@@ -977,13 +977,13 @@ namespace Mpris.DBus
             }
         }
         public ValueTask<IDisposable> WatchTrackListReplacedAsync(Action<Exception?, (ObjectPath[] A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackListReplaced", (in Message m, object? s) => ReadMessage_aoo(in m, (MprisObject)s!), handler, emitOnCapturedContext);
+            => base.WatchSignalAsync(Service.Destination, Path, "TrackListReplaced", (Message m, object? s) => ReadMessage_aoo(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public ValueTask<IDisposable> WatchTrackAddedAsync(Action<Exception?, (Dictionary<string, object> A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackAdded", (in Message m, object? s) => ReadMessage_aesvo(in m, (MprisObject)s!), handler, emitOnCapturedContext);
+            => base.WatchSignalAsync(Service.Destination, Path, "TrackAdded", (Message m, object? s) => ReadMessage_aesvo(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public ValueTask<IDisposable> WatchTrackRemovedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackRemoved", (in Message m, object? s) => ReadMessage_o(in m, (MprisObject)s!), handler, emitOnCapturedContext);
+            => base.WatchSignalAsync(Service.Destination, Path, "TrackRemoved", (Message m, object? s) => ReadMessage_o(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public ValueTask<IDisposable> WatchTrackMetadataChangedAsync(Action<Exception?, (ObjectPath A0, Dictionary<string, object> A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackMetadataChanged", (in Message m, object? s) => ReadMessage_oaesv(in m, (MprisObject)s!), handler, emitOnCapturedContext);
+            => base.WatchSignalAsync(Service.Destination, Path, "TrackMetadataChanged", (Message m, object? s) => ReadMessage_oaesv(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public Task SetTracksAsync(ObjectPath[] value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
@@ -1023,13 +1023,13 @@ namespace Mpris.DBus
             }
         }
         public Task<ObjectPath[]> GetTracksAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Tracks"), (in Message m, object? s) => ReadMessage_v_ao(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Tracks"), (Message m, object? s) => ReadMessage_v_ao(m, (MprisObject)s!), this);
         public Task<bool> GetCanEditTracksAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanEditTracks"), (in Message m, object? s) => ReadMessage_v_b(in m, (MprisObject)s!), this);
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanEditTracks"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<TrackListProperties> GetPropertiesAsync()
         {
-            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), this);
-            static TrackListProperties ReadMessage(in Message message, MprisObject _)
+            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m, (MprisObject)s!), this);
+            static TrackListProperties ReadMessage(Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
                 return ReadProperties(ref reader);
@@ -1037,8 +1037,8 @@ namespace Mpris.DBus
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<TrackListProperties>> handler, bool emitOnCapturedContext = true)
         {
-            return base.WatchPropertiesChangedAsync(__Interface, (in Message m, object? s) => ReadMessage(in m, (MprisObject)s!), handler, emitOnCapturedContext);
-            static PropertyChanges<TrackListProperties> ReadMessage(in Message message, MprisObject _)
+            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            static PropertyChanges<TrackListProperties> ReadMessage(Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
@@ -1168,77 +1168,77 @@ namespace Mpris.DBus
                 Path = path,
                 Member = signal
             };
-            return this.Connection.AddMatchAsync<object>(rule, (in Message message, object? state) => null!,
+            return this.Connection.AddMatchAsync<object>(rule, (Message message, object? state) => null!,
                                                             (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);
         }
-        protected static string ReadMessage_v_s(in Message message, MprisObject _)
+        protected static string ReadMessage_v_s(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("s");
             return reader.ReadString();
         }
-        protected static string[] ReadMessage_v_as(in Message message, MprisObject _)
+        protected static string[] ReadMessage_v_as(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("as");
             return reader.ReadArray<string>();
         }
-        protected static bool ReadMessage_v_b(in Message message, MprisObject _)
+        protected static bool ReadMessage_v_b(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("b");
             return reader.ReadBool();
         }
-        protected static Dictionary<string, object> ReadMessage_v_aesv(in Message message, MprisObject _)
+        protected static Dictionary<string, object> ReadMessage_v_aesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("a{sv}");
             return reader.ReadDictionary<string, object>();
         }
-        protected static double ReadMessage_v_d(in Message message, MprisObject _)
+        protected static double ReadMessage_v_d(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("d");
             return reader.ReadDouble();
         }
-        protected static int ReadMessage_v_i(in Message message, MprisObject _)
+        protected static int ReadMessage_v_i(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("i");
             return reader.ReadInt32();
         }
-        protected static Dictionary<string, object>[] ReadMessage_aaesv(in Message message, MprisObject _)
+        protected static Dictionary<string, object>[] ReadMessage_aaesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             return reader.ReadArray<Dictionary<string, object>>();
         }
-        protected static (ObjectPath[], ObjectPath) ReadMessage_aoo(in Message message, MprisObject _)
+        protected static (ObjectPath[], ObjectPath) ReadMessage_aoo(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadArray<ObjectPath>();
             var arg1 = reader.ReadObjectPath();
             return (arg0, arg1);
         }
-        protected static (Dictionary<string, object>, ObjectPath) ReadMessage_aesvo(in Message message, MprisObject _)
+        protected static (Dictionary<string, object>, ObjectPath) ReadMessage_aesvo(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadDictionary<string, object>();
             var arg1 = reader.ReadObjectPath();
             return (arg0, arg1);
         }
-        protected static ObjectPath ReadMessage_o(in Message message, MprisObject _)
+        protected static ObjectPath ReadMessage_o(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             return reader.ReadObjectPath();
         }
-        protected static (ObjectPath, Dictionary<string, object>) ReadMessage_oaesv(in Message message, MprisObject _)
+        protected static (ObjectPath, Dictionary<string, object>) ReadMessage_oaesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadObjectPath();
             var arg1 = reader.ReadDictionary<string, object>();
             return (arg0, arg1);
         }
-        protected static ObjectPath[] ReadMessage_v_ao(in Message message, MprisObject _)
+        protected static ObjectPath[] ReadMessage_v_ao(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("ao");

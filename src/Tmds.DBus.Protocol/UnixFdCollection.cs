@@ -7,6 +7,8 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
     private readonly List<(IntPtr RawHandle, SafeHandle? Handle)>? _handles;
     private readonly List<(IntPtr RawHandle, bool OwnsHandle)>? _rawHandles;
 
+    internal bool IsRawHandleCollection => _rawHandles is not null;
+
     internal UnixFdCollection(bool isRawHandleCollection = true)
     {
         if (isRawHandleCollection)
@@ -126,4 +128,28 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 
     [DllImport("libc")]
     private static extern void close(int fd);
+
+    internal void MoveTo(UnixFdCollection handles, int count)
+    {
+        if (handles.IsRawHandleCollection != IsRawHandleCollection)
+        {
+            throw new ArgumentException("Handle collections are not compatible.");
+        }
+        if (handles.IsRawHandleCollection)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                handles._rawHandles!.Add(_rawHandles![i]);
+            }
+            _rawHandles!.RemoveRange(0, count);
+        }
+        else
+        {
+            for (int i = 0; i < count; i++)
+            {
+                handles._handles!.Add(_handles![i]);
+            }
+            _handles!.RemoveRange(0, count);
+        }
+    }
 }

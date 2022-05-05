@@ -1,124 +1,64 @@
 namespace Tmds.DBus.Protocol;
 
-public readonly ref struct Message
+public sealed class Message
 {
-    internal readonly struct MessageData
-    {
-        public readonly bool IsBigEndian;
-        public readonly ReadOnlySequence<byte> Sequence;
-        public readonly UnixFdCollection? Handles;
-        public readonly MessageType MessageType;
-        public readonly MessageFlags MessageFlags;
-        public readonly uint Serial;
-
-        public MessageData(ReadOnlySequence<byte> sequence, bool isBigEndian, MessageType msgType, MessageFlags flags, uint serial, UnixFdCollection? handles) : this()
-        {
-            Sequence = sequence;
-            IsBigEndian = isBigEndian;
-            MessageType = msgType;
-            MessageFlags = flags;
-            Serial = serial;
-            Handles = handles;
-        }
-    }
-
-    internal readonly MessageData Data;
-    private readonly ReadOnlySequence<byte> _body;
-
     private const int HeaderFieldsLengthOffset = 12;
 
-    public MessageType MessageType => Data.MessageType;
-    public MessageFlags MessageFlags => Data.MessageFlags;
-    public uint Serial => Data.Serial;
+    private readonly MessagePool _pool;
+    private readonly Sequence<byte> _data;
 
-    // Header Fields
-    public Utf8Span Path { get; }
-    public Utf8Span Interface { get; }
-    public Utf8Span Member { get; }
-    public Utf8Span ErrorName { get; }
-    public uint? ReplySerial { get; }
-    public Utf8Span Destination { get; }
-    public Utf8Span Sender { get; }
-    public Utf8Span Signature { get; }
-    public int UnixFdCount { get; }
+    private UnixFdCollection? _handles;
+    private ReadOnlySequence<byte> _body;
 
-    public Reader GetBodyReader() => new Reader(Data.IsBigEndian, _body, Data.Handles, UnixFdCount);
+    public bool IsBigEndian { get; private set; }
+    public uint Serial { get; private set; }
+    public MessageFlags MessageFlags { get; private set; }
+    public MessageType MessageType { get; private set; }
 
-    internal Message(in MessageData data)
+    public uint? ReplySerial { get; private set; }
+    public int UnixFdCount { get; private set; }
+    public string? Path { get; private set; }
+    public string? Interface  { get; private set; }
+    public string? Member  { get; private set; }
+    public string? ErrorName  { get; private set; }
+    public string? Destination  { get; private set; }
+    public string? Sender  { get; private set; }
+    public string? Signature  { get; private set; }
+
+    public Reader GetBodyReader() => new Reader(IsBigEndian, _body, _handles, UnixFdCount);
+
+    internal Message(MessagePool messagePool, Sequence<byte> sequence)
     {
-        Data = data;
-
-        Path = default;
-        Interface = default;
-        Member = default;
-        ErrorName = default;
-        ReplySerial = default;
-        Destination = default;
-        Sender = default;
-        Signature = default;
-        UnixFdCount = default;
-
-        var reader = new Reader(Data.IsBigEndian, Data.Sequence);
-        reader.Advance(HeaderFieldsLengthOffset);
-
-        ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
-        while (reader.HasNext(headersEnd))
-        {
-            MessageHeader hdrType = (MessageHeader)reader.ReadByte();
-            ReadOnlySpan<byte> sig = reader.ReadSignature();
-            switch (hdrType)
-            {
-                case MessageHeader.Path:
-                    Path = reader.ReadObjectPathAsSpan();
-                    break;
-                case MessageHeader.Interface:
-                    Interface = reader.ReadStringAsSpan();
-                    break;
-                case MessageHeader.Member:
-                    Member = reader.ReadStringAsSpan();
-                    break;
-                case MessageHeader.ErrorName:
-                    ErrorName = reader.ReadStringAsSpan();
-                    break;
-                case MessageHeader.ReplySerial:
-                    ReplySerial = reader.ReadUInt32();
-                    break;
-                case MessageHeader.Destination:
-                    Destination = reader.ReadStringAsSpan();
-                    break;
-                case MessageHeader.Sender:
-                    Sender = reader.ReadStringAsSpan();
-                    break;
-                case MessageHeader.Signature:
-                    Signature = reader.ReadSignature();
-                    break;
-                case MessageHeader.UnixFds:
-                    UnixFdCount = (int)reader.ReadUInt32();
-                    if (Data.Handles is not null && UnixFdCount > Data.Handles.Count)
-                    {
-                        throw new ProtocolException("Received less handles than UNIX_FDS.");
-                    }
-                    break;
-                default:
-                    throw new NotSupportedException();
-            }
-        }
-        reader.AlignStruct();
-
-        _body = reader.UnreadSequence;
+        _pool = messagePool;
+        _data = sequence;
     }
 
-    internal static bool TryReadMessage(ref ReadOnlySequence<byte> sequence, out Message message, UnixFdCollection? handles = null)
+    internal void ReturnToPool()
     {
-        message = default;
+        _data.Reset();
+        ReplySerial = null;
+        UnixFdCount = 0;
+        Path = null;
+        Interface = null;
+        Member = null;
+        ErrorName = null;
+        Destination = null;
+        Sender = null;
+        Signature = null;
+        _handles?.DisposeHandles();
 
+        _pool.Return(this);
+    }
+
+    internal static Message? TryReadMessage(MessagePool messagePool, ref ReadOnlySequence<byte> sequence, UnixFdCollection? handles = null)
+    {
         SequenceReader<byte> seqReader = new(sequence);
         if (!seqReader.TryRead(out byte endianness) ||
             !seqReader.TryRead(out byte msgType) ||
             !seqReader.TryRead(out byte flags) ||
             !seqReader.TryRead(out byte version))
         {
-            return false;
+            return null;
         }
 
         if (version != 1)
@@ -132,7 +72,7 @@ public readonly ref struct Message
             !TryReadUInt32(ref seqReader, isBigEndian, out uint serial) ||
             !TryReadUInt32(ref seqReader, isBigEndian, out uint headerFieldLength))
         {
-            return false;
+            return null;
         }
 
         headerFieldLength = (uint)ProtocolConstants.Align((int)headerFieldLength, DBusType.Struct);
@@ -141,19 +81,31 @@ public readonly ref struct Message
 
         if (sequence.Length < totalLength)
         {
-            return false;
+            return null;
         }
 
-        message = new Message(new MessageData(sequence.Slice(0, totalLength),
-                                              isBigEndian,
-                                              (MessageType)msgType,
-                                              (MessageFlags)flags,
-                                              serial,
-                                              handles));
+        // Copy data so it has a lifetime independent of the source sequence.
+        var message = messagePool.Rent();
+        Sequence<byte> dst = message._data;
+        do
+        {
+            ReadOnlySpan<byte> srcSpan = sequence.First.Span;
+            int length = (int)Math.Min(totalLength, srcSpan.Length);
+            Span<byte> dstSpan = dst.GetSpan(0);
+            length = Math.Min(length, dstSpan.Length);
+            srcSpan.Slice(0, length).CopyTo(dstSpan);
+            dst.Advance(length);
+            sequence = sequence.Slice(length);
+            totalLength -= length;
+        } while (totalLength > 0);
 
-        sequence = sequence.Slice(totalLength);
+        message.IsBigEndian = isBigEndian;
+        message.Serial = serial;
+        message.MessageType = (MessageType)msgType;
+        message.MessageFlags = (MessageFlags)flags;
+        message.ParseHeader(handles);
 
-        return true;
+        return message;
 
         static bool TryReadUInt32(ref SequenceReader<byte> seqReader, bool isBigEndian, out uint value)
         {
@@ -162,5 +114,65 @@ public readonly ref struct Message
             value = (uint)v;
             return rv;
         }
+    }
+
+    private void ParseHeader(UnixFdCollection? handles)
+    {
+        var reader = new Reader(IsBigEndian, _data.AsReadOnlySequence);
+        reader.Advance(HeaderFieldsLengthOffset);
+
+        ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
+        while (reader.HasNext(headersEnd))
+        {
+            MessageHeader hdrType = (MessageHeader)reader.ReadByte();
+            ReadOnlySpan<byte> sig = reader.ReadSignature();
+            switch (hdrType)
+            {
+                case MessageHeader.Path:
+                    Path = reader.ReadObjectPathAsString();
+                    break;
+                case MessageHeader.Interface:
+                    Interface = reader.ReadString();
+                    break;
+                case MessageHeader.Member:
+                    Member = reader.ReadString();
+                    break;
+                case MessageHeader.ErrorName:
+                    ErrorName = reader.ReadString();
+                    break;
+                case MessageHeader.ReplySerial:
+                    ReplySerial = reader.ReadUInt32();
+                    break;
+                case MessageHeader.Destination:
+                    Destination = reader.ReadString();
+                    break;
+                case MessageHeader.Sender:
+                    Sender = reader.ReadString();
+                    break;
+                case MessageHeader.Signature:
+                    Signature = reader.ReadSignatureAsString();
+                    break;
+                case MessageHeader.UnixFds:
+                    UnixFdCount = (int)reader.ReadUInt32();
+                    if (UnixFdCount > 0)
+                    {
+                        if (handles is null || UnixFdCount > handles.Count)
+                        {
+                            throw new ProtocolException("Received less handles than UNIX_FDS.");
+                        }
+                        if (_handles is null)
+                        {
+                            _handles = new(handles.IsRawHandleCollection);
+                        }
+                        handles.MoveTo(_handles, UnixFdCount);
+                    }
+                    break;
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+        reader.AlignStruct();
+
+        _body = reader.UnreadSequence;
     }
 }

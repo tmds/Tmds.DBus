@@ -12,6 +12,7 @@ class MessageStream : IMessageStream
     private readonly Socket _socket;
     private readonly UnixFdCollection? _fdCollection;
     private bool _supportsFdPassing;
+    private readonly MessagePool _messagePool;
 
     // Messages going out.
     private readonly ChannelReader<MessageBuffer> _messageReader;
@@ -41,6 +42,7 @@ class MessageStream : IMessageStream
         {
             _fdCollection = new();
         }
+        _messagePool = new();
     }
 
     private async void ReadFromSocketIntoPipe()
@@ -119,7 +121,7 @@ class MessageStream : IMessageStream
                 ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
                 ReadOnlySequence<byte> buffer = result.Buffer;
 
-                ReadMessages(ref buffer, _fdCollection, handler, state);
+                ReadMessages(ref buffer, _fdCollection, _messagePool, handler, state);
 
                 reader.AdvanceTo(buffer.Start, buffer.End);
             }
@@ -134,19 +136,18 @@ class MessageStream : IMessageStream
             _fdCollection?.Dispose();
         }
 
-        static void ReadMessages<TState>(ref ReadOnlySequence<byte> buffer, UnixFdCollection? fdCollection, IMessageStream.MessageReceivedHandler<TState> handler, TState state)
+        static void ReadMessages<TState>(ref ReadOnlySequence<byte> buffer, UnixFdCollection? fdCollection, MessagePool messagePool, IMessageStream.MessageReceivedHandler<TState> handler, TState state)
         {
-            while (Message.TryReadMessage(ref buffer, out Message message, fdCollection))
+            Message? message;
+            while ((message = Message.TryReadMessage(messagePool, ref buffer, fdCollection)) != null)
             {
-                handler(closeReason: null, in message, state);
-                fdCollection?.DisposeHandles(message.UnixFdCount);
+                handler(closeReason: null, message, state);
             }
         }
 
         static void OnException(Exception exception, IMessageStream.MessageReceivedHandler<T> handler, T state)
         {
-            Message message = default;
-            handler(exception, in message, state);
+            handler(exception, message: null!, state);
         }
     }
 

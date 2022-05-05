@@ -238,5 +238,5 @@ public class WriterTests
         writer.Dispose();
     }
 
-    private MessageWriter CreateWriter() => new MessageWriter(MessagePool.Shared.Rent(), serial: 0);
+    private MessageWriter CreateWriter() => new MessageWriter(MessageBufferPool.Shared, serial: 0);
 }

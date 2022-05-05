@@ -2,42 +2,26 @@ namespace Tmds.DBus.Protocol;
 
 class MessagePool
 {
-    public static readonly MessagePool Shared = new MessagePool(Environment.ProcessorCount * 2);
-
     private const int MinimumSpanLength = 512;
 
-    private readonly int _maxSize;
-    private readonly Stack<MessageBuffer> _pool = new Stack<MessageBuffer>();
-    private readonly ArrayPool<byte> _arrayPool = ArrayPool<byte>.Create(80 * 1024, 100);
+    private Message? _pooled = null; // Pool a single message.
 
-    internal MessagePool(int maxSize)
+    public Message Rent()
     {
-        _maxSize = maxSize;
-    }
+        Message? rent = Interlocked.Exchange(ref _pooled, null);
 
-    public MessageBuffer Rent()
-    {
-        lock (_pool)
+        if (rent is not null)
         {
-            if (_pool.Count > 0)
-            {
-                return _pool.Pop();
-            }
+            return rent;
         }
 
-        var sequence = new Sequence<byte>(_arrayPool) { MinimumSpanLength = MinimumSpanLength };
+        var sequence = new Sequence<byte>(ArrayPool<byte>.Shared) { MinimumSpanLength = MinimumSpanLength };
 
-        return new MessageBuffer(this, sequence);
+        return new Message(this, sequence);
     }
 
-    internal void Return(MessageBuffer value)
+    internal void Return(Message value)
     {
-        lock (_pool)
-        {
-            if (_pool.Count < _maxSize)
-            {
-                _pool.Push(value);
-            }
-        }
+        Volatile.Write(ref _pooled, value);
     }
 }

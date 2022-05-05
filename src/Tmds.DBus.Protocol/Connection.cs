@@ -1,12 +1,17 @@
 namespace Tmds.DBus.Protocol;
 
-public delegate T MessageValueReader<T>(in Message message, object? state);
+public delegate T MessageValueReader<T>(Message message, object? state);
 
 public interface IMethodHandler
 {
-    bool TryHandleMethod(Connection connection, in Message message);
-
+    // Path that is handled by this method handler.
     string Path { get; }
+
+    // The message argument is only valid during the call. It must not be stored to extend its lifetime.
+    ValueTask<bool> TryHandleMethodAsync(Connection connection, Message message);
+
+    // Controls whether to wait for the handler method to finish executing before reading more messages.
+    bool RunMethodHandlerSynchronously(Message message);
 }
 
 public partial class Connection : IDisposable
@@ -249,7 +254,7 @@ public partial class Connection : IDisposable
         return newConnection;
     }
 
-    public MessageWriter GetMessageWriter() => new MessageWriter(MessagePool.Shared.Rent(), GetNextSerial());
+    public MessageWriter GetMessageWriter() => new MessageWriter(MessageBufferPool.Shared, GetNextSerial());
 
     public bool TrySendMessage(MessageBuffer message)
     {

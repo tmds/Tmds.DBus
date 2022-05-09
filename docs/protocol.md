@@ -107,7 +107,7 @@ class AddImplementation : IMethodHandler
 
     public async ValueTask<bool> TryHandleMethodAsync(Connection connection, Message message)
     {
-        switch ((message.Member, message.Signature))
+        switch ((message.MemberAsString, message.SignatureAsString))
         {
             case ("Add", "ii"):
                 Add(connection, message);

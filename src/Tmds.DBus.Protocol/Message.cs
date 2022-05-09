@@ -17,13 +17,71 @@ public sealed class Message
 
     public uint? ReplySerial { get; private set; }
     public int UnixFdCount { get; private set; }
-    public string? Path { get; private set; }
-    public string? Interface  { get; private set; }
-    public string? Member  { get; private set; }
-    public string? ErrorName  { get; private set; }
-    public string? Destination  { get; private set; }
-    public string? Sender  { get; private set; }
-    public string? Signature  { get; private set; }
+
+    private HeaderBuffer _path;
+    private HeaderBuffer _interface;
+    private HeaderBuffer _member;
+    private HeaderBuffer _errorName;
+    private HeaderBuffer _destination;
+    private HeaderBuffer _sender;
+    private HeaderBuffer _signature;
+
+    public string? PathAsString => _path.ToString();
+    public string? InterfaceAsString => _interface.ToString();
+    public string? MemberAsString => _member.ToString();
+    public string? ErrorNameAsString => _errorName.ToString();
+    public string? DestinationAsString => _destination.ToString();
+    public string? SenderAsString => _sender.ToString();
+    public string? SignatureAsString => _signature.ToString();
+
+    public ReadOnlySpan<byte> Path => _path.Span;
+    public ReadOnlySpan<byte> Interface => _interface.Span;
+    public ReadOnlySpan<byte> Member => _member.Span;
+    public ReadOnlySpan<byte> ErrorName => _errorName.Span;
+    public ReadOnlySpan<byte> Destination => _destination.Span;
+    public ReadOnlySpan<byte> Sender => _sender.Span;
+    public ReadOnlySpan<byte> Signature => _signature.Span;
+
+    public bool PathIsSet => _path.IsSet;
+    public bool InterfaceIsSet => _interface.IsSet;
+    public bool MemberIsSet => _member.IsSet;
+    public bool ErrorNameIsSet => _errorName.IsSet;
+    public bool DestinationIsSet => _destination.IsSet;
+    public bool SenderIsSet => _sender.IsSet;
+    public bool SignatureIsSet => _signature.IsSet;
+
+    struct HeaderBuffer
+    {
+        private byte[] _buffer;
+        private int _length;
+        private string? _string;
+
+        public Span<byte> Span => new Span<byte>(_buffer, 0, Math.Max(_length, 0));
+
+        public void Set(ReadOnlySpan<byte> data)
+        {
+            _string = null;
+            if (_buffer is null || data.Length > _buffer.Length)
+            {
+                _buffer = new byte[data.Length];
+            }
+            data.CopyTo(_buffer);
+            _length = data.Length;
+        }
+
+        public void Clear()
+        {
+            _length = -1;
+            _string = null;
+        }
+
+        public override string? ToString()
+        {
+            return _length == -1 ? null : _string ??= Encoding.UTF8.GetString(Span);
+        }
+
+        public bool IsSet => _length != -1;
+    }
 
     public Reader GetBodyReader() => new Reader(IsBigEndian, _body, _handles, UnixFdCount);
 
@@ -31,23 +89,29 @@ public sealed class Message
     {
         _pool = messagePool;
         _data = sequence;
+        ClearHeaders();
     }
 
     internal void ReturnToPool()
     {
         _data.Reset();
+        ClearHeaders();
+        _handles?.DisposeHandles();
+        _pool.Return(this);
+    }
+
+    private void ClearHeaders()
+    {
         ReplySerial = null;
         UnixFdCount = 0;
-        Path = null;
-        Interface = null;
-        Member = null;
-        ErrorName = null;
-        Destination = null;
-        Sender = null;
-        Signature = null;
-        _handles?.DisposeHandles();
 
-        _pool.Return(this);
+        _path.Clear();
+        _interface.Clear();
+        _member.Clear();
+        _errorName.Clear();
+        _destination.Clear();
+        _sender.Clear();
+        _signature.Clear();
     }
 
     internal static Message? TryReadMessage(MessagePool messagePool, ref ReadOnlySequence<byte> sequence, UnixFdCollection? handles = null)
@@ -129,28 +193,28 @@ public sealed class Message
             switch (hdrType)
             {
                 case MessageHeader.Path:
-                    Path = reader.ReadObjectPathAsString();
+                    _path.Set(reader.ReadObjectPathAsSpan());
                     break;
                 case MessageHeader.Interface:
-                    Interface = reader.ReadString();
+                    _interface.Set(reader.ReadStringAsSpan());
                     break;
                 case MessageHeader.Member:
-                    Member = reader.ReadString();
+                    _member.Set(reader.ReadStringAsSpan());
                     break;
                 case MessageHeader.ErrorName:
-                    ErrorName = reader.ReadString();
+                    _errorName.Set(reader.ReadStringAsSpan());
                     break;
                 case MessageHeader.ReplySerial:
                     ReplySerial = reader.ReadUInt32();
                     break;
                 case MessageHeader.Destination:
-                    Destination = reader.ReadString();
+                    _destination.Set(reader.ReadStringAsSpan());
                     break;
                 case MessageHeader.Sender:
-                    Sender = reader.ReadString();
+                    _sender.Set(reader.ReadStringAsSpan());
                     break;
                 case MessageHeader.Signature:
-                    Signature = reader.ReadSignatureAsString();
+                    _signature.Set(reader.ReadSignature());
                     break;
                 case MessageHeader.UnixFds:
                     UnixFdCount = (int)reader.ReadUInt32();

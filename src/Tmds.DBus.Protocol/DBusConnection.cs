@@ -297,9 +297,9 @@ class DBusConnection : IDisposable
 
                     if (isMethodCall)
                     {
-                        if (message.Path is not null)
+                        if (message.PathIsSet)
                         {
-                            _pathHandlers.TryGetValue(message.Path, out methodHandler);
+                            _pathHandlers.TryGetValue(message.PathAsString!, out methodHandler);
                         }
                     }
                 }
@@ -363,9 +363,9 @@ class DBusConnection : IDisposable
         }
 
         string errMsg = String.Format("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist",
-                                        methodCall.Member?.ToString() ?? "",
-                                        methodCall.Signature?.ToString() ?? "",
-                                        methodCall.Interface?.ToString() ?? "");
+                                        methodCall.MemberAsString ?? "",
+                                        methodCall.SignatureAsString ?? "",
+                                        methodCall.InterfaceAsString ?? "");
 
         SendErrorReplyMessage(methodCall, "org.freedesktop.DBus.Error.UnknownMethod", errMsg);
     }
@@ -587,9 +587,9 @@ class DBusConnection : IDisposable
 
     private static DBusException CreateDBusExceptionForErrorMessage(Message message)
     {
-        string errorName = message.ErrorName ?? "<<No ErrorName>>.";
+        string errorName = message.ErrorNameAsString ?? "<<No ErrorName>>.";
         string errMessage = errorName;
-        if (message.Signature is not null && message.Signature.Length > 0 && (DBusType)message.Signature[0] == DBusType.String)
+        if (message.SignatureIsSet && message.Signature.Length > 0 && (DBusType)message.Signature[0] == DBusType.String)
         {
             errMessage = message.GetBodyReader().ReadString();
         }
@@ -858,15 +858,15 @@ class DBusConnection : IDisposable
     sealed class MatchMaker
     {
         private readonly MessageType? _type;
-        private readonly string? _sender;
-        private readonly string? _interface;
-        private readonly string? _member;
-        private readonly string? _path;
-        private readonly string? _pathNamespace;
-        private readonly string? _destination;
-        private readonly string? _arg0;
-        private readonly string? _arg0Path;
-        private readonly string? _arg0Namespace;
+        private readonly byte[]? _sender;
+        private readonly byte[]? _interface;
+        private readonly byte[]? _member;
+        private readonly byte[]? _path;
+        private readonly byte[]? _pathNamespace;
+        private readonly byte[]? _destination;
+        private readonly byte[]? _arg0;
+        private readonly byte[]? _arg0Path;
+        private readonly byte[]? _arg0Namespace;
         private readonly string _rule;
 
         private MyValueTaskSource<object?>? _vts;
@@ -901,16 +901,40 @@ class DBusConnection : IDisposable
 
             if (data.Sender is not null && data.Sender.StartsWith(":"))
             {
-                _sender = data.Sender;
+                _sender = Encoding.UTF8.GetBytes(data.Sender);
             }
-            _interface = data.Interface;
-            _member = data.Member;
-            _path = data.Path;
-            _pathNamespace = data.PathNamespace;
-            _destination = data.Destination;
-            _arg0 = data.Arg0;
-            _arg0Path = data.Arg0Path;
-            _arg0Namespace = data.Arg0Namespace;
+            if (data.Interface is not null)
+            {
+                _interface = Encoding.UTF8.GetBytes(data.Interface);
+            }
+            if (data.Member is not null)
+            {
+                _member = Encoding.UTF8.GetBytes(data.Member);
+            }
+            if (data.Path is not null)
+            {
+                _path = Encoding.UTF8.GetBytes(data.Path);
+            }
+            if (data.PathNamespace is not null)
+            {
+                _pathNamespace = Encoding.UTF8.GetBytes(data.PathNamespace);
+            }
+            if (data.Destination is not null)
+            {
+                _destination = Encoding.UTF8.GetBytes(data.Destination);
+            }
+            if (data.Arg0 is not null)
+            {
+                _arg0 = Encoding.UTF8.GetBytes(data.Arg0);
+            }
+            if (data.Arg0Path is not null)
+            {
+                _arg0Path = Encoding.UTF8.GetBytes(data.Arg0Path);
+            }
+            if (data.Arg0Namespace is not null)
+            {
+                _arg0Namespace = Encoding.UTF8.GetBytes(data.Arg0Namespace);
+            }
         }
 
         public string RuleString => _rule;
@@ -968,7 +992,7 @@ class DBusConnection : IDisposable
                 return false;
             }
 
-            if (_pathNamespace is not null && (message.Path is null || !IsEqualOrChildOfPath(message.Path, _pathNamespace)))
+            if (_pathNamespace is not null && (!message.PathIsSet || !IsEqualOrChildOfPath(message.Path, _pathNamespace)))
             {
                 return false;
             }
@@ -977,7 +1001,7 @@ class DBusConnection : IDisposable
                 _arg0 is not null ||
                 _arg0Path is not null)
             {
-                if (string.IsNullOrEmpty(message.Signature))
+                if (message.Signature.Length == 0)
                 {
                     return false;
                 }
@@ -990,7 +1014,7 @@ class DBusConnection : IDisposable
                     return false;
                 }
 
-                string arg0 = message.GetBodyReader().ReadString();
+                ReadOnlySpan<byte> arg0 = message.GetBodyReader().ReadStringAsSpan();
 
                 if (_arg0Path is not null && !IsEqualParentOrChildOfPath(arg0, _arg0Path))
                 {
@@ -1016,17 +1040,17 @@ class DBusConnection : IDisposable
             return true;
         }
 
-        private static bool IsEqualOrChildOfName(string lhs, string rhs)
+        private static bool IsEqualOrChildOfName(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
         {
             return lhs.StartsWith(rhs) && (lhs.Length == rhs.Length || lhs[rhs.Length] == '.');
         }
 
-        private static bool IsEqualOrChildOfPath(string lhs, string rhs)
+        private static bool IsEqualOrChildOfPath(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
         {
             return lhs.StartsWith(rhs) && (lhs.Length == rhs.Length || lhs[rhs.Length] == '/');
         }
 
-        private static bool IsEqualParentOrChildOfPath(string lhs, string rhs)
+        private static bool IsEqualParentOrChildOfPath(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
         {
             if (rhs.Length < lhs.Length)
             {
@@ -1042,9 +1066,9 @@ class DBusConnection : IDisposable
             }
         }
 
-        private static bool IsEqual(string lhs, string? rhs)
+        private static bool IsEqual(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
         {
-            return string.CompareOrdinal(lhs, rhs) == 0;
+            return lhs.SequenceEqual(rhs);
         }
     }
 

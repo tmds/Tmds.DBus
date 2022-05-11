@@ -55,6 +55,14 @@ public partial class Connection : IDisposable
         _connectionOptions = (ClientConnectionOptions)connectionOptions;
     }
 
+    // For tests.
+    internal void Connect(IMessageStream stream)
+    {
+        _connection = new DBusConnection(this);
+        _connection.Connect(stream);
+        _state = ConnectionState.Connected;
+    }
+
     public async ValueTask ConnectAsync()
     {
         await ConnectCoreAsync(autoConnect: false).ConfigureAwait(false);
@@ -110,7 +118,7 @@ public partial class Connection : IDisposable
             {
                 ThrowHelper.ThrowIfDisposed(_disposed, this);
 
-                if (_connection == connection)
+                if (_connection == connection && _state == ConnectionState.Connecting)
                 {
                     _connectingTask = null;
                     _connectCts = null;
@@ -128,9 +136,18 @@ public partial class Connection : IDisposable
         {
             Disconnect(exception, connection);
 
+            // Prefer throwing ObjectDisposedException.
             ThrowHelper.ThrowIfDisposed(_disposed, this);
 
-            throw;
+            // Throw DisconnectedException or ConnectException.
+            if (exception is DisconnectedException || exception is ConnectException)
+            {
+                throw;
+            }
+            else
+            {
+                throw new ConnectException(exception.Message, exception);
+            }
         }
     }
 

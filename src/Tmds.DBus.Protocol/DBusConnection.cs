@@ -137,6 +137,18 @@ class DBusConnection : IDisposable
         _pathHandlers = new();
     }
 
+    // For tests.
+    internal void Connect(IMessageStream stream)
+    {
+        _messageStream = stream;
+
+        stream.ReceiveMessages(
+                    static (Exception? exception, Message message, DBusConnection connection) =>
+                        connection.HandleMessages(exception, message), this);
+
+        _state = ConnectionState.Connected;
+    }
+
     public async ValueTask ConnectAsync(string address, string? userId, bool supportsFdPassing, CancellationToken cancellationToken)
     {
         _state = ConnectionState.Connecting;

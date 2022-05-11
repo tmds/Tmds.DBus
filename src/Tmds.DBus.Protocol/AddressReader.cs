@@ -19,11 +19,11 @@ static class AddressParser
     public static bool TryGetNextEntry(string addresses, ref AddressEntry address)
     {
         int offset = address.String is null ? 0 : address.Offset + address.Count + 1;
-        ReadOnlySpan<char> span = addresses.AsSpan().Slice(offset);
-        if (span.Length == 0)
+        if (offset >= addresses.Length - 1)
         {
             return false;
         }
+        ReadOnlySpan<char> span = addresses.AsSpan().Slice(offset);
         int length = span.IndexOf(';');
         if (length == -1)
         {

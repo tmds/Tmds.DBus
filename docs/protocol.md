@@ -103,15 +103,21 @@ class AddProxy
 
 class AddImplementation : IMethodHandler
 {
+    private const string Interface = "org.example.Adder";
     public string Path => "/org/example/Adder";
 
     public async ValueTask<bool> TryHandleMethodAsync(Connection connection, Message message)
     {
-        switch ((message.MemberAsString, message.SignatureAsString))
+        switch (message.InterfaceAsString)
         {
-            case ("Add", "ii"):
-                Add(connection, message);
-                return true;
+            case Interface:
+                switch ((message.MemberAsString, message.SignatureAsString))
+                {
+                    case ("Add", "ii"):
+                        Add(connection, message);
+                        return true;
+                }
+                break;
         }
 
         return false;

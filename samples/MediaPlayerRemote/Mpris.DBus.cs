@@ -977,13 +977,13 @@ namespace Mpris.DBus
             }
         }
         public ValueTask<IDisposable> WatchTrackListReplacedAsync(Action<Exception?, (ObjectPath[] A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackListReplaced", (Message m, object? s) => ReadMessage_aoo(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackListReplaced", (Message m, object? s) => ReadMessage_aoo(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public ValueTask<IDisposable> WatchTrackAddedAsync(Action<Exception?, (Dictionary<string, object> A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackAdded", (Message m, object? s) => ReadMessage_aesvo(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackAdded", (Message m, object? s) => ReadMessage_aesvo(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public ValueTask<IDisposable> WatchTrackRemovedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackRemoved", (Message m, object? s) => ReadMessage_o(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackRemoved", (Message m, object? s) => ReadMessage_o(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public ValueTask<IDisposable> WatchTrackMetadataChangedAsync(Action<Exception?, (ObjectPath A0, Dictionary<string, object> A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, Path, "TrackMetadataChanged", (Message m, object? s) => ReadMessage_oaesv(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackMetadataChanged", (Message m, object? s) => ReadMessage_oaesv(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public Task SetTracksAsync(ObjectPath[] value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
@@ -1146,27 +1146,29 @@ namespace Mpris.DBus
                                                     (Exception? ex, PropertyChanges<TProperties> changes, object? rs, object? hs) => ((Action<Exception?, PropertyChanges<TProperties>>)hs!).Invoke(ex, changes),
                                                     this, handler, emitOnCapturedContext);
         }
-        public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext)
+        public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, string @interface, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext)
         {
             var rule = new MatchRule
             {
                 Type = MessageType.Signal,
                 Sender = sender,
                 Path = path,
-                Member = signal
+                Member = signal,
+                Interface = @interface
             };
             return this.Connection.AddMatchAsync(rule, reader,
                                                     (Exception? ex, TArg arg, object? rs, object? hs) => ((Action<Exception?, TArg>)hs!).Invoke(ex, arg),
                                                     this, handler, emitOnCapturedContext);
         }
-        public ValueTask<IDisposable> WatchSignalAsync(string sender, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext)
+        public ValueTask<IDisposable> WatchSignalAsync(string sender, string @interface, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext)
         {
             var rule = new MatchRule
             {
                 Type = MessageType.Signal,
                 Sender = sender,
                 Path = path,
-                Member = signal
+                Member = signal,
+                Interface = @interface
             };
             return this.Connection.AddMatchAsync<object>(rule, (Message message, object? state) => null!,
                                                             (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);

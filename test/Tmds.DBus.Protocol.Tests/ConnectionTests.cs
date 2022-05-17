@@ -1,3 +1,4 @@
+using System;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -17,6 +18,39 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.Equal("hello world", reply);
         }
 
+        [Fact]
+        public async Task SignalAsync()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var proxy = new HelloWorld(conn1, "servicename");
+            var tcs = new TaskCompletionSource<string>();
+            await proxy.WatchHelloWorldAsync((ex, msg) => tcs.SetResult(msg));
+            SendHelloWorld(conn2);
+            var reply = await tcs.Task;
+            Assert.Equal("hello world", reply);
+
+            static void SendHelloWorld(Connection connection)
+            {
+                using var writer = connection.GetMessageWriter();
+
+                writer.WriteSignalHeader(
+                    path: HelloWorldConstants.Path,
+                    @interface: HelloWorldConstants.Interface,
+                    signature: "s",
+                    member: HelloWorldConstants.OnHelloWorld);
+
+                writer.WriteString("hello world");
+
+                MessageBuffer buffer = writer.CreateMessage();
+
+                bool messageSent = connection.TrySendMessage(buffer);
+                Assert.True(messageSent);
+            }
+        }
+
         [InlineData("tcp:host=localhost,port=1")]
         [InlineData("unix:path=/does/not/exist")]
         [Theory]
@@ -25,6 +59,53 @@ namespace Tmds.DBus.Protocol.Tests
             using (var connection = new Connection(address))
             {
                 await Assert.ThrowsAsync<ConnectException>(() => connection.ConnectAsync().AsTask());
+            }
+        }
+
+        static class HelloWorldConstants
+        {
+            public const string Path = "/path";
+            public const string OnHelloWorld = "OnHelloWorld";
+            public const string Interface = "tmds.dbus.tests.HelloWorld";
+        }
+
+        class HelloWorld
+        {
+            protected Connection Connection { get; }
+            public string Peer { get; }
+
+            public HelloWorld(Connection connection, string peer)
+                => (Connection, Peer) = (connection, peer);
+
+            public ValueTask<IDisposable> WatchHelloWorldAsync(Action<Exception?, string> handler, bool emitOnCapturedContext = true)
+                => WatchSignalAsync<string>(Peer, HelloWorldConstants.Interface, HelloWorldConstants.Path, "OnHelloWorld", (Message m, object? s) => m.GetBodyReader().ReadString(), handler, emitOnCapturedContext);
+
+            public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, string @interface, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext)
+            {
+                var rule = new MatchRule
+                {
+                    Type = MessageType.Signal,
+                    Sender = sender,
+                    Path = path,
+                    Member = signal,
+                    Interface = @interface
+                };
+                return this.Connection.AddMatchAsync(rule, reader,
+                                                        (Exception? ex, TArg arg, object? rs, object? hs) => ((Action<Exception?, TArg>)hs!).Invoke(ex, arg),
+                                                        this, handler, emitOnCapturedContext);
+            }
+            public ValueTask<IDisposable> WatchSignalAsync(string sender, string @interface, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext)
+            {
+                var rule = new MatchRule
+                {
+                    Type = MessageType.Signal,
+                    Sender = sender,
+                    Path = path,
+                    Member = signal,
+                    Interface = @interface
+                };
+                return this.Connection.AddMatchAsync<object>(rule, (Message message, object? state) => null!,
+                                                                (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);
             }
         }
 

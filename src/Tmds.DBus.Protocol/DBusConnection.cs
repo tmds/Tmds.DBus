@@ -332,26 +332,24 @@ class DBusConnection : IDisposable
 
                 if (isMethodCall)
                 {
+                    MethodContext context = new MethodContext(_parentConnection, message); // TODO: pool.
                     if (methodHandler is not null)
                     {
                         bool runHandlerSynchronously = methodHandler.RunMethodHandlerSynchronously(message);
                         if (runHandlerSynchronously)
                         {
-                            bool handled = await methodHandler.TryHandleMethodAsync(_parentConnection, message);
-                            if (!handled)
-                            {
-                                SendUnknownMethodError(message);
-                            }
+                            await methodHandler.HandleMethodAsync(context);
+                            SendUnknownMethodErrorIfNoReplySent(context);
                         }
                         else
                         {
                             returnMessageToPool = false;
-                            RunMethodHandler(methodHandler, message);
+                            RunMethodHandler(methodHandler, context);
                         }
                     }
                     else
                     {
-                        SendUnknownMethodError(message);
+                        SendUnknownMethodErrorIfNoReplySent(context);
                     }
                 }
 
@@ -367,31 +365,28 @@ class DBusConnection : IDisposable
         }
     }
 
-    private void SendUnknownMethodError(Message methodCall)
+    private void SendUnknownMethodErrorIfNoReplySent(MethodContext context)
     {
-        if ((methodCall.MessageFlags & MessageFlags.NoReplyExpected) != 0)
+        if (context.ReplySent || context.NoReplyExpected)
         {
             return;
         }
 
-        string errMsg = String.Format("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist",
-                                        methodCall.MemberAsString ?? "",
-                                        methodCall.SignatureAsString ?? "",
-                                        methodCall.InterfaceAsString ?? "");
-
-        SendErrorReplyMessage(methodCall, "org.freedesktop.DBus.Error.UnknownMethod", errMsg);
+        var request = context.Request;
+        context.ReplyError("org.freedesktop.DBus.Error.UnknownMethod",
+                          String.Format("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist",
+                                        request.MemberAsString ?? "",
+                                        request.SignatureAsString ?? "",
+                                        request.InterfaceAsString ?? ""));
     }
 
-    private async void RunMethodHandler(IMethodHandler methodHandler, Message message)
+    private async void RunMethodHandler(IMethodHandler methodHandler, MethodContext context)
     {
         try
         {
-            bool handled = await methodHandler.TryHandleMethodAsync(_parentConnection, message);
-            if (!handled)
-            {
-                SendUnknownMethodError(message);
-            }
-            message.ReturnToPool();
+            await methodHandler.HandleMethodAsync(context);
+            SendUnknownMethodErrorIfNoReplySent(context);
+            context.Request.ReturnToPool();
         }
         catch (Exception ex)
         {

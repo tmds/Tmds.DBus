@@ -163,48 +163,36 @@ namespace Tmds.DBus.Protocol.Tests
 
             public bool RunMethodHandlerSynchronously(Message message) => true;
 
-            public ValueTask<bool> TryHandleMethodAsync(Connection connection, Message message)
+            public ValueTask HandleMethodAsync(MethodContext context)
             {
-                switch (message.InterfaceAsString)
+                var request = context.Request;
+                switch (request.InterfaceAsString)
                 {
                     case StringOperationsConstants.Interface:
-                        switch ((message.MemberAsString, message.SignatureAsString))
+                        switch ((request.MemberAsString, request.SignatureAsString))
                         {
                             case (ConcatMember, "ss"):
-                                Concat(connection, message);
-                                return ValueTask.FromResult(true);
+                                return Concat(context);
                         }
                         break;
                 }
-
-                return ValueTask.FromResult(true);
+                return default;
             }
 
-            private void Concat(Connection connection, Message message)
+            private ValueTask Concat(MethodContext context)
             {
-                var reader = message.GetBodyReader();
-
+                var request = context.Request;
+                var reader = request.GetBodyReader();
                 string lhs = reader.ReadString();
                 string rhs = reader.ReadString();
 
                 string result = lhs + rhs;
 
-                connection.TrySendMessage(CreateResponseMessage(connection, message, result));
+                using var writer = context.CreateReplyWriter("s");
+                writer.WriteString(result);
+                context.Reply(writer.CreateMessage());
 
-                static MessageBuffer CreateResponseMessage(Connection connection, Message message, string result)
-                {
-                    using var writer = connection.GetMessageWriter();
-
-                    writer.WriteMethodReturnHeader(
-                        replySerial: message.Serial,
-                        destination: message.Sender,
-                        signature: "s"
-                    );
-
-                    writer.WriteString(result);
-
-                    return writer.CreateMessage();
-                }
+                return default;
             }
         }
     }

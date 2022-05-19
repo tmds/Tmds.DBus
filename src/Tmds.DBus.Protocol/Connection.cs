@@ -2,18 +2,6 @@ namespace Tmds.DBus.Protocol;
 
 public delegate T MessageValueReader<T>(Message message, object? state);
 
-public interface IMethodHandler
-{
-    // Path that is handled by this method handler.
-    string Path { get; }
-
-    // The message argument is only valid during the call. It must not be stored to extend its lifetime.
-    ValueTask<bool> TryHandleMethodAsync(Connection connection, Message message);
-
-    // Controls whether to wait for the handler method to finish executing before reading more messages.
-    bool RunMethodHandlerSynchronously(Message message);
-}
-
 public partial class Connection : IDisposable
 {
     private static readonly Exception s_disposedSentinel = new ObjectDisposedException(typeof(Connection).FullName);

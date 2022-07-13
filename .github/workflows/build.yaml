@@ -33,9 +33,10 @@ jobs:
 
     - name: Build packages
       run: |
-        dotnet pack src/Tmds.DBus --configuration Release --output src/Tmds.DBus
-        dotnet pack src/Tmds.DBus.Protocol --configuration Release --output src/Tmds.DBus.Protocol
-        dotnet pack src/Tmds.DBus.Tool --configuration Release --output src/Tmds.DBus.Tool
+        VERSION_SUFFIX="${{ github.run_number }}-${{ github.sha }}"
+        dotnet pack src/Tmds.DBus --configuration Release --output src/Tmds.DBus /p:VersionSuffix="$VERSION_SUFFIX" 
+        dotnet pack src/Tmds.DBus.Protocol --configuration Release --output src/Tmds.DBus.Protocol /p:VersionSuffix="$VERSION_SUFFIX" 
+        dotnet pack src/Tmds.DBus.Tool --configuration Release --output src/Tmds.DBus.Tool /p:VersionSuffix="$VERSION_SUFFIX" 
 
     - name: Publish packages
       run: |

@@ -142,7 +142,8 @@ namespace Tmds.DBus.Transports
                 int errno = -rv;
                 if (errno == EAGAIN)
                 {
-                    ReadAsync(readContext.Buffer, readContext.Offset, readContext.Count, readContext.FileDescriptors);
+                    if (!_socket.ReceiveAsync(_waitForData))
+                        DataAvailable(null, null);
                 }
                 else
                 {

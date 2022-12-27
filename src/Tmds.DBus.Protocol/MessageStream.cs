@@ -94,7 +94,7 @@ class MessageStream : IMessageStream
                     SequencePosition position = buffer.Start;
                     while (buffer.TryGet(ref position, out ReadOnlyMemory<byte> memory))
                     {
-                        await _socket.SendAsync(buffer.First, handles).ConfigureAwait(false);
+                        await _socket.SendAsync(memory, handles).ConfigureAwait(false);
                         handles = null;
                     }
                 }

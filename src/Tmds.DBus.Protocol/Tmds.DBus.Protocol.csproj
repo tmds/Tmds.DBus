@@ -23,9 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Nerdbank.Streams" Version="2.9.45-alpha" />
-    <PackageReference Include="System.IO.Pipelines" Version="6.0.1" />
-    <PackageReference Include="System.Threading.Channels" Version="6.0.0" />
+    <PackageReference Include="Nerdbank.Streams" Version="2.9.112" />
+    <PackageReference Include="System.Threading.Channels" Version="7.0.0" />
     <PackageReference Include="System.Security.Principal.Windows" Version="5.0.0" />
   </ItemGroup>
 

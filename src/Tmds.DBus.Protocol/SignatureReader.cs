@@ -2,7 +2,7 @@
 
 namespace Tmds.DBus.Protocol;
 
-internal ref struct SignatureReader
+public ref struct SignatureReader
 {
     private ReadOnlySpan<byte> _signature;
 

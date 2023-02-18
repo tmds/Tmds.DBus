@@ -1,5 +1,3 @@
-[assembly: InternalsVisibleTo("dotnet-dbus, PublicKey=002400000480000094000000060200000024000052534131000400000100010071a8770f460cce31df0feb6f94b328aebd55bffeb5c69504593df097fdd9b29586dbd155419031834411c8919516cc565dee6b813c033676218496edcbe7939c0dd1f919f3d1a228ebe83b05a3bbdbae53ce11bcf4c04a42d8df1a83c2d06cb4ebb0b447e3963f48a1ca968996f3f0db8ab0e840a89d0a5d5a237e2f09189ed3")]
-
 namespace Tmds.DBus.Protocol;
 
 public ref struct SignatureReader
@@ -102,7 +100,7 @@ public ref struct SignatureReader
         return type;
     }
 
-    static int DetermineLength(ReadOnlySpan<byte> span, byte startChar, byte endChar)
+    private static int DetermineLength(ReadOnlySpan<byte> span, byte startChar, byte endChar)
     {
         int length = 1;
         int count = 1;
@@ -151,7 +149,7 @@ public ref struct SignatureReader
         (byte)DBusType.Signature,
         (byte)DBusType.UnixFd };
 
-    public static ReadOnlySpan<byte> ReadSingleType(ref ReadOnlySpan<byte> signature)
+    private static ReadOnlySpan<byte> ReadSingleType(ref ReadOnlySpan<byte> signature)
     {
         if (signature.Length == 0)
         {
@@ -192,8 +190,8 @@ public ref struct SignatureReader
             if ((DBusType)signature[1] == DBusType.DictEntry)
             {
                 signature = signature.Slice(2);
-                ReadOnlySpan<byte> keySignature = SignatureReader.ReadSingleType(ref signature);
-                ReadOnlySpan<byte> valueSignature = SignatureReader.ReadSingleType(ref signature);
+                ReadOnlySpan<byte> keySignature = ReadSingleType(ref signature);
+                ReadOnlySpan<byte> valueSignature = ReadSingleType(ref signature);
                 signature = signature.Slice(1);
                 T keyType = Transform(keySignature, map);
                 T valueType = Transform(valueSignature, map);
@@ -210,11 +208,11 @@ public ref struct SignatureReader
         else if (dbusType == DBusType.Struct)
         {
             signature = signature.Slice(1, signature.Length - 2);
-            int typeCount = SignatureReader.CountTypes(signature);
+            int typeCount = CountTypes(signature);
             T[] innerTypes = new T[typeCount];
             for (int i = 0; i < innerTypes.Length; i++)
             {
-                ReadOnlySpan<byte> innerTypeSignature = SignatureReader.ReadSingleType(ref signature);
+                ReadOnlySpan<byte> innerTypeSignature = ReadSingleType(ref signature);
                 innerTypes[i] = Transform(innerTypeSignature, map);
             }
             return map(DBusType.Struct, innerTypes);
@@ -224,7 +222,7 @@ public ref struct SignatureReader
     }
 
     // Counts the number of single types in a signature.
-    internal static int CountTypes(ReadOnlySpan<byte> signature)
+    private static int CountTypes(ReadOnlySpan<byte> signature)
     {
         if (signature.Length == 0)
         {

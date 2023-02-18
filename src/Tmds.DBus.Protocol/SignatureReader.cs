@@ -181,7 +181,7 @@ public ref struct SignatureReader
         return rv;
     }
 
-    internal static T Transform<T>(ReadOnlySpan<byte> signature, Func<DBusType, T[], T> map)
+    public static T Transform<T>(ReadOnlySpan<byte> signature, Func<DBusType, T[], T> map)
     {
         DBusType dbusType = signature.Length == 0 ? DBusType.Invalid : (DBusType)signature[0];
 

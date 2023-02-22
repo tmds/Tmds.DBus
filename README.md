@@ -14,7 +14,13 @@ implementation which targets Mono and .NET 2.0.
 
 Tmds.DBus builds on top of the protocol implementation of dbus-sharp and provides an API based on the asynchronous programming model introduced in .NET 4.5. The library targets .NET Standard 2.0 which means it runs on .NET Framework 4.6.1 (Windows 7 SP1 and later), .NET Core, and .NET 6. You can get Tmds.DBus from [NuGet](https://www.nuget.org/packages/Tmds.DBus).
 
-# Example
+# Tmds.DBus.Protocol
+
+The `Tmds.DBus.Protocol` package provides a low-level API for the D-Bus protocol. Unlike the high-level `Tmds.DBus` library, the protocol library can be used with Native AOT compilation.
+
+[affederaffe/Tmds.DBus.SourceGenerator](https://github.com/affederaffe/Tmds.DBus.SourceGenerator) provides a source generator that targets the protocol library.
+
+# Tmds.DBus Example
 
 In this section we build an example console application that writes a message when a network interface changes state.
 To detect the state changes we use the NetworkManager daemon's D-Bus service.

@@ -6,7 +6,7 @@ static class DBusEnvironment
     {
         get
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (PlatformDetection.IsWindows())
             {
 #if NET6_0_OR_GREATER
                 return System.Security.Principal.WindowsIdentity.GetCurrent().User?.Value;

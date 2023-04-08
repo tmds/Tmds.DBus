@@ -97,7 +97,13 @@ public ref partial struct Reader
 
     public Utf8Span ReadStringAsSpan() => ReadSpan();
 
-    public string ReadString() => Encoding.UTF8.GetString(ReadSpan());
+    public string ReadString()
+    {
+        var span = ReadSpan();
+        if (span.Length == 0)
+            return string.Empty;
+        return Encoding.UTF8.GetString(span);
+    }
 
     public Signature ReadSignatureAsSignature() => new Signature(ReadSignature().ToString());
 

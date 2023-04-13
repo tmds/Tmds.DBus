@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -18,19 +19,48 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.Equal("hello world", reply);
         }
 
-        [Fact]
-        public async Task SignalAsync()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task SignalAsync(bool setSynchronizationContext)
         {
+            if (setSynchronizationContext)
+            {
+                SynchronizationContext.SetSynchronizationContext(new MySynchronizationContext());
+            }
+            SynchronizationContext? expectedSynchronizationContext = SynchronizationContext.Current;
+
             var connections = PairedConnection.CreatePair();
             using var conn1 = connections.Item1;
             using var conn2 = connections.Item2;
 
             var proxy = new HelloWorld(conn1, "servicename");
-            var tcs = new TaskCompletionSource<string>();
-            await proxy.WatchHelloWorldAsync((ex, msg) => tcs.SetResult(msg));
+            var msgTcs = new TaskCompletionSource<(string, SynchronizationContext?)>();
+            var exTcs = new TaskCompletionSource<(Exception?, SynchronizationContext?)>();
+
+            await proxy.WatchHelloWorldAsync((ex, msg) =>
+                {
+                    if (msg is not null)
+                    {
+                        msgTcs.SetResult((msg, SynchronizationContext.Current));
+                    }
+                    else
+                    {
+                        exTcs.SetResult((ex, SynchronizationContext.Current));
+                    }
+                });
+
             SendHelloWorld(conn2);
-            var reply = await tcs.Task;
-            Assert.Equal("hello world", reply);
+
+            var msg = await msgTcs.Task;
+            Assert.Equal("hello world", msg.Item1);
+            Assert.Equal(expectedSynchronizationContext, msg.Item2);
+
+            conn1.Dispose();
+
+            var ex = await exTcs.Task;
+            Assert.IsType<DisconnectedException>(ex.Item1);
+            Assert.Equal(expectedSynchronizationContext, ex.Item2);
 
             static void SendHelloWorld(Connection connection)
             {
@@ -50,6 +80,9 @@ namespace Tmds.DBus.Protocol.Tests
                 Assert.True(messageSent);
             }
         }
+
+        sealed class MySynchronizationContext : SynchronizationContext
+        { }
 
         [InlineData("tcp:host=localhost,port=1")]
         [InlineData("unix:path=/does/not/exist")]

@@ -65,6 +65,10 @@ namespace Tmds.DBus.Tests
             byte[] bigEndianData,
             byte[] littleEndianData)
         {
+            // ignore
+            _ = alignment;
+            _ = littleEndianData;
+
             // via Delegate
             {
                 MessageWriter writer = new MessageWriter(EndianFlag.Big);
@@ -99,6 +103,10 @@ namespace Tmds.DBus.Tests
             byte[] bigEndianData,
             byte[] littleEndianData)
         {
+            // ignore
+            _ = alignment;
+            _ = bigEndianData;
+
             // via Delegate
             {
                 MessageWriter writer = new MessageWriter(EndianFlag.Little);

@@ -161,6 +161,10 @@ namespace Tmds.DBus.Tests
             byte[] littleEndianData,
             IEqualityComparer<object> returnComparer)
         {
+            // ignore
+            _ = alignment;
+            _ = littleEndianData;
+
             // via Delegate
             {
                 MessageReader reader = CreateMessageReader(EndianFlag.Big, bigEndianData);
@@ -216,6 +220,10 @@ namespace Tmds.DBus.Tests
             byte[] littleEndianData,
             IEqualityComparer<object> returnComparer)
         {
+            // ignore
+            _ = alignment;
+            _ = bigEndianData;
+
             // via Delegate
             {
                 MessageReader reader = CreateMessageReader(EndianFlag.Little, littleEndianData);

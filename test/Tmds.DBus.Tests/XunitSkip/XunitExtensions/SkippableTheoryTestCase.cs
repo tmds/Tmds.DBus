@@ -11,8 +11,12 @@ namespace XunitSkip.XunitExtensions
         [Obsolete("Called by the de-serializer; should only be called by deriving classes for de-serialization purposes")]
         public SkippableTheoryTestCase() { }
 
+        [Obsolete("Please call the constructor which takes TestMethodDisplayOptions")]
         public SkippableTheoryTestCase(IMessageSink diagnosticMessageSink, TestMethodDisplay defaultMethodDisplay, ITestMethod testMethod)
-            : base(diagnosticMessageSink, defaultMethodDisplay, testMethod) { }
+            : base(diagnosticMessageSink, defaultMethodDisplay, TestMethodDisplayOptions.None, testMethod) { }
+
+        public SkippableTheoryTestCase(IMessageSink diagnosticMessageSink, TestMethodDisplay defaultMethodDisplay, TestMethodDisplayOptions defaultMethodDisplayOptions, ITestMethod testMethod)
+            : base(diagnosticMessageSink, defaultMethodDisplay, defaultMethodDisplayOptions, testMethod) { }
 
         public override async Task<RunSummary> RunAsync(IMessageSink diagnosticMessageSink,
                                                         IMessageBus messageBus,

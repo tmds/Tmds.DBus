@@ -306,6 +306,11 @@ namespace Tmds.DBus.Tests
                 }
                 return (f_d == other.f_d);
             }
+
+            public override int GetHashCode()
+            {
+                return f_d.GetHashCode();
+            }
         }
 
         [Dictionary]

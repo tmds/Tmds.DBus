@@ -47,7 +47,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 return null;
             }
             _rawHandles[index] = (rawHandle, false);
-            return (T)Activator.CreateInstance(typeof(T), new object[] { rawHandle, true });
+            return (T?)Activator.CreateInstance(typeof(T), new object[] { rawHandle, true });
         }
         else
         {

@@ -20,7 +20,7 @@ namespace Tmds.DBus
         public static readonly EndianFlag NativeEndianness;
 
 #if NET6_0_OR_GREATER
-        [SupportedOSPlatformGuard("Windows")]
+        [SupportedOSPlatformGuard("windows")]
 #endif
         public static readonly bool IsWindows;
 

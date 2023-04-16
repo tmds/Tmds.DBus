@@ -145,7 +145,7 @@ namespace Tmds.DBus
         }
 
 #if NET6_0_OR_GREATER
-        [SupportedOSPlatform("Windows")]
+        [SupportedOSPlatform("windows")]
 #endif
         private static string GetSessionBusAddressFromSharedMemory()
         {
@@ -156,7 +156,7 @@ namespace Tmds.DBus
         }
 
 #if NET6_0_OR_GREATER
-        [SupportedOSPlatform("Windows")]
+        [SupportedOSPlatform("windows")]
 #endif
         private static string ReadSharedMemoryString(string id, long maxlen = -1)
         {

@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    <TargetFramework>net6.0</TargetFramework>
+    <RollForward>Major</RollForward>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>dotnet-dbus</ToolCommandName>
     <AssemblyName>dotnet-dbus</AssemblyName>

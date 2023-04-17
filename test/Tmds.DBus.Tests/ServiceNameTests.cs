@@ -24,7 +24,7 @@ namespace Tmds.DBus.Tests
                 await conn1.RegisterServiceAsync(serviceName);
 
                 bool released = await conn1.UnregisterServiceAsync(serviceName);
-                Assert.Equal(true, released);
+                Assert.True(released);
             }
         }
 
@@ -155,7 +155,7 @@ namespace Tmds.DBus.Tests
                 await conn2.ConnectAsync();
 
                 var owner = await conn2.ResolveServiceOwnerAsync(serviceName);
-                Assert.Equal(null, owner);
+                Assert.Null(owner);
 
                 await conn1.RegisterServiceAsync(serviceName);
                 owner = await conn2.ResolveServiceOwnerAsync(serviceName);
@@ -163,7 +163,7 @@ namespace Tmds.DBus.Tests
 
                 await conn1.UnregisterServiceAsync(serviceName);
                 owner = await conn2.ResolveServiceOwnerAsync(serviceName);
-                Assert.Equal(null, owner);
+                Assert.Null(owner);
             }
         }
 
@@ -199,14 +199,14 @@ namespace Tmds.DBus.Tests
                 await conn1.RegisterServiceAsync(serviceName);
                 var e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
-                Assert.Equal(null, e.OldOwner);
+                Assert.Null(e.OldOwner);
                 Assert.Equal(conn1Info.LocalName, e.NewOwner);
 
                 await conn1.UnregisterServiceAsync(serviceName);
                 e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
                 Assert.Equal(conn1Info.LocalName, e.OldOwner);
-                Assert.Equal(null, e.NewOwner);
+                Assert.Null(e.NewOwner);
 
                 resolver.Dispose();
                 await conn1.RegisterServiceAsync(serviceName);
@@ -214,7 +214,7 @@ namespace Tmds.DBus.Tests
 
                 e = await changeEvents.TakeAsync();
                 Assert.Equal(serviceName, e.ServiceName);
-                Assert.Equal(null, e.OldOwner);
+                Assert.Null(e.OldOwner);
                 Assert.Equal(conn1Info.LocalName, e.NewOwner);
             }
         }

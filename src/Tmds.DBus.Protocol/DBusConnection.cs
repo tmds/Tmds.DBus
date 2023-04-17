@@ -30,7 +30,7 @@ class DBusConnection : IDisposable
 
         public ValueTaskSourceStatus GetStatus(short token) => _core.GetStatus(token);
 
-        public void OnCompleted(Action<object> continuation, object state, short token, ValueTaskSourceOnCompletedFlags flags)
+        public void OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
         {
             _core.OnCompleted(continuation, state, token, flags);
             _continuationSet = true;
@@ -404,10 +404,10 @@ class DBusConnection : IDisposable
 #pragma warning disable VSTHRD001 // Await JoinableTaskFactory.SwitchToMainThreadAsync() to switch to the UI thread instead of APIs that can deadlock or require specifying a priority.
         // note: Send blocks the current thread until the SynchronizationContext ran the delegate.
         synchronizationContext.Send(static o => {
-            SynchronizationContext previousContext = SynchronizationContext.Current;
+            SynchronizationContext? previousContext = SynchronizationContext.Current;
             try
             {
-                DBusConnection conn = (DBusConnection)o;
+                DBusConnection conn = (DBusConnection)o!;
                 SynchronizationContext.SetSynchronizationContext(conn._currentSynchronizationContext);
                 conn._currentObserver!.InvokeHandler(conn._currentMessage!);
             }
@@ -793,7 +793,7 @@ class DBusConnection : IDisposable
             {
                 _synchronizationContext.Send(
                     delegate {
-                        SynchronizationContext previousContext = SynchronizationContext.Current;
+                        SynchronizationContext? previousContext = SynchronizationContext.Current;
                         try
                         {
                             SynchronizationContext.SetSynchronizationContext(_synchronizationContext);

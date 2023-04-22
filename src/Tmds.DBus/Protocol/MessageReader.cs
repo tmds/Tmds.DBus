@@ -402,9 +402,40 @@ namespace Tmds.DBus.Protocol
 
                 // if the key contains a '-' which is an invalid identifier character,
                 // we try and replace it with '_' and see if we find a match.
-                // The name may be prefixed with '_'.
-                var field = fis.Where(f =>   ((f.Name.Length == key.Length) || (f.Name.Length == key.Length + 1 && f.Name[0] == '_'))
-                                          && (f.Name.EndsWith(key, StringComparison.Ordinal) || (key.Contains("-") && f.Name.Replace('_', '-').EndsWith(key, StringComparison.Ordinal)))).SingleOrDefault();
+                key = key.Replace('-', '_');
+
+                var field = fis
+                            .Where(f =>
+                            {
+                                string fieldName = f.Name;
+
+                                // FieldName may be prefixed with an '_'.
+                                if (fieldName.StartsWith('_') && fieldName.Length == key.Length + 1)
+                                {
+                                    const int FieldOffset = 1; // Skip the '_'.
+
+                                    // First char must match ignoring case.
+                                    if (key.Length > 0 && char.ToLowerInvariant(key[0]) != char.ToLowerInvariant(fieldName[FieldOffset]))
+                                    {
+                                        return false;
+                                    }
+
+                                    // Other chars must match.
+                                    for (int i = 1; i < key.Length; i++)
+                                    {
+                                        if (key[i] != fieldName[i + FieldOffset])
+                                        {
+                                            return false;
+                                        }
+                                    }
+                                    return true;
+                                }
+                                else
+                                {
+                                    return fieldName.Equals(key, StringComparison.Ordinal);
+                                }
+                            })
+                            .SingleOrDefault();
 
                 if (field == null)
                 {

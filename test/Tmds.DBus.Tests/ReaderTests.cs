@@ -279,8 +279,8 @@ namespace Tmds.DBus.Tests
         [Dictionary]
         public class PersonProperties
         {
-            public string Name;
-            public int? Age;
+            public string _Name; // The serialized key is 'Name'. It field may be prefixed with an underscore.
+            public int? _age;    // The serialized key is 'Age'. It field may be prefixed with an underscore, and the first letter a lower case.
             public Gender? Gender;
             public bool IsMarried;
             public override bool Equals(object rhs)
@@ -290,13 +290,13 @@ namespace Tmds.DBus.Tests
                 {
                     return false;
                 }
-                return (Name == other.Name) &&
-                       (Age == other.Age) &&
+                return (_Name == other._Name) &&
+                       (_age == other._age) &&
                        (Gender == other.Gender);
             }
             public override int GetHashCode()
             {
-                return Name?.GetHashCode() ?? 0;
+                return _Name?.GetHashCode() ?? 0;
             }
         }
 
@@ -361,14 +361,14 @@ namespace Tmds.DBus.Tests
                 var myArray = myDictionary.ToArray();
                 var john = new PersonProperties()
                 {
-                    Name = "John",
-                    Age = 32,
+                    _Name = "John",
+                    _age = 32,
                     Gender = Gender.Male,
                     IsMarried = true
                 };
                 var john2 = new PersonProperties2()
                 {
-                    Name = john.Name,
+                    Name = john._Name,
                     City = null
                 };
                 return new []

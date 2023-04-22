@@ -217,8 +217,8 @@ namespace Tmds.DBus.Tool
         private SyntaxNode[] PropertyToDeclarations(XElement propertyXml)
         {
             string name = propertyXml.Attribute("name").Value;
-            var fieldName = $"_{name.Replace('-', '_')}";
-            fieldName = CamelCase(fieldName);
+            var fieldName = name.Replace('-', '_');
+            fieldName = $"_{char.ToLowerInvariant(fieldName[0])}{fieldName.Substring(1)}";
             string dbusType = propertyXml.Attribute("type").Value;
             SyntaxNode type = ParseType(dbusType);
             var field = _generator.FieldDeclaration(fieldName, type, Accessibility.Private, DeclarationModifiers.None, _generator.DefaultExpression(type));
@@ -402,27 +402,6 @@ namespace Tmds.DBus.Tool
             }
 
             return token;
-        }
-
-        private static string CamelCase(string name)
-        {
-            var sb = new StringBuilder(name.Length);
-            var done = false;
-
-            foreach (char c in name)
-            {
-                if (c == '_' || done)
-                {
-                    sb.Append(c);
-                }
-                else
-                {
-                    sb.Append(char.ToLower(c));
-                    done = true;
-                }
-            }
-
-            return sb.ToString();
         }
 
         public static string Prettify(string name, bool startWithUpper = true)

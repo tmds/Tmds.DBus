@@ -2,7 +2,7 @@ name: Build
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Install .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v3
         with:
           dotnet-version: "7.0.x"
 
@@ -18,7 +18,7 @@ jobs:
         run: dotnet tool install --global dotnet-reportgenerator-globaltool
 
       - name: Fetch sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -49,7 +49,7 @@ jobs:
         run: ~/.dotnet/tools/reportgenerator -reports:test/Tmds.DBus.Protocol.Tests/TestResults/*/coverage.cobertura.xml -targetdir:coverage-reports
 
       - name: Upload coverage reports to artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: coverage-reports
           path: coverage-reports

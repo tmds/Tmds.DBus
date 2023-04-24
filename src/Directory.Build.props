@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <VersionPrefix>0.15.0</VersionPrefix>
+    <VersionPrefix>0.15.1</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>

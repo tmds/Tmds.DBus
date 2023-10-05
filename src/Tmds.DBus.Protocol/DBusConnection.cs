@@ -348,10 +348,6 @@ class DBusConnection : IDisposable
                             RunMethodHandler(methodHandler, context);
                         }
                     }
-                    else
-                    {
-                        SendUnknownMethodErrorIfNoReplySent(context);
-                    }
                 }
 
                 if (returnMessageToPool)
@@ -1144,3 +1140,4 @@ class DBusConnection : IDisposable
         }
     }
 }
+

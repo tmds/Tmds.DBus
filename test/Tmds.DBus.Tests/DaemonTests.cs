@@ -100,10 +100,10 @@ namespace Tmds.DBus.Tests
                 Assert.Equal("changed", val1Changed);
 
                 var changes = await tcs.Task;
-                Assert.Equal(1, changes.Changed.Length);
+                Assert.Single(changes.Changed);
                 Assert.Equal("key1", changes.Changed.First().Key);
                 Assert.Equal("changed", changes.Changed.First().Value);
-                Assert.Equal(0, changes.Invalidated.Length);
+                Assert.Empty(changes.Invalidated);
             }
         }
 
@@ -124,7 +124,7 @@ namespace Tmds.DBus.Tests
                 Assert.Equal("org.freedesktop.DBus.Error.ServiceUnknown", exception.ErrorName);
 
                 var isRunning = await conn1.IsServiceActiveAsync("com.some.service");
-                Assert.Equal(false, isRunning);
+                Assert.False(isRunning);
             }
         }
 

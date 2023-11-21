@@ -6,6 +6,9 @@
 using System;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.InteropServices;
+#if NET6_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 
 namespace Tmds.DBus
 {
@@ -141,6 +144,9 @@ namespace Tmds.DBus
             }
         }
 
+#if NET6_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         private static string GetSessionBusAddressFromSharedMemory()
         {
             string result = ReadSharedMemoryString("DBusDaemonAddressInfo", 255);
@@ -149,6 +155,9 @@ namespace Tmds.DBus
             return result;
         }
 
+#if NET6_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
         private static string ReadSharedMemoryString(string id, long maxlen = -1)
         {
             MemoryMappedFile shmem;

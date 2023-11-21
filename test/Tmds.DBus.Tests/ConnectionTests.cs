@@ -48,7 +48,7 @@ namespace Tmds.DBus.Tests
             await conn2.RegisterObjectAsync(new PingPong());
             await proxy.PingAsync("hello world");
             var reply = await tcs.Task;
-            Assert.Equal(null, reply);
+            Assert.Null(reply);
         }
 
         [Fact]
@@ -90,10 +90,10 @@ namespace Tmds.DBus.Tests
             Assert.Equal("changed", val1Changed);
 
             var changes = await tcs.Task;
-            Assert.Equal(1, changes.Changed.Length);
+            Assert.Single(changes.Changed);
             Assert.Equal("key1", changes.Changed.First().Key);
             Assert.Equal("changed", changes.Changed.First().Value);
-            Assert.Equal(0, changes.Invalidated.Length);
+            Assert.Empty(changes.Invalidated);
         }
 
         [InlineData("tcp:host=localhost,port=1")]

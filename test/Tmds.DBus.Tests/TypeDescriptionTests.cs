@@ -116,8 +116,8 @@ namespace Tmds.DBus.Tests
             var description = TypeDescription.DescribeInterface(typeof(IValidSignal1));
             var signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
-            Assert.Equal(false, signalDescription.HasOnError);
-            Assert.Equal(null, signalDescription.SignalType);
+            Assert.False(signalDescription.HasOnError);
+            Assert.Null(signalDescription.SignalType);
             Assert.Equal(typeof(Action), signalDescription.ActionType);
             Assert.Equal((Signature?)null, signalDescription.SignalSignature);
             Assert.Equal(0, signalDescription.SignalArguments.Count);
@@ -127,7 +127,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidSignal2));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
-            Assert.Equal(false, signalDescription.HasOnError);
+            Assert.False(signalDescription.HasOnError);
             Assert.Equal(typeof(int), signalDescription.SignalType);
             Assert.Equal(typeof(Action<int>), signalDescription.ActionType);
             Assert.Equal("i", signalDescription.SignalSignature);
@@ -230,8 +230,8 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidSignal8));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
-            Assert.Equal(true, signalDescription.HasOnError);
-            Assert.Equal(null, signalDescription.SignalType);
+            Assert.True(signalDescription.HasOnError);
+            Assert.Null(signalDescription.SignalType);
             Assert.Equal(typeof(Action), signalDescription.ActionType);
             Assert.Equal((Signature?)null, signalDescription.SignalSignature);
             Assert.Equal(0, signalDescription.SignalArguments.Count);
@@ -241,7 +241,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidSignal9));
             signalDescription = description.Interfaces[0].Signals[0];
             Assert.Equal("Something", signalDescription.Name);
-            Assert.Equal(true, signalDescription.HasOnError);
+            Assert.True(signalDescription.HasOnError);
             Assert.Equal(typeof(int), signalDescription.SignalType);
             Assert.Equal(typeof(Action<int>), signalDescription.ActionType);
             Assert.Equal("i", signalDescription.SignalSignature);
@@ -261,7 +261,7 @@ namespace Tmds.DBus.Tests
             var description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod1));
             var methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
-            Assert.Equal(null, methodDescription.OutType);
+            Assert.Null(methodDescription.OutType);
             Assert.Equal((Signature?)null, methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
             Assert.Equal(0, methodDescription.InArguments.Count);
@@ -272,7 +272,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod2));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
-            Assert.Equal(null, methodDescription.OutType);
+            Assert.Null(methodDescription.OutType);
             Assert.Equal("i", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
             Assert.Equal(0, methodDescription.OutArguments.Count);
@@ -288,7 +288,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod3));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
-            Assert.Equal(null, methodDescription.OutType);
+            Assert.Null(methodDescription.OutType);
             Assert.Equal("ii", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
             Assert.Equal(0, methodDescription.OutArguments.Count);
@@ -308,7 +308,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod4));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
-            Assert.Equal(null, methodDescription.OutType);
+            Assert.Null(methodDescription.OutType);
             Assert.Equal("(ii)", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
             Assert.Equal(0, methodDescription.OutArguments.Count);
@@ -324,7 +324,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod5));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
-            Assert.Equal(null, methodDescription.OutType);
+            Assert.Null(methodDescription.OutType);
             Assert.Equal("(ii)", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
             Assert.Equal(0, methodDescription.OutArguments.Count);
@@ -450,7 +450,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod12));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
-            Assert.Equal(null, methodDescription.OutType);
+            Assert.Null(methodDescription.OutType);
             Assert.Equal("(is)", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
             Assert.Equal(0, methodDescription.OutArguments.Count);
@@ -466,7 +466,7 @@ namespace Tmds.DBus.Tests
             description = TypeDescription.DescribeInterface(typeof(IValidDBusMethod13));
             methodDescription = description.Interfaces[0].Methods[0];
             Assert.Equal("Foo",  methodDescription.Name);
-            Assert.Equal(null, methodDescription.OutType);
+            Assert.Null(methodDescription.OutType);
             Assert.Equal("(is)", methodDescription.InSignature);
             Assert.Equal((Signature?)null, methodDescription.OutSignature);
             Assert.Equal(0, methodDescription.OutArguments.Count);

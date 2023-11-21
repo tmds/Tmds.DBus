@@ -20,7 +20,7 @@ public static class Address
 
             _systemAddress = Environment.GetEnvironmentVariable("DBUS_SYSTEM_BUS_ADDRESS");
 
-            if (string.IsNullOrEmpty(_systemAddress) && !RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (string.IsNullOrEmpty(_systemAddress) && !PlatformDetection.IsWindows())
             {
                 _systemAddress = "unix:path=/var/run/dbus/system_bus_socket";
             }
@@ -43,7 +43,7 @@ public static class Address
 
             if (string.IsNullOrEmpty(_sessionAddress))
             {
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                if (PlatformDetection.IsWindows())
                 {
                     _sessionAddress = GetSessionBusAddressFromSharedMemory();
                 }
@@ -138,7 +138,7 @@ public static class Address
 
     private static string? ReadSharedMemoryString(string id, long maxlen = -1)
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (!PlatformDetection.IsWindows())
         {
             return null;
         }

@@ -24,7 +24,7 @@ namespace Tmds.DBus.Tests
                 var connectionInfo = await connection.ConnectAsync();
 
                 Assert.StartsWith(":", connectionInfo.LocalName);
-                Assert.Equal(true, connectionInfo.RemoteIsBus);
+                Assert.True(connectionInfo.RemoteIsBus);
             }
         }
 
@@ -42,7 +42,7 @@ namespace Tmds.DBus.Tests
                 var connectionInfo = await connection.ConnectAsync();
 
                 Assert.StartsWith(":", connectionInfo.LocalName);
-                Assert.Equal(true, connectionInfo.RemoteIsBus);
+                Assert.True(connectionInfo.RemoteIsBus);
             }
         }
     }

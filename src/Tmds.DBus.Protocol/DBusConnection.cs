@@ -30,7 +30,7 @@ class DBusConnection : IDisposable
 
         public ValueTaskSourceStatus GetStatus(short token) => _core.GetStatus(token);
 
-        public void OnCompleted(Action<object> continuation, object state, short token, ValueTaskSourceOnCompletedFlags flags)
+        public void OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
         {
             _core.OnCompleted(continuation, state, token, flags);
             _continuationSet = true;
@@ -115,6 +115,7 @@ class DBusConnection : IDisposable
     private string? _localName;
     private Message? _currentMessage;
     private Observer? _currentObserver;
+    private SynchronizationContext? _currentSynchronizationContext;
     private TaskCompletionSource<Exception?>? _disconnectedTcs;
 
     public string? UniqueName => _localName;
@@ -398,16 +399,27 @@ class DBusConnection : IDisposable
     {
         _currentMessage = message;
         _currentObserver = observer;
+        _currentSynchronizationContext = synchronizationContext;
 
 #pragma warning disable VSTHRD001 // Await JoinableTaskFactory.SwitchToMainThreadAsync() to switch to the UI thread instead of APIs that can deadlock or require specifying a priority.
         // note: Send blocks the current thread until the SynchronizationContext ran the delegate.
         synchronizationContext.Send(static o => {
-            DBusConnection conn = (DBusConnection)o;
-            conn._currentObserver!.Emit(conn._currentMessage!);
+            SynchronizationContext? previousContext = SynchronizationContext.Current;
+            try
+            {
+                DBusConnection conn = (DBusConnection)o!;
+                SynchronizationContext.SetSynchronizationContext(conn._currentSynchronizationContext);
+                conn._currentObserver!.InvokeHandler(conn._currentMessage!);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(previousContext);
+            }
         }, this);
 
         _currentMessage = null;
         _currentObserver = null;
+        _currentSynchronizationContext = null;
     }
 
     public void AddMethodHandlers(IList<IMethodHandler> methodHandlers)
@@ -472,7 +484,7 @@ class DBusConnection : IDisposable
         {
             foreach (var observer in matchMaker.Observers)
             {
-                observer.Disconnect(new DisconnectedException(disconnectReason));
+                observer.Dispose(new DisconnectedException(disconnectReason), removeObserver: false);
             }
         }
         _matchMakers.Clear();
@@ -690,7 +702,7 @@ class DBusConnection : IDisposable
             }
             catch
             {
-                observer.Dispose(invokeHandler: false);
+                observer.Dispose(exception: null);
 
                 throw;
             }
@@ -734,9 +746,9 @@ class DBusConnection : IDisposable
             Subscribes = subscribes;
         }
 
-        public void Dispose() => Dispose(invokeHandler: true);
+        public void Dispose() => Dispose(s_objectDisposedException);
 
-        public void Dispose(bool invokeHandler)
+        public void Dispose(Exception? exception, bool removeObserver = true)
         {
             lock (_gate)
             {
@@ -747,19 +759,22 @@ class DBusConnection : IDisposable
                 _disposed = true;
             }
 
-            if (invokeHandler)
+            if (exception is not null)
             {
-                _messageHandler.Invoke(s_objectDisposedException, null!);
+                Emit(exception);
             }
 
-            _matchMaker.Connection.RemoveObserver(_matchMaker, this);
+            if (removeObserver)
+            {
+                _matchMaker.Connection.RemoveObserver(_matchMaker, this);
+            }
         }
 
-        public void EmitOnSynchronizationContext(Message message)
+        public void Emit(Message message)
         {
             if (_synchronizationContext is null)
             {
-                Emit(message);
+                InvokeHandler(message);
             }
             else
             {
@@ -767,7 +782,32 @@ class DBusConnection : IDisposable
             }
         }
 
-        public void Emit(Message message)
+        private void Emit(Exception exception)
+        {
+            if (_synchronizationContext is null ||
+                SynchronizationContext.Current == _synchronizationContext)
+            {
+                _messageHandler.Invoke(exception, null!);
+            }
+            else
+            {
+                _synchronizationContext.Send(
+                    delegate {
+                        SynchronizationContext? previousContext = SynchronizationContext.Current;
+                        try
+                        {
+                            SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
+                            _messageHandler.Invoke(exception, null!);
+                        }
+                        finally
+                        {
+                            SynchronizationContext.SetSynchronizationContext(previousContext);
+                        }
+                    }, null);
+            }
+        }
+
+        internal void InvokeHandler(Message message)
         {
             if (Subscribes && !_matchMaker.HasSubscribed)
             {
@@ -782,32 +822,6 @@ class DBusConnection : IDisposable
                 }
 
                 _messageHandler.Invoke(null, message);
-            }
-        }
-
-        internal void Disconnect(DisconnectedException disconnectedException)
-        {
-            lock (_gate)
-            {
-                if (_disposed)
-                {
-                    return;
-                }
-                _disposed = true;
-            }
-
-            if (_synchronizationContext is null)
-            {
-                InvokeHandler(disconnectedException);
-            }
-            else
-            {
-                _synchronizationContext.Send(delegate { InvokeHandler(disconnectedException); }, null);
-            }
-
-            void InvokeHandler(DisconnectedException disconnectedException)
-            {
-                _messageHandler.Invoke(disconnectedException, null!);
             }
         }
     }

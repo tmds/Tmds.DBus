@@ -106,7 +106,7 @@ class AddImplementation : IMethodHandler
     private const string Interface = "org.example.Adder";
     public string Path => "/org/example/Adder";
 
-    bool RunMethodHandlerSynchronously(Message message) => true;
+    public bool RunMethodHandlerSynchronously(Message message) => true;
 
     public ValueTask HandleMethodAsync(MethodContext context)
     {
@@ -117,10 +117,10 @@ class AddImplementation : IMethodHandler
                 switch ((request.MemberAsString, request.SignatureAsString))
                 {
                     case ("Add", "ii"):
-                        var reader = message.GetBodyReader();
+                        var reader = request.GetBodyReader();
                         int i = reader.ReadInt32();
                         int j = reader.ReadInt32();
-                        return Add(connection, i, j);
+                        return Add(context, i, j);
                 }
                 break;
         }
@@ -138,7 +138,7 @@ class AddImplementation : IMethodHandler
 
     private void ReplyToAdd(MethodContext context, int sum)
     {
-        using var writer = connection.CreateReplyWriter("i");
+        using var writer = context.CreateReplyWriter("i");
         writer.WriteInt32(sum);
         context.Reply(writer.CreateMessage());
     }

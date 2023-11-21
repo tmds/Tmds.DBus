@@ -6,6 +6,9 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+#if NET6_0_OR_GREATER
+using System.Runtime.Versioning;
+#endif
 using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus
@@ -15,6 +18,10 @@ namespace Tmds.DBus
         private const string MachineUuidPath = @"/var/lib/dbus/machine-id";
 
         public static readonly EndianFlag NativeEndianness;
+
+#if NET6_0_OR_GREATER
+        [SupportedOSPlatformGuard("windows")]
+#endif
         public static readonly bool IsWindows;
 
         static Environment()

@@ -108,6 +108,7 @@ class DBusConnection : IDisposable
     private readonly Dictionary<string, MatchMaker> _matchMakers;
     private readonly List<Observer> _matchedObservers;
     private readonly Dictionary<string, IMethodHandler> _pathHandlers;
+    private readonly Dictionary<string, string[]> _childNames;
 
     private IMessageStream? _messageStream;
     private ConnectionState _state;
@@ -136,6 +137,7 @@ class DBusConnection : IDisposable
         _matchMakers = new();
         _matchedObservers = new();
         _pathHandlers = new();
+        _childNames = new();
     }
 
     // For tests.
@@ -285,6 +287,7 @@ class DBusConnection : IDisposable
                 bool returnMessageToPool = true;
                 MessageHandler pendingCall = default;
                 IMethodHandler? methodHandler = null;
+                string[]? childNames = null;
 
                 bool isMethodCall = message.MessageType == MessageType.MethodCall;
 
@@ -313,6 +316,7 @@ class DBusConnection : IDisposable
                         if (message.PathIsSet)
                         {
                             _pathHandlers.TryGetValue(message.PathAsString!, out methodHandler);
+                            _childNames.TryGetValue(message.PathAsString!, out childNames);
                         }
                     }
                 }
@@ -348,6 +352,27 @@ class DBusConnection : IDisposable
                             RunMethodHandler(methodHandler, context);
                         }
                     }
+                    else if (message is { InterfaceAsString: "org.freedesktop.DBus.Introspectable", MemberAsString: "Introspect", PathIsSet: true })
+                    {
+                        var path = message.PathAsString!;
+                        if (childNames?.Length > 0)
+                        {
+                            var introspectionWriter = new IntrospectionWriter();
+
+                            introspectionWriter.WriteDocType();
+                            introspectionWriter.WriteNodeStart(path);
+                            introspectionWriter.WriteIntrospectableInterface();
+                            foreach (var child in childNames)
+                            {
+                                introspectionWriter.WriteChildNode(child);
+                            }
+
+                            introspectionWriter.WriteNodeEnd();
+                            SendIntrospectionResultReply(context, introspectionWriter);
+                        }
+
+                        SendUnknownMethodErrorIfNoReplySent(context);
+                    }
                     else
                     {
                         SendUnknownMethodErrorIfNoReplySent(context);
@@ -366,7 +391,14 @@ class DBusConnection : IDisposable
         }
     }
 
-    private void SendUnknownMethodErrorIfNoReplySent(MethodContext context)
+    private static void SendIntrospectionResultReply(MethodContext context, IntrospectionWriter writer)
+    {
+        var replyWriter = context.CreateReplyWriter("s");
+        replyWriter.WriteString(writer.ToString());
+        context.Reply(replyWriter.CreateMessage());
+    }
+
+    private static void SendUnknownMethodErrorIfNoReplySent(MethodContext context)
     {
         if (context.ReplySent || context.NoReplyExpected)
         {
@@ -375,10 +407,7 @@ class DBusConnection : IDisposable
 
         var request = context.Request;
         context.ReplyError("org.freedesktop.DBus.Error.UnknownMethod",
-                          String.Format("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist",
-                                        request.MemberAsString ?? "",
-                                        request.SignatureAsString ?? "",
-                                        request.InterfaceAsString ?? ""));
+            $"Method \"{request.MemberAsString ?? ""}\" with signature \"{request.SignatureAsString ?? ""}\" on interface \"{request.InterfaceAsString ?? ""}\" doesn't exist");
     }
 
     private async void RunMethodHandler(IMethodHandler methodHandler, MethodContext context)
@@ -435,11 +464,10 @@ class DBusConnection : IDisposable
 
             try
             {
-                for (int i = 0; i < methodHandlers.Count; i++)
+                foreach (IMethodHandler methodHandler in methodHandlers)
                 {
-                    IMethodHandler methodHandler = methodHandlers[i];
-
                     _pathHandlers.Add(methodHandler.Path, methodHandler);
+                    AddChildName(methodHandler.Path, false);
 
                     registeredCount++;
                 }
@@ -451,7 +479,93 @@ class DBusConnection : IDisposable
                     IMethodHandler methodHandler = methodHandlers[i];
 
                     _pathHandlers.Remove(methodHandler.Path);
+                    RemoveChildName(methodHandler.Path);
                 }
+            }
+        }
+    }
+
+    private void AddChildName(string path, bool checkChildNames)
+    {
+        while (path != "/")
+        {
+            int lastSeparatorIndex = path.LastIndexOf("/", StringComparison.Ordinal);
+            var parent = path.Substring(0, lastSeparatorIndex);
+            if (parent == string.Empty)
+            {
+                parent = "/";
+            }
+
+            var name = path.Substring(lastSeparatorIndex + 1, path.Length - lastSeparatorIndex - 1);
+            if (_childNames.TryGetValue(parent, out string[] childNames) && checkChildNames)
+            {
+                if (childNames.Any(x => x == name))
+                    return;
+            }
+
+            var newChildNames = new string[(childNames?.Length ?? 0) + 1];
+            if (childNames is not null)
+            {
+                Array.Copy(childNames, newChildNames, childNames.Length);
+            }
+
+            newChildNames[newChildNames.Length - 1] = name;
+            _childNames[parent] = newChildNames;
+
+            path = parent;
+            checkChildNames = true;
+        }
+    }
+
+    public void RemoveMethodHandlers(IEnumerable<IMethodHandler> methodHandlers)
+    {
+        lock (_gate)
+        {
+            foreach (var methodHandler in methodHandlers)
+            {
+                var removed = _pathHandlers.Remove(methodHandler.Path);
+                var hasChildren = _childNames.ContainsKey(methodHandler.Path);
+                if (removed && !hasChildren)
+                {
+                    RemoveChildName(methodHandler.Path);
+                }
+            }
+        }
+    }
+
+    private void RemoveChildName(string path)
+    {
+        while (path != "/")
+        {
+            int lastSeparatorIndex = path.LastIndexOf("/", StringComparison.Ordinal);
+            var parent = path.Substring(0, lastSeparatorIndex);
+            var name = path.Substring(lastSeparatorIndex + 1, path.Length - lastSeparatorIndex - 1);
+            string[] childNames = _childNames[parent];
+            if (childNames.Length == 1)
+            {
+                _childNames.Remove(parent);
+                if (_pathHandlers.ContainsKey(parent))
+                    continue;
+                path = parent;
+            }
+            else
+            {
+                int writeAt = 0;
+                bool found = false;
+                var newChildNames = new string[childNames.Length - 1];
+                foreach (string t in childNames)
+                {
+                    if (!found && t == name)
+                    {
+                        found = true;
+                    }
+                    else
+                    {
+                        newChildNames[writeAt++] = t;
+                    }
+                }
+
+                _childNames[parent] = newChildNames;
             }
         }
     }
@@ -471,14 +585,11 @@ class DBusConnection : IDisposable
 
         _messageStream?.Close(disconnectReason);
 
-        if (_pendingCalls is not null)
+        foreach (var pendingCall in _pendingCalls.Values)
         {
-            foreach (var pendingCall in _pendingCalls.Values)
-            {
-                pendingCall.Invoke(new DisconnectedException(disconnectReason), null!);
-            }
-            _pendingCalls.Clear();
+            pendingCall.Invoke(new DisconnectedException(disconnectReason), null!);
         }
+        _pendingCalls.Clear();
 
         foreach (var matchMaker in _matchMakers.Values)
         {

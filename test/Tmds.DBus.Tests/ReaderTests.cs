@@ -283,7 +283,7 @@ namespace Tmds.DBus.Tests
             public int? Age;
             public Gender? Gender;
             public bool IsMarried;
-            public ValueTuple<byte, byte, byte, byte, byte, byte, byte, ValueTuple<long>> SomeNumbers;
+            public ValueTuple<byte, byte, byte, byte, byte, byte, byte, ValueTuple<long>>? SomeNumbers;
             public override bool Equals(object rhs)
             {
                 var other = rhs as PersonProperties;

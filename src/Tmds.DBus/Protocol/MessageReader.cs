@@ -599,7 +599,7 @@ namespace Tmds.DBus.Protocol
             object strct = Activator.CreateInstance (structType);
             int sof = Marshal.SizeOf (fis[0].FieldType);
             GCHandle handle = GCHandle.Alloc (strct, GCHandleType.Pinned);
-            DirectCopy (sof, (uint)(fis.Length * sof), handle);
+            DirectCopy (sof, (uint)fis.Length, handle);
             handle.Free ();
 
             return strct;

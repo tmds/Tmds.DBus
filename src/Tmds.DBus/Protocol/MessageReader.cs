@@ -504,30 +504,31 @@ namespace Tmds.DBus.Protocol
                 _pos += (int)length;
             } else {
                 GCHandle handle = GCHandle.Alloc (array, GCHandleType.Pinned);
-                DirectCopy (sof, length, handle);
+                DirectCopy (sof, array.Length, handle);
                 handle.Free ();
             }
 
             return array;
         }
 
-        void DirectCopy (int sof, uint length, GCHandle handle)
+        void DirectCopy (int sof, int length, GCHandle handle)
         {
             DirectCopy (sof, length, handle.AddrOfPinnedObject ());
         }
 
-        unsafe void DirectCopy (int sof, uint length, IntPtr handle)
+        unsafe void DirectCopy (int sof, int length, IntPtr handle)
         {
+            int byteLength = length * sof;
             if (_endianness == Environment.NativeEndianness) {
-                Marshal.Copy (_data.Array, _data.Offset + _pos, handle, (int)length);
+                Marshal.Copy (_data.Array, _data.Offset + _pos, handle, byteLength);
             } else {
                 byte* ptr = (byte*)(void*)handle;
-                for (int i = _pos; i < _pos + length; i += sof)
+                for (int i = _pos; i < _pos + byteLength; i += sof)
                     for (int j = i; j < i + sof; j++)
                         ptr[2 * i - _pos + (sof - 1) - j] = _data.Array[_data.Offset + j];
             }
 
-            _pos += (int)length * sof;
+            _pos += byteLength;
         }
 
         bool[] MarshalBoolArray (uint length)
@@ -599,7 +600,7 @@ namespace Tmds.DBus.Protocol
             object strct = Activator.CreateInstance (structType);
             int sof = Marshal.SizeOf (fis[0].FieldType);
             GCHandle handle = GCHandle.Alloc (strct, GCHandleType.Pinned);
-            DirectCopy (sof, (uint)fis.Length, handle);
+            DirectCopy (sof, fis.Length, handle);
             handle.Free ();
 
             return strct;

@@ -117,6 +117,8 @@ class DBusConnection : IDisposable
     private Observer? _currentObserver;
     private SynchronizationContext? _currentSynchronizationContext;
     private TaskCompletionSource<Exception?>? _disconnectedTcs;
+    private bool _isMonitor;
+    private Action<Exception?, DisposableMessage>? _monitorHandler;
 
     public string? UniqueName => _localName;
 
@@ -285,8 +287,8 @@ class DBusConnection : IDisposable
                 bool returnMessageToPool = true;
                 MessageHandler pendingCall = default;
                 IMethodHandler? methodHandler = null;
-
-                bool isMethodCall = message.MessageType == MessageType.MethodCall;
+                Action<Exception?, DisposableMessage>? monitor = null;
+                bool isMethodCall = false; // keep this false when monitor is not null
 
                 lock (_gate)
                 {
@@ -295,24 +297,30 @@ class DBusConnection : IDisposable
                         return;
                     }
 
-                    if (message.ReplySerial.HasValue)
-                    {
-                        _pendingCalls.Remove(message.ReplySerial.Value, out pendingCall);
-                    }
+                    monitor = _monitorHandler;
 
-                    foreach (var matchMaker in _matchMakers.Values)
+                    if (monitor is null)
                     {
-                        if (matchMaker.Matches(message))
+                        isMethodCall = message.MessageType == MessageType.MethodCall;
+                        if (message.ReplySerial.HasValue)
                         {
-                            _matchedObservers.AddRange(matchMaker.Observers);
+                            _pendingCalls.Remove(message.ReplySerial.Value, out pendingCall);
                         }
-                    }
 
-                    if (isMethodCall)
-                    {
-                        if (message.PathIsSet)
+                        foreach (var matchMaker in _matchMakers.Values)
                         {
-                            _pathHandlers.TryGetValue(message.PathAsString!, out methodHandler);
+                            if (matchMaker.Matches(message))
+                            {
+                                _matchedObservers.AddRange(matchMaker.Observers);
+                            }
+                        }
+
+                        if (isMethodCall)
+                        {
+                            if (message.PathIsSet)
+                            {
+                                _pathHandlers.TryGetValue(message.PathAsString!, out methodHandler);
+                            }
                         }
                     }
                 }
@@ -351,6 +359,18 @@ class DBusConnection : IDisposable
                     else
                     {
                         SendUnknownMethodErrorIfNoReplySent(context);
+                    }
+                }
+
+                if (monitor is not null)
+                {
+                    lock (monitor)
+                    {
+                        if (_monitorHandler is not null)
+                        {
+                            returnMessageToPool = false;
+                            monitor(null, new DisposableMessage(message));
+                        }
                     }
                 }
 
@@ -403,7 +423,8 @@ class DBusConnection : IDisposable
 
 #pragma warning disable VSTHRD001 // Await JoinableTaskFactory.SwitchToMainThreadAsync() to switch to the UI thread instead of APIs that can deadlock or require specifying a priority.
         // note: Send blocks the current thread until the SynchronizationContext ran the delegate.
-        synchronizationContext.Send(static o => {
+        synchronizationContext.Send(static o =>
+        {
             SynchronizationContext? previousContext = SynchronizationContext.Current;
             try
             {
@@ -458,6 +479,8 @@ class DBusConnection : IDisposable
 
     public void Dispose()
     {
+        Action<Exception?, DisposableMessage>? monitor = null;
+
         lock (_gate)
         {
             if (_state == ConnectionState.Disconnected)
@@ -465,6 +488,7 @@ class DBusConnection : IDisposable
                 return;
             }
             _state = ConnectionState.Disconnected;
+            monitor = _monitorHandler;
         }
 
         Exception disconnectReason = DisconnectReason;
@@ -488,6 +512,15 @@ class DBusConnection : IDisposable
             }
         }
         _matchMakers.Clear();
+
+        if (monitor is not null)
+        {
+            lock (monitor)
+            {
+                _monitorHandler = null;
+                monitor(new DisconnectedException(disconnectReason), new DisposableMessage(null));
+            }
+        }
 
         _disconnectedTcs?.SetResult(GetWaitForDisconnectException());
     }
@@ -513,6 +546,10 @@ class DBusConnection : IDisposable
                 if (_state != ConnectionState.Connected)
                 {
                     throw new DisconnectedException(DisconnectReason!);
+                }
+                if (_isMonitor)
+                {
+                    throw new InvalidOperationException("Cannot send messages on monitor connection.");
                 }
                 if ((message.MessageFlags & MessageFlags.NoReplyExpected) == 0)
                 {
@@ -547,7 +584,6 @@ class DBusConnection : IDisposable
                 try
                 {
                     vtsState.SetResult(valueReaderState(message, state3));
-                    
                 }
                 catch (Exception ex)
                 {
@@ -615,7 +651,77 @@ class DBusConnection : IDisposable
         return new DBusException(errorName, errMessage);
     }
 
-    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader,Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, bool subscribe)
+    public async Task BecomeMonitorAsync(Action<Exception?, DisposableMessage> handler, IEnumerable<MatchRule>? rules)
+    {
+        Task reply;
+
+        lock (_gate)
+        {
+            if (_state != ConnectionState.Connected)
+            {
+                throw new DisconnectedException(DisconnectReason!);
+            }
+            if (!RemoteIsBus)
+            {
+                throw new InvalidOperationException("The remote is not a bus.");
+            }
+            if (_matchMakers.Count != 0)
+            {
+                throw new InvalidOperationException("The connection has observers.");
+            }
+            if (_pendingCalls.Count != 0)
+            {
+                throw new InvalidOperationException("The connection has pending method calls.");
+            }
+
+            HashSet<string>? ruleStrings = null;
+            if (rules is not null)
+            {
+                ruleStrings = new();
+                foreach (var rule in rules)
+                {
+                    ruleStrings.Add(rule.ToString());
+                }
+            }
+
+            reply = CallMethodAsync(CreateMessage(ruleStrings));
+            _isMonitor = true;
+        }
+
+        try
+        {
+            await reply.ConfigureAwait(false);
+            lock (_gate)
+            {
+                _monitorHandler = handler;
+            }
+        }
+        catch
+        {
+            lock (_gate)
+            {
+                _isMonitor = false;
+            }
+
+            throw;
+        }
+
+        MessageBuffer CreateMessage(IEnumerable<string>? rules)
+        {
+            using var writer = GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Connection.DBusServiceName,
+                path: Connection.DBusObjectPath,
+                @interface: "org.freedesktop.DBus.Monitoring",
+                signature: "asu",
+                member: "BecomeMonitor");
+            writer.WriteArray(rules ?? Array.Empty<string>());
+            writer.WriteUInt32(0);
+            return writer.CreateMessage();
+        }
+    }
+
+    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, bool subscribe)
     {
         MessageHandlerDelegate4 fn = static (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
         {
@@ -649,10 +755,13 @@ class DBusConnection : IDisposable
             {
                 throw new DisconnectedException(DisconnectReason!);
             }
-
             if (!RemoteIsBus)
             {
                 subscribe = false;
+            }
+            if (_isMonitor)
+            {
+                throw new InvalidOperationException("Cannot add subscriptions on a monitor connection.");
             }
 
             ruleString = data.GetRuleString();
@@ -792,7 +901,8 @@ class DBusConnection : IDisposable
             else
             {
                 _synchronizationContext.Send(
-                    delegate {
+                    delegate
+                    {
                         SynchronizationContext? previousContext = SynchronizationContext.Current;
                         try
                         {

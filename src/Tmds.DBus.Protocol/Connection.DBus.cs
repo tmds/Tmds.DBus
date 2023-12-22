@@ -20,4 +20,10 @@ public partial class Connection
             return writer.CreateMessage();
         }
     }
+
+    public async Task BecomeMonitorAsync(Action<Exception?, DisposableMessage> handler, IEnumerable<MatchRule>? rules = null)
+    {
+        DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
+        await connection.BecomeMonitorAsync(handler, rules).ConfigureAwait(false);
+    }
 }

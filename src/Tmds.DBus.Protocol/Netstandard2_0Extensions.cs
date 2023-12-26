@@ -97,7 +97,7 @@ static partial class NetstandardExtensions
     public static async ValueTask<int> ReceiveAsync(this Socket socket, Memory<byte> buffer, SocketFlags socketFlags)
     {
         if (MemoryMarshal.TryGetArray((ReadOnlyMemory<byte>)buffer, out var segment))
-            return await SocketTaskExtensions.ReceiveAsync(socket, segment, socketFlags);
+            return await SocketTaskExtensions.ReceiveAsync(socket, segment, socketFlags).ConfigureAwait(false);
 
         throw new NotSupportedException();
     }

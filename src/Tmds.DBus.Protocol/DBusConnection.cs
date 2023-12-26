@@ -359,7 +359,7 @@ class DBusConnection : IDisposable
                             bool runHandlerSynchronously = methodHandler.RunMethodHandlerSynchronously(message);
                             if (runHandlerSynchronously)
                             {
-                                await methodHandler.HandleMethodAsync(context);
+                                await methodHandler.HandleMethodAsync(context).ConfigureAwait(false);
                                 SendUnknownMethodErrorIfNoReplySent(context);
                             }
                             else
@@ -406,7 +406,7 @@ class DBusConnection : IDisposable
     {
         try
         {
-            await methodHandler.HandleMethodAsync(context);
+            await methodHandler.HandleMethodAsync(context).ConfigureAwait(false);
             SendUnknownMethodErrorIfNoReplySent(context);
             context.Request.ReturnToPool();
         }

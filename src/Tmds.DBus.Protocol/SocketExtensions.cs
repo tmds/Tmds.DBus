@@ -60,7 +60,7 @@ static class SocketExtensions
     {
         while (buffer.Length > 0)
         {
-            int sent = await socket.SendAsync(buffer, SocketFlags.None);
+            int sent = await socket.SendAsync(buffer, SocketFlags.None).ConfigureAwait(false);
             buffer = buffer.Slice(sent);
         }
     }

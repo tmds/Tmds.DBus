@@ -8,5 +8,7 @@ interface IMessageStream
 
     ValueTask<bool> TrySendMessageAsync(MessageBuffer message);
 
+    void BecomeMonitor();
+
     void Close(Exception closeReason);
 }

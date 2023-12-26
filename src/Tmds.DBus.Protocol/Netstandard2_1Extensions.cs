@@ -74,7 +74,7 @@ static partial class NetstandardExtensions
                 (targetEndPoint, callback, state) => ((Socket)state).BeginConnect(targetEndPoint, callback, state),
                 asyncResult => ((Socket)asyncResult.AsyncState).EndConnect(asyncResult),
                 remoteEP,
-                state: socket);
+                state: socket).ConfigureAwait(false);
         }
         catch (ObjectDisposedException)
         {

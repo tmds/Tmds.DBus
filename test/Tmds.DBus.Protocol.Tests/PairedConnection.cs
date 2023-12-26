@@ -93,5 +93,8 @@ namespace Tmds.DBus.Protocol.Tests
         {
             TrySendMessageAsync(null!); // Use null as EOF.
         }
+
+        public void BecomeMonitor()
+            => throw new InvalidOperationException();
     }
 }

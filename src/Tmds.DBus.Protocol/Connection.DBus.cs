@@ -23,6 +23,11 @@ public partial class Connection
 
     public async Task BecomeMonitorAsync(Action<Exception?, DisposableMessage> handler, IEnumerable<MatchRule>? rules = null)
     {
+        if (_connectionOptions.IsShared)
+        {
+            throw new InvalidOperationException("Cannot become monitor on a shared connection.");
+        }
+
         DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
         await connection.BecomeMonitorAsync(handler, rules).ConfigureAwait(false);
     }

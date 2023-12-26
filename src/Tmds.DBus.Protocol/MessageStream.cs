@@ -23,6 +23,7 @@ class MessageStream : IMessageStream
     private readonly PipeReader _pipeReader;
 
     private Exception? _completionException;
+    private bool _isMonitor;
 
     public MessageStream(Socket socket)
     {
@@ -43,6 +44,11 @@ class MessageStream : IMessageStream
             _fdCollection = new();
         }
         _messagePool = new();
+    }
+
+    public void BecomeMonitor()
+    {
+        _isMonitor = true;
     }
 
     private async void ReadFromSocketIntoPipe()
@@ -121,7 +127,7 @@ class MessageStream : IMessageStream
                 ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
                 ReadOnlySequence<byte> buffer = result.Buffer;
 
-                ReadMessages(ref buffer, _fdCollection, _messagePool, handler, state);
+                ReadMessages(ref buffer, handler, state);
 
                 reader.AdvanceTo(buffer.Start, buffer.End);
             }
@@ -136,10 +142,10 @@ class MessageStream : IMessageStream
             _fdCollection?.Dispose();
         }
 
-        static void ReadMessages<TState>(ref ReadOnlySequence<byte> buffer, UnixFdCollection? fdCollection, MessagePool messagePool, IMessageStream.MessageReceivedHandler<TState> handler, TState state)
+        void ReadMessages<TState>(ref ReadOnlySequence<byte> buffer, IMessageStream.MessageReceivedHandler<TState> handler, TState state)
         {
             Message? message;
-            while ((message = Message.TryReadMessage(messagePool, ref buffer, fdCollection)) != null)
+            while ((message = Message.TryReadMessage(_messagePool, ref buffer, _fdCollection, _isMonitor)) != null)
             {
                 handler(closeReason: null, message, state);
             }

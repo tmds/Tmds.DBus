@@ -18,6 +18,8 @@ public class ClientConnectionOptions : ConnectionOptions
 
     public bool AutoConnect { get; set; }
 
+    internal bool IsShared { get; set; }
+
     protected internal virtual ValueTask<ClientSetupResult> SetupAsync(CancellationToken cancellationToken)
     {
         return new ValueTask<ClientSetupResult>(

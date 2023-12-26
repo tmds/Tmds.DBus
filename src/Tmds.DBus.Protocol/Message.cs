@@ -114,7 +114,7 @@ public sealed class Message
         _signature.Clear();
     }
 
-    internal static Message? TryReadMessage(MessagePool messagePool, ref ReadOnlySequence<byte> sequence, UnixFdCollection? handles = null)
+    internal static Message? TryReadMessage(MessagePool messagePool, ref ReadOnlySequence<byte> sequence, UnixFdCollection? handles = null, bool isMonitor = false)
     {
         SequenceReader<byte> seqReader = new(sequence);
         if (!seqReader.TryRead(out byte endianness) ||
@@ -167,7 +167,7 @@ public sealed class Message
         message.Serial = serial;
         message.MessageType = (MessageType)msgType;
         message.MessageFlags = (MessageFlags)flags;
-        message.ParseHeader(handles);
+        message.ParseHeader(handles, isMonitor);
 
         return message;
 
@@ -180,7 +180,7 @@ public sealed class Message
         }
     }
 
-    private void ParseHeader(UnixFdCollection? handles)
+    private void ParseHeader(UnixFdCollection? handles, bool isMonitor)
     {
         var reader = new Reader(IsBigEndian, _data.AsReadOnlySequence);
         reader.Advance(HeaderFieldsLengthOffset);
@@ -218,7 +218,7 @@ public sealed class Message
                     break;
                 case MessageHeader.UnixFds:
                     UnixFdCount = (int)reader.ReadUInt32();
-                    if (UnixFdCount > 0)
+                    if (UnixFdCount > 0 && !isMonitor)
                     {
                         if (handles is null || UnixFdCount > handles.Count)
                         {

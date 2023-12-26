@@ -249,7 +249,7 @@ public partial class Connection : IDisposable
         {
             return connection;
         }
-        var newConnection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true });
+        var newConnection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true, IsShared = true });
         connection = Interlocked.CompareExchange(ref field, newConnection, null);
         if (connection != null)
         {

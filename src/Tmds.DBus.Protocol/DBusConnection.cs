@@ -288,7 +288,7 @@ class DBusConnection : IDisposable
                 MessageHandler pendingCall = default;
                 IMethodHandler? methodHandler = null;
                 Action<Exception?, DisposableMessage>? monitor = null;
-                bool isMethodCall = false; // keep this false when monitor is not null
+                bool isMethodCall = message.MessageType == MessageType.MethodCall;
 
                 lock (_gate)
                 {
@@ -301,7 +301,6 @@ class DBusConnection : IDisposable
 
                     if (monitor is null)
                     {
-                        isMethodCall = message.MessageType == MessageType.MethodCall;
                         if (message.ReplySerial.HasValue)
                         {
                             _pendingCalls.Remove(message.ReplySerial.Value, out pendingCall);
@@ -325,43 +324,6 @@ class DBusConnection : IDisposable
                     }
                 }
 
-                if (_matchedObservers.Count != 0)
-                {
-                    foreach (var observer in _matchedObservers)
-                    {
-                        observer.Emit(message);
-                    }
-                    _matchedObservers.Clear();
-                }
-
-                if (pendingCall.HasValue)
-                {
-                    pendingCall.Invoke(null, message);
-                }
-
-                if (isMethodCall)
-                {
-                    MethodContext context = new MethodContext(_parentConnection, message); // TODO: pool.
-                    if (methodHandler is not null)
-                    {
-                        bool runHandlerSynchronously = methodHandler.RunMethodHandlerSynchronously(message);
-                        if (runHandlerSynchronously)
-                        {
-                            await methodHandler.HandleMethodAsync(context);
-                            SendUnknownMethodErrorIfNoReplySent(context);
-                        }
-                        else
-                        {
-                            returnMessageToPool = false;
-                            RunMethodHandler(methodHandler, context);
-                        }
-                    }
-                    else
-                    {
-                        SendUnknownMethodErrorIfNoReplySent(context);
-                    }
-                }
-
                 if (monitor is not null)
                 {
                     lock (monitor)
@@ -370,6 +332,45 @@ class DBusConnection : IDisposable
                         {
                             returnMessageToPool = false;
                             monitor(null, new DisposableMessage(message));
+                        }
+                    }
+                }
+                else
+                {
+                    if (_matchedObservers.Count != 0)
+                    {
+                        foreach (var observer in _matchedObservers)
+                        {
+                            observer.Emit(message);
+                        }
+                        _matchedObservers.Clear();
+                    }
+
+                    if (pendingCall.HasValue)
+                    {
+                        pendingCall.Invoke(null, message);
+                    }
+
+                    if (isMethodCall)
+                    {
+                        MethodContext context = new MethodContext(_parentConnection, message); // TODO: pool.
+                        if (methodHandler is not null)
+                        {
+                            bool runHandlerSynchronously = methodHandler.RunMethodHandlerSynchronously(message);
+                            if (runHandlerSynchronously)
+                            {
+                                await methodHandler.HandleMethodAsync(context);
+                                SendUnknownMethodErrorIfNoReplySent(context);
+                            }
+                            else
+                            {
+                                returnMessageToPool = false;
+                                RunMethodHandler(methodHandler, context);
+                            }
+                        }
+                        else
+                        {
+                            SendUnknownMethodErrorIfNoReplySent(context);
                         }
                     }
                 }
@@ -693,6 +694,7 @@ class DBusConnection : IDisposable
             await reply.ConfigureAwait(false);
             lock (_gate)
             {
+                _messageStream!.BecomeMonitor();
                 _monitorHandler = handler;
             }
         }

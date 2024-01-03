@@ -63,6 +63,12 @@ public ref partial struct Reader
         }
         return true;
     }
+
+    public void SkipTo(ArrayEnd end)
+    {
+        int advance = end.EndOfArray - (int)_reader.Consumed;
+        _reader.Advance(advance);
+    }
 }
 
 public ref struct ArrayEnd

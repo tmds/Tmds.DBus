@@ -11,6 +11,7 @@ namespace Tmds.DBus.Tool
             commandLineApp.HelpOption(Command.HelpTemplate);
             new CodeGenCommand(commandLineApp);
             new ListCommand(commandLineApp);
+            new MonitorCommand(commandLineApp);
             commandLineApp.OnExecute(() => { commandLineApp.ShowHelp(); return 0; });
             commandLineApp.Execute(args);
         }

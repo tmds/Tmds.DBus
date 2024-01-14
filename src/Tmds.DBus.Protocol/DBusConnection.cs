@@ -857,7 +857,7 @@ class DBusConnection : IDisposable
             Subscribes = subscribes;
         }
 
-        public void Dispose() => Dispose(s_objectDisposedException);
+        public void Dispose() => Dispose(null);
 
         public void Dispose(Exception? exception, bool removeObserver = true)
         {
@@ -865,8 +865,10 @@ class DBusConnection : IDisposable
             {
                 if (_disposed)
                 {
+                    Emit(s_objectDisposedException);
                     return;
                 }
+
                 _disposed = true;
             }
 
@@ -930,6 +932,7 @@ class DBusConnection : IDisposable
             {
                 if (_disposed)
                 {
+                    Emit(s_objectDisposedException);
                     return;
                 }
 

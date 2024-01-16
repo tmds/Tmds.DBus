@@ -865,7 +865,6 @@ class DBusConnection : IDisposable
             {
                 if (_disposed)
                 {
-                    Emit(s_objectDisposedException);
                     return;
                 }
 
@@ -897,8 +896,7 @@ class DBusConnection : IDisposable
 
         private void Emit(Exception exception)
         {
-            if (_synchronizationContext is null ||
-                SynchronizationContext.Current == _synchronizationContext)
+            if (_synchronizationContext is null || SynchronizationContext.Current == _synchronizationContext)
             {
                 _messageHandler.Invoke(exception, null!);
             }

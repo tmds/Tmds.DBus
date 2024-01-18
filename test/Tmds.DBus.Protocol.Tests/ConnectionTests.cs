@@ -95,6 +95,46 @@ namespace Tmds.DBus.Protocol.Tests
             }
         }
 
+        [Fact]
+        public async Task ConnectionRespondsToDBusPeerPing()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            await conn1.CallMethodAsync(CreateMessage());
+
+            MessageBuffer CreateMessage()
+            {
+                using var writer = conn1.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    @interface: "org.freedesktop.DBus.Peer",
+                    member: "Ping");
+                return writer.CreateMessage();
+            }
+        }
+
+        [Fact]
+        public async Task ConnectionRespondsToDBusPeerGetMachineId()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            string machineId = await conn1.CallMethodAsync(CreateMessage(), (Message m, object? s) => m.GetBodyReader().ReadString(), null);
+            Assert.Equal(32, machineId.Length);
+            Assert.True(Guid.TryParse(machineId, out _));
+
+            MessageBuffer CreateMessage()
+            {
+                using var writer = conn1.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    @interface: "org.freedesktop.DBus.Peer",
+                    member: "GetMachineId");
+                return writer.CreateMessage();
+            }
+        }
+
         static class HelloWorldConstants
         {
             public const string Path = "/path";

@@ -27,7 +27,7 @@ public class MethodContext
 
     public bool NoReplyExpected => (Request.MessageFlags & MessageFlags.NoReplyExpected) != 0;
 
-    public MessageWriter CreateReplyWriter(string signature)
+    public MessageWriter CreateReplyWriter(string? signature)
     {
         var writer = Connection.GetMessageWriter();
         writer.WriteMethodReturnHeader(

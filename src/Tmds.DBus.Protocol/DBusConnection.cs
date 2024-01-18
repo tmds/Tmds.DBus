@@ -6,7 +6,7 @@ using System.Threading.Tasks.Sources;
 
 namespace Tmds.DBus.Protocol;
 
-class DBusConnection : IDisposable
+class DBusConnection : IDisposable, IMethodHandler
 {
     private delegate void MessageReceivedHandler(Exception? exception, Message message, object? state);
 
@@ -316,7 +316,12 @@ class DBusConnection : IDisposable
 
                         if (isMethodCall)
                         {
-                            if (message.PathIsSet)
+                            if (message.InterfaceIsSet &&
+                                message.Interface.SequenceEqual("org.freedesktop.DBus.Peer"u8))
+                            {
+                                methodHandler = this;
+                            }
+                            else if (message.PathIsSet)
                             {
                                 _pathHandlers.TryGetValue(message.PathAsString!, out methodHandler);
                             }
@@ -1255,4 +1260,28 @@ class DBusConnection : IDisposable
             return writer.CreateMessage();
         }
     }
+
+    string IMethodHandler.Path => throw new NotSupportedException();
+
+    ValueTask IMethodHandler.HandleMethodAsync(MethodContext context)
+    {
+        if (context.Request.Interface.SequenceEqual("org.freedesktop.DBus.Peer"u8))
+        {
+            if (context.Request.Member.SequenceEqual("Ping"u8))
+            {
+                using var writer = context.CreateReplyWriter(null);
+                context.Reply(writer.CreateMessage());
+            }
+            else if (context.Request.Member.SequenceEqual("GetMachineId"u8))
+            {
+                using var writer = context.CreateReplyWriter("s");
+                writer.WriteString(DBusEnvironment.MachineId);
+                context.Reply(writer.CreateMessage());
+            }
+        }
+        return default;
+    }
+
+    bool IMethodHandler.RunMethodHandlerSynchronously(Message message)
+        => true;
 }

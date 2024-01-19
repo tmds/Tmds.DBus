@@ -4,7 +4,7 @@ public delegate T MessageValueReader<T>(Message message, object? state);
 
 public partial class Connection : IDisposable
 {
-    private static readonly Exception s_disposedSentinel = new ObjectDisposedException(typeof(Connection).FullName);
+    internal static readonly Exception DisposedException = new ObjectDisposedException(typeof(Connection).FullName);
     private static Connection? s_systemConnection;
     private static Connection? s_sessionConnection;
 
@@ -150,7 +150,7 @@ public partial class Connection : IDisposable
             _disposed = true;
         }
 
-        Disconnect(s_disposedSentinel);
+        Disconnect(DisposedException);
     }
 
     internal void Disconnect(Exception disconnectReason, DBusConnection? trigger = null)

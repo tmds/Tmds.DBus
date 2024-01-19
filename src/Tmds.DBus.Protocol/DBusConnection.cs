@@ -108,7 +108,7 @@ class DBusConnection : IDisposable, IMethodHandler
     private readonly Dictionary<string, MatchMaker> _matchMakers;
     private readonly List<Observer> _matchedObservers;
     private readonly Dictionary<string, IMethodHandler> _pathHandlers;
-    private readonly string? _machineId;
+    private readonly string _machineId;
 
     private IMessageStream? _messageStream;
     private ConnectionState _state;
@@ -845,9 +845,10 @@ class DBusConnection : IDisposable, IMethodHandler
         }
     }
 
+    internal static readonly ObjectDisposedException ObserverDisposedException = new ObjectDisposedException(typeof(Observer).FullName);
+
     sealed class Observer : IDisposable
     {
-        private static readonly ObjectDisposedException s_objectDisposedException = new ObjectDisposedException(typeof(Observer).FullName);
         private readonly object _gate = new object();
         private readonly SynchronizationContext? _synchronizationContext;
         private readonly MatchMaker _matchMaker;
@@ -864,7 +865,7 @@ class DBusConnection : IDisposable, IMethodHandler
             Subscribes = subscribes;
         }
 
-        public void Dispose() => Dispose(s_objectDisposedException);
+        public void Dispose() => Dispose(ObserverDisposedException);
 
         public void Dispose(Exception? exception, bool removeObserver = true)
         {

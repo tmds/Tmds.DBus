@@ -46,7 +46,7 @@ public partial class Connection : IDisposable
     // For tests.
     internal void Connect(IMessageStream stream)
     {
-        _connection = new DBusConnection(this);
+        _connection = new DBusConnection(this, DBusEnvironment.MachineId);
         _connection.Connect(stream);
         _state = ConnectionState.Connected;
     }
@@ -98,7 +98,7 @@ public partial class Connection : IDisposable
         {
             _connectCts = new();
             _setupResult = await _connectionOptions.SetupAsync(_connectCts.Token).ConfigureAwait(false);
-            connection = _connection = new DBusConnection(this);
+            connection = _connection = new DBusConnection(this, _setupResult.MachineId ?? DBusEnvironment.MachineId);
 
             await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token).ConfigureAwait(false);
 

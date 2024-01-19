@@ -108,6 +108,7 @@ class DBusConnection : IDisposable, IMethodHandler
     private readonly Dictionary<string, MatchMaker> _matchMakers;
     private readonly List<Observer> _matchedObservers;
     private readonly Dictionary<string, IMethodHandler> _pathHandlers;
+    private readonly string? _machineId;
 
     private IMessageStream? _messageStream;
     private ConnectionState _state;
@@ -130,7 +131,7 @@ class DBusConnection : IDisposable, IMethodHandler
 
     public bool RemoteIsBus => _localName is not null;
 
-    public DBusConnection(Connection parent)
+    public DBusConnection(Connection parent, string machineId)
     {
         _parentConnection = parent;
         _connectCts = new();
@@ -138,6 +139,7 @@ class DBusConnection : IDisposable, IMethodHandler
         _matchMakers = new();
         _matchedObservers = new();
         _pathHandlers = new();
+        _machineId = machineId;
     }
 
     // For tests.
@@ -1275,7 +1277,7 @@ class DBusConnection : IDisposable, IMethodHandler
             else if (context.Request.Member.SequenceEqual("GetMachineId"u8))
             {
                 using var writer = context.CreateReplyWriter("s");
-                writer.WriteString(DBusEnvironment.MachineId);
+                writer.WriteString(_machineId);
                 context.Reply(writer.CreateMessage());
             }
         }

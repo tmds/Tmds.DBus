@@ -26,7 +26,8 @@ public class ClientConnectionOptions : ConnectionOptions
             new ClientSetupResult(_address)
             {
                 SupportsFdPassing = true,
-                UserId = DBusEnvironment.UserId
+                UserId = DBusEnvironment.UserId,
+                MachineId = DBusEnvironment.MachineId
             });
     }
 

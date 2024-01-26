@@ -154,7 +154,7 @@ public ref partial struct MessageWriter
         WritePadding(DBusType.UInt32);
         Span<byte> lengthSpan = GetSpan(4);
         Advance(4);
-        int bytesWritten = (int)Encoding.UTF8.GetBytes(s.AsSpan(), Writer);
+        int bytesWritten = WriteRaw(s);
         Unsafe.WriteUnaligned<uint>(ref MemoryMarshal.GetReference(lengthSpan), (uint)bytesWritten);
         _offset += bytesWritten;
         WriteByte(0);
@@ -168,5 +168,20 @@ public ref partial struct MessageWriter
         var span = GetSpan(length);
         Unsafe.WriteUnaligned<T>(ref MemoryMarshal.GetReference(span), value);
         Advance(length);
+    }
+
+    private int WriteRaw(ReadOnlySpan<byte> data)
+    {
+        int length = data.Length;
+        var dst = GetSpan(length);
+        data.CopyTo(dst);
+        Advance(length);
+        return length;
+    }
+
+    private int WriteRaw(string data)
+    {
+        int length = (int)Encoding.UTF8.GetBytes(data.AsSpan(), Writer);
+        return length;
     }
 }

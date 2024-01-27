@@ -234,9 +234,9 @@ public partial class Connection : IDisposable
     }
 
     public void AddMethodHandler(IMethodHandler methodHandler)
-        => AddMethodHandlers(new[] { methodHandler });
+        => AddMethodHandlers([ methodHandler ]);
 
-    public void AddMethodHandlers(IList<IMethodHandler> methodHandlers)
+    public void AddMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers)
     {
         GetConnection().AddMethodHandlers(methodHandlers);
     }

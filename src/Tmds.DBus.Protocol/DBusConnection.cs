@@ -6,11 +6,11 @@ using System.Threading.Tasks.Sources;
 
 namespace Tmds.DBus.Protocol;
 
-class DBusConnection : IDisposable, IMethodHandler
+class DBusConnection : IDisposable
 {
     private delegate void MessageReceivedHandler(Exception? exception, Message message, object? state);
 
-    class MyValueTaskSource<T> : IValueTaskSource<T>, IValueTaskSource
+    sealed class MyValueTaskSource<T> : IValueTaskSource<T>, IValueTaskSource
     {
         private ManualResetValueTaskSourceCore<T> _core;
         private volatile bool _continuationSet;
@@ -107,7 +107,7 @@ class DBusConnection : IDisposable, IMethodHandler
     private readonly CancellationTokenSource _connectCts;
     private readonly Dictionary<string, MatchMaker> _matchMakers;
     private readonly List<Observer> _matchedObservers;
-    private readonly Dictionary<string, IMethodHandler> _pathHandlers;
+    private readonly PathNodeDictionary _pathNodes;
     private readonly string _machineId;
 
     private IMessageStream? _messageStream;
@@ -138,7 +138,7 @@ class DBusConnection : IDisposable, IMethodHandler
         _pendingCalls = new();
         _matchMakers = new();
         _matchedObservers = new();
-        _pathHandlers = new();
+        _pathNodes = new();
         _machineId = machineId;
     }
 
@@ -291,6 +291,7 @@ class DBusConnection : IDisposable, IMethodHandler
                 IMethodHandler? methodHandler = null;
                 Action<Exception?, DisposableMessage>? monitor = null;
                 bool isMethodCall = message.MessageType == MessageType.MethodCall;
+                MethodContext? methodContext = null;
 
                 lock (_gate)
                 {
@@ -318,14 +319,22 @@ class DBusConnection : IDisposable, IMethodHandler
 
                         if (isMethodCall)
                         {
-                            if (message.InterfaceIsSet &&
-                                message.Interface.SequenceEqual("org.freedesktop.DBus.Peer"u8))
+                            methodContext = new MethodContext(_parentConnection, message); // TODO: pool.
+
+                            if (message.PathIsSet)
                             {
-                                methodHandler = this;
-                            }
-                            else if (message.PathIsSet)
-                            {
-                                _pathHandlers.TryGetValue(message.PathAsString!, out methodHandler);
+                                if (_pathNodes.TryGetValue(message.PathAsString!, out PathNode? node))
+                                {
+                                    methodHandler = node.MethodHandler;
+
+                                    bool isDBusIntrospect = message.Member.SequenceEqual("Introspect"u8) &&
+                                                            message.Interface.SequenceEqual("org.freedesktop.DBus.Introspectable"u8);
+                                    methodContext.IsDBusIntrospectRequest = isDBusIntrospect;
+                                    if (isDBusIntrospect)
+                                    {
+                                        node.CopyChildNamesTo(methodContext);
+                                    }
+                                }
                             }
                         }
                     }
@@ -360,25 +369,32 @@ class DBusConnection : IDisposable, IMethodHandler
 
                     if (isMethodCall)
                     {
-                        MethodContext context = new MethodContext(_parentConnection, message); // TODO: pool.
+                        Debug.Assert(methodContext is not null);
                         if (methodHandler is not null)
                         {
+// Suppress methodContext nullability warnings.
+#if NETSTANDARD2_0
+#pragma warning disable CS8604
+#endif
                             bool runHandlerSynchronously = methodHandler.RunMethodHandlerSynchronously(message);
                             if (runHandlerSynchronously)
                             {
-                                await methodHandler.HandleMethodAsync(context).ConfigureAwait(false);
-                                SendUnknownMethodErrorIfNoReplySent(context);
+                                await methodHandler.HandleMethodAsync(methodContext).ConfigureAwait(false);
+                                HandleNoReplySent(methodContext);
                             }
                             else
                             {
                                 returnMessageToPool = false;
-                                RunMethodHandler(methodHandler, context);
+                                RunMethodHandler(methodHandler, methodContext);
                             }
                         }
                         else
                         {
-                            SendUnknownMethodErrorIfNoReplySent(context);
+                            HandleNoReplySent(methodContext);
                         }
+#if NETSTANDARD2_0
+#pragma warning restore CS8604
+#endif
                     }
                 }
 
@@ -394,19 +410,40 @@ class DBusConnection : IDisposable, IMethodHandler
         }
     }
 
-    private void SendUnknownMethodErrorIfNoReplySent(MethodContext context)
+    private void HandleNoReplySent(MethodContext context)
     {
         if (context.ReplySent || context.NoReplyExpected)
         {
             return;
         }
 
+        if (context.IsDBusIntrospectRequest)
+        {
+            context.ReplyIntrospectXml(interfaceXmls: []);
+            return;
+        }
+
         var request = context.Request;
+
+        if (request.Interface.SequenceEqual("org.freedesktop.DBus.Peer"u8))
+        {
+            if (request.Member.SequenceEqual("Ping"u8))
+            {
+                using var writer = context.CreateReplyWriter(null);
+                context.Reply(writer.CreateMessage());
+                return;
+            }
+            else if (request.Member.SequenceEqual("GetMachineId"u8))
+            {
+                using var writer = context.CreateReplyWriter("s");
+                writer.WriteString(_machineId);
+                context.Reply(writer.CreateMessage());
+                return;
+            }
+        }
+
         context.ReplyError("org.freedesktop.DBus.Error.UnknownMethod",
-                          String.Format("Method \"{0}\" with signature \"{1}\" on interface \"{2}\" doesn't exist",
-                                        request.MemberAsString ?? "",
-                                        request.SignatureAsString ?? "",
-                                        request.InterfaceAsString ?? ""));
+                           $"Method \"{request.MemberAsString}\" with signature \"{request.SignatureAsString}\" on interface \"{request.InterfaceAsString}\" doesn't exist");
     }
 
     private async void RunMethodHandler(IMethodHandler methodHandler, MethodContext context)
@@ -414,7 +451,7 @@ class DBusConnection : IDisposable, IMethodHandler
         try
         {
             await methodHandler.HandleMethodAsync(context).ConfigureAwait(false);
-            SendUnknownMethodErrorIfNoReplySent(context);
+            HandleNoReplySent(context);
             context.Request.ReturnToPool();
         }
         catch (Exception ex)
@@ -451,7 +488,7 @@ class DBusConnection : IDisposable, IMethodHandler
         _currentSynchronizationContext = null;
     }
 
-    public void AddMethodHandlers(IList<IMethodHandler> methodHandlers)
+    public void AddMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers)
     {
         lock (_gate)
         {
@@ -460,28 +497,7 @@ class DBusConnection : IDisposable, IMethodHandler
                 return;
             }
 
-            int registeredCount = 0;
-
-            try
-            {
-                for (int i = 0; i < methodHandlers.Count; i++)
-                {
-                    IMethodHandler methodHandler = methodHandlers[i];
-
-                    _pathHandlers.Add(methodHandler.Path, methodHandler);
-
-                    registeredCount++;
-                }
-            }
-            catch
-            {
-                for (int i = 0; i < registeredCount; i++)
-                {
-                    IMethodHandler methodHandler = methodHandlers[i];
-
-                    _pathHandlers.Remove(methodHandler.Path);
-                }
-            }
+            _pathNodes.AddMethodHandlers(methodHandlers);
         }
     }
 
@@ -1263,28 +1279,4 @@ class DBusConnection : IDisposable, IMethodHandler
             return writer.CreateMessage();
         }
     }
-
-    string IMethodHandler.Path => throw new NotSupportedException();
-
-    ValueTask IMethodHandler.HandleMethodAsync(MethodContext context)
-    {
-        if (context.Request.Interface.SequenceEqual("org.freedesktop.DBus.Peer"u8))
-        {
-            if (context.Request.Member.SequenceEqual("Ping"u8))
-            {
-                using var writer = context.CreateReplyWriter(null);
-                context.Reply(writer.CreateMessage());
-            }
-            else if (context.Request.Member.SequenceEqual("GetMachineId"u8))
-            {
-                using var writer = context.CreateReplyWriter("s");
-                writer.WriteString(_machineId);
-                context.Reply(writer.CreateMessage());
-            }
-        }
-        return default;
-    }
-
-    bool IMethodHandler.RunMethodHandlerSynchronously(Message message)
-        => true;
 }

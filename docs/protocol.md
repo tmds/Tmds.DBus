@@ -106,10 +106,28 @@ class AddImplementation : IMethodHandler
     private const string Interface = "org.example.Adder";
     public string Path => "/org/example/Adder";
 
+    private static ReadOnlyMemory<byte> InterfaceXml { get; } =
+        """
+        <interface name="org.example.Adder">
+          <method name="Add">
+            <arg direction="in" type="i"/>
+            <arg direction="in" type="i"/>
+            <arg direction="out" type="i"/>
+          </method>
+        </interface>
+
+        """u8.ToArray();
+
     public bool RunMethodHandlerSynchronously(Message message) => true;
 
     public ValueTask HandleMethodAsync(MethodContext context)
     {
+        if (context.IsDBusIntrospectRequest)
+        {
+            context.ReplyIntrospectXml([ InterfaceXml ]);
+            return default;
+        }
+
         var request = context.Request;
         switch (request.InterfaceAsString)
         {

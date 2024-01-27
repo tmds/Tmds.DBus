@@ -1,6 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Reflection.Metadata;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 using Xunit;
 
 namespace Tmds.DBus.Protocol.Tests
@@ -133,6 +137,143 @@ namespace Tmds.DBus.Protocol.Tests
                     member: "GetMachineId");
                 return writer.CreateMessage();
             }
+        }
+
+        [Theory, MemberData(nameof(IntrospectionTestData))]
+        public async Task Introspection(string path, string? expectedXml)
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            conn2.AddMethodHandlers(new []
+            {
+                new IntrospectionTestMethodHandler("/root/handler1", interfaceXml:
+                    """
+                    <interface name="handler1"/>
+
+                    """),
+                new IntrospectionTestMethodHandler("/root/handler2", interfaceXml: null),
+            });
+
+            if (expectedXml is null)
+            {
+                await Assert.ThrowsAsync<DBusException>(() => conn1.CallMethodAsync(CreateMessage(path), (Message m, object? s) => m.GetBodyReader().ReadString(), null));
+            }
+            else
+            {
+                // Validate the expected XML.
+                var xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(expectedXml);
+                Assert.EndsWith("\n", expectedXml);
+
+                string actualXml = await conn1.CallMethodAsync(CreateMessage(path), (Message m, object? s) => m.GetBodyReader().ReadString(), null);
+
+                Assert.Equal(expectedXml, actualXml);
+            }
+
+            MessageBuffer CreateMessage(string path)
+            {
+                using var writer = conn1.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    path: path,
+                    @interface: "org.freedesktop.DBus.Introspectable",
+                    member: "Introspect");
+                return writer.CreateMessage();
+            }
+        }
+
+        public static IEnumerable<object[]> IntrospectionTestData
+        {
+            get
+            {
+                yield return new object[]
+                {
+                    "/no_such_path",
+                    null!
+                };
+                yield return new object[]
+                {
+                    "/root/handler1",
+                    """
+                    <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+                    <node>
+                    <interface name="handler1"/>
+                    <interface name="org.freedesktop.DBus.Introspectable">
+                      <method name="Introspect">
+                        <arg type="s" name="xml_data" direction="out"/>
+                      </method>
+                    </interface>
+                    <interface name="org.freedesktop.DBus.Peer">
+                      <method name="Ping"/>
+                      <method name="GetMachineId">
+                        <arg type="s" name="machine_uuid" direction="out"/>
+                      </method>
+                    </interface>
+                    </node>
+
+                    """
+                };
+                yield return new object[]
+                {
+                    "/root/handler2",
+                    """
+                    <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+                    <node>
+                    <interface name="org.freedesktop.DBus.Introspectable">
+                      <method name="Introspect">
+                        <arg type="s" name="xml_data" direction="out"/>
+                      </method>
+                    </interface>
+                    <interface name="org.freedesktop.DBus.Peer">
+                      <method name="Ping"/>
+                      <method name="GetMachineId">
+                        <arg type="s" name="machine_uuid" direction="out"/>
+                      </method>
+                    </interface>
+                    </node>
+
+                    """
+                };
+                yield return new object[]
+                {
+                    "/root",
+                    """
+                    <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+                    <node>
+                    <node name="handler1"/>
+                    <node name="handler2"/>
+                    </node>
+
+                    """
+                };
+            }
+        }
+
+        private class IntrospectionTestMethodHandler : IMethodHandler
+        {
+            private readonly string? _interfaceXml;
+
+            public IntrospectionTestMethodHandler(string path, string? interfaceXml)
+            {
+                Path = path;
+                _interfaceXml = interfaceXml;
+            }
+
+            public string Path { get; }
+
+            public ValueTask HandleMethodAsync(MethodContext context)
+            {
+                if (context.IsDBusIntrospectRequest && _interfaceXml is not null)
+                {
+                    context.ReplyIntrospectXml([ Encoding.UTF8.GetBytes(_interfaceXml) ]);
+                }
+
+                return default;
+            }
+
+            public bool RunMethodHandlerSynchronously(Message message)
+                => true;
         }
 
         static class HelloWorldConstants

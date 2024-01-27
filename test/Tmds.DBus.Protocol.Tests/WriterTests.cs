@@ -172,13 +172,47 @@ public class WriterTests
         }
     }
 
-    [Theory, MemberData(nameof(WriteVariantTestDAta))]
-    private void WriteVariant(object expected, byte[] bigEndianData, byte[] littleEndianData)
+    [Theory, MemberData(nameof(WriteVariantTestData))]
+    public void WriteVariant(object expected, byte[] bigEndianData, byte[] littleEndianData)
     {
         TestWrite(expected, (ref MessageWriter writer, object value) => writer.WriteVariant(value), alignment: 0, bigEndianData, littleEndianData);
     }
 
-    public static IEnumerable<object[]> WriteVariantTestDAta
+    [Theory, MemberData(nameof(WriteIntrospectionXmlTestData))]
+    public void WriteIntrospectionXml(string expected, ReadOnlyMemory<byte>[] interfaceXmls, string[] nodeNames)
+    {
+        using var writer = CreateWriter();
+        writer.WriteIntrospectionXml(interfaceXmls, (IEnumerable<string>)nodeNames);
+
+        var data = writer.AsReadOnlySequence();
+
+        Reader reader = new Reader(isBigEndian: !BitConverter.IsLittleEndian, data);
+        var actual = reader.ReadString();
+        Assert.Equal(expected.Replace("\r\n", "\n"), actual.Replace("\r\n", "\n"));
+    }
+
+    public static IEnumerable<object[]> WriteIntrospectionXmlTestData
+    {
+        get
+        {
+            yield return new object[]
+            {
+                """
+                <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+                <node>
+                <interface1/>
+                <interface2/>
+                <node name="node1"/>
+                <node name="node2"/>
+                </node>
+
+                """
+                , new ReadOnlyMemory<byte>[] { "<interface1/>\n"u8.ToArray(), "<interface2/>\n"u8.ToArray() }, new string[] { "node1", "node2" },
+            };
+        }
+    }
+
+    public static IEnumerable<object[]> WriteVariantTestData
     {
         get
         {

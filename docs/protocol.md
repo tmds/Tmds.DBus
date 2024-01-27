@@ -11,21 +11,6 @@ dotnet new console -o example
 cd example
 ```
 
-Add a `NuGet.Config` file
-```
-dotnet new nugetconfig
-```
-
-Add the `tmds` feed into the file:
-```xml
-<add key="tmds" value="https://www.myget.org/F/tmds/api/v3/index.json" />
-```
-
-Now add the `Tmds.DBus.Protocol` package:
-```
-dotnet add package --prerelease Tmds.DBus.Protocol
-```
-
 Update `Program.cs`:
 ```cs
 using Tmds.DBus.Protocol;

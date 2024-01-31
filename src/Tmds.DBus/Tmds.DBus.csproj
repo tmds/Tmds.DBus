@@ -14,9 +14,9 @@
     <PublicSign>true</PublicSign>
   </PropertyGroup>
   <ItemGroup Condition="'$(TargetFrameworkIdentifier)' == '.NETStandard'">
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
-    <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
-    <PackageReference Include="System.Security.Principal.Windows" Version="4.7.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" />
+    <PackageReference Include="System.Reflection.Emit" />
+    <PackageReference Include="System.Security.Principal.Windows" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\sign.snk" />

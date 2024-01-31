@@ -1,6 +1,6 @@
 namespace Tmds.DBus.Protocol;
 
-public static class MatchActionException
+public static class ActionException
 {
     // Exception used when the IDisposable returned by AddMatchAsync gets disposed.
     public static bool IsObserverDisposed(Exception exception)

@@ -532,7 +532,10 @@ class DBusConnection : IDisposable
         {
             foreach (var observer in matchMaker.Observers)
             {
-                observer.Dispose(new DisconnectedException(disconnectReason), removeObserver: false);
+                bool emitException = !object.ReferenceEquals(disconnectReason, Connection.DisposedException) ||
+                                     observer.EmitOnConnectionDispose;
+                Exception? exception = emitException ? new DisconnectedException(disconnectReason) : null;
+                observer.Dispose(exception, removeObserver: false);
             }
         }
         _matchMakers.Clear();
@@ -746,7 +749,7 @@ class DBusConnection : IDisposable
         }
     }
 
-    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, bool subscribe)
+    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, AddMatchFlags flags)
     {
         MessageHandlerDelegate4 fn = static (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
         {
@@ -763,16 +766,17 @@ class DBusConnection : IDisposable
             }
         };
 
-        return AddMatchAsync(synchronizationContext, rule, new(fn, valueReader, valueHandler, readerState, handlerState), subscribe);
+        return AddMatchAsync(synchronizationContext, rule, new(fn, valueReader, valueHandler, readerState, handlerState), flags);
     }
 
-    private async ValueTask<IDisposable> AddMatchAsync(SynchronizationContext? synchronizationContext, MatchRule rule, MessageHandler4 handler, bool subscribe)
+    private async ValueTask<IDisposable> AddMatchAsync(SynchronizationContext? synchronizationContext, MatchRule rule, MessageHandler4 handler, AddMatchFlags flags)
     {
         MatchRuleData data = rule.Data;
         MatchMaker? matchMaker;
         string ruleString;
         Observer observer;
         MessageBuffer? addMatchMessage = null;
+        bool subscribe;
 
         lock (_gate)
         {
@@ -782,7 +786,7 @@ class DBusConnection : IDisposable
             }
             if (!RemoteIsBus)
             {
-                subscribe = false;
+                flags |= AddMatchFlags.NoSubscribe;
             }
             if (_isMonitor)
             {
@@ -797,9 +801,10 @@ class DBusConnection : IDisposable
                 _matchMakers.Add(ruleString, matchMaker);
             }
 
-            observer = new Observer(synchronizationContext, matchMaker, handler, subscribe);
+            observer = new Observer(synchronizationContext, matchMaker, handler, flags);
             matchMaker.Observers.Add(observer);
 
+            subscribe = observer.Subscribes;
             bool sendMessage = subscribe && matchMaker.AddMatchTcs is null;
             if (sendMessage)
             {
@@ -869,19 +874,23 @@ class DBusConnection : IDisposable
         private readonly SynchronizationContext? _synchronizationContext;
         private readonly MatchMaker _matchMaker;
         private readonly MessageHandler4 _messageHandler;
+        private readonly AddMatchFlags _flags;
         private bool _disposed;
 
-        public bool Subscribes { get; }
+        public bool Subscribes => (_flags & AddMatchFlags.NoSubscribe) == 0;
+        public bool EmitOnConnectionDispose => (_flags & AddMatchFlags.EmitOnConnectionDispose) != 0;
+        public bool EmitOnObserverDispose => (_flags & AddMatchFlags.EmitOnObserverDispose) != 0;
 
-        public Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, bool subscribes)
+        public Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, AddMatchFlags flags)
         {
             _synchronizationContext = synchronizationContext;
             _matchMaker = matchMaker;
             _messageHandler = messageHandler;
-            Subscribes = subscribes;
+            _flags = flags;
         }
 
-        public void Dispose() => Dispose(ObserverDisposedException);
+        public void Dispose() =>
+            Dispose(EmitOnObserverDispose ? ObserverDisposedException : null);
 
         public void Dispose(Exception? exception, bool removeObserver = true)
         {

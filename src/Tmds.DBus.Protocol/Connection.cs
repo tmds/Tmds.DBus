@@ -226,11 +226,16 @@ public partial class Connection : IDisposable
         return await connection.CallMethodAsync(message, reader, readerState).ConfigureAwait(false);
     }
 
-    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true, bool subscribe = true)
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true, bool subscribe = true)
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, AddMatchFlags.EmitOnConnectionDispose | AddMatchFlags.EmitOnObserverDispose | (!subscribe ? AddMatchFlags.NoSubscribe : default));
+
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, bool emitOnCapturedContext, AddMatchFlags flags)
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext ? SynchronizationContext.Current : null, flags);
+
+    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, AddMatchFlags flags)
     {
-        SynchronizationContext? synchronizationContext = emitOnCapturedContext ? SynchronizationContext.Current : null;
         DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
-        return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, subscribe).ConfigureAwait(false);
+        return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, flags).ConfigureAwait(false);
     }
 
     public void AddMethodHandler(IMethodHandler methodHandler)

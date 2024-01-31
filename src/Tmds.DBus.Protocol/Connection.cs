@@ -227,12 +227,12 @@ public partial class Connection : IDisposable
     }
 
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true, bool subscribe = true)
-        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, AddMatchFlags.EmitOnConnectionDispose | AddMatchFlags.EmitOnObserverDispose | (!subscribe ? AddMatchFlags.NoSubscribe : default));
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, ObserverFlags.EmitOnConnectionDispose | ObserverFlags.EmitOnObserverDispose | (!subscribe ? ObserverFlags.NoSubscribe : default));
 
-    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, bool emitOnCapturedContext, AddMatchFlags flags)
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, bool emitOnCapturedContext, ObserverFlags flags)
         => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext ? SynchronizationContext.Current : null, flags);
 
-    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, AddMatchFlags flags)
+    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, ObserverFlags flags)
     {
         DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
         return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, flags).ConfigureAwait(false);

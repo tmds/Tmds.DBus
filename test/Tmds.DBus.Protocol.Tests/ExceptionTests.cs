@@ -64,7 +64,7 @@ namespace Tmds.DBus.Protocol.Tests
                 new MatchRule(), (Message message, object? state) => "", (Exception? ex, string s, object? s1, object? s2) =>
                 {
                     exception ??= ex;
-                }, null, null, synchronizationContext: null, optIn ? AddMatchFlags.EmitOnObserverDispose : AddMatchFlags.None);
+                }, null, null, synchronizationContext: null, optIn ? ObserverFlags.EmitOnObserverDispose : ObserverFlags.None);
 
             disposable.Dispose();
 
@@ -94,7 +94,7 @@ namespace Tmds.DBus.Protocol.Tests
                 new MatchRule(), (Message message, object? state) => "", (Exception? ex, string s, object? s1, object? s2) =>
                 {
                     exception ??= ex;
-                }, null, null, synchronizationContext: null, optIn ? AddMatchFlags.EmitOnConnectionDispose : AddMatchFlags.None);
+                }, null, null, synchronizationContext: null, optIn ? ObserverFlags.EmitOnConnectionDispose : ObserverFlags.None);
 
             conn1.Dispose();
 

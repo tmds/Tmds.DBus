@@ -749,7 +749,7 @@ class DBusConnection : IDisposable
         }
     }
 
-    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, AddMatchFlags flags)
+    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
     {
         MessageHandlerDelegate4 fn = static (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
         {
@@ -769,7 +769,7 @@ class DBusConnection : IDisposable
         return AddMatchAsync(synchronizationContext, rule, new(fn, valueReader, valueHandler, readerState, handlerState), flags);
     }
 
-    private async ValueTask<IDisposable> AddMatchAsync(SynchronizationContext? synchronizationContext, MatchRule rule, MessageHandler4 handler, AddMatchFlags flags)
+    private async ValueTask<IDisposable> AddMatchAsync(SynchronizationContext? synchronizationContext, MatchRule rule, MessageHandler4 handler, ObserverFlags flags)
     {
         MatchRuleData data = rule.Data;
         MatchMaker? matchMaker;
@@ -786,7 +786,7 @@ class DBusConnection : IDisposable
             }
             if (!RemoteIsBus)
             {
-                flags |= AddMatchFlags.NoSubscribe;
+                flags |= ObserverFlags.NoSubscribe;
             }
             if (_isMonitor)
             {
@@ -874,14 +874,14 @@ class DBusConnection : IDisposable
         private readonly SynchronizationContext? _synchronizationContext;
         private readonly MatchMaker _matchMaker;
         private readonly MessageHandler4 _messageHandler;
-        private readonly AddMatchFlags _flags;
+        private readonly ObserverFlags _flags;
         private bool _disposed;
 
-        public bool Subscribes => (_flags & AddMatchFlags.NoSubscribe) == 0;
-        public bool EmitOnConnectionDispose => (_flags & AddMatchFlags.EmitOnConnectionDispose) != 0;
-        public bool EmitOnObserverDispose => (_flags & AddMatchFlags.EmitOnObserverDispose) != 0;
+        public bool Subscribes => (_flags & ObserverFlags.NoSubscribe) == 0;
+        public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionDispose) != 0;
+        public bool EmitOnObserverDispose => (_flags & ObserverFlags.EmitOnObserverDispose) != 0;
 
-        public Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, AddMatchFlags flags)
+        public Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, ObserverFlags flags)
         {
             _synchronizationContext = synchronizationContext;
             _matchMaker = matchMaker;

@@ -23,6 +23,21 @@ public partial class Connection
         }
     }
 
+    public Task<string[]> ListActivatableServicesAsync()
+    {
+        return CallMethodAsync(CreateMessage(), (Message m, object? s) => m.GetBodyReader().ReadArray<string>());
+        MessageBuffer CreateMessage()
+        {
+            using var writer = GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: DBusServiceName,
+                path: DBusObjectPath,
+                @interface: DBusInterface,
+                member: "ListActivatableNames");
+            return writer.CreateMessage();
+        }
+    }
+
     public async Task BecomeMonitorAsync(Action<Exception?, DisposableMessage> handler, IEnumerable<MatchRule>? rules = null)
     {
         if (_connectionOptions.IsShared)

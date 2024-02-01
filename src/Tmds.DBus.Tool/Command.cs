@@ -1,4 +1,5 @@
 using Microsoft.Extensions.CommandLineUtils;
+using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool
 {

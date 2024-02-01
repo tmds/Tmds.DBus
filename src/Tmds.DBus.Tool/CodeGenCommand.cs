@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.CodeAnalysis;
+using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool
 {

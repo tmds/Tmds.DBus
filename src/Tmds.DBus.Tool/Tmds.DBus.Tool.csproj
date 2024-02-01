@@ -22,7 +22,6 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
     <PackageReference Include="Microsoft.Extensions.CommandLineUtils" />
-    <ProjectReference Include="../Tmds.DBus/Tmds.DBus.csproj" />
     <ProjectReference Include="../Tmds.DBus.Protocol/Tmds.DBus.Protocol.csproj" />
   </ItemGroup>
 </Project>

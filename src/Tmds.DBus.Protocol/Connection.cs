@@ -226,8 +226,12 @@ public partial class Connection : IDisposable
         return await connection.CallMethodAsync(message, reader, readerState).ConfigureAwait(false);
     }
 
+    [Obsolete("Use an overload that accepts ObserverFlags.")]
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true, bool subscribe = true)
-        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, ObserverFlags.EmitOnConnectionDispose | ObserverFlags.EmitOnObserverDispose | (!subscribe ? ObserverFlags.NoSubscribe : default));
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, ObserverFlags.EmitOnDispose | (!subscribe ? ObserverFlags.NoSubscribe : default));
+
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, ObserverFlags flags, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true)
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, flags);
 
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, bool emitOnCapturedContext, ObserverFlags flags)
         => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext ? SynchronizationContext.Current : null, flags);

@@ -306,7 +306,7 @@ namespace Tmds.DBus.Protocol.Tests
                 };
                 return this.Connection.AddMatchAsync(rule, reader,
                                                         (Exception? ex, TArg arg, object? rs, object? hs) => ((Action<Exception?, TArg>)hs!).Invoke(ex, arg),
-                                                        this, handler, emitOnCapturedContext);
+                                                        this, handler, emitOnCapturedContext, ObserverFlags.EmitOnDispose);
             }
             public ValueTask<IDisposable> WatchSignalAsync(string sender, string @interface, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext)
             {
@@ -319,7 +319,7 @@ namespace Tmds.DBus.Protocol.Tests
                     Interface = @interface
                 };
                 return this.Connection.AddMatchAsync<object>(rule, (Message message, object? state) => null!,
-                                                                (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);
+                                                                (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext, ObserverFlags.EmitOnDispose);
             }
         }
 

@@ -165,7 +165,7 @@ namespace Tmds.DBus.Tool
             EndBlock();
 
             AppendLine("");
-            AppendLine("protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, PropertyChanges<TProperties>> handler, bool emitOnCapturedContext)");
+            AppendLine("protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, PropertyChanges<TProperties>> handler, bool emitOnCapturedContext, ObserverFlags flags)");
             StartBlock();
             AppendLine("var rule = new MatchRule");
             AppendLine("{");
@@ -178,11 +178,11 @@ namespace Tmds.DBus.Tool
             AppendLine("};");
             AppendLine("return this.Connection.AddMatchAsync(rule, reader,");
             AppendLine("                                        (Exception? ex, PropertyChanges<TProperties> changes, object? rs, object? hs) => ((Action<Exception?, PropertyChanges<TProperties>>)hs!).Invoke(ex, changes),");
-            AppendLine("                                        this, handler, emitOnCapturedContext);");
+            AppendLine("                                        this, handler, emitOnCapturedContext, flags);");
             EndBlock();
 
             AppendLine("");
-            AppendLine("public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, string @interface, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext)");
+            AppendLine("public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, string @interface, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext, ObserverFlags flags)");
             StartBlock();
             AppendLine("var rule = new MatchRule");
             AppendLine("{");
@@ -194,11 +194,11 @@ namespace Tmds.DBus.Tool
             AppendLine("};");
             AppendLine("return this.Connection.AddMatchAsync(rule, reader,");
             AppendLine("                                        (Exception? ex, TArg arg, object? rs, object? hs) => ((Action<Exception?, TArg>)hs!).Invoke(ex, arg),");
-            AppendLine("                                        this, handler, emitOnCapturedContext);");
+            AppendLine("                                        this, handler, emitOnCapturedContext, flags);");
             EndBlock();
 
             AppendLine("");
-            AppendLine("public ValueTask<IDisposable> WatchSignalAsync(string sender, string @interface, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext)");
+            AppendLine("public ValueTask<IDisposable> WatchSignalAsync(string sender, string @interface, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext, ObserverFlags flags)");
             StartBlock();
             AppendLine("var rule = new MatchRule");
             AppendLine("{");
@@ -209,7 +209,7 @@ namespace Tmds.DBus.Tool
             AppendLine("    Interface = @interface");
             AppendLine("};");
             AppendLine("return this.Connection.AddMatchAsync<object>(rule, (Message message, object? state) => null!,");
-            AppendLine("                                                (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);");
+            AppendLine("                                                (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext, flags);");
             EndBlock();
 
             foreach (var readMethod in _messageReadMethods)
@@ -291,9 +291,9 @@ namespace Tmds.DBus.Tool
                 EndBlock(); // method
 
                 // WatchPropertiesChangedAsync
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<{propertiesClassName}>> handler, bool emitOnCapturedContext = true)");
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<{propertiesClassName}>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)");
                 StartBlock();
-                AppendLine($"return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, ({_objectName})s!), handler, emitOnCapturedContext);");
+                AppendLine($"return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, ({_objectName})s!), handler, emitOnCapturedContext, flags);");
                 AppendLine("");
                 AppendLine($"static PropertyChanges<{propertiesClassName}> ReadMessage(Message message, {_objectName} _)");
                 StartBlock();
@@ -406,15 +406,15 @@ namespace Tmds.DBus.Tool
             string watchType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetType : TupleOf(args.Select(arg => $"{arg.DotnetType} {arg.NameUpper}"));
             string methodArg = watchType == null ? $"Action<Exception?>" : $"Action<Exception?, {watchType}>";
             string dotnetMethodName = "Watch" + Prettify(dbusSignalName) + "Async";
-            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({methodArg} handler, bool emitOnCapturedContext = true)");
+            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({methodArg} handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)");
             if (watchType == null)
             {
-                AppendLine($"    => base.WatchSignalAsync(Service.Destination, __Interface, Path, \"{dbusSignalName}\", handler, emitOnCapturedContext);");
+                AppendLine($"    => base.WatchSignalAsync(Service.Destination, __Interface, Path, \"{dbusSignalName}\", handler, emitOnCapturedContext, flags);");
             }
             else
             {
                 string readMessageName = GetReadMessageMethodName(args, variant: false);
-                AppendLine($"    => base.WatchSignalAsync(Service.Destination, __Interface, Path, \"{dbusSignalName}\", (Message m, object? s) => {readMessageName}(m, ({_objectName})s!), handler, emitOnCapturedContext);");
+                AppendLine($"    => base.WatchSignalAsync(Service.Destination, __Interface, Path, \"{dbusSignalName}\", (Message m, object? s) => {readMessageName}(m, ({_objectName})s!), handler, emitOnCapturedContext, flags);");
             }
         }
 

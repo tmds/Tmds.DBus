@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
+#pragma warning disable CS0618 // Using obsolete members
+
 namespace Tmds.DBus.Protocol.Tests
 {
     public class ExceptionTests

@@ -13,11 +13,12 @@ public ref partial struct Reader
         }
         if (_handles is not null)
         {
-            return _handles.RemoveHandle<T>(idx);
+            return _handles.ReadHandle<T>(idx);
         }
         return null;
     }
 
+    // note: The handle is still owned (i.e. Disposed) by the Message.
     public IntPtr ReadHandleRaw()
     {
         int idx = (int)ReadUInt32();
@@ -27,7 +28,7 @@ public ref partial struct Reader
         }
         if (_handles is not null)
         {
-            return _handles.DangerousGetHandle(idx);
+            return _handles.ReadHandleRaw(idx);
         }
         return new IntPtr(-1);
     }

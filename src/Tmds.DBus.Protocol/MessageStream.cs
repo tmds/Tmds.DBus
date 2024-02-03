@@ -10,7 +10,7 @@ class MessageStream : IMessageStream
 {
     private static readonly ReadOnlyMemory<byte> OneByteArray = new[] { (byte)0 };
     private readonly Socket _socket;
-    private readonly UnixFdCollection? _fdCollection;
+    private UnixFdCollection? _fdCollection;
     private bool _supportsFdPassing;
     private readonly MessagePool _messagePool;
 
@@ -39,10 +39,6 @@ class MessageStream : IMessageStream
         var pipe = new Pipe(new PipeOptions(useSynchronizationContext: false));
         _pipeReader = pipe.Reader;
         _pipeWriter = pipe.Writer;
-        if (_supportsFdPassing)
-        {
-            _fdCollection = new();
-        }
         _messagePool = new();
     }
 
@@ -173,6 +169,10 @@ class MessageStream : IMessageStream
         // auth
         var authenticationResult = await SendAuthCommandsAsync(userId, supportsFdPassing).ConfigureAwait(false);
         _supportsFdPassing = authenticationResult.SupportsFdPassing;
+        if (_supportsFdPassing)
+        {
+            _fdCollection = new();
+        }
         if (guid != Guid.Empty)
         {
             if (guid != authenticationResult.Guid)

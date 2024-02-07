@@ -145,12 +145,27 @@ public class ReaderTests
         fds.AddHandle(new IntPtr(-2));
         fds.AddHandle(expected);
         byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex };
-        Assert.Equal(expected, fds.DangerousGetHandle(handleIndex));
 
         Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
         using var handle = reader.ReadHandle<SafeFileHandle>();
 
         Assert.Equal(expected, handle!.DangerousGetHandle());
+    }
+
+    [Fact]
+    public void ReadHandleRaw()
+    {
+        byte handleIndex = 1;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(new IntPtr(-2));
+        fds.AddHandle(expected);
+        byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex };
+
+        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
+        IntPtr handle = reader.ReadHandleRaw();
+
+        Assert.Equal(expected, handle);
     }
 
     [Theory, MemberData(nameof(ReadVariantTestData))]

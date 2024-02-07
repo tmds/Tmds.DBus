@@ -75,6 +75,10 @@ public ref partial struct Reader
         {
             return (T)(object)ReadSignatureAsSignature();
         }
+        else if (type == typeof(SafeHandle))
+        {
+            return (T)(object)ReadHandle<CloseSafeHandle>()!;
+        }
         else
         {
             var typeReader = (ITypeReader<T>)GetTypeReader(type);

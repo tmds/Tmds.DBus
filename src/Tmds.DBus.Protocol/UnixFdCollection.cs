@@ -4,8 +4,10 @@ namespace Tmds.DBus.Protocol;
 
 sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 {
-    private readonly List<(IntPtr RawHandle, SafeHandle? Handle)>? _handles;
-    private readonly List<(IntPtr RawHandle, bool OwnsHandle)>? _rawHandles;
+    private IntPtr InvalidRawHandle => new IntPtr(-1);
+
+    private readonly List<(SafeHandle? Handle, bool CanRead)>? _handles;
+    private readonly List<(IntPtr RawHandle, bool CanRead)>? _rawHandles;
 
     internal bool IsRawHandleCollection => _rawHandles is not null;
 
@@ -21,46 +23,91 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         }
     }
 
-    internal void AddHandle(IntPtr handle) => _rawHandles!.Add((handle, true));
+    internal int AddHandle(IntPtr handle)
+    {
+        _rawHandles!.Add((handle, true));
+        return _rawHandles.Count - 1;
+    }
 
-    internal void AddHandle(SafeHandle handle) => _handles!.Add((handle.DangerousGetHandle(), handle));
+    internal void AddHandle(SafeHandle handle)
+    {
+        if (handle is null)
+        {
+            throw new ArgumentNullException(nameof(handle));
+        }
+        _handles!.Add((handle, true));
+    }
 
     public int Count => _rawHandles is not null ? _rawHandles.Count : _handles!.Count;
 
+    // Used to get the file descriptors to send them over the socket.
     public SafeHandle this[int index] => _handles![index].Handle!;
 
-    public IntPtr DangerousGetHandle(int index)
-    {
-        if (_rawHandles is not null)
-            return _rawHandles[index].RawHandle;
-
-        return _handles![index].RawHandle;
-    }
-
-    public T? RemoveHandle<T>(int index) where T : SafeHandle
+    // We remain responsible for disposing the handle.
+    public IntPtr ReadHandleRaw(int index)
     {
         if (_rawHandles is not null)
         {
-            (IntPtr rawHandle, bool ownsHandle) = _rawHandles[index];
-            if (!ownsHandle)
+            (IntPtr rawHandle, bool CanRead) = _rawHandles[index];
+            if (!CanRead)
             {
-                return null;
+                ThrowHandleAlreadyRead();
             }
+            // Handle can no longer be read, but we are still responible for disposing it.
             _rawHandles[index] = (rawHandle, false);
-            return (T?)Activator.CreateInstance(typeof(T), new object[] { rawHandle, true });
+            return rawHandle;
         }
         else
         {
-            (IntPtr rawHandle, SafeHandle? handle) = _handles![index];
-            if (handle is null)
+            Debug.Assert(_handles is not null);
+            (SafeHandle? handle, bool CanRead) = _handles[index];
+            if (!CanRead)
             {
-                return null;
+                ThrowHandleAlreadyRead();
+            }
+            // Handle can no longer be read, but we are still responible for disposing it.
+            _handles[index] = (handle, false);
+            return handle!.DangerousGetHandle();
+        }
+    }
+
+    private void ThrowHandleAlreadyRead()
+    {
+        throw new InvalidOperationException("The handle was already read.");
+    }
+
+    // The caller of this method owns the handle and is responsible for Disposing it.
+    public T? ReadHandle<T>(int index) where T : SafeHandle
+    {
+        if (_rawHandles is not null)
+        {
+            (IntPtr rawHandle, bool CanRead) = _rawHandles[index];
+            if (!CanRead)
+            {
+                ThrowHandleAlreadyRead();
+            }
+#if NET6_0_OR_GREATER
+            SafeHandle handle = Activator.CreateInstance<T>();
+            Marshal.InitHandle(handle, rawHandle);
+#else
+            SafeHandle? handle = (SafeHandle?)Activator.CreateInstance(typeof(T), new object[] { rawHandle, true });
+#endif
+            _rawHandles[index] = (InvalidRawHandle, false);
+            return (T?)handle;
+        }
+        else
+        {
+            Debug.Assert(_handles is not null);
+            (SafeHandle? handle, bool CanRead) = _handles[index];
+            if (!CanRead)
+            {
+                ThrowHandleAlreadyRead();
             }
             if (handle is not T)
             {
-                throw new ArgumentException($"Requested handle type {typeof(T).FullName} does not matched stored type {handle.GetType().FullName}.");
+                throw new ArgumentException($"Requested handle type {typeof(T).FullName} does not matched stored type {handle?.GetType().FullName}.");
             }
-            _handles[index] = (rawHandle, null);
+            _handles[index] = (null, false);
             return (T)handle;
         }
     }
@@ -107,22 +154,29 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 for (int i = 0; i < count; i++)
                 {
                     var handle = _handles[i];
-                    handle.Handle?.Dispose();
+                    if (handle.Handle is not null)
+                    {
+                        handle.Handle.Dispose();
+                    }
                 }
                 _handles.RemoveRange(0, count);
             }
         }
-        if (_rawHandles is not null)
+        else
         {
-            for (int i = 0; i < count; i++)
+            if (_rawHandles is not null)
             {
-                var handle = _rawHandles[i];
-                if (handle.OwnsHandle)
+                for (int i = 0; i < count; i++)
                 {
-                    close(handle.RawHandle.ToInt32());
+                    var handle = _rawHandles[i];
+
+                    if (handle.RawHandle != InvalidRawHandle)
+                    {
+                        close(handle.RawHandle.ToInt32());
+                    }
                 }
+                _rawHandles.RemoveRange(0, count);
             }
-            _rawHandles.RemoveRange(0, count);
         }
     }
 

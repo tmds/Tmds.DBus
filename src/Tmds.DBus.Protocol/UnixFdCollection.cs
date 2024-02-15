@@ -4,14 +4,15 @@ namespace Tmds.DBus.Protocol;
 
 sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 {
-    // This gate is to avoid Dispose and ReadHandle being called concurrently.
-    // These are only called once all handles got added.
-    private readonly object _gate;
-    private bool _disposed;
     private IntPtr InvalidRawHandle => new IntPtr(-1);
 
     private readonly List<(SafeHandle? Handle, bool CanRead)>? _handles;
     private readonly List<(IntPtr RawHandle, bool CanRead)>? _rawHandles;
+
+    // The gate guards someone removing handles while the UnixFdCollection gets disposed by the message.
+    // We don't need to lock it while adding handles, or reading them to send them.
+    private readonly object _gate;
+    private bool _disposed;
 
     internal bool IsRawHandleCollection => _rawHandles is not null;
 
@@ -42,16 +43,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         _handles!.Add((handle, true));
     }
 
-    public int Count
-    {
-        get
-        {
-            lock (_gate)
-            {
-                return _rawHandles is not null ? _rawHandles.Count : _handles!.Count;
-            }
-        }
-    }
+    public int Count => _rawHandles is not null ? _rawHandles.Count : _handles!.Count;
 
     // Used to get the file descriptors to send them over the socket.
     public SafeHandle this[int index] => _handles![index].Handle!;
@@ -63,7 +55,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         {
             if (_disposed)
             {
-                
+                ThrowDisposed();
             }
             if (_rawHandles is not null)
             {
@@ -96,18 +88,19 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         throw new InvalidOperationException("The handle was already read.");
     }
 
+    private void ThrowDisposed()
+    {
+        throw new ObjectDisposedException(typeof(UnixFdCollection).FullName);
+    }
+
     // The caller of this method owns the handle and is responsible for Disposing it.
-    public T? ReadHandle<
-#if NET6_0_OR_GREATER
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-#endif
-        T>(int index) where T : SafeHandle
+    public T? ReadHandle<T>(int index) where T : SafeHandle
     {
         lock (_gate)
         {
             if (_disposed)
             {
-
+                ThrowDisposed();
             }
             if (_rawHandles is not null)
             {
@@ -116,12 +109,12 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 {
                     ThrowHandleAlreadyRead();
                 }
-#if NET6_0_OR_GREATER
+    #if NET6_0_OR_GREATER
                 SafeHandle handle = Activator.CreateInstance<T>();
                 Marshal.InitHandle(handle, rawHandle);
-#else
+    #else
                 SafeHandle? handle = (SafeHandle?)Activator.CreateInstance(typeof(T), new object[] { rawHandle, true });
-#endif
+    #endif
                 _rawHandles[index] = (InvalidRawHandle, false);
                 return (T?)handle;
             }
@@ -165,6 +158,10 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
     {
         lock (_gate)
         {
+            if (_disposed)
+            {
+                return;
+            }
             _disposed = true;
             DisposeHandles(true);
         }
@@ -172,11 +169,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 
     ~UnixFdCollection()
     {
-        lock (_gate)
-        {
-            _disposed = true;
-            DisposeHandles(false);
-        }
+        DisposeHandles(false);
     }
 
     private void DisposeHandles(bool disposing, int count = -1)

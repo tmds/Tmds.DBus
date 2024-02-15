@@ -1,5 +1,3 @@
-using System.Runtime.InteropServices;
-
 namespace Tmds.DBus.Protocol;
 
 sealed class CloseSafeHandle : SafeHandle

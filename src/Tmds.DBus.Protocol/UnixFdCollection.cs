@@ -71,7 +71,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
             else
             {
                 Debug.Assert(_handles is not null);
-                (SafeHandle? handle, bool CanRead) = _handles[index];
+                (SafeHandle? handle, bool CanRead) = _handles![index];
                 if (!CanRead)
                 {
                     ThrowHandleAlreadyRead();
@@ -121,7 +121,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
             else
             {
                 Debug.Assert(_handles is not null);
-                (SafeHandle? handle, bool CanRead) = _handles[index];
+                (SafeHandle? handle, bool CanRead) = _handles![index];
                 if (!CanRead)
                 {
                     ThrowHandleAlreadyRead();

@@ -185,7 +185,7 @@ public class ReaderTests
             };
             return new[]
             {
-                new object[] {true, new byte[] {1, 98, 0, 0, 0, 0, 0, 1},
+                new object[] {true,             new byte[] {1, 98, 0, 0, 0, 0, 0, 1},
                                                 new byte[] {1, 98, 0, 0, 1, 0, 0, 0}},
                 new object[] {(byte)5,          new byte[] {1, 121, 0, 5},
                                                 new byte[] {1, 121, 0, 5}},
@@ -221,10 +221,83 @@ public class ReaderTests
         }
     }
 
-    [Theory, MemberData(nameof(ReadVariantValueTestData))]
-    private void ReadVariantValue(object expected, byte[] bigEndianData, byte[] littleEndianData)
+    public bool Equals(VariantValue lhs, VariantValue other)
     {
-        TestRead(expected, (ref Reader reader) => reader.ReadVariantValue(), alignment: 0, bigEndianData, littleEndianData);
+        if (lhs.Equals(other))
+        {
+            return true;
+        }
+        VariantValueType type = lhs.Type;
+        if (type != other.Type)
+        {
+            return false;
+        }
+        switch (type)
+        {
+            case VariantValueType.Array:
+                if (lhs.Count != other.Count)
+                {
+                    return false;
+                }
+                for (int i = 0; i < lhs.Count; i++)
+                {
+                    if (!lhs.GetItem(i).Equals(other.GetItem(i)))
+                    {
+                        return false;
+                    }
+                }
+                if (lhs.Count == 0 && lhs.ArrayItemType != other.ArrayItemType)
+                {
+                    return false;
+                }
+                return true;
+            case VariantValueType.Struct:
+                if (lhs.Count != other.Count)
+                {
+                    return false;
+                }
+                for (int i = 0; i < lhs.Count; i++)
+                {
+                    if (!lhs.GetItem(i).Equals(other.GetItem(i)))
+                    {
+                        return false;
+                    }
+                }
+                if (lhs.Count == 0 && (lhs.DictionaryKeyType != other.DictionaryKeyType ||
+                                   lhs.DictionaryValueType != other.DictionaryValueType))
+                {
+                    return false;
+                }
+                return true;
+            case VariantValueType.Dictionary:
+                if (lhs.Count != other.Count)
+                {
+                    return false;
+                }
+                for (int i = 0; i < lhs.Count; i++)
+                {
+                    var pair1 = lhs.GetDictionaryEntry(i);
+                    var pair2 = lhs.GetDictionaryEntry(i);
+                    if (!pair1.Key.Equals(pair2.Key) || !pair2.Value.Equals(pair2.Value))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            case VariantValueType.UnixFd:
+                throw new NotImplementedException();
+        }
+        return false;
+    }
+
+    [Theory, MemberData(nameof(ReadVariantValueTestData))]
+    private void ReadVariantValue(VariantValue expected, byte[] bigEndianData, byte[] littleEndianData)
+    {
+        Action<VariantValue, VariantValue> assertEquals = (lhs, other) =>
+        {
+            Assert.True(Equals(lhs, other), $"{lhs} is not equal to {other}");
+        };
+        TestRead<VariantValue>(expected, (ref Reader reader) => reader.ReadVariantValue(), alignment: 0, bigEndianData, littleEndianData, assertEquals);
     }
 
     public static IEnumerable<object[]> ReadVariantValueTestData
@@ -289,8 +362,9 @@ public class ReaderTests
         }
     }
 
-    private void TestRead<T>(T expected, ReadFunction<T> readFunction, int alignment, byte[] bigEndianData, byte[] littleEndianData)
+    private void TestRead<T>(T expected, ReadFunction<T> readFunction, int alignment, byte[] bigEndianData, byte[] littleEndianData, Action<T, T>? assertEquals = null)
     {
+        assertEquals ??= (T expected, T value) => Assert.Equal(expected, value);
         foreach (bool isBigEndian in new[] { true, false })
         {
             byte[] data = isBigEndian ? bigEndianData : littleEndianData;
@@ -306,7 +380,7 @@ public class ReaderTests
 
             // Check expected value.
             T value = readFunction(ref reader);
-            Assert.Equal(expected, value);
+            assertEquals(expected, value);
 
             // Check all data was read.
             try

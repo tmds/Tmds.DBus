@@ -350,6 +350,30 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     static string TypeSuffix(bool includeTypeSuffix, VariantValueType type)
         => includeTypeSuffix ? $" [{type}]" : "";
 
+    public static bool operator==(VariantValue lhs, VariantValue rhs)
+        => lhs.Equals(rhs);
+
+    public static bool operator!=(VariantValue lhs, VariantValue rhs)
+        => !lhs.Equals(rhs);
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not null && obj.GetType() == typeof(VariantValue))
+        {
+            return ((VariantValue)obj).Equals(this);
+        }
+        return false;
+    }
+
+    public override int GetHashCode()
+    {
+#if NETSTANDARD2_0
+        return _l.GetHashCode() + 17 * (_o?.GetHashCode() ?? 0);
+#else
+        return HashCode.Combine(_l, _o);
+#endif
+    }
+
     public bool Equals(VariantValue other)
     {
         if (_l == other._l && object.ReferenceEquals(_o, other._o))
@@ -367,61 +391,8 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             case VariantValueType.ObjectPath:
             case VariantValueType.Signature:
                 return (_o as string)!.Equals(other._o as string, StringComparison.Ordinal);
-            case VariantValueType.Array:
-                if (Count != other.Count)
-                {
-                    return false;
-                }
-                for (int i = 0; i < Count; i++)
-                {
-                    if (!GetItem(i).Equals(other.GetItem(i)))
-                    {
-                        return false;
-                    }
-                }
-                if (Count == 0 && ArrayItemType != other.ArrayItemType)
-                {
-                    return false;
-                }
-                return true;
-            case VariantValueType.Struct:
-                if (Count != other.Count)
-                {
-                    return false;
-                }
-                for (int i = 0; i < Count; i++)
-                {
-                    if (!GetItem(i).Equals(other.GetItem(i)))
-                    {
-                        return false;
-                    }
-                }
-                if (Count == 0 && (DictionaryKeyType != other.DictionaryKeyType ||
-                                   DictionaryValueType != other.DictionaryValueType))
-                {
-                    return false;
-                }
-                return true;
-            case VariantValueType.Dictionary:
-                if (Count != other.Count)
-                {
-                    return false;
-                }
-                // Note: this method is implemented for testing and requires both dictionaries
-                //       to have the pairs stored in the same order.
-                for (int i = 0; i < Count; i++)
-                {
-                    var pair1 = GetDictionaryEntry(i);
-                    var pair2 = GetDictionaryEntry(i);
-                    if (!pair1.Key.Equals(pair2.Key) || !pair2.Value.Equals(pair2.Value))
-                    {
-                        return false;
-                    }
-                }
-                return true;
-            case VariantValueType.UnixFd:
-                throw new NotImplementedException();
         }
+        // Always return false for composite types and handles.
         return false;
     }
 }

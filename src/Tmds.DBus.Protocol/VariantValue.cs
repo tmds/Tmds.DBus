@@ -211,6 +211,32 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return values![i];
     }
 
+    // implicit conversion to VariantValue for basic D-Bus types (except Unix_FD).
+    public static implicit operator VariantValue(byte value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(bool value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(short value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(ushort value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(int value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(uint value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(long value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(ulong value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(double value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(string value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(ObjectPath value)
+        => new VariantValue(value);
+    public static implicit operator VariantValue(Signature value)
+        => new VariantValue(value);
+
     public VariantValueType ArrayItemType
         => DetermineInnerType(VariantValueType.Array, ArrayItemTypeShift);
 
@@ -353,6 +379,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                         return false;
                     }
                 }
+                if (Count == 0 && ArrayItemType != other.ArrayItemType)
+                {
+                    return false;
+                }
                 return true;
             case VariantValueType.Struct:
                 if (Count != other.Count)
@@ -365,6 +395,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                     {
                         return false;
                     }
+                }
+                if (Count == 0 && (DictionaryKeyType != other.DictionaryKeyType ||
+                                   DictionaryValueType != other.DictionaryValueType))
+                {
+                    return false;
                 }
                 return true;
             case VariantValueType.Dictionary:

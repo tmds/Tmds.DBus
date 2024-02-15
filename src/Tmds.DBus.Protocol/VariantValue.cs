@@ -11,8 +11,8 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     private const int TypeShift = 8 * 7;
     private const int ArrayItemTypeShift = 8 * 0;
     private const int DictionaryKeyTypeShift = 8 * 0;
-    private const int DictionaryValueTypeShift = 8 * 0;
-    private const long StripTypeMask = ~(0xff << TypeShift);
+    private const int DictionaryValueTypeShift = 8 * 1;
+    private const long StripTypeMask = ~(0xffL << TypeShift);
 
     public VariantValueType Type
         => DetermineType();
@@ -29,7 +29,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     }
     internal VariantValue(short value)
     {
-        _l = (long)value | ((long)VariantValueType.Int16 << TypeShift);
+        _l = (ushort)value | ((long)VariantValueType.Int16 << TypeShift);
         _o = null;
     }
     internal VariantValue(ushort value)
@@ -39,7 +39,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     }
     internal VariantValue(int value)
     {
-        _l = (long)value | ((long)VariantValueType.Int32 << TypeShift);
+        _l = (uint)value | ((long)VariantValueType.Int32 << TypeShift);
         _o = null;
     }
     internal VariantValue(uint value)
@@ -167,7 +167,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         EnsureTypeIs(VariantValueType.Signature);
         return (_o as string)!;
     }
-    public T? CreateHandle<
+    public T? ReadHandle<
 #if NET6_0_OR_GREATER
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 #endif

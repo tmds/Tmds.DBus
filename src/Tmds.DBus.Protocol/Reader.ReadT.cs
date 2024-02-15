@@ -14,8 +14,6 @@ public ref partial struct Reader
 
     private static readonly Dictionary<Type, ITypeReader> _typeReaders = new();
 
-    public object ReadVariant() => Read<object>();
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private T Read<T>()
     {
@@ -75,9 +73,13 @@ public ref partial struct Reader
         {
             return (T)(object)ReadSignatureAsSignature();
         }
-        else if (type == typeof(SafeHandle))
+        else if (type == typeof(CloseSafeHandle))
         {
             return (T)(object)ReadHandle<CloseSafeHandle>()!;
+        }
+        else if (type == typeof(VariantValue))
+        {
+            return (T)(object)ReadVariantValue();
         }
         else
         {

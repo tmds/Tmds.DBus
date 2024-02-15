@@ -6,7 +6,7 @@ public ref partial struct Reader
 {
     public object ReadVariant() => Read<object>();
 
-    public DBusValue ReadVariantAsDBusValue()
+    public VariantValue ReadVariantAsVariantValue()
     {
         Utf8Span signature = ReadSignature();
         SignatureReader sigReader = new(signature);
@@ -14,43 +14,43 @@ public ref partial struct Reader
         {
             ThrowInvalidSignature($"Invalid variant signature: {signature.ToString()}");
         }
-        return ReadTypeAsDBusValue(type, innerSignature);
+        return ReadTypeAsVariantValue(type, innerSignature);
     }
 
-    private DBusValue ReadTypeAsDBusValue(DBusType type, ReadOnlySpan<byte> innerSignature)
+    private VariantValue ReadTypeAsVariantValue(DBusType type, ReadOnlySpan<byte> innerSignature)
     {
         SignatureReader sigReader;
         switch (type)
         {
             case DBusType.Byte:
-                return new DBusValue(ReadByte());
+                return new VariantValue(ReadByte());
             case DBusType.Bool:
-                return new DBusValue(ReadBool());
+                return new VariantValue(ReadBool());
             case DBusType.Int16:
-                return new DBusValue(ReadInt16());
+                return new VariantValue(ReadInt16());
             case DBusType.UInt16:
-                return new DBusValue(ReadUInt16());
+                return new VariantValue(ReadUInt16());
             case DBusType.Int32:
-                return new DBusValue(ReadInt32());
+                return new VariantValue(ReadInt32());
             case DBusType.UInt32:
-                return new DBusValue(ReadUInt32());
+                return new VariantValue(ReadUInt32());
             case DBusType.Int64:
-                return new DBusValue(ReadInt64());
+                return new VariantValue(ReadInt64());
             case DBusType.UInt64:
-                return new DBusValue(ReadUInt64());
+                return new VariantValue(ReadUInt64());
             case DBusType.Double:
-                return new DBusValue(ReadDouble());
+                return new VariantValue(ReadDouble());
             case DBusType.String:
-                return new DBusValue(ReadString());
+                return new VariantValue(ReadString());
             case DBusType.ObjectPath:
-                return new DBusValue(ReadObjectPath());
+                return new VariantValue(ReadObjectPath());
             case DBusType.Signature:
-                return new DBusValue(ReadSignatureAsSignature());
+                return new VariantValue(ReadSignatureAsSignature());
             case DBusType.UnixFd:
                 int idx = (int)ReadUInt32();
-                return new DBusValue(_handles, idx);
+                return new VariantValue(_handles, idx);
             case DBusType.Variant:
-                return ReadVariantAsDBusValue();
+                return ReadVariantAsVariantValue();
             case DBusType.Array:
                 sigReader = new(innerSignature);
                 if (!sigReader.TryRead(out type, out innerSignature))
@@ -68,39 +68,39 @@ public ref partial struct Reader
                     {
                         ThrowInvalidSignature("Signature is missing dict entry types.");
                     }
-                    List<KeyValuePair<DBusValue, DBusValue>> items = new();
+                    List<KeyValuePair<VariantValue, VariantValue>> items = new();
                     ArrayEnd arrayEnd = ReadArrayStart(type);
                     while (HasNext(arrayEnd))
                     {
                         AlignStruct();
-                        DBusValue key = ReadTypeAsDBusValue(keyType, keyInnerSignature);
-                        DBusValue value = ReadTypeAsDBusValue(valueType, valueInnerSignature);
-                        items.Add(new KeyValuePair<DBusValue, DBusValue>(key, value));
+                        VariantValue key = ReadTypeAsVariantValue(keyType, keyInnerSignature);
+                        VariantValue value = ReadTypeAsVariantValue(valueType, valueInnerSignature);
+                        items.Add(new KeyValuePair<VariantValue, VariantValue>(key, value));
                     }
-                    return new DBusValue(ToDBusValueType(keyType), ToDBusValueType(valueType), items.ToArray());
+                    return new VariantValue(ToVariantValueType(keyType), ToVariantValueType(valueType), items.ToArray());
                 }
                 else
                 {
-                    List<DBusValue> items = new();
+                    List<VariantValue> items = new();
                     ArrayEnd arrayEnd = ReadArrayStart(type);
                     while (HasNext(arrayEnd))
                     {
-                        DBusValue value = ReadTypeAsDBusValue(type, innerSignature);
+                        VariantValue value = ReadTypeAsVariantValue(type, innerSignature);
                         items.Add(value);
                     }
-                    return new DBusValue(ToDBusValueType(type), items.ToArray());
+                    return new VariantValue(ToVariantValueType(type), items.ToArray());
                 }
             case DBusType.Struct:
                 {
                     AlignStruct();
                     sigReader = new(innerSignature);
-                    List<DBusValue> items = new();
+                    List<VariantValue> items = new();
                     while (sigReader.TryRead(out type, out innerSignature))
                     {
-                        DBusValue value = ReadTypeAsDBusValue(type, innerSignature);
+                        VariantValue value = ReadTypeAsVariantValue(type, innerSignature);
                         items.Add(value);
                     }
-                    return new DBusValue(items.ToArray());
+                    return new VariantValue(items.ToArray());
                 }
             case DBusType.DictEntry: // Already handled under DBusType.Array.
             default:
@@ -116,10 +116,10 @@ public ref partial struct Reader
         throw new ProtocolException(message);
     }
 
-    private static DBusValueType ToDBusValueType(DBusType type)
+    private static VariantValueType ToVariantValueType(DBusType type)
         => type switch
         {
-            DBusType.Variant => DBusValueType.DBusValue,
-            _ => (DBusValueType)type
+            DBusType.Variant => VariantValueType.VariantValue,
+            _ => (VariantValueType)type
         };
 }

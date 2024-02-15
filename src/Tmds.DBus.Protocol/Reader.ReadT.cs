@@ -77,9 +77,9 @@ public ref partial struct Reader
         {
             return (T)(object)ReadHandle<CloseSafeHandle>()!;
         }
-        else if (type == typeof(DBusValue))
+        else if (type == typeof(VariantValue))
         {
-            return (T)(object)ReadVariantAsDBusValue();
+            return (T)(object)ReadVariantAsVariantValue();
         }
         else
         {

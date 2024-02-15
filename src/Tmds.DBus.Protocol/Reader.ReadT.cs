@@ -73,13 +73,13 @@ public ref partial struct Reader
         {
             return (T)(object)ReadSignatureAsSignature();
         }
-        else if (type == typeof(SafeHandle))
+        else if (type == typeof(CloseSafeHandle))
         {
             return (T)(object)ReadHandle<CloseSafeHandle>()!;
         }
         else if (type == typeof(VariantValue))
         {
-            return (T)(object)ReadVariantAsVariantValue();
+            return (T)(object)ReadVariantValue();
         }
         else
         {

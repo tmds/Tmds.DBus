@@ -1,6 +1,6 @@
 namespace Tmds.DBus.Protocol;
 
-public readonly struct VariantValue
+public readonly struct VariantValue : IEquatable<VariantValue>
 {
     private static readonly object Int64Type = VariantValueType.Int64;
     private static readonly object UInt64Type = VariantValueType.UInt64;
@@ -323,4 +323,70 @@ public readonly struct VariantValue
 
     static string TypeSuffix(bool includeTypeSuffix, VariantValueType type)
         => includeTypeSuffix ? $" [{type}]" : "";
+
+    public bool Equals(VariantValue other)
+    {
+        if (_l == other._l && object.ReferenceEquals(_o, other._o))
+        {
+            return true;
+        }
+        VariantValueType type = Type;
+        if (type != other.Type)
+        {
+            return false;
+        }
+        switch (type)
+        {
+            case VariantValueType.String:
+            case VariantValueType.ObjectPath:
+            case VariantValueType.Signature:
+                return (_o as string)!.Equals(other._o as string, StringComparison.Ordinal);
+            case VariantValueType.Array:
+                if (Count != other.Count)
+                {
+                    return false;
+                }
+                for (int i = 0; i < Count; i++)
+                {
+                    if (!GetItem(i).Equals(other.GetItem(i)))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            case VariantValueType.Struct:
+                if (Count != other.Count)
+                {
+                    return false;
+                }
+                for (int i = 0; i < Count; i++)
+                {
+                    if (!GetItem(i).Equals(other.GetItem(i)))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            case VariantValueType.Dictionary:
+                if (Count != other.Count)
+                {
+                    return false;
+                }
+                // Note: this method is implemented for testing and requires both dictionaries
+                //       to have the pairs stored in the same order.
+                for (int i = 0; i < Count; i++)
+                {
+                    var pair1 = GetDictionaryEntry(i);
+                    var pair2 = GetDictionaryEntry(i);
+                    if (!pair1.Key.Equals(pair2.Key) || !pair2.Value.Equals(pair2.Value))
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            case VariantValueType.UnixFd:
+                throw new NotImplementedException();
+        }
+        return false;
+    }
 }

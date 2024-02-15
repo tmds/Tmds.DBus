@@ -6,7 +6,7 @@ public ref partial struct Reader
 {
     public object ReadVariant() => Read<object>();
 
-    public VariantValue ReadVariantAsVariantValue()
+    public VariantValue ReadVariantValue()
     {
         Utf8Span signature = ReadSignature();
         SignatureReader sigReader = new(signature);
@@ -50,7 +50,7 @@ public ref partial struct Reader
                 int idx = (int)ReadUInt32();
                 return new VariantValue(_handles, idx);
             case DBusType.Variant:
-                return ReadVariantAsVariantValue();
+                return ReadVariantValue();
             case DBusType.Array:
                 sigReader = new(innerSignature);
                 if (!sigReader.TryRead(out type, out innerSignature))

@@ -11,6 +11,11 @@ public sealed class Array
 
     public T[] AsArray() => _array;
 
+    public Variant AsVariant() => Variant.FromArray(this);
+
+    public static implicit operator Variant(Array<T> value)
+        => value.AsVariant();
+
     public Array()
         => _array = Array.Empty<T>();
 

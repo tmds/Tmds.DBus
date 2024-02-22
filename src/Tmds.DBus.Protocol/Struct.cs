@@ -193,6 +193,12 @@ public sealed class Struct
 
     public ValueTuple<T1> ToValueTuple()
         => new ValueTuple<T1>(Item1);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1> value)
+        => value.AsVariant();
 }
 
 public sealed class Struct
@@ -218,6 +224,12 @@ public sealed class Struct
 
     public (T1, T2) ToValueTuple()
         => (Item1, Item2);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2> value)
+        => value.AsVariant();
 }
 public sealed class Struct
     <
@@ -245,6 +257,12 @@ public sealed class Struct
 
     public (T1, T2, T3) ToValueTuple()
         => (Item1, Item2, Item3);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2, T3> value)
+        => value.AsVariant();
 }
 public sealed class Struct
     <
@@ -275,6 +293,12 @@ public sealed class Struct
 
     public (T1, T2, T3, T4) ToValueTuple()
         => (Item1, Item2, Item3, Item4);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2, T3, T4> value)
+        => value.AsVariant();
 }
 public sealed class Struct
     <
@@ -308,6 +332,12 @@ public sealed class Struct
 
     public (T1, T2, T3, T4, T5) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5> value)
+        => value.AsVariant();
 }
 public sealed class Struct
     <
@@ -344,6 +374,12 @@ public sealed class Struct
 
     public (T1, T2, T3, T4, T5, T6) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6> value)
+        => value.AsVariant();
 }
 public sealed class Struct
     <
@@ -383,6 +419,12 @@ public sealed class Struct
 
     public (T1, T2, T3, T4, T5, T6, T7) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7> value)
+        => value.AsVariant();
 }
 public sealed class Struct
     <
@@ -425,6 +467,12 @@ public sealed class Struct
 
     public (T1, T2, T3, T4, T5, T6, T7, T8) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8> value)
+        => value.AsVariant();
 }
 public sealed class Struct
     <
@@ -470,6 +518,12 @@ public sealed class Struct
 
     public (T1, T2, T3, T4, T5, T6, T7, T8, T9) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8, Item9);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9> value)
+        => value.AsVariant();
 }
 public sealed class Struct
     <
@@ -518,4 +572,10 @@ public sealed class Struct
 
     public (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8, Item9, Item10);
+
+    public Variant AsVariant()
+        => Variant.FromStruct(this);
+
+    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> value)
+        => value.AsVariant();
 }

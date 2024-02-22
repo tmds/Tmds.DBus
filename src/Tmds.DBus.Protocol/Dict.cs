@@ -13,6 +13,11 @@ public sealed class Dict
 
     public Dictionary<TKey, TValue> AsDictionary() => _dict;
 
+    public Variant AsVariant() => Variant.FromDict(this);
+
+    public static implicit operator Variant(Dict<TKey, TValue> value)
+        => value.AsVariant();
+
     public Dict()
         => _dict = new();
 

@@ -69,16 +69,16 @@ static partial class TypeModel
             {
                 return DBusType.Array;
             }
-            else if (typeof(T) == typeof(Struct<>) ||
-                     typeof(T) == typeof(Struct<,>) ||
-                     typeof(T) == typeof(Struct<,,>) ||
-                     typeof(T) == typeof(Struct<,,,>) ||
-                     typeof(T) == typeof(Struct<,,,,>) ||
-                     typeof(T) == typeof(Struct<,,,,,>) ||
-                     typeof(T) == typeof(Struct<,,,,,,>) ||
-                     typeof(T) == typeof(Struct<,,,,,,,>) ||
-                     typeof(T) == typeof(Struct<,,,,,,,,>) ||
-                     typeof(T) == typeof(Struct<,,,,,,,,,>))
+            else if (type == typeof(Struct<>) ||
+                     type == typeof(Struct<,>) ||
+                     type == typeof(Struct<,,>) ||
+                     type == typeof(Struct<,,,>) ||
+                     type == typeof(Struct<,,,,>) ||
+                     type == typeof(Struct<,,,,,>) ||
+                     type == typeof(Struct<,,,,,,>) ||
+                     type == typeof(Struct<,,,,,,,>) ||
+                     type == typeof(Struct<,,,,,,,,>) ||
+                     type == typeof(Struct<,,,,,,,,,>))
             {
                 return DBusType.Struct;
             }

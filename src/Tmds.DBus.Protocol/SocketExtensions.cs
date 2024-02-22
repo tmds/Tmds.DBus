@@ -48,7 +48,7 @@ static class SocketExtensions
     {
         if (handles is null || handles.Count == 0)
         {
-            return socket.SendAsync(buffer);
+            return SendAsync(socket, buffer);
         }
         else
         {
@@ -77,7 +77,7 @@ static class SocketExtensions
                 {
                     return default;
                 }
-                return socket.SendAsync(buffer.Slice(rv));
+                return SendAsync(socket, buffer.Slice(rv));
             }
             else
             {

@@ -65,17 +65,27 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     internal VariantValue(string value)
     {
         _l = (long)VariantValueType.String << TypeShift;
-        _o = value ?? "";
+        _o = value ?? throw new ArgumentNullException(nameof(value));
     }
     internal VariantValue(ObjectPath value)
     {
         _l = (long)VariantValueType.ObjectPath << TypeShift;
-        _o = value.ToString();
+        string s = value.ToString();
+        if (s.Length == 0)
+        {
+            throw new ArgumentException(nameof(value));
+        }
+        _o = s;
     }
     internal VariantValue(Signature value)
     {
         _l = (long)VariantValueType.Signature << TypeShift;
-        _o = value.ToString();
+        string s = value.ToString();
+        if (s.Length == 0)
+        {
+            throw new ArgumentException(nameof(value));
+        }
+        _o = s;
     }
     // Array
     internal VariantValue(VariantValueType itemType, VariantValue[] items)

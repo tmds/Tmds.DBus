@@ -117,8 +117,9 @@ public ref partial struct MessageWriter
         return (ITypeWriter)Activator.CreateInstance(writerType)!;
     }
 
-    private static void WriteDictionarySignature<TKey, TValue>(ref MessageWriter writer)
+    private static void WriteDictionarySignature<TKey, TValue>(ref MessageWriter writer) where TKey : notnull where TValue : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<IDictionary<TKey, TValue>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Dict<TKey, TValue>>(buffer));
     }
 }

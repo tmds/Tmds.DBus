@@ -93,8 +93,11 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         throw new ObjectDisposedException(typeof(UnixFdCollection).FullName);
     }
 
-    // The caller of this method owns the handle and is responsible for Disposing it.
     public T? ReadHandle<T>(int index) where T : SafeHandle
+        => ReadHandleGeneric<T>(index);
+
+    // The caller of this method owns the handle and is responsible for Disposing it.
+    internal T? ReadHandleGeneric<T>(int index)
     {
         lock (_gate)
         {
@@ -110,13 +113,13 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                     ThrowHandleAlreadyRead();
                 }
     #if NET6_0_OR_GREATER
-                SafeHandle handle = Activator.CreateInstance<T>();
+                SafeHandle handle = (Activator.CreateInstance<T>() as SafeHandle)!;
                 Marshal.InitHandle(handle, rawHandle);
     #else
                 SafeHandle? handle = (SafeHandle?)Activator.CreateInstance(typeof(T), new object[] { rawHandle, true });
     #endif
                 _rawHandles[index] = (InvalidRawHandle, false);
-                return (T?)handle;
+                return (T?)(object?)handle;
             }
             else
             {
@@ -131,7 +134,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                     throw new ArgumentException($"Requested handle type {typeof(T).FullName} does not matched stored type {handle?.GetType().FullName}.");
                 }
                 _handles[index] = (null, false);
-                return (T)handle;
+                return (T)(object)handle;
             }
         }
     }

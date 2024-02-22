@@ -346,7 +346,7 @@ namespace Tmds.DBus.Tool
                 }
                 AppendLine("default:");
                 _indentation++;
-                AppendLine($"reader.ReadVariant();");
+                AppendLine($"reader.ReadVariantValue();");
                 AppendLine("break;");
                 _indentation--;
 

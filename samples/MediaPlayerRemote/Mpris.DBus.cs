@@ -337,7 +337,7 @@ namespace Mpris.DBus
                         changedList?.Add("CanRaise");
                         break;
                     default:
-                        reader.ReadVariant();
+                        reader.ReadVariantValue();
                         break;
                 }
             }
@@ -346,7 +346,7 @@ namespace Mpris.DBus
     }
     record PlayerProperties
     {
-        public Dictionary<string, object> Metadata { get; set; } = default!;
+        public Dictionary<string, VariantValue> Metadata { get; set; } = default!;
         public string PlaybackStatus { get; set; } = default!;
         public string LoopStatus { get; set; } = default!;
         public double Volume { get; set; } = default!;
@@ -498,7 +498,7 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
-        public Task SetMetadataAsync(Dictionary<string, object> value)
+        public Task SetMetadataAsync(Dictionary<string, VariantValue> value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
@@ -745,7 +745,7 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
-        public Task<Dictionary<string, object>> GetMetadataAsync()
+        public Task<Dictionary<string, VariantValue>> GetMetadataAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Metadata"), (Message m, object? s) => ReadMessage_v_aesv(m, (MprisObject)s!), this);
         public Task<string> GetPlaybackStatusAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "PlaybackStatus"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
@@ -829,7 +829,7 @@ namespace Mpris.DBus
                 {
                     case "Metadata":
                         reader.ReadSignature("a{sv}");
-                        props.Metadata = reader.ReadDictionary<string, object>();
+                        props.Metadata = reader.ReadDictionary<string, VariantValue>();
                         changedList?.Add("Metadata");
                         break;
                     case "PlaybackStatus":
@@ -893,7 +893,7 @@ namespace Mpris.DBus
                         changedList?.Add("CanSeek");
                         break;
                     default:
-                        reader.ReadVariant();
+                        reader.ReadVariantValue();
                         break;
                 }
             }
@@ -910,7 +910,7 @@ namespace Mpris.DBus
         private const string __Interface = "org.mpris.MediaPlayer2.TrackList";
         public TrackList(MprisService service, ObjectPath path) : base(service, path)
         { }
-        public Task<Dictionary<string, object>[]> GetTracksMetadataAsync(ObjectPath[] a0)
+        public Task<Dict<string, VariantValue>[]> GetTracksMetadataAsync(ObjectPath[] a0)
         {
             return this.Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => ReadMessage_aaesv(m, (MprisObject)s!), this);
             MessageBuffer CreateMessage()
@@ -978,11 +978,11 @@ namespace Mpris.DBus
         }
         public ValueTask<IDisposable> WatchTrackListReplacedAsync(Action<Exception?, (ObjectPath[] A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
             => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackListReplaced", (Message m, object? s) => ReadMessage_aoo(m, (MprisObject)s!), handler, emitOnCapturedContext);
-        public ValueTask<IDisposable> WatchTrackAddedAsync(Action<Exception?, (Dictionary<string, object> A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
+        public ValueTask<IDisposable> WatchTrackAddedAsync(Action<Exception?, (Dictionary<string, VariantValue> A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
             => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackAdded", (Message m, object? s) => ReadMessage_aesvo(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public ValueTask<IDisposable> WatchTrackRemovedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true)
             => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackRemoved", (Message m, object? s) => ReadMessage_o(m, (MprisObject)s!), handler, emitOnCapturedContext);
-        public ValueTask<IDisposable> WatchTrackMetadataChangedAsync(Action<Exception?, (ObjectPath A0, Dictionary<string, object> A1)> handler, bool emitOnCapturedContext = true)
+        public ValueTask<IDisposable> WatchTrackMetadataChangedAsync(Action<Exception?, (ObjectPath A0, Dictionary<string, VariantValue> A1)> handler, bool emitOnCapturedContext = true)
             => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackMetadataChanged", (Message m, object? s) => ReadMessage_oaesv(m, (MprisObject)s!), handler, emitOnCapturedContext);
         public Task SetTracksAsync(ObjectPath[] value)
         {
@@ -1082,7 +1082,7 @@ namespace Mpris.DBus
                         changedList?.Add("CanEditTracks");
                         break;
                     default:
-                        reader.ReadVariant();
+                        reader.ReadVariantValue();
                         break;
                 }
             }
@@ -1144,6 +1144,7 @@ namespace Mpris.DBus
             };
             return this.Connection.AddMatchAsync(rule, reader,
                                                     (Exception? ex, PropertyChanges<TProperties> changes, object? rs, object? hs) => ((Action<Exception?, PropertyChanges<TProperties>>)hs!).Invoke(ex, changes),
+                                                    ObserverFlags.None,
                                                     this, handler, emitOnCapturedContext);
         }
         public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, string @interface, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext)
@@ -1158,6 +1159,7 @@ namespace Mpris.DBus
             };
             return this.Connection.AddMatchAsync(rule, reader,
                                                     (Exception? ex, TArg arg, object? rs, object? hs) => ((Action<Exception?, TArg>)hs!).Invoke(ex, arg),
+                                                    ObserverFlags.None,
                                                     this, handler, emitOnCapturedContext);
         }
         public ValueTask<IDisposable> WatchSignalAsync(string sender, string @interface, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext)
@@ -1171,7 +1173,8 @@ namespace Mpris.DBus
                 Interface = @interface
             };
             return this.Connection.AddMatchAsync<object>(rule, (Message message, object? state) => null!,
-                                                            (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);
+                                                            (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex),
+                                                            ObserverFlags.None, this, handler, emitOnCapturedContext);
         }
         protected static string ReadMessage_v_s(Message message, MprisObject _)
         {
@@ -1191,11 +1194,11 @@ namespace Mpris.DBus
             reader.ReadSignature("b");
             return reader.ReadBool();
         }
-        protected static Dictionary<string, object> ReadMessage_v_aesv(Message message, MprisObject _)
+        protected static Dictionary<string, VariantValue> ReadMessage_v_aesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("a{sv}");
-            return reader.ReadDictionary<string, object>();
+            return reader.ReadDictionary<string, VariantValue>();
         }
         protected static double ReadMessage_v_d(Message message, MprisObject _)
         {
@@ -1209,10 +1212,10 @@ namespace Mpris.DBus
             reader.ReadSignature("i");
             return reader.ReadInt32();
         }
-        protected static Dictionary<string, object>[] ReadMessage_aaesv(Message message, MprisObject _)
+        protected static Dict<string, VariantValue>[] ReadMessage_aaesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            return reader.ReadArray<Dictionary<string, object>>();
+            return reader.ReadArray<Dict<string, VariantValue>>();
         }
         protected static (ObjectPath[], ObjectPath) ReadMessage_aoo(Message message, MprisObject _)
         {
@@ -1221,10 +1224,10 @@ namespace Mpris.DBus
             var arg1 = reader.ReadObjectPath();
             return (arg0, arg1);
         }
-        protected static (Dictionary<string, object>, ObjectPath) ReadMessage_aesvo(Message message, MprisObject _)
+        protected static (Dictionary<string, VariantValue>, ObjectPath) ReadMessage_aesvo(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            var arg0 = reader.ReadDictionary<string, object>();
+            var arg0 = reader.ReadDictionary<string, VariantValue>();
             var arg1 = reader.ReadObjectPath();
             return (arg0, arg1);
         }
@@ -1233,11 +1236,11 @@ namespace Mpris.DBus
             var reader = message.GetBodyReader();
             return reader.ReadObjectPath();
         }
-        protected static (ObjectPath, Dictionary<string, object>) ReadMessage_oaesv(Message message, MprisObject _)
+        protected static (ObjectPath, Dictionary<string, VariantValue>) ReadMessage_oaesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadObjectPath();
-            var arg1 = reader.ReadDictionary<string, object>();
+            var arg1 = reader.ReadDictionary<string, VariantValue>();
             return (arg0, arg1);
         }
         protected static ObjectPath[] ReadMessage_v_ao(Message message, MprisObject _)

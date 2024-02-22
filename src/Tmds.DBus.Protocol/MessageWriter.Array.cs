@@ -60,8 +60,9 @@ public ref partial struct MessageWriter
         return (ITypeWriter)Activator.CreateInstance(writerType)!;
     }
 
-    private static void WriteArraySignature<T>(ref MessageWriter writer)
+    private static void WriteArraySignature<T>(ref MessageWriter writer) where T : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<T[]>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Array<T>>(buffer));
     }
 }

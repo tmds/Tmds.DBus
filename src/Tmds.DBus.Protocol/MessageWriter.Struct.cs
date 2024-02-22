@@ -80,8 +80,10 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1>(ref MessageWriter writer)
+        where T1 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1>>(buffer));
     }
 
     public void WriteStruct<T1, T2>((T1, T2) value)
@@ -166,8 +168,11 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2>>(buffer));
     }
 
     public void WriteStruct<T1, T2, T3>((T1, T2, T3) value)
@@ -258,8 +263,12 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2, T3>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2, T3>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3>>(buffer));
     }
 
     public void WriteStruct<T1, T2, T3, T4>((T1, T2, T3, T4) value)
@@ -356,8 +365,13 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2, T3, T4>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2, T3, T4>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4>>(buffer));
     }
 
     public void WriteStruct<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) value)
@@ -460,8 +474,14 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2, T3, T4, T5>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2, T3, T4, T5>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5>>(buffer));
     }
 
     public void WriteStruct<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) value)
@@ -570,8 +590,15 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2, T3, T4, T5, T6>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2, T3, T4, T5, T6>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6>>(buffer));
     }
 
     public void WriteStruct<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) value)
@@ -686,8 +713,16 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2, T3, T4, T5, T6, T7>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2, T3, T4, T5, T6, T7>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6, T7>>(buffer));
     }
 
     public void WriteStruct<T1, T2, T3, T4, T5, T6, T7, T8>((T1, T2, T3, T4, T5, T6, T7, T8) value)
@@ -808,8 +843,17 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2, T3, T4, T5, T6, T7, T8>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6, T7, T8>>(buffer));
     }
 
     public void WriteStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9>((T1, T2, T3, T4, T5, T6, T7, T8, T9) value)
@@ -936,8 +980,18 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2, T3, T4, T5, T6, T7, T8, T9>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+        where T9 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9>>(buffer));
     }
 
     public void WriteStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>((T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) value)
@@ -1070,7 +1124,18 @@ public ref partial struct MessageWriter
     }
 
     private static void WriteStructSignature<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(ref MessageWriter writer)
+        where T1 : notnull
+        where T2 : notnull
+        where T3 : notnull
+        where T4 : notnull
+        where T5 : notnull
+        where T6 : notnull
+        where T7 : notnull
+        where T8 : notnull
+        where T9 : notnull
+        where T10 : notnull
     {
-        writer.WriteSignature(TypeModel.GetSignature<ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>>(buffer));
     }
 }

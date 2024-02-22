@@ -5,6 +5,9 @@ namespace Tmds.DBus.Protocol;
 public ref partial struct Reader
 {
     public T? ReadHandle<T>() where T : SafeHandle
+        => ReadHandleGeneric<T>();
+
+    internal T? ReadHandleGeneric<T>()
     {
         int idx = (int)ReadUInt32();
         if (idx >= _handleCount)
@@ -13,9 +16,9 @@ public ref partial struct Reader
         }
         if (_handles is not null)
         {
-            return _handles.ReadHandle<T>(idx);
+            return _handles.ReadHandleGeneric<T>(idx);
         }
-        return null;
+        return default(T);
     }
 
     // note: The handle is still owned (i.e. Disposed) by the Message.

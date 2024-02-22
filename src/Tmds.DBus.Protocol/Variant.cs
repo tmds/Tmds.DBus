@@ -429,7 +429,11 @@ public readonly struct Variant
                         l = BinaryPrimitives.ReverseEndianness(l);
                     }
                     Span<byte> span = new Span<byte>(&l, 8);
-                    int length = Math.Max(8, span.IndexOf((byte)0));
+                    int length = span.IndexOf((byte)0);
+                    if (length == -1)
+                    {
+                        length = 8;
+                    }
                     signature = new Utf8Span(span.Slice(0, length));
                     writable = (_o as IDBusWritable)!;
                 }

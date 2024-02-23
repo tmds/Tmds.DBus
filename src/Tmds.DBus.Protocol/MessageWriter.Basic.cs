@@ -39,9 +39,8 @@ public ref partial struct MessageWriter
     {
         Span<byte> lengthSpan = GetSpan(1);
         Advance(1);
-        int bytesWritten = (int)Encoding.UTF8.GetBytes(s.AsSpan(), Writer);
+        int bytesWritten = WriteRaw(s);
         lengthSpan[0] = (byte)bytesWritten;
-        _offset += bytesWritten;
         WriteByte(0);
     }
 
@@ -156,7 +155,6 @@ public ref partial struct MessageWriter
         Advance(4);
         int bytesWritten = WriteRaw(s);
         Unsafe.WriteUnaligned<uint>(ref MemoryMarshal.GetReference(lengthSpan), (uint)bytesWritten);
-        _offset += bytesWritten;
         WriteByte(0);
     }
 
@@ -181,7 +179,24 @@ public ref partial struct MessageWriter
 
     private int WriteRaw(string data)
     {
-        int length = (int)Encoding.UTF8.GetBytes(data.AsSpan(), Writer);
-        return length;
+#if NETSTANDARD2_1_OR_GREATER
+        // To use the IBufferWriter we need to flush the Span.
+        // Avoid it when we're writing small strings.
+        if (data.Length <= 2048)
+        {
+            ReadOnlySpan<char> chars = data.AsSpan();
+            int byteCount = Encoding.UTF8.GetByteCount(chars);
+            var dst = GetSpan(byteCount);
+            byteCount = Encoding.UTF8.GetBytes(data, dst);
+            Advance(byteCount);
+            return byteCount;
+        }
+        else
+#endif
+        {
+            int length = (int)Encoding.UTF8.GetBytes(data.AsSpan(), Writer);
+            _offset += length;
+            return length;
+        }
     }
 }

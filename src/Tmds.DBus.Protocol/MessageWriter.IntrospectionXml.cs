@@ -72,7 +72,6 @@ public ref partial struct MessageWriter
         bytesWritten += WriteRaw(IntrospectionFooter);
 
         Unsafe.WriteUnaligned<uint>(ref MemoryMarshal.GetReference(lengthSpan), (uint)bytesWritten);
-        _offset += bytesWritten;
         WriteByte(0);
     }
 }

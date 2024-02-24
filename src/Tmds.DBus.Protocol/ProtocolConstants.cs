@@ -75,6 +75,12 @@ static class ProtocolConstants
     public static int GetPadding(int offset, DBusType type)
     {
         int alignment = GetTypeAlignment(type);
+        return GetPadding(offset ,alignment);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int GetPadding(int offset, int alignment)
+    {
         return (~offset + 1) & (alignment - 1);
     }
 }

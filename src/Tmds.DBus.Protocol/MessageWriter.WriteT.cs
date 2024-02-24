@@ -1,5 +1,3 @@
-using System.Runtime.CompilerServices;
-
 namespace Tmds.DBus.Protocol;
 
 public ref partial struct MessageWriter
@@ -15,31 +13,31 @@ public ref partial struct MessageWriter
         {
             WriteBool((bool)(object)value);
         }
-        else if (typeof(T) == typeof(Int16))
+        else if (typeof(T) == typeof(short))
         {
-            WriteInt16((Int16)(object)value);
+            WriteInt16((short)(object)value);
         }
-        else if (typeof(T) == typeof(UInt16))
+        else if (typeof(T) == typeof(ushort))
         {
-            WriteUInt16((UInt16)(object)value);
+            WriteUInt16((ushort)(object)value);
         }
-        else if (typeof(T) == typeof(Int32))
+        else if (typeof(T) == typeof(int))
         {
-            WriteInt32((Int32)(object)value);
+            WriteInt32((int)(object)value);
         }
-        else if (typeof(T) == typeof(UInt32))
+        else if (typeof(T) == typeof(uint))
         {
-            WriteUInt32((UInt32)(object)value);
+            WriteUInt32((uint)(object)value);
         }
-        else if (typeof(T) == typeof(Int64))
+        else if (typeof(T) == typeof(long))
         {
-            WriteInt64((Int64)(object)value);
+            WriteInt64((long)(object)value);
         }
-        else if (typeof(T) == typeof(UInt64))
+        else if (typeof(T) == typeof(ulong))
         {
-            WriteUInt64((UInt64)(object)value);
+            WriteUInt64((ulong)(object)value);
         }
-        else if (typeof(T) == typeof(Double))
+        else if (typeof(T) == typeof(double))
         {
             WriteDouble((double)(object)value);
         }

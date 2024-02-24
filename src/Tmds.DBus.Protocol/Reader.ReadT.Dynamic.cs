@@ -29,31 +29,31 @@ public ref partial struct Reader
             {
                 return (T)(object)ReadBool();
             }
-            else if (type == typeof(Int16))
+            else if (type == typeof(short))
             {
                 return (T)(object)ReadInt16();
             }
-            else if (type == typeof(UInt16))
+            else if (type == typeof(ushort))
             {
                 return (T)(object)ReadUInt16();
             }
-            else if (type == typeof(Int32))
+            else if (type == typeof(int))
             {
                 return (T)(object)ReadInt32();
             }
-            else if (type == typeof(UInt32))
+            else if (type == typeof(uint))
             {
                 return (T)(object)ReadUInt32();
             }
-            else if (type == typeof(Int64))
+            else if (type == typeof(long))
             {
                 return (T)(object)ReadInt64();
             }
-            else if (type == typeof(UInt64))
+            else if (type == typeof(ulong))
             {
                 return (T)(object)ReadUInt64();
             }
-            else if (type == typeof(Double))
+            else if (type == typeof(double))
             {
                 return (T)(object)ReadDouble();
             }
@@ -279,12 +279,12 @@ public ref partial struct Reader
             {
                 case DBusType.Byte: return typeof(byte);
                 case DBusType.Bool: return typeof(bool);
-                case DBusType.Int16: return typeof(Int16);
-                case DBusType.UInt16: return typeof(UInt16);
-                case DBusType.Int32: return typeof(Int32);
-                case DBusType.UInt32: return typeof(UInt32);
-                case DBusType.Int64: return typeof(Int64);
-                case DBusType.UInt64: return typeof(UInt64);
+                case DBusType.Int16: return typeof(short);
+                case DBusType.UInt16: return typeof(ushort);
+                case DBusType.Int32: return typeof(int);
+                case DBusType.UInt32: return typeof(uint);
+                case DBusType.Int64: return typeof(long);
+                case DBusType.UInt64: return typeof(ulong);
                 case DBusType.Double: return typeof(double);
                 case DBusType.String: return typeof(string);
                 case DBusType.ObjectPath: return typeof(ObjectPath);

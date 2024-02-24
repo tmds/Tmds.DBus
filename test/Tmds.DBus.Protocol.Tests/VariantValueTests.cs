@@ -233,7 +233,105 @@ public class VariantValueTests
     [Fact]
     public void Array()
     {
-        VariantValue vv = new VariantValue(VariantValueType.Int64, new VariantValue[] { new VariantValue((long)1), new VariantValue((long)2)});
+        VariantValue vv = new VariantValue(VariantValueType.String, new VariantValue[] { new VariantValue("1"), new VariantValue("2")});
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.String, vv.ArrayItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryKeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryValueType);
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal("1", vv.GetItem(0).GetString());
+        Assert.Equal("2", vv.GetItem(1).GetString());
+    }
+
+
+
+    [Fact]
+    public void ArrayOfByte()
+    {
+        VariantValue vv = new VariantValue(VariantValueType.Byte, new byte[] { 1, 2 });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Byte, vv.ArrayItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryKeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryValueType);
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal(1, vv.GetItem(0).GetByte());
+        Assert.Equal(2, vv.GetItem(1).GetByte());
+    }
+
+    [Fact]
+    public void ArrayOfInt16()
+    {
+        VariantValue vv = new VariantValue(VariantValueType.Int16, new short[] { 1, 2 });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Int16, vv.ArrayItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryKeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryValueType);
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal(1, vv.GetItem(0).GetInt16());
+        Assert.Equal(2, vv.GetItem(1).GetInt16());
+    }
+
+    [Fact]
+    public void ArrayOfUInt16()
+    {
+        VariantValue vv = new VariantValue(VariantValueType.UInt16, new short[] { 1, 2 });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.UInt16, vv.ArrayItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryKeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryValueType);
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal(1, vv.GetItem(0).GetUInt16());
+        Assert.Equal(2, vv.GetItem(1).GetUInt16());
+    }
+
+    [Fact]
+    public void ArrayOfInt32()
+    {
+        VariantValue vv = new VariantValue(VariantValueType.Int32, new int[] { 1, 2 });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Int32, vv.ArrayItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryKeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryValueType);
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal(1, vv.GetItem(0).GetInt32());
+        Assert.Equal(2, vv.GetItem(1).GetInt32());
+    }
+
+    [Fact]
+    public void ArrayOfUInt32()
+    {
+        VariantValue vv = new VariantValue(VariantValueType.UInt32, new int[] { 1, 2 });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.UInt32, vv.ArrayItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryKeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryValueType);
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal(1U, vv.GetItem(0).GetUInt32());
+        Assert.Equal(2U, vv.GetItem(1).GetUInt32());
+    }
+
+    [Fact]
+    public void ArrayOfInt64()
+    {
+        VariantValue vv = new VariantValue(VariantValueType.Int64, new long[] { 1, 2 });
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.Int64, vv.ArrayItemType);
@@ -245,6 +343,49 @@ public class VariantValueTests
         Assert.Equal(1, vv.GetItem(0).GetInt64());
         Assert.Equal(2, vv.GetItem(1).GetInt64());
     }
+
+    [Fact]
+    public void ArrayOfUInt64()
+    {
+        VariantValue vv = new VariantValue(VariantValueType.UInt64, new long[] { 1, 2 });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.UInt64, vv.ArrayItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryKeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryValueType);
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal(1UL, vv.GetItem(0).GetUInt64());
+        Assert.Equal(2UL, vv.GetItem(1).GetUInt64());
+    }
+
+
+
+    [Fact]
+    public void ArrayOfDouble()
+    {
+        double d1 = Math.PI;
+        double d2 = Math.E;
+
+        VariantValue vv = new VariantValue(VariantValueType.Double, new long[] { ToLong(d1), ToLong(d2) });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Double, vv.ArrayItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryKeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.DictionaryValueType);
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal(d1, vv.GetItem(0).GetDouble());
+        Assert.Equal(d2, vv.GetItem(1).GetDouble());
+
+        static unsafe long ToLong(double d)
+        {
+            return *(long*)&d;
+        }
+    }
+
 
     [Fact]
     public void Struct()

@@ -14,31 +14,31 @@ static partial class TypeModel
         {
             return DBusType.Bool;
         }
-        else if (typeof(T) == typeof(Int16))
+        else if (typeof(T) == typeof(short))
         {
             return DBusType.Int16;
         }
-        else if (typeof(T) == typeof(UInt16))
+        else if (typeof(T) == typeof(ushort))
         {
             return DBusType.UInt16;
         }
-        else if (typeof(T) == typeof(Int32))
+        else if (typeof(T) == typeof(int))
         {
             return DBusType.Int32;
         }
-        else if (typeof(T) == typeof(UInt32))
+        else if (typeof(T) == typeof(uint))
         {
             return DBusType.UInt32;
         }
-        else if (typeof(T) == typeof(Int64))
+        else if (typeof(T) == typeof(long))
         {
             return DBusType.Int64;
         }
-        else if (typeof(T) == typeof(UInt64))
+        else if (typeof(T) == typeof(ulong))
         {
             return DBusType.UInt64;
         }
-        else if (typeof(T) == typeof(Double))
+        else if (typeof(T) == typeof(double))
         {
             return DBusType.Double;
         }
@@ -117,37 +117,37 @@ static partial class TypeModel
             signature[0] = (byte)DBusType.Bool;
             return 1;
         }
-        else if (type == typeof(Int16))
+        else if (type == typeof(short))
         {
             signature[0] = (byte)DBusType.Int16;
             return 1;
         }
-        else if (type == typeof(UInt16))
+        else if (type == typeof(ushort))
         {
             signature[0] = (byte)DBusType.UInt16;
             return 1;
         }
-        else if (type == typeof(Int32))
+        else if (type == typeof(int))
         {
             signature[0] = (byte)DBusType.Int32;
             return 1;
         }
-        else if (type == typeof(UInt32))
+        else if (type == typeof(uint))
         {
             signature[0] = (byte)DBusType.UInt32;
             return 1;
         }
-        else if (type == typeof(Int64))
+        else if (type == typeof(long))
         {
             signature[0] = (byte)DBusType.Int64;
             return 1;
         }
-        else if (type == typeof(UInt64))
+        else if (type == typeof(ulong))
         {
             signature[0] = (byte)DBusType.UInt64;
             return 1;
         }
-        else if (type == typeof(Double))
+        else if (type == typeof(double))
         {
             signature[0] = (byte)DBusType.Double;
             return 1;

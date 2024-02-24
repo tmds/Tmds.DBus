@@ -4,19 +4,19 @@ public ref partial struct MessageWriter
 {
     public void WriteBool(bool value) => WriteUInt32(value ? 1u : 0u);
 
-    public void WriteByte(byte value) => WritePrimitiveCore<Int16>(value, DBusType.Byte);
+    public void WriteByte(byte value) => WritePrimitiveCore<short>(value, DBusType.Byte);
 
-    public void WriteInt16(Int16 value) => WritePrimitiveCore<Int16>(value, DBusType.Int16);
+    public void WriteInt16(short value) => WritePrimitiveCore<Int16>(value, DBusType.Int16);
 
-    public void WriteUInt16(UInt16 value) => WritePrimitiveCore<UInt16>(value, DBusType.UInt16);
+    public void WriteUInt16(ushort value) => WritePrimitiveCore<UInt16>(value, DBusType.UInt16);
 
-    public void WriteInt32(Int32 value) => WritePrimitiveCore<Int32>(value, DBusType.Int32);
+    public void WriteInt32(int value) => WritePrimitiveCore<Int32>(value, DBusType.Int32);
 
-    public void WriteUInt32(UInt32 value) => WritePrimitiveCore<UInt32>(value, DBusType.UInt32);
+    public void WriteUInt32(uint value) => WritePrimitiveCore<UInt32>(value, DBusType.UInt32);
 
-    public void WriteInt64(Int64 value) => WritePrimitiveCore<Int64>(value, DBusType.Int64);
+    public void WriteInt64(long value) => WritePrimitiveCore<Int64>(value, DBusType.Int64);
 
-    public void WriteUInt64(UInt64 value) => WritePrimitiveCore<UInt64>(value, DBusType.UInt64);
+    public void WriteUInt64(ulong value) => WritePrimitiveCore<UInt64>(value, DBusType.UInt64);
 
     public void WriteDouble(double value) => WritePrimitiveCore<double>(value, DBusType.Double);
 
@@ -61,37 +61,37 @@ public ref partial struct MessageWriter
         WriteByte(value);
     }
 
-    public void WriteVariantInt16(Int16 value)
+    public void WriteVariantInt16(short value)
     {
         WriteSignature(ProtocolConstants.Int16Signature);
         WriteInt16(value);
     }
 
-    public void WriteVariantUInt16(UInt16 value)
+    public void WriteVariantUInt16(ushort value)
     {
         WriteSignature(ProtocolConstants.UInt16Signature);
         WriteUInt16(value);
     }
 
-    public void WriteVariantInt32(Int32 value)
+    public void WriteVariantInt32(int value)
     {
         WriteSignature(ProtocolConstants.Int32Signature);
         WriteInt32(value);
     }
 
-    public void WriteVariantUInt32(UInt32 value)
+    public void WriteVariantUInt32(uint value)
     {
         WriteSignature(ProtocolConstants.UInt32Signature);
         WriteUInt32(value);
     }
 
-    public void WriteVariantInt64(Int64 value)
+    public void WriteVariantInt64(long value)
     {
         WriteSignature(ProtocolConstants.Int64Signature);
         WriteInt64(value);
     }
 
-    public void WriteVariantUInt64(UInt64 value)
+    public void WriteVariantUInt64(ulong value)
     {
         WriteSignature(ProtocolConstants.UInt64Signature);
         WriteUInt64(value);

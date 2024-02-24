@@ -115,6 +115,16 @@ public ref partial struct MessageWriter
         }
     }
 
+    private void WritePadding(int alignment)
+    {
+        int pad = ProtocolConstants.GetPadding(_offset, alignment);
+        if (pad != 0)
+        {
+            GetSpan(pad).Slice(0, pad).Fill(0);
+            Advance(pad);
+        }
+    }
+
     private Span<byte> GetSpan(int sizeHint)
     {
         Ensure(sizeHint);

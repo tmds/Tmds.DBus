@@ -16,37 +16,37 @@ public ref partial struct MessageWriter
             WriteVariantBool((bool)value);
             return;
         }
-        else if (type == typeof(Int16))
+        else if (type == typeof(short))
         {
-            WriteVariantInt16((Int16)value);
+            WriteVariantInt16((short)value);
             return;
         }
-        else if (type == typeof(UInt16))
+        else if (type == typeof(ushort))
         {
-            WriteVariantUInt16((UInt16)value);
+            WriteVariantUInt16((ushort)value);
             return;
         }
-        else if (type == typeof(Int32))
+        else if (type == typeof(int))
         {
-            WriteVariantInt32((Int32)value);
+            WriteVariantInt32((int)value);
             return;
         }
-        else if (type == typeof(UInt32))
+        else if (type == typeof(uint))
         {
-            WriteVariantUInt32((UInt32)value);
+            WriteVariantUInt32((uint)value);
             return;
         }
-        else if (type == typeof(Int64))
+        else if (type == typeof(long))
         {
-            WriteVariantInt64((Int64)value);
+            WriteVariantInt64((long)value);
             return;
         }
-        else if (type == typeof(UInt64))
+        else if (type == typeof(ulong))
         {
-            WriteVariantUInt64((UInt64)value);
+            WriteVariantUInt64((ulong)value);
             return;
         }
-        else if (type == typeof(Double))
+        else if (type == typeof(double))
         {
             WriteVariantDouble((double)value);
             return;

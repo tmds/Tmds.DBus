@@ -13,31 +13,31 @@ public ref partial struct Reader
         {
             return (T)(object)ReadBool();
         }
-        else if (typeof(T) == typeof(Int16))
+        else if (typeof(T) == typeof(short))
         {
             return (T)(object)ReadInt16();
         }
-        else if (typeof(T) == typeof(UInt16))
+        else if (typeof(T) == typeof(ushort))
         {
             return (T)(object)ReadUInt16();
         }
-        else if (typeof(T) == typeof(Int32))
+        else if (typeof(T) == typeof(int))
         {
             return (T)(object)ReadInt32();
         }
-        else if (typeof(T) == typeof(UInt32))
+        else if (typeof(T) == typeof(uint))
         {
             return (T)(object)ReadUInt32();
         }
-        else if (typeof(T) == typeof(Int64))
+        else if (typeof(T) == typeof(long))
         {
             return (T)(object)ReadInt64();
         }
-        else if (typeof(T) == typeof(UInt64))
+        else if (typeof(T) == typeof(ulong))
         {
             return (T)(object)ReadUInt64();
         }
-        else if (typeof(T) == typeof(Double))
+        else if (typeof(T) == typeof(double))
         {
             return (T)(object)ReadDouble();
         }

@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
@@ -79,14 +77,37 @@ public ref partial struct Reader
                 }
                 else
                 {
-                    List<VariantValue> items = new();
-                    ArrayEnd arrayEnd = ReadArrayStart(type);
-                    while (HasNext(arrayEnd))
+                    if (type == DBusType.Byte)
                     {
-                        VariantValue value = ReadTypeAsVariantValue(type, innerSignature);
-                        items.Add(value);
+                        return new VariantValue(ToVariantValueType(type), ReadArray<byte>());
                     }
-                    return new VariantValue(ToVariantValueType(type), items.ToArray());
+                    if (type == DBusType.Int16 ||
+                        type == DBusType.UInt16)
+                    {
+                        return new VariantValue(ToVariantValueType(type), ReadArray<short>());
+                    }
+                    if (type == DBusType.Int32 ||
+                        type == DBusType.UInt32)
+                    {
+                        return new VariantValue(ToVariantValueType(type), ReadArray<int>());
+                    }
+                    if (type == DBusType.Int64 ||
+                        type == DBusType.UInt64 ||
+                        type == DBusType.Double)
+                    {
+                        return new VariantValue(ToVariantValueType(type), ReadArray<long>());
+                    }
+                    else
+                    {
+                        List<VariantValue> items = new();
+                        ArrayEnd arrayEnd = ReadArrayStart(type);
+                        while (HasNext(arrayEnd))
+                        {
+                            VariantValue value = ReadTypeAsVariantValue(type, innerSignature);
+                            items.Add(value);
+                        }
+                        return new VariantValue(ToVariantValueType(type), items.ToArray());
+                    }
                 }
             case DBusType.Struct:
                 {

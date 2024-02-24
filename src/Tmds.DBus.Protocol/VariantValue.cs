@@ -14,6 +14,15 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     private const int DictionaryValueTypeShift = 8 * 1;
     private const long StripTypeMask = ~(0xffL << TypeShift);
 
+    private const long ArrayOfByte = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.Byte << ArrayItemTypeShift);
+    private const long ArrayOfInt16 = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.Int16 << ArrayItemTypeShift);
+    private const long ArrayOfUInt16 = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.UInt16 << ArrayItemTypeShift);
+    private const long ArrayOfInt32 = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.Int32 << ArrayItemTypeShift);
+    private const long ArrayOfUInt32 = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.UInt32 << ArrayItemTypeShift);
+    private const long ArrayOfInt64 = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.Int64 << ArrayItemTypeShift);
+    private const long ArrayOfUInt64 = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.UInt64 << ArrayItemTypeShift);
+    private const long ArrayOfDouble = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.Double << ArrayItemTypeShift);
+
     public VariantValueType Type
         => DetermineType();
 
@@ -90,6 +99,52 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     // Array
     internal VariantValue(VariantValueType itemType, VariantValue[] items)
     {
+        Debug.Assert(
+            itemType != VariantValueType.Byte &&
+            itemType != VariantValueType.Int16 &&
+            itemType != VariantValueType.UInt16 &&
+            itemType != VariantValueType.Int32 &&
+            itemType != VariantValueType.UInt32 &&
+            itemType != VariantValueType.Int64 &&
+            itemType != VariantValueType.UInt64 &&
+            itemType != VariantValueType.Double
+        );
+        _l = ((long)VariantValueType.Array << TypeShift) |
+             ((long)itemType << ArrayItemTypeShift);
+        _o = items;
+    }
+    // Array of Byte
+    internal VariantValue(VariantValueType itemType, byte[] items)
+    {
+        Debug.Assert(itemType == VariantValueType.Byte);
+        _l = ((long)VariantValueType.Array << TypeShift) |
+             ((long)itemType << ArrayItemTypeShift);
+        _o = items;
+    }
+    // Array of Int16, UInt16
+    internal VariantValue(VariantValueType itemType, short[] items)
+    {
+        Debug.Assert(itemType == VariantValueType.Int16 ||
+                     itemType == VariantValueType.UInt16);
+        _l = ((long)VariantValueType.Array << TypeShift) |
+             ((long)itemType << ArrayItemTypeShift);
+        _o = items;
+    }
+    // Array of Int32, UInt32
+    internal VariantValue(VariantValueType itemType, int[] items)
+    {
+        Debug.Assert(itemType == VariantValueType.Int32 ||
+                     itemType == VariantValueType.UInt32);
+        _l = ((long)VariantValueType.Array << TypeShift) |
+             ((long)itemType << ArrayItemTypeShift);
+        _o = items;
+    }
+    // Array of Int64, UInt64, Double
+    internal VariantValue(VariantValueType itemType, long[] items)
+    {
+        Debug.Assert(itemType == VariantValueType.Int64 ||
+                     itemType == VariantValueType.UInt64 ||
+                     itemType == VariantValueType.Double);
         _l = ((long)VariantValueType.Array << TypeShift) |
              ((long)itemType << ArrayItemTypeShift);
         _o = items;
@@ -202,12 +257,39 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     // Valid for Array, Struct.
     public VariantValue GetItem(int i)
     {
+        if (Type == VariantValueType.Array)
+        {
+            switch (_l)
+            {
+                case ArrayOfByte:
+                    return new VariantValue((_o as byte[])![i]);
+                case ArrayOfInt16:
+                    return new VariantValue((_o as short[])![i]);
+                case ArrayOfUInt16:
+                    return new VariantValue((ushort)((_o as short[])![i]));
+                case ArrayOfInt32:
+                    return new VariantValue((_o as int[])![i]);
+                case ArrayOfUInt32:
+                    return new VariantValue((uint)((_o as int[])![i]));
+                case ArrayOfInt64:
+                    return new VariantValue((_o as long[])![i]);
+                case ArrayOfUInt64:
+                    return new VariantValue((ulong)((_o as long[])![i]));
+                case ArrayOfDouble:
+                    return new VariantValue(ToDouble((_o as long[])![i]));
+            }
+        }
         var values = _o as VariantValue[];
         if (_o is null)
         {
             ThrowUnexpectedType([VariantValueType.Array, VariantValueType.Struct], Type);
         }
         return values![i];
+
+        static unsafe double ToDouble(long l)
+        {
+            return *(double*)&l;
+        }
     }
 
     // Valid for Dictionary.

@@ -348,7 +348,7 @@ public class ReaderTests
                 new object[] {new VariantValue(new Signature("sis")),
                                                 new byte[] {1, 103, 0, 3, 115, 105, 115, 0},
                                                 new byte[] {1, 103, 0, 3, 115, 105, 115, 0}},
-                new object[] {new VariantValue(VariantValueType.Int64, new VariantValue[] { new VariantValue((long)1), new VariantValue((long)2)}),
+                new object[] {new VariantValue(VariantValueType.Int64, new long[] { 1, 2}),
                                                 new byte[] {2, 97, 120, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2},
                                                 new byte[] {2, 97, 120, 0, 16, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0}},
                 new object[] {new VariantValue(new VariantValue[] { new VariantValue(1L), new VariantValue("hw") }), new byte[] {4, 40, 120, 115, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 104, 119, 0},

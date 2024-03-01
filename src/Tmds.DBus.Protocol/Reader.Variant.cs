@@ -79,23 +79,40 @@ public ref partial struct Reader
                 {
                     if (type == DBusType.Byte)
                     {
-                        return new VariantValue(ToVariantValueType(type), ReadArray<byte>());
+                        return new VariantValue(ReadArray<byte>());
                     }
-                    if (type == DBusType.Int16 ||
-                        type == DBusType.UInt16)
+                    else if (type == DBusType.Int16)
                     {
-                        return new VariantValue(ToVariantValueType(type), ReadArray<short>());
+                        return new VariantValue(ReadArray<short>());
                     }
-                    if (type == DBusType.Int32 ||
-                        type == DBusType.UInt32)
+                    else if (type == DBusType.UInt16)
                     {
-                        return new VariantValue(ToVariantValueType(type), ReadArray<int>());
+                        return new VariantValue(ReadArray<ushort>());
                     }
-                    if (type == DBusType.Int64 ||
-                        type == DBusType.UInt64 ||
-                        type == DBusType.Double)
+                    else if (type == DBusType.Int32)
                     {
-                        return new VariantValue(ToVariantValueType(type), ReadArray<long>());
+                        return new VariantValue(ReadArray<int>());
+                    }
+                    else if (type == DBusType.UInt32)
+                    {
+                        return new VariantValue(ReadArray<uint>());
+                    }
+                    else if (type == DBusType.Int64)
+                    {
+                        return new VariantValue(ReadArray<long>());
+                    }
+                    else if (type == DBusType.UInt64)
+                    {
+                        return new VariantValue(ReadArray<ulong>());
+                    }
+                    else if (type == DBusType.Double)
+                    {
+                        return new VariantValue(ReadArray<double>());
+                    }
+                    else if (type == DBusType.String ||
+                             type == DBusType.ObjectPath)
+                    {
+                        return new VariantValue(ToVariantValueType(type), ReadArray<string>());
                     }
                     else
                     {

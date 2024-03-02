@@ -68,7 +68,7 @@ public ref partial struct MessageWriter
         }
         else
         {
-            var typeWriter = GetTypeWriter(type);
+            var typeWriter = TypeWriters.GetTypeWriter(type);
             typeWriter.WriteVariant(ref this, value);
         }
     }

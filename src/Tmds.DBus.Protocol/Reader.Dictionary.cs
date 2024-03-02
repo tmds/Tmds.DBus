@@ -21,36 +21,4 @@ public ref partial struct Reader
         }
         return dictionary;
     }
-
-    sealed class DictionaryTypeReader<TKey, TValue> : ITypeReader<Dictionary<TKey, TValue>>, ITypeReader<object>
-        where TKey : notnull
-        where TValue : notnull
-    {
-        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
-
-        public Dictionary<TKey, TValue> Read(ref Reader reader)
-        {
-            return reader.ReadDictionary<TKey, TValue>();
-        }
-    }
-
-    public static void AddDictionaryTypeReader<TKey, TValue>()
-        where TKey : notnull
-        where TValue : notnull
-    {
-        lock (_typeReaders)
-        {
-            Type keyType = typeof(Dictionary<TKey, TValue>);
-            if (!_typeReaders.ContainsKey(keyType))
-            {
-                _typeReaders.Add(keyType, new DictionaryTypeReader<TKey, TValue>());
-            }
-        }
-    }
-
-    private ITypeReader CreateDictionaryTypeReader(Type keyType, Type valueType)
-    {
-        Type readerType = typeof(DictionaryTypeReader<,>).MakeGenericType(new[] { keyType, valueType });
-        return (ITypeReader)Activator.CreateInstance(readerType)!;
-    }
 }

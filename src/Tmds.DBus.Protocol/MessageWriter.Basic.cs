@@ -179,7 +179,7 @@ public ref partial struct MessageWriter
 
     private int WriteRaw(string data)
     {
-#if NETSTANDARD2_1_OR_GREATER
+#if NETSTANDARD2_1_OR_GREATER || NET
         // To use the IBufferWriter we need to flush the Span.
         // Avoid it when we're writing small strings.
         if (data.Length <= 2048)

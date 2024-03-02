@@ -22,6 +22,8 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     private const long ArrayOfInt64 = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.Int64 << ArrayItemTypeShift);
     private const long ArrayOfUInt64 = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.UInt64 << ArrayItemTypeShift);
     private const long ArrayOfDouble = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.Double << ArrayItemTypeShift);
+    private const long ArrayOfString = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.String << ArrayItemTypeShift);
+    private const long ArrayOfObjectPath = ((long)VariantValueType.Array << TypeShift) | ((long)VariantValueType.ObjectPath << ArrayItemTypeShift);
 
     public VariantValueType Type
         => DetermineType();
@@ -113,40 +115,51 @@ public readonly struct VariantValue : IEquatable<VariantValue>
              ((long)itemType << ArrayItemTypeShift);
         _o = items;
     }
-    // Array of Byte
-    internal VariantValue(VariantValueType itemType, byte[] items)
+    internal VariantValue(VariantValueType itemType, string[] items)
     {
-        Debug.Assert(itemType == VariantValueType.Byte);
+        Debug.Assert(itemType == VariantValueType.String || itemType == VariantValueType.ObjectPath);
         _l = ((long)VariantValueType.Array << TypeShift) |
              ((long)itemType << ArrayItemTypeShift);
         _o = items;
     }
-    // Array of Int16, UInt16
-    internal VariantValue(VariantValueType itemType, short[] items)
+    internal VariantValue(byte[] items)
     {
-        Debug.Assert(itemType == VariantValueType.Int16 ||
-                     itemType == VariantValueType.UInt16);
-        _l = ((long)VariantValueType.Array << TypeShift) |
-             ((long)itemType << ArrayItemTypeShift);
+        _l = ArrayOfByte;
         _o = items;
     }
-    // Array of Int32, UInt32
-    internal VariantValue(VariantValueType itemType, int[] items)
+    internal VariantValue(short[] items)
     {
-        Debug.Assert(itemType == VariantValueType.Int32 ||
-                     itemType == VariantValueType.UInt32);
-        _l = ((long)VariantValueType.Array << TypeShift) |
-             ((long)itemType << ArrayItemTypeShift);
+        _l = ArrayOfInt16;
         _o = items;
     }
-    // Array of Int64, UInt64, Double
-    internal VariantValue(VariantValueType itemType, long[] items)
+    internal VariantValue(ushort[] items)
     {
-        Debug.Assert(itemType == VariantValueType.Int64 ||
-                     itemType == VariantValueType.UInt64 ||
-                     itemType == VariantValueType.Double);
-        _l = ((long)VariantValueType.Array << TypeShift) |
-             ((long)itemType << ArrayItemTypeShift);
+        _l = ArrayOfUInt16;
+        _o = items;
+    }
+    internal VariantValue(int[] items)
+    {
+        _l = ArrayOfInt32;
+        _o = items;
+    }
+    internal VariantValue(uint[] items)
+    {
+        _l = ArrayOfUInt32;
+        _o = items;
+    }
+    internal VariantValue(long[] items)
+    {
+        _l = ArrayOfInt64;
+        _o = items;
+    }
+    internal VariantValue(ulong[] items)
+    {
+        _l = ArrayOfUInt64;
+        _o = items;
+    }
+    internal VariantValue(double[] items)
+    {
+        _l = ArrayOfDouble;
         _o = items;
     }
     // Dictionary
@@ -173,65 +186,323 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     public byte GetByte()
     {
         EnsureTypeIs(VariantValueType.Byte);
+        return UnsafeGetByte();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private byte UnsafeGetByte()
+    {
         return (byte)(_l & StripTypeMask);
     }
+
     public bool GetBool()
     {
         EnsureTypeIs(VariantValueType.Bool);
+        return UnsafeGetBool();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool UnsafeGetBool()
+    {
         return (_l & StripTypeMask) != 0;
     }
+
     public short GetInt16()
     {
         EnsureTypeIs(VariantValueType.Int16);
+        return UnsafeGetInt16();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private short UnsafeGetInt16()
+    {
         return (short)(_l & StripTypeMask);
     }
+
     public ushort GetUInt16()
     {
         EnsureTypeIs(VariantValueType.UInt16);
+        return UnsafeGetUInt16();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ushort UnsafeGetUInt16()
+    {
         return (ushort)(_l & StripTypeMask);
     }
+
     public int GetInt32()
     {
         EnsureTypeIs(VariantValueType.Int32);
+        return UnsafeGetInt32();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int UnsafeGetInt32()
+    {
         return (int)(_l & StripTypeMask);
     }
+
     public uint GetUInt32()
     {
         EnsureTypeIs(VariantValueType.UInt32);
+        return UnsafeGetUInt32();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private uint UnsafeGetUInt32()
+    {
         return (uint)(_l & StripTypeMask);
     }
+
     public long GetInt64()
     {
         EnsureTypeIs(VariantValueType.Int64);
+        return UnsafeGetInt64();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private long UnsafeGetInt64()
+    {
         return _l;
     }
+
     public ulong GetUInt64()
     {
         EnsureTypeIs(VariantValueType.UInt64);
+        return UnsafeGetUInt64();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ulong UnsafeGetUInt64()
+    {
         return (ulong)(_l);
     }
-    public unsafe double GetDouble()
+
+    public string GetString()
+    {
+        EnsureTypeIs(VariantValueType.String);
+        return UnsafeGetString();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private string UnsafeGetString()
+    {
+        return (_o as string)!;
+    }
+
+    public string GetObjectPath()
+    {
+        EnsureTypeIs(VariantValueType.ObjectPath);
+        return UnsafeGetString();
+    }
+
+    public string GetSignature()
+    {
+        EnsureTypeIs(VariantValueType.Signature);
+        return UnsafeGetString();
+    }
+
+    public double GetDouble()
     {
         EnsureTypeIs(VariantValueType.Double);
+        return UnsafeGetDouble();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private unsafe double UnsafeGetDouble()
+    {
         double value;
         *(long*)&value = _l;
         return value;
     }
-    public string GetString()
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private T UnsafeGet<T>()
     {
-        EnsureTypeIs(VariantValueType.String);
-        return (_o as string)!;
+        if (typeof(T) == typeof(byte))
+        {
+            return (T)(object)UnsafeGetByte();
+        }
+        else if (typeof(T) == typeof(bool))
+        {
+            return (T)(object)UnsafeGetBool();
+        }
+        else if (typeof(T) == typeof(short))
+        {
+            return (T)(object)UnsafeGetInt16();
+        }
+        else if (typeof(T) == typeof(ushort))
+        {
+            return (T)(object)UnsafeGetUInt16();
+        }
+        else if (typeof(T) == typeof(int))
+        {
+            return (T)(object)UnsafeGetInt32();
+        }
+        else if (typeof(T) == typeof(uint))
+        {
+            return (T)(object)UnsafeGetUInt32();
+        }
+        else if (typeof(T) == typeof(long))
+        {
+            return (T)(object)UnsafeGetInt64();
+        }
+        else if (typeof(T) == typeof(ulong))
+        {
+            return (T)(object)UnsafeGetUInt64();
+        }
+        else if (typeof(T) == typeof(double))
+        {
+            return (T)(object)UnsafeGetDouble();
+        }
+        else if (typeof(T) == typeof(string))
+        {
+            return (T)(object)UnsafeGetString();
+        }
+        else if (typeof(T) == typeof(VariantValue))
+        {
+            return (T)(object)this;
+        }
+        else if (typeof(T).IsAssignableTo(typeof(SafeHandle)))
+        {
+            return (T)(object)UnsafeReadHandle<T>()!;
+        }
+
+        ThrowCannotRetrieveAs(Type, typeof(T));
+        return default!;
     }
-    public string GetObjectPath()
+
+    public Dictionary<TKey, TValue> GetDictionary<TKey, TValue>()
+        where TKey : notnull
+        where TValue : notnull
     {
-        EnsureTypeIs(VariantValueType.ObjectPath);
-        return (_o as string)!;
+        EnsureTypeIs(VariantValueType.Dictionary);
+        EnsureCanUnsafeGet<TKey>(KeyType);
+        EnsureCanUnsafeGet<TValue>(ValueType);
+
+        Dictionary<TKey, TValue> dict = new();
+        var pairs = (_o as KeyValuePair<VariantValue, VariantValue>[])!.AsSpan();
+        foreach (var pair in pairs)
+        {
+            dict[pair.Key.UnsafeGet<TKey>()] = pair.Value.UnsafeGet<TValue>();
+        }
+        return dict;
     }
-    public string GetSignature()
+
+    public T[] GetArray<T>()
+        where T : notnull
     {
-        EnsureTypeIs(VariantValueType.Signature);
-        return (_o as string)!;
+        EnsureTypeIs(VariantValueType.Array);
+        EnsureCanUnsafeGet<T>(ItemType);
+
+        // Return the array by reference when we can.
+        // Don't bother to make a copy in case the caller mutates the data and
+        // calls GetArray again to retrieve the original data. It's an unlikely scenario.
+        if (typeof(T) == typeof(byte))
+        {
+            return (T[])(object)(_o as byte[])!;
+        }
+        else if (typeof(T) == typeof(short))
+        {
+            return (T[])(object)(_o as short[])!;
+        }
+        else if (typeof(T) == typeof(int))
+        {
+            return (T[])(object)(_o as int[])!;
+        }
+        else if (typeof(T) == typeof(long))
+        {
+            return (T[])(object)(_o as long[])!;
+        }
+        else if (typeof(T) == typeof(ushort))
+        {
+            return (T[])(object)(_o as ushort[])!;
+        }
+        else if (typeof(T) == typeof(uint))
+        {
+            return (T[])(object)(_o as uint[])!;
+        }
+        else if (typeof(T) == typeof(ulong))
+        {
+            return (T[])(object)(_o as ulong[])!;
+        }
+        else if (typeof(T) == typeof(double))
+        {
+            return (T[])(object)(_o as double[])!;
+        }
+        else if (typeof(T) == typeof(string))
+        {
+            return (T[])(object)(_o as string[])!;
+        }
+        else
+        {
+            var items = (_o as VariantValue[])!.AsSpan();
+            T[] array = new T[items.Length];
+            int i = 0;
+            foreach (var item in items)
+            {
+                array[i++] = item.UnsafeGet<T>();
+            }
+            return array;
+        }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void EnsureCanUnsafeGet<T>(VariantValueType type)
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            EnsureTypeIs(type, VariantValueType.Byte);
+        }
+        else if (typeof(T) == typeof(bool))
+        {
+            EnsureTypeIs(type, VariantValueType.Bool);
+        }
+        else if (typeof(T) == typeof(short))
+        {
+            EnsureTypeIs(type, VariantValueType.Int16);
+        }
+        else if (typeof(T) == typeof(ushort))
+        {
+            EnsureTypeIs(type, VariantValueType.UInt16);
+        }
+        else if (typeof(T) == typeof(int))
+        {
+            EnsureTypeIs(type, VariantValueType.Int32);
+        }
+        else if (typeof(T) == typeof(uint))
+        {
+            EnsureTypeIs(type, VariantValueType.UInt32);
+        }
+        else if (typeof(T) == typeof(long))
+        {
+            EnsureTypeIs(type, VariantValueType.Int64);
+        }
+        else if (typeof(T) == typeof(ulong))
+        {
+            EnsureTypeIs(type, VariantValueType.UInt64);
+        }
+        else if (typeof(T) == typeof(double))
+        {
+            EnsureTypeIs(type, VariantValueType.Double);
+        }
+        else if (typeof(T) == typeof(string))
+        {
+            EnsureTypeIs(type, [ VariantValueType.String, VariantValueType.Signature, VariantValueType.ObjectPath ]);
+        }
+        else if (typeof(T) == typeof(VariantValue))
+        { }
+        else if (typeof(T).IsAssignableTo(typeof(SafeHandle)))
+        {
+            EnsureTypeIs(type, VariantValueType.UnixFd);
+        }
+        else
+        {
+            ThrowCannotRetrieveAs(type, typeof(T));
+        }
+    }
+
     public T? ReadHandle<
 #if NET6_0_OR_GREATER
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -239,9 +510,19 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     T>() where T : SafeHandle
     {
         EnsureTypeIs(VariantValueType.UnixFd);
+        return UnsafeReadHandle<T>();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private T? UnsafeReadHandle<T>()
+    {
         var handles = (UnixFdCollection?)_o;
+        if (handles is null)
+        {
+            return default;
+        }
         int index = (int)_l;
-        return handles?.ReadHandle<T>(index);
+        return handles.ReadHandleGeneric<T>(index);
     }
 
     // Use for Array, Struct and Dictionary.
@@ -266,30 +547,28 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 case ArrayOfInt16:
                     return new VariantValue((_o as short[])![i]);
                 case ArrayOfUInt16:
-                    return new VariantValue((ushort)((_o as short[])![i]));
+                    return new VariantValue((_o as ushort[])![i]);
                 case ArrayOfInt32:
                     return new VariantValue((_o as int[])![i]);
                 case ArrayOfUInt32:
-                    return new VariantValue((uint)((_o as int[])![i]));
+                    return new VariantValue((_o as uint[])![i]);
                 case ArrayOfInt64:
                     return new VariantValue((_o as long[])![i]);
                 case ArrayOfUInt64:
-                    return new VariantValue((ulong)((_o as long[])![i]));
+                    return new VariantValue((_o as ulong[])![i]);
                 case ArrayOfDouble:
-                    return new VariantValue(ToDouble((_o as long[])![i]));
+                    return new VariantValue((_o as double[])![i]);
+                case ArrayOfString:
+                case ArrayOfObjectPath:
+                    return new VariantValue((_o as string[])![i]);
             }
         }
         var values = _o as VariantValue[];
         if (_o is null)
         {
-            ThrowUnexpectedType([VariantValueType.Array, VariantValueType.Struct], Type);
+            ThrowCannotRetrieveAs(Type, [VariantValueType.Array, VariantValueType.Struct]);
         }
         return values![i];
-
-        static unsafe double ToDouble(long l)
-        {
-            return *(double*)&l;
-        }
     }
 
     // Valid for Dictionary.
@@ -298,7 +577,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         var values = _o as KeyValuePair<VariantValue, VariantValue>[];
         if (_o is null)
         {
-            ThrowUnexpectedType(VariantValueType.Dictionary, Type);
+            ThrowCannotRetrieveAs(Type, VariantValueType.Dictionary);
         }
         return values![i];
     }
@@ -329,22 +608,34 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     public static implicit operator VariantValue(Signature value)
         => new VariantValue(value);
 
-    public VariantValueType ArrayItemType
+    public VariantValueType ItemType
         => DetermineInnerType(VariantValueType.Array, ArrayItemTypeShift);
 
-    public VariantValueType DictionaryKeyType
+    public VariantValueType KeyType
         => DetermineInnerType(VariantValueType.Dictionary, DictionaryKeyTypeShift);
 
-    public VariantValueType DictionaryValueType
+    public VariantValueType ValueType
         => DetermineInnerType(VariantValueType.Dictionary, DictionaryValueTypeShift);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureTypeIs(VariantValueType expected)
+        => EnsureTypeIs(Type, expected);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void EnsureTypeIs(VariantValueType actual, VariantValueType expected)
     {
-        VariantValueType actual = Type;
         if (actual != expected)
         {
-            ThrowUnexpectedType(expected, actual);
+            ThrowCannotRetrieveAs(actual, expected);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void EnsureTypeIs(VariantValueType actual, VariantValueType[] expected)
+    {
+        if (Array.IndexOf<VariantValueType>(expected, actual) == -1)
+        {
+            ThrowCannotRetrieveAs(actual, expected);
         }
     }
 
@@ -372,12 +663,21 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return type;
     }
 
-    private void ThrowUnexpectedType(VariantValueType expected, VariantValueType actual)
-        => ThrowUnexpectedType([ expected ], actual);
+    private static void ThrowCannotRetrieveAs(VariantValueType from, VariantValueType to)
+        => ThrowCannotRetrieveAs(from.ToString(), [ to.ToString() ]);
 
-    private void ThrowUnexpectedType(VariantValueType[] expected, VariantValueType actual)
+    private static void ThrowCannotRetrieveAs(VariantValueType from, VariantValueType[] to)
+        => ThrowCannotRetrieveAs(from.ToString(), to.Select(expected => expected.ToString()));
+
+    private static void ThrowCannotRetrieveAs(string from, string to)
+        => ThrowCannotRetrieveAs(from, [ to ]);
+
+    private static void ThrowCannotRetrieveAs(VariantValueType from, Type to)
+        => ThrowCannotRetrieveAs(from.ToString(), to.FullName ?? "?<Type>?");
+
+    private static void ThrowCannotRetrieveAs(string from, IEnumerable<string> to)
     {
-        throw new InvalidOperationException($"Type {actual} can not be retrieved as {string.Join("/", expected)}.");
+        throw new InvalidOperationException($"Type {from} can not be retrieved as {string.Join("/", to)}.");
     }
 
     public override string ToString()
@@ -416,7 +716,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 return $"{GetSignature()}{TypeSuffix(includeTypeSuffix, type)}";
 
             case VariantValueType.Array:
-                return $"[{nameof(VariantValueType.Array)}<{ArrayItemType}>, Count={Count}]";
+                return $"[{nameof(VariantValueType.Array)}<{ItemType}>, Count={Count}]";
             case VariantValueType.Struct:
                 var values = (_o as VariantValue[]) ?? Array.Empty<VariantValue>();
                 return $"({
@@ -427,7 +727,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                                     string.Join(", ", values.Select(v => v.Type))
                                 }>]")})";
             case VariantValueType.Dictionary:
-                return $"[{nameof(VariantValueType.Dictionary)}<{DictionaryKeyType}, {DictionaryValueType}>, Count={Count}]";
+                return $"[{nameof(VariantValueType.Dictionary)}<{KeyType}, {ValueType}>, Count={Count}]";
             case VariantValueType.UnixFd:
                 return $"[{nameof(VariantValueType.UnixFd)}]";
 

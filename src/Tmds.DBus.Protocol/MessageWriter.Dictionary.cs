@@ -81,42 +81,6 @@ public ref partial struct MessageWriter
     //     WriteArrayEnd(ref arrayStart);
     // }
 
-    sealed class DictionaryTypeWriter<TKey, TValue> : ITypeWriter<IEnumerable<KeyValuePair<TKey, TValue>>>
-        where TKey : notnull
-        where TValue : notnull
-    {
-        public void Write(ref MessageWriter writer, IEnumerable<KeyValuePair<TKey, TValue>> value)
-        {
-            writer.WriteDictionary(value);
-        }
-
-        public void WriteVariant(ref MessageWriter writer, object value)
-        {
-            WriteDictionarySignature<TKey, TValue>(ref writer);
-            writer.WriteDictionary((IEnumerable<KeyValuePair<TKey, TValue>>)value);
-        }
-    }
-
-    public static void AddDictionaryTypeWriter<TKey, TValue>()
-        where TKey : notnull
-        where TValue : notnull
-    {
-        lock (_typeWriters)
-        {
-            Type keyType = typeof(IEnumerable<KeyValuePair<TKey, TValue>>);
-            if (!_typeWriters.ContainsKey(keyType))
-            {
-                _typeWriters.Add(keyType, new DictionaryTypeWriter<TKey, TValue>());
-            }
-        }
-    }
-
-    private ITypeWriter CreateDictionaryTypeWriter(Type keyType, Type valueType)
-    {
-        Type writerType = typeof(DictionaryTypeWriter<,>).MakeGenericType(new[] { keyType, valueType });
-        return (ITypeWriter)Activator.CreateInstance(writerType)!;
-    }
-
     private static void WriteDictionarySignature<TKey, TValue>(ref MessageWriter writer) where TKey : notnull where TValue : notnull
     {
         Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];

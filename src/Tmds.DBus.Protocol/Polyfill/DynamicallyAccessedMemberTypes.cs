@@ -3,9 +3,6 @@
 namespace System.Diagnostics.CodeAnalysis;
 
 [Flags]
-#if PolyPublic
-public
-#endif
 enum DynamicallyAccessedMemberTypes
 {
     None = 0,

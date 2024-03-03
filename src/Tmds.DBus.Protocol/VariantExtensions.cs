@@ -1,5 +1,9 @@
 namespace Tmds.DBus.Protocol;
 
+// This type is for writing so we don't need to add
+// DynamicallyAccessedMemberTypes.PublicParameterlessConstructor.
+#pragma warning disable IL2091
+
 public static class VariantExtensions
 {
     public static Variant AsVariant<TKey, TValue>(this Dictionary<TKey, TValue> value)

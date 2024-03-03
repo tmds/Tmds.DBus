@@ -1,5 +1,10 @@
 namespace Tmds.DBus.Protocol;
 
+// Code in this file is not trimmer friendly.
+#pragma warning disable IL3050
+#pragma warning disable IL2055
+#pragma warning disable IL2091
+
 public ref partial struct Reader
 {
     interface ITypeReader
@@ -81,7 +86,7 @@ public ref partial struct Reader
         return typeReader.Read(ref this);
     }
 
-    public static Type DetermineVariantType(Utf8Span signature)
+    private static Type DetermineVariantType(Utf8Span signature)
     {
         Func<DBusType, Type[], Type> map = (dbusType, innerTypes) =>
         {
@@ -542,7 +547,15 @@ public ref partial struct Reader
 
             public KeyValuePair<TKey, TValue>[] Read(ref Reader reader)
             {
-                return reader.ReadKeyValueArray<TKey, TValue>();
+                List<KeyValuePair<TKey, TValue>> items = new();
+                ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
+                while (reader.HasNext(headersEnd))
+                {
+                    TKey key = reader.Read<TKey>();
+                    TValue value = reader.Read<TValue>();
+                    items.Add(new KeyValuePair<TKey, TValue>(key, value));
+                }
+                return items.ToArray();
             }
         }
 

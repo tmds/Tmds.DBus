@@ -1,5 +1,9 @@
 namespace Tmds.DBus.Protocol;
 
+// Code in this file is not trimmer friendly.
+#pragma warning disable IL3050
+#pragma warning disable IL2070
+
 static partial class TypeModel
 {
     private static DBusType GetTypeAlignmentDynamic<T>()

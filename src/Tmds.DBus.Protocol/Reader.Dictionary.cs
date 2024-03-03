@@ -2,12 +2,22 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
-    public Dictionary<TKey, TValue> ReadDictionary<TKey, TValue>()
+    public Dictionary<TKey, TValue> ReadDictionary
+        <
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TValue
+        >
+        ()
         where TKey : notnull
         where TValue : notnull
-        => ReadDictionary<TKey, TValue>(new Dictionary<TKey, TValue>());
+            => ReadDictionary<TKey, TValue>(new Dictionary<TKey, TValue>());
 
-    internal Dictionary<TKey, TValue> ReadDictionary<TKey, TValue>(Dictionary<TKey, TValue> dictionary)
+    internal Dictionary<TKey, TValue> ReadDictionary
+        <
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TValue
+        >
+        (Dictionary<TKey, TValue> dictionary)
         where TKey : notnull
         where TValue : notnull
     {

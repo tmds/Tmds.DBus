@@ -17,9 +17,7 @@ using Targets = AttributeTargets;
              Targets.ReturnValue |
              Targets.Struct,
     Inherited = false)]
-#if PolyPublic
-public
-#endif
+
 sealed class DynamicallyAccessedMembersAttribute :
     Attribute
 {

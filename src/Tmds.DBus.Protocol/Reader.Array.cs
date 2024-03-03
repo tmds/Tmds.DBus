@@ -2,7 +2,7 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
-    public T[] ReadArray<T>()
+    public T[] ReadArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         if (typeof(T) == typeof(byte))
         {
@@ -42,7 +42,7 @@ public ref partial struct Reader
         }
     }
 
-    private T[] ReadArrayOfT<T>()
+    private T[] ReadArrayOfT<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         List<T> items = new();
         ArrayEnd headersEnd = ReadArrayStart(TypeModel.GetTypeAlignment<T>());
@@ -110,24 +110,13 @@ public ref partial struct Reader
         }
         return array;
 
+#if !NET8_0_OR_GREATER
         static double ReverseDoubleEndianness(double d)
         {
             long l = *(long*)&d;
             l = BinaryPrimitives.ReverseEndianness(l);
             return *(double*)&d;
         }
-    }
-
-    private KeyValuePair<TKey, TValue>[] ReadKeyValueArray<TKey, TValue>()
-    {
-        List<KeyValuePair<TKey, TValue>> items = new();
-        ArrayEnd headersEnd = ReadArrayStart(DBusType.Struct);
-        while (HasNext(headersEnd))
-        {
-            TKey key = Read<TKey>();
-            TValue value = Read<TValue>();
-            items.Add(new KeyValuePair<TKey, TValue>(key, value));
-        }
-        return items.ToArray();
+#endif
     }
 }

@@ -2,10 +2,10 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
-    public T? ReadHandle<T>() where T : SafeHandle
+    public T? ReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : SafeHandle
         => ReadHandleGeneric<T>();
 
-    internal T? ReadHandleGeneric<T>()
+    internal T? ReadHandleGeneric<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         int idx = (int)ReadUInt32();
         if (idx >= _handleCount)

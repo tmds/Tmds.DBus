@@ -318,7 +318,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T UnsafeGet<T>()
+    private T UnsafeGet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         if (typeof(T) == typeof(byte))
         {
@@ -373,7 +373,12 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return default!;
     }
 
-    public Dictionary<TKey, TValue> GetDictionary<TKey, TValue>()
+    public Dictionary<TKey, TValue> GetDictionary
+        <
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TValue
+        >
+        ()
         where TKey : notnull
         where TValue : notnull
     {
@@ -390,7 +395,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return dict;
     }
 
-    public T[] GetArray<T>()
+    public T[] GetArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
         where T : notnull
     {
         EnsureTypeIs(VariantValueType.Array);
@@ -514,7 +519,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T? UnsafeReadHandle<T>()
+    private T? UnsafeReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         var handles = (UnixFdCollection?)_o;
         if (handles is null)

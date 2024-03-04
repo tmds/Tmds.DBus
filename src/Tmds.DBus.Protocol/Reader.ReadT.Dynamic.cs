@@ -86,6 +86,8 @@ public ref partial struct Reader
         return typeReader.Read(ref this);
     }
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050")]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2055")]
     private static Type DetermineVariantType(Utf8Span signature)
     {
         Func<DBusType, Type[], Type> map = (dbusType, innerTypes) =>
@@ -347,6 +349,8 @@ public ref partial struct Reader
         where T10 : notnull
     { }
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050")]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2091")]
     static class TypeReaders
     {
         private static readonly Dictionary<Type, ITypeReader> _typeReaders = new();

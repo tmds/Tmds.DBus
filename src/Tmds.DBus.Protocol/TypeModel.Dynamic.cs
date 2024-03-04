@@ -96,6 +96,7 @@ static partial class TypeModel
             candidate.GetGenericTypeDefinition() == interfaceType;
     }
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2070")]
     private static Type? GetGenericInstantiation(Type queryType, Type interfaceType)
     {
         Type? bestMatch = null;

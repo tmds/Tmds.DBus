@@ -303,12 +303,12 @@ namespace Mpris.DBus
                         break;
                     case "SupportedMimeTypes":
                         reader.ReadSignature("as");
-                        props.SupportedMimeTypes = reader.ReadArray<string>();
+                        props.SupportedMimeTypes = reader.ReadArrayOfString();
                         changedList?.Add("SupportedMimeTypes");
                         break;
                     case "SupportedUriSchemes":
                         reader.ReadSignature("as");
-                        props.SupportedUriSchemes = reader.ReadArray<string>();
+                        props.SupportedUriSchemes = reader.ReadArrayOfString();
                         changedList?.Add("SupportedUriSchemes");
                         break;
                     case "HasTrackList":
@@ -910,7 +910,7 @@ namespace Mpris.DBus
         private const string __Interface = "org.mpris.MediaPlayer2.TrackList";
         public TrackList(MprisService service, ObjectPath path) : base(service, path)
         { }
-        public Task<Dict<string, VariantValue>[]> GetTracksMetadataAsync(ObjectPath[] a0)
+        public Task<Dictionary<string, VariantValue>[]> GetTracksMetadataAsync(ObjectPath[] a0)
         {
             return this.Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => ReadMessage_aaesv(m, (MprisObject)s!), this);
             MessageBuffer CreateMessage()
@@ -1073,7 +1073,7 @@ namespace Mpris.DBus
                 {
                     case "Tracks":
                         reader.ReadSignature("ao");
-                        props.Tracks = reader.ReadArray<ObjectPath>();
+                        props.Tracks = reader.ReadArrayOfObjectPath();
                         changedList?.Add("Tracks");
                         break;
                     case "CanEditTracks":
@@ -1186,7 +1186,7 @@ namespace Mpris.DBus
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("as");
-            return reader.ReadArray<string>();
+            return reader.ReadArrayOfString();
         }
         protected static bool ReadMessage_v_b(Message message, MprisObject _)
         {
@@ -1212,15 +1212,21 @@ namespace Mpris.DBus
             reader.ReadSignature("i");
             return reader.ReadInt32();
         }
-        protected static Dict<string, VariantValue>[] ReadMessage_aaesv(Message message, MprisObject _)
+        protected static Dictionary<string, VariantValue>[] ReadMessage_aaesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            return reader.ReadArray<Dict<string, VariantValue>>();
+            List<Dictionary<string, VariantValue>> list = new();
+            var arrayStart = reader.ReadArrayStart(DBusType.DictEntry);
+            while (reader.HasNext(arrayStart))
+            {
+                list.Add(reader.ReadDictionary<string, VariantValue>());
+            }
+            return list.ToArray();
         }
         protected static (ObjectPath[], ObjectPath) ReadMessage_aoo(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            var arg0 = reader.ReadArray<ObjectPath>();
+            var arg0 = reader.ReadArrayOfObjectPath();
             var arg1 = reader.ReadObjectPath();
             return (arg0, arg1);
         }
@@ -1247,7 +1253,7 @@ namespace Mpris.DBus
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("ao");
-            return reader.ReadArray<ObjectPath>();
+            return reader.ReadArrayOfObjectPath();
         }
     }
     class PropertyChanges<TProperties>

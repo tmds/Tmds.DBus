@@ -97,6 +97,131 @@ static partial class TypeModel
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void EnsureSupportedVariantType<T>()
+    {
+        if (typeof(T) == typeof(byte))
+        { }
+        else if (typeof(T) == typeof(bool))
+        { }
+        else if (typeof(T) == typeof(short))
+        { }
+        else if (typeof(T) == typeof(ushort))
+        { }
+        else if (typeof(T) == typeof(int))
+        { }
+        else if (typeof(T) == typeof(uint))
+        { }
+        else if (typeof(T) == typeof(long))
+        { }
+        else if (typeof(T) == typeof(ulong))
+        { }
+        else if (typeof(T) == typeof(double))
+        { }
+        else if (typeof(T) == typeof(string))
+        { }
+        else if (typeof(T) == typeof(ObjectPath))
+        { }
+        else if (typeof(T) == typeof(Signature))
+        { }
+        else if (typeof(T) == typeof(Variant))
+        { }
+        else if (typeof(T).IsConstructedGenericType)
+        {
+            Type type = typeof(T).GetGenericTypeDefinition();
+            if (type == typeof(Dict<,>) ||
+                type == typeof(Array<>) ||
+                type == typeof(Struct<>) ||
+                type == typeof(Struct<,>) ||
+                type == typeof(Struct<,,>) ||
+                type == typeof(Struct<,,,>) ||
+                type == typeof(Struct<,,,,>) ||
+                type == typeof(Struct<,,,,,>) ||
+                type == typeof(Struct<,,,,,,>) ||
+                type == typeof(Struct<,,,,,,,>) ||
+                type == typeof(Struct<,,,,,,,,>) ||
+                type == typeof(Struct<,,,,,,,,,>))
+            {
+                foreach (var innerType in type.GenericTypeArguments)
+                {
+                    EnsureSupportedVariantType(innerType);
+                }
+            }
+            else
+            {
+                ThrowNotSupportedType(typeof(T));
+            }
+        }
+        else if (typeof(T).IsAssignableTo(typeof(SafeHandle)))
+        { }
+        else
+        {
+            ThrowNotSupportedType(typeof(T));
+        }
+    }
+
+    private static void EnsureSupportedVariantType(Type type)
+    {
+        if (type == typeof(byte))
+        { }
+        else if (type == typeof(bool))
+        { }
+        else if (type == typeof(short))
+        { }
+        else if (type == typeof(ushort))
+        { }
+        else if (type == typeof(int))
+        { }
+        else if (type == typeof(uint))
+        { }
+        else if (type == typeof(long))
+        { }
+        else if (type == typeof(ulong))
+        { }
+        else if (type == typeof(double))
+        { }
+        else if (type == typeof(string))
+        { }
+        else if (type == typeof(ObjectPath))
+        { }
+        else if (type == typeof(Signature))
+        { }
+        else if (type == typeof(Variant))
+        { }
+        else if (type.IsConstructedGenericType)
+        {
+            Type typeDefinition = type.GetGenericTypeDefinition();
+            if (typeDefinition == typeof(Dict<,>) ||
+                typeDefinition == typeof(Array<>) ||
+                typeDefinition == typeof(Struct<>) ||
+                typeDefinition == typeof(Struct<,>) ||
+                typeDefinition == typeof(Struct<,,>) ||
+                typeDefinition == typeof(Struct<,,,>) ||
+                typeDefinition == typeof(Struct<,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,,,,,>))
+            {
+                foreach (var innerType in typeDefinition.GenericTypeArguments)
+                {
+                    EnsureSupportedVariantType(innerType);
+                }
+            }
+            else
+            {
+                ThrowNotSupportedType(type);
+            }
+        }
+        else if (type.IsAssignableTo(typeof(SafeHandle)))
+        { }
+        else
+        {
+            ThrowNotSupportedType(type);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Utf8Span GetSignature<T>(scoped Span<byte> buffer)
     {
         Debug.Assert(buffer.Length >= ProtocolConstants.MaxSignatureLength);
@@ -229,6 +354,6 @@ static partial class TypeModel
 
     private static void ThrowNotSupportedType(Type type)
     {
-        throw new NotSupportedException($"Cannot read type {type.FullName}");
+        throw new NotSupportedException($"Unsupported type {type.FullName}");
     }
 }

@@ -13,15 +13,18 @@ public sealed class Array<T> : IDBusWritable
         => value.AsVariant();
 
     public Array()
-        => _array = Array.Empty<T>();
+    {
+        TypeModel.EnsureSupportedVariantType<T>();
+        _array = Array.Empty<T>();
+    }
 
     public Array(T[] value)
-        => _array = value ?? throw new ArgumentNullException(nameof(value));
+    {
+        TypeModel.EnsureSupportedVariantType<T>();
+        _array = value ?? throw new ArgumentNullException(nameof(value));
+    }
 
-    public static implicit operator Array<T>(T[] value)
-        => new Array<T>(value);
-
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // User is expected to use a compatible 'T".
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // this is a supported variant type.
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteArray<T>(_array);
 }

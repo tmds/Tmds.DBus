@@ -14,15 +14,20 @@ public sealed class Dict<TKey, TValue> : IDBusWritable
         => value.AsVariant();
 
     public Dict()
-        => _dict = new();
+    {
+        TypeModel.EnsureSupportedVariantType<TKey>();
+        TypeModel.EnsureSupportedVariantType<TValue>();
+        _dict = new();
+    }
 
     public Dict(Dictionary<TKey, TValue> value)
-        => _dict = value ?? throw new ArgumentNullException(nameof(value));
+    {
+        TypeModel.EnsureSupportedVariantType<TKey>();
+        TypeModel.EnsureSupportedVariantType<TValue>();
+        _dict = value ?? throw new ArgumentNullException(nameof(value));
+    }
 
-    public static implicit operator Dict<TKey, TValue>(Dictionary<TKey, TValue> value)
-        => new Dict<TKey, TValue>(value);
-
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // User is expected to use a compatible 'T".
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // this is a supported variant type.
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteDictionary<TKey, TValue>(_dict);
 }

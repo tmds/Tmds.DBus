@@ -61,12 +61,6 @@ public ref partial struct Reader
         {
             return (T)(object)ReadVariantValue();
         }
-        else if (typeof(T).IsAssignableTo(typeof(IDBusReadable)))
-        {
-            IDBusReadable readable = (Activator.CreateInstance<T>() as IDBusReadable)!;
-            readable.ReadFrom(ref this);
-            return (T)readable;
-        }
         else if (Feature.IsDynamicCodeEnabled)
         {
             return ReadDynamic<T>();

@@ -1,11 +1,6 @@
 namespace Tmds.DBus.Protocol;
 
-public sealed class Dict
-    <
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TValue
-    >
-    : IDBusReadable, IDBusWritable
+public sealed class Dict<TKey, TValue> : IDBusWritable
     where TKey : notnull
     where TValue : notnull
 {
@@ -26,9 +21,6 @@ public sealed class Dict
 
     public static implicit operator Dict<TKey, TValue>(Dictionary<TKey, TValue> value)
         => new Dict<TKey, TValue>(value);
-
-    void IDBusReadable.ReadFrom(ref Reader reader)
-        => reader.ReadDictionary<TKey, TValue>(AsDictionary());
 
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // User is expected to use a compatible 'T".
     void IDBusWritable.WriteTo(ref MessageWriter writer)

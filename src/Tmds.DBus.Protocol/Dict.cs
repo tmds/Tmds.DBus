@@ -30,6 +30,7 @@ public sealed class Dict
     void IDBusReadable.ReadFrom(ref Reader reader)
         => reader.ReadDictionary<TKey, TValue>(AsDictionary());
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // User is expected to use a compatible 'T".
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteDictionary<TKey, TValue>(_dict);
 }

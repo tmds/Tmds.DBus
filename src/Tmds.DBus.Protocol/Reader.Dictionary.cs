@@ -2,6 +2,15 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
+    public ArrayEnd ReadDictionaryStart()
+        => ReadArrayStart(DBusType.Struct);
+
+    // Read method for the common 'a{sv}' type.
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call ReadDictionary with these types.
+    public Dictionary<string, VariantValue> ReadDictionaryOfStringToVariantValue()
+        => ReadDictionary<string, VariantValue>();
+
+    [RequiresUnreferencedCode(Strings.UseNonGenericReadDictionary)]
     public Dictionary<TKey, TValue> ReadDictionary
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
@@ -21,7 +30,7 @@ public ref partial struct Reader
         where TKey : notnull
         where TValue : notnull
     {
-        ArrayEnd headersEnd = ReadArrayStart(DBusType.Struct);
+        ArrayEnd headersEnd = ReadDictionaryStart();
         while (HasNext(headersEnd))
         {
             var key = Read<TKey>();

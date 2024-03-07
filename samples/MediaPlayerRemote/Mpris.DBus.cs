@@ -829,7 +829,7 @@ namespace Mpris.DBus
                 {
                     case "Metadata":
                         reader.ReadSignature("a{sv}");
-                        props.Metadata = reader.ReadDictionary<string, VariantValue>();
+                        props.Metadata = reader.ReadDictionaryOfStringToVariantValue();
                         changedList?.Add("Metadata");
                         break;
                     case "PlaybackStatus":
@@ -1198,7 +1198,7 @@ namespace Mpris.DBus
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("a{sv}");
-            return reader.ReadDictionary<string, VariantValue>();
+            return reader.ReadDictionaryOfStringToVariantValue();
         }
         protected static double ReadMessage_v_d(Message message, MprisObject _)
         {
@@ -1219,7 +1219,7 @@ namespace Mpris.DBus
             var arrayStart = reader.ReadArrayStart(DBusType.DictEntry);
             while (reader.HasNext(arrayStart))
             {
-                list.Add(reader.ReadDictionary<string, VariantValue>());
+                list.Add(reader.ReadDictionaryOfStringToVariantValue());
             }
             return list.ToArray();
         }
@@ -1233,7 +1233,7 @@ namespace Mpris.DBus
         protected static (Dictionary<string, VariantValue>, ObjectPath) ReadMessage_aesvo(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            var arg0 = reader.ReadDictionary<string, VariantValue>();
+            var arg0 = reader.ReadDictionaryOfStringToVariantValue();
             var arg1 = reader.ReadObjectPath();
             return (arg0, arg1);
         }
@@ -1246,7 +1246,7 @@ namespace Mpris.DBus
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadObjectPath();
-            var arg1 = reader.ReadDictionary<string, VariantValue>();
+            var arg1 = reader.ReadDictionaryOfStringToVariantValue();
             return (arg0, arg1);
         }
         protected static ObjectPath[] ReadMessage_v_ao(Message message, MprisObject _)

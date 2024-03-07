@@ -4,6 +4,7 @@ namespace Tmds.DBus.Protocol;
 #pragma warning disable IL3050
 #pragma warning disable IL2055
 #pragma warning disable IL2091
+#pragma warning disable IL2026
 
 public ref partial struct Reader
 {
@@ -351,6 +352,7 @@ public ref partial struct Reader
 
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL3050")]
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2091")]
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")]
     static class TypeReaders
     {
         private static readonly Dictionary<Type, ITypeReader> _typeReaders = new();

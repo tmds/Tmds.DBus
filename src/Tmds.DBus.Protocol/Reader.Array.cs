@@ -2,6 +2,49 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
+    public byte[] ReadArrayOfByte()
+        => ReadArrayOfNumeric<byte>();
+
+    public bool[] ReadArrayOfBool()
+        => ReadArrayOfT<bool>();
+
+    public short[] ReadArrayOfInt16()
+        => ReadArrayOfNumeric<short>();
+
+    public ushort[] ReadArrayOfUInt16()
+        => ReadArrayOfNumeric<ushort>();
+
+    public int[] ReadArrayOfInt32()
+        => ReadArrayOfNumeric<int>();
+
+    public uint[] ReadArrayOfUInt32()
+        => ReadArrayOfNumeric<uint>();
+
+    public long[] ReadArrayOfInt64()
+        => ReadArrayOfNumeric<long>();
+
+    public ulong[] ReadArrayOfUInt64()
+        => ReadArrayOfNumeric<ulong>();
+
+    public double[] ReadArrayOfDouble()
+        => ReadArrayOfNumeric<double>();
+
+    public string[] ReadArrayOfString()
+        => ReadArrayOfT<string>();
+
+    public ObjectPath[] ReadArrayOfObjectPath()
+        => ReadArrayOfT<ObjectPath>();
+
+    public Signature[] ReadArrayOfSignature()
+        => ReadArrayOfT<Signature>();
+
+    public VariantValue[] ReadArrayOfVariantValue()
+        => ReadArrayOfT<VariantValue>();
+
+    public T[] ReadArrayOfUnixFd<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : SafeHandle
+        => ReadArrayOfT<T>();
+
+    [RequiresUnreferencedCode(Strings.UseNonGenericReadArray)]
     public T[] ReadArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         if (typeof(T) == typeof(byte))

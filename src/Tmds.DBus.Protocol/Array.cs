@@ -25,8 +25,11 @@ public sealed class Array
     public static implicit operator Array<T>(T[] value)
         => new Array<T>(value);
 
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // User is expected to use a compatible 'T".
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteArray<T>(_array);
+
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // User is expected to use a compatible 'T".
     void IDBusReadable.ReadFrom(ref Reader reader)
         => _array = reader.ReadArray<T>();
 }

@@ -150,7 +150,7 @@ class Player
             List<string> titles = new();
             foreach (var trackMetadata in trackMetadatas)
             {
-                titles.Add(GetTitle(trackMetadata.AsDictionary()));
+                titles.Add(GetTitle(trackMetadata));
             }
             return titles.ToArray();
         }

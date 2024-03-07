@@ -2,6 +2,7 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct MessageWriter
 {
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1>(ValueTuple<T1> value)
         where T1 : notnull
     {
@@ -16,6 +17,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2>((T1, T2) value)
         where T1 : notnull
         where T2 : notnull
@@ -33,6 +35,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2, T3>((T1, T2, T3) value)
         where T1 : notnull
         where T2 : notnull
@@ -53,6 +56,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2, T3, T4>((T1, T2, T3, T4) value)
         where T1 : notnull
         where T2 : notnull
@@ -76,6 +80,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2, T3, T4, T5>((T1, T2, T3, T4, T5) value)
         where T1 : notnull
         where T2 : notnull
@@ -102,6 +107,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2, T3, T4, T5, T6>((T1, T2, T3, T4, T5, T6) value)
         where T1 : notnull
         where T2 : notnull
@@ -131,6 +137,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2, T3, T4, T5, T6, T7>((T1, T2, T3, T4, T5, T6, T7) value)
         where T1 : notnull
         where T2 : notnull
@@ -163,6 +170,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6, T7>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2, T3, T4, T5, T6, T7, T8>((T1, T2, T3, T4, T5, T6, T7, T8) value)
         where T1 : notnull
         where T2 : notnull
@@ -198,6 +206,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6, T7, T8>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9>((T1, T2, T3, T4, T5, T6, T7, T8, T9) value)
         where T1 : notnull
         where T2 : notnull
@@ -236,6 +245,7 @@ public ref partial struct MessageWriter
         writer.WriteSignature(TypeModel.GetSignature<Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9>>(buffer));
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteStruct)]
     public void WriteStruct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>((T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) value)
         where T1 : notnull
         where T2 : notnull

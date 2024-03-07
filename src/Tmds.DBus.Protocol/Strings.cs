@@ -9,4 +9,6 @@ static class Strings
     public const string UseNonGenericReadDictionary = $"Read the dictionary by calling '{nameof(Reader.ReadDictionaryStart)} and reading the pairs in a while loop using '{nameof(Reader.HasNext)}'.";
     public const string UseNonGenericWriteDictionary = $"Write the dictionary by calling '{nameof(MessageWriter.WriteDictionaryStart)}', for each element call '{nameof(MessageWriter.WriteDictionaryEntryStart)}', write the key, and value. Complete the dictionary by calling '{nameof(MessageWriter.WriteDictionaryEnd)}'.";
     public const string UseNonGenericWriteVariantDictionary = $"Write the signature using '{nameof(MessageWriter.WriteSignature)}', then write the dictionary by calling '{nameof(MessageWriter.WriteDictionaryStart)}', for each element call '{nameof(MessageWriter.WriteDictionaryEntryStart)}', write the key, and value. Complete the dictionary by calling '{nameof(MessageWriter.WriteDictionaryEnd)}'.";
+    public const string UseNonGenericReadStruct = $"Read the struct by calling '{nameof(Reader.AlignStruct)}' and then reading all the struct fields.";
+    public const string UseNonGenericWriteStruct = $"Write the struct by calling '{nameof(MessageWriter.WriteStructureStart)}' and then writing all the struct fields.";
 }

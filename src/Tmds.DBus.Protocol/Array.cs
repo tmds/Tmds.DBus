@@ -1,10 +1,6 @@
 namespace Tmds.DBus.Protocol;
 
-public sealed class Array
-    <
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T
-    >
-    : IDBusReadable, IDBusWritable
+public sealed class Array<T> : IDBusWritable
     where T : notnull
 {
     private T[] _array;
@@ -28,8 +24,4 @@ public sealed class Array
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // User is expected to use a compatible 'T".
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteArray<T>(_array);
-
-    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // User is expected to use a compatible 'T".
-    void IDBusReadable.ReadFrom(ref Reader reader)
-        => _array = reader.ReadArray<T>();
 }

@@ -103,7 +103,7 @@ public sealed class Struct<T1> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public ValueTuple<T1> ToValueTuple()
+    private ValueTuple<T1> ToValueTuple()
         => new ValueTuple<T1>(Item1);
 
     public Variant AsVariant()
@@ -131,7 +131,7 @@ public sealed class Struct<T1,T2> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2) ToValueTuple()
+    private (T1, T2) ToValueTuple()
         => (Item1, Item2);
 
     public Variant AsVariant()
@@ -161,7 +161,7 @@ public sealed class Struct<T1,T2,T3> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2, T3) ToValueTuple()
+    private (T1, T2, T3) ToValueTuple()
         => (Item1, Item2, Item3);
 
     public Variant AsVariant()
@@ -194,7 +194,7 @@ public sealed class Struct<T1,T2,T3,T4> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2, T3, T4) ToValueTuple()
+    private (T1, T2, T3, T4) ToValueTuple()
         => (Item1, Item2, Item3, Item4);
 
     public Variant AsVariant()
@@ -230,7 +230,7 @@ public sealed class Struct<T1,T2,T3,T4,T5> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2, T3, T4, T5) ToValueTuple()
+    private (T1, T2, T3, T4, T5) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5);
 
     public Variant AsVariant()
@@ -269,7 +269,7 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2, T3, T4, T5, T6) ToValueTuple()
+    private (T1, T2, T3, T4, T5, T6) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6);
 
     public Variant AsVariant()
@@ -311,7 +311,7 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2, T3, T4, T5, T6, T7) ToValueTuple()
+    private (T1, T2, T3, T4, T5, T6, T7) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7);
 
     public Variant AsVariant()
@@ -356,7 +356,7 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2, T3, T4, T5, T6, T7, T8) ToValueTuple()
+    private (T1, T2, T3, T4, T5, T6, T7, T8) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8);
 
     public Variant AsVariant()
@@ -404,7 +404,7 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2, T3, T4, T5, T6, T7, T8, T9) ToValueTuple()
+    private (T1, T2, T3, T4, T5, T6, T7, T8, T9) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8, Item9);
 
     public Variant AsVariant()
@@ -455,7 +455,7 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10> : IDBusWritable
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteStruct(ToValueTuple());
 
-    public (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) ToValueTuple()
+    private (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8, Item9, Item10);
 
     public Variant AsVariant()

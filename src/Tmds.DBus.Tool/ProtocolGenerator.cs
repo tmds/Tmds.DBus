@@ -9,14 +9,14 @@ using Tmds.DBus.Tool.Diagnostics;
 
 namespace Tmds.DBus.Tool
 {
-    class ProtocolGeneratorSettings
+    public class ProtocolGeneratorSettings
     {
         public string Namespace { get; set; } = "DBus";
         public string ServiceName { get; set; }
         public Accessibility TypesAccessModifier = Accessibility.NotApplicable;
     }
 
-    class ProtocolGenerator : IGenerator
+    public class ProtocolGenerator : IGenerator
     {
         private readonly ProtocolGeneratorSettings _settings;
         private readonly StringBuilder _sb;

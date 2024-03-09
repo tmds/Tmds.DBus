@@ -1,0 +1,7 @@
+﻿<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node><interface name="org.freedesktop.DBus.Introspectable"><method name="Introspect"><arg name="xml" type="s" direction="out"/>
+</method></interface><interface name="org.bluez.SimAccessTest1"><method name="OngoingCall"><arg name="ongoing" type="b" direction="in"/>
+</method><method name="MaxMessageSize"><arg name="size" type="u" direction="in"/>
+</method><method name="DisconnectImmediate"></method><method name="CardStatus"><arg name="status" type="" direction="in"/>
+</method></interface></node>

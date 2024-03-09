@@ -2,7 +2,7 @@ using System.Xml.Linq;
 
 namespace Tmds.DBus.Tool
 {
-    class InterfaceDescription
+    public class InterfaceDescription
     {
         public string Path { get; set; }
         public string FullXml { get; set; }

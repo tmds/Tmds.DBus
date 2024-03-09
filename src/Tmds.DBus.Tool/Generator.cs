@@ -12,14 +12,14 @@ using Tmds.DBus.Tool.Diagnostics;
 
 namespace Tmds.DBus.Tool
 {
-    class GeneratorSettings
+    public class GeneratorSettings
     {
         public string Namespace { get; set; } = "DBus";
         public bool NoInternalsVisibleTo = false;
         public Accessibility TypesAccessModifier = Accessibility.NotApplicable;
     }
 
-    class Generator : IGenerator
+    public class Generator : IGenerator
     {
         private readonly AdhocWorkspace _workspace;
         private readonly SyntaxGenerator _generator;

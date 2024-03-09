@@ -267,21 +267,32 @@ namespace Tmds.DBus.Tool
             return methodDeclaration;
         }
 
-        private SyntaxNode MultyArgsToType(IEnumerable<XElement> outArgs)
+        private SyntaxNode MultyArgsToType(IEnumerable<XElement> argElements)
         {
-            var dbusType = string.Join(string.Empty, outArgs.Select(arg => arg.Attribute("type").Value));
-            var elementNames = outArgs.Select(element => Prettify((string)element.Attribute("name"), startWithUpper: false)).ToList();
-            if (outArgs.Count() > 1)
+            var args = argElements
+                .Select(arg => new
+                {
+                    DbusType = ParseType(arg.Attribute("type")?.Value ?? throw new Exception("Argument has no type declaration")),
+                    Name = Prettify((string)arg.Attribute("name"), startWithUpper: false)
+                })
+                .ToList();
+
+            if (args.Count < 2)
             {
-                dbusType = $"({dbusType})";
+                return args.Single().DbusType;
             }
-            return ParseType(dbusType, elementNames);
+
+            var elements = args
+                .Select(arg => SyntaxFactory.TupleElement((TypeSyntax)arg.DbusType, ToIdentifierToken(arg.Name)))
+                .ToList();
+
+            return SyntaxFactory.TupleType(SyntaxFactory.SeparatedList(elements));
         }
 
-        private SyntaxNode ParseType(string dbusType, List<string> elementNames = null)
+        private SyntaxNode ParseType(string dbusType)
         {
             int index = 0;
-            var type = ParseType(dbusType, ref index, elementNames);
+            var type = ParseType(dbusType, ref index);
             if (index != dbusType.Length)
             {
                 throw new InvalidOperationException($"Unable to parse dbus type: {dbusType}");
@@ -289,7 +300,7 @@ namespace Tmds.DBus.Tool
             return type;
         }
 
-        private SyntaxNode ParseType(string dbusType, ref int index, List<string> elementNames = null)
+        private SyntaxNode ParseType(string dbusType, ref int index)
         {
             char c;
             switch (c = dbusType[index++])
@@ -330,16 +341,13 @@ namespace Tmds.DBus.Tool
                     var elements = new List<TupleElementSyntax>();
                     var memberTypes = new List<SyntaxNode>();
                     SyntaxNode type = null;
-                    int idx = 0;
                     do
                     {
                         type = ParseType(dbusType, ref index);
                         if (type != null)
                         {
                             memberTypes.Add(type);
-                            var name = elementNames != null && idx < elementNames.Count ? elementNames[idx] : null;
-                            idx++;
-                            elements.Add(SyntaxFactory.TupleElement((TypeSyntax)type, name != null ? ToIdentifierToken(Prettify(name, startWithUpper: false)) : default(SyntaxToken)));
+                            elements.Add(SyntaxFactory.TupleElement((TypeSyntax)type, default));
                         }
                     } while (type != null);
                     if (memberTypes.Count < 2)

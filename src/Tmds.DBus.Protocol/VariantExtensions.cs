@@ -6,15 +6,6 @@ namespace Tmds.DBus.Protocol;
 
 public static class VariantExtensions
 {
-    public static Variant AsVariant<TKey, TValue>(this Dictionary<TKey, TValue> value)
-        where TKey : notnull
-        where TValue : notnull
-        => new Dict<TKey, TValue>(value).AsVariant();
-
-    public static Variant AsVariant<T>(this T[] value)
-        where T : notnull
-        => new Array<T>(value).AsVariant();
-
     public static Variant AsVariant(this byte value)
         => new Variant(value);
 

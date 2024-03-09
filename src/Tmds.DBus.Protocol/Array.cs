@@ -2,7 +2,7 @@ using System.Collections;
 
 namespace Tmds.DBus.Protocol;
 
-public sealed class Array<T> : IDBusWritable, IList<T>, IEnumerable<T>
+public sealed class Array<T> : IDBusWritable, IList<T>
     where T : notnull
 {
     private readonly List<T> _values;
@@ -46,10 +46,10 @@ public sealed class Array<T> : IDBusWritable, IList<T>, IEnumerable<T>
     }
 
     IEnumerator<T> IEnumerable<T>.GetEnumerator()
-        => ((Array<T>)this).GetEnumerator();
+        => _values.GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator()
-        => ((IEnumerable<T>)this).GetEnumerator();
+        => _values.GetEnumerator();
 
     public int IndexOf(T item)
         => _values.IndexOf(item);

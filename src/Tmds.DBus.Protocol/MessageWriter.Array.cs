@@ -131,9 +131,8 @@ public ref partial struct MessageWriter
         WriteArrayEnd(arrayStart);
     }
 
-    // This method is internal to avoid ambiguity with the existing IEnumerable<T> overload.
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
-    internal void WriteArray<T>(ReadOnlySpan<T> value)
+    public void WriteArray<T>(ReadOnlySpan<T> value)
         where T : notnull
     {
 #if NET || NETSTANDARD2_1_OR_GREATER

@@ -271,7 +271,7 @@ public class WriterTests
     {
         get
         {
-            var myDictionary = new Dictionary<byte, string>
+            var myDictionary = new Dict<byte, string>
             {
                 { 1, "one" },
                 { 2, "two" }
@@ -302,7 +302,7 @@ public class WriterTests
                                                                     new byte[] {1, 111, 0, 0, 4, 0, 0, 0, 47, 97, 47, 98, 0}},
                 new object[] {new Signature("sis").AsVariant(),    new byte[] {1, 103, 0, 3, 115, 105, 115, 0},
                                                                     new byte[] {1, 103, 0, 3, 115, 105, 115, 0}},
-                new object[] {new long[] { 1, 2 }.AsVariant(),
+                new object[] {new Array<long>([1, 2]).AsVariant(),
                                                 new byte[] {2, 97, 120, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2},
                                                 new byte[] {2, 97, 120, 0, 16, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0}},
                 new object[] {Struct.Create(1L, "hw").AsVariant(), new byte[] {4, 40, 120, 115, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 104, 119, 0},

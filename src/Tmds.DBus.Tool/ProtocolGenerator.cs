@@ -5,6 +5,7 @@ using System.Text;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Tmds.DBus.Protocol;
+using Tmds.DBus.Tool.Diagnostics;
 
 namespace Tmds.DBus.Tool
 {
@@ -72,8 +73,20 @@ namespace Tmds.DBus.Tool
 
             foreach (var interf in interfaceDescriptions)
             {
-                AppendLine("");
-                AppendInterface(interf.Name, interf.InterfaceXml);
+                try
+                {
+                    AppendLine("");
+                    AppendInterface(interf.Name, interf.InterfaceXml);
+                }
+                catch (GenerationException ge)
+                {
+                    ge.Inform(interf);
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    throw new GenerationException("Failed to generate code for D-Bus interface", interf.InterfaceXml, interf, e);
+                }
             }
 
             AppendServiceClass(interfaceDescriptions);
@@ -111,8 +124,20 @@ namespace Tmds.DBus.Tool
             AppendLine("    => (Connection, Destination) = (connection, destination);");
             foreach (var interf in interfaceDescriptions)
             {
-                string interfaceName = interf.Name;
-                AppendLine($"public {interfaceName} Create{interfaceName}(string path) => new {interfaceName}(this, path);");
+                try
+                {
+                    string interfaceName = interf.Name;
+                    AppendLine($"public {interfaceName} Create{interfaceName}(string path) => new {interfaceName}(this, path);");
+                }
+                catch (GenerationException ge)
+                {
+                    ge.Inform(interf);
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    throw new GenerationException("Failed to generate code for D-Bus interface", interf.InterfaceXml, interf, e);
+                }
             }
             EndBlock();
         }
@@ -251,14 +276,36 @@ namespace Tmds.DBus.Tool
 
             foreach (var method in interfaceXml.Elements("method"))
             {
-                AppendLine("");
-                AppendMethod(method);
+                try
+                {
+                    AppendLine("");
+                    AppendMethod(method);
+                }
+                catch (GenerationException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new GenerationException("Failed to generate code for method", method, innerException: ex);
+                }
             }
 
             foreach (var signal in interfaceXml.Elements("signal"))
             {
-                AppendLine("");
-                AppendSignal(name, signal);
+                try
+                {
+                    AppendLine("");
+                    AppendSignal(name, signal);
+                }
+                catch (GenerationException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    throw new GenerationException("Failed to generate code for signal", signal, innerException: ex);
+                }
             }
 
             foreach (var property in writableProperties)
@@ -571,16 +618,37 @@ namespace Tmds.DBus.Tool
 
         private Argument ToArgument(XElement argXml, int i)
         {
-            return new Argument(i, argXml);
+            try
+            {
+                return new Argument(i, argXml);
+            }
+            catch (GenerationException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new GenerationException("Failed to generate code for D-Bus argument", argXml, innerException: ex);
+            }
         }
 
         class Argument
         {
             public Argument(int i, XElement argXml)
             {
-                Name = (string)argXml.Attribute("name") ?? $"a{i}";
-                Type = (string)argXml.Attribute("type");
-                (DotnetType, DotnetInnerTypes, DBusType) = DetermineType(Type);
+                XAttribute? nameAttr = argXml.Attribute("name");
+                XAttribute typeAttr = argXml.Attribute("type") ?? throw new NullReferenceException();
+
+                Name = (string)nameAttr ?? $"a{i}";
+                Type = (string)typeAttr;
+                try
+                {
+                    (DotnetType, DotnetInnerTypes, DBusType) = DetermineType(Type);
+                }
+                catch (Exception ex)
+                {
+                    throw new GenerationException("Failed to generate code for D-Bus type", typeAttr, innerException: ex);
+                }
             }
 
             public string Name { get; }

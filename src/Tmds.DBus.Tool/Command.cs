@@ -1,5 +1,7 @@
+using System;
 using Microsoft.Extensions.CommandLineUtils;
 using Tmds.DBus.Protocol;
+using Tmds.DBus.Tool.Diagnostics;
 
 namespace Tmds.DBus.Tool
 {
@@ -15,8 +17,16 @@ namespace Tmds.DBus.Tool
                 Configure();
                 configuration.OnExecute(() =>
                 {
-                    Execute();
-                    return 0;
+                    try
+                    {
+                        Execute();
+                        return 0;
+                    }
+                    catch (Exception ex)
+                    {
+                        FriendlyErrorPrinter.WriteToConsole(ex);
+                        return 1;
+                    }
                 });
             });
         }

@@ -7,6 +7,7 @@ using System.Xml.Linq;
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.CodeAnalysis;
 using Tmds.DBus.Protocol;
+using Tmds.DBus.Tool.Diagnostics;
 
 namespace Tmds.DBus.Tool
 {
@@ -129,7 +130,7 @@ namespace Tmds.DBus.Tool
                 _arguments = codeGenArguments;
             }
 
-            public bool VisitNode(string path, XElement nodeXml)
+            public bool VisitNode(string path, string fullXml, XElement nodeXml)
             {
                 foreach (var interfaceXml in nodeXml.Elements("interface"))
                 {
@@ -159,7 +160,7 @@ namespace Tmds.DBus.Tool
                         }
                     }
                     _names.Add(proposedName);
-                    _introspections.Add(fullName, new InterfaceDescription { InterfaceXml = interfaceXml, Name = proposedName });
+                    _introspections.Add(fullName, new InterfaceDescription { Path = path, FullXml = fullXml, FullName = fullName, InterfaceXml = interfaceXml, Name = proposedName });
                     if (_arguments.Interfaces != null)
                     {
                         _arguments.Interfaces.Remove(fullName);

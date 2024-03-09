@@ -90,7 +90,7 @@ namespace Tmds.DBus.Tool
                 Objects = new List<DBusObject>();
             }
 
-            public bool Visit(string path, XElement nodeXml)
+            public bool Visit(string path, string fullXml, XElement nodeXml)
             {
                 var interfaces = nodeXml.Elements("interface")
                     .Select(i => i.Attribute("name").Value)
@@ -132,7 +132,7 @@ namespace Tmds.DBus.Tool
                 Interfaces = new HashSet<string>();
             }
 
-            public bool Visit(string path, XElement nodeXml)
+            public bool Visit(string path, string fullXml, XElement nodeXml)
             {
                 var interfaces = nodeXml.Elements("interface")
                     .Select(i => i.Attribute("name").Value)

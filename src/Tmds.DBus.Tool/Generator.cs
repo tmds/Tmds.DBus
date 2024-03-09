@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Simplification;
+using Tmds.DBus.Tool.Diagnostics;
 
 namespace Tmds.DBus.Tool
 {
@@ -72,7 +73,19 @@ namespace Tmds.DBus.Tool
             var internalsVisibleTo = _generator.Attribute("InternalsVisibleTo", _generator.DottedName("Tmds.DBus.Connection.DynamicAssemblyName"));
             foreach (var interfaceDescription in interfaceDescriptions)
             {
-                namespaceDeclarations.AddRange(DBusInterfaceDeclaration(interfaceDescription.Name, interfaceDescription.InterfaceXml));
+                try
+                {
+                    namespaceDeclarations.AddRange(DBusInterfaceDeclaration(interfaceDescription.Name, interfaceDescription.InterfaceXml));
+                }
+                catch (GenerationException ge)
+                {
+                    ge.Inform(interfaceDescription);
+                    throw;
+                }
+                catch (Exception e)
+                {
+                    throw new GenerationException("Failed to generate code for D-Bus interface", interfaceDescription.InterfaceXml, interfaceDescription, e);
+                }
             }
             var namespaceDeclaration = _generator.NamespaceDeclaration(_generator.DottedName(_settings.Namespace), namespaceDeclarations);
             var compilationUnit = _generator.CompilationUnit(importDeclarations.Concat(new[] { namespaceDeclaration }));
@@ -143,7 +156,7 @@ namespace Tmds.DBus.Tool
         private SyntaxNode PropertyToGet(string interfaceName, XElement propertyXml)
         {
             string name = propertyXml.Attribute("name").Value;
-            string dbusType = propertyXml.Attribute("type").Value;
+            XAttribute dbusType = propertyXml.Attribute("type");
             var returnType = (TypeSyntax)ParseType(dbusType);
             return SyntaxFactory.MethodDeclaration(
                 attributeLists: default(SyntaxList<AttributeListSyntax>),
@@ -175,7 +188,7 @@ namespace Tmds.DBus.Tool
         private SyntaxNode PropertyToSet(string interfaceName, XElement propertyXml)
         {
             string name = propertyXml.Attribute("name").Value;
-            string dbusType = propertyXml.Attribute("type").Value;
+            XAttribute dbusType = propertyXml.Attribute("type");
             var returnType = (TypeSyntax)ParseType(dbusType);
             return SyntaxFactory.MethodDeclaration(
                 attributeLists: default(SyntaxList<AttributeListSyntax>),
@@ -218,7 +231,7 @@ namespace Tmds.DBus.Tool
         {
             string name = propertyXml.Attribute("name").Value;
             var fieldName = $"_{name.Replace('-', '_')}";
-            string dbusType = propertyXml.Attribute("type").Value;
+            XAttribute dbusType = propertyXml.Attribute("type");
             SyntaxNode type = ParseType(dbusType);
             var field = _generator.FieldDeclaration(fieldName, type, Accessibility.Private, DeclarationModifiers.None, _generator.DefaultExpression(type));
             var property = _generator.PropertyDeclaration(Prettify(name), type, Accessibility.Public,
@@ -257,14 +270,24 @@ namespace Tmds.DBus.Tool
 
         private SyntaxNode MethodDeclaration(XElement methodXml)
         {
-            string name = methodXml.Attribute("name").Value;
-            var inArgs = methodXml.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in");
-            var outArgs = methodXml.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out");
-            var returnType = outArgs.Count() == 0 ? _task :
-                             _generator.GenericName("Task", new[] { MultyArgsToType(outArgs) });
+            try
+            {
+                string name = methodXml.Attribute("name").Value;
+                var inArgs = methodXml.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in");
+                var outArgs = methodXml.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out");
+                var returnType = outArgs.Count() == 0 ? _task : _generator.GenericName("Task", new[] { MultyArgsToType(outArgs) });
 
-            var methodDeclaration = _generator.MethodDeclaration($"{name}Async", inArgs.Select(InArgToParameter), null, returnType);
-            return methodDeclaration;
+                var methodDeclaration = _generator.MethodDeclaration($"{name}Async", inArgs.Select(InArgToParameter), null, returnType);
+                return methodDeclaration;
+            }
+            catch (GenerationException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                throw new GenerationException("Failed to generate code for method", methodXml, innerException: ex);
+            }
         }
 
         private SyntaxNode MultyArgsToType(IEnumerable<XElement> argElements)
@@ -272,7 +295,7 @@ namespace Tmds.DBus.Tool
             var args = argElements
                 .Select(arg => new
                 {
-                    DbusType = ParseType(arg.Attribute("type")?.Value ?? throw new Exception("Argument has no type declaration")),
+                    DbusType = ParseType(arg.Attribute("type")),
                     Name = Prettify((string)arg.Attribute("name"), startWithUpper: false)
                 })
                 .ToList();
@@ -289,15 +312,26 @@ namespace Tmds.DBus.Tool
             return SyntaxFactory.TupleType(SyntaxFactory.SeparatedList(elements));
         }
 
-        private SyntaxNode ParseType(string dbusType)
+        private SyntaxNode ParseType(XAttribute dbusTypeAttribute)
         {
-            int index = 0;
-            var type = ParseType(dbusType, ref index);
-            if (index != dbusType.Length)
+            try
             {
-                throw new InvalidOperationException($"Unable to parse dbus type: {dbusType}");
+                string dbusType = dbusTypeAttribute.Value;
+                if (string.IsNullOrEmpty(dbusType)) throw new GenerationException("Missing D-Bus type definition", dbusTypeAttribute);
+                int index = 0;
+                var type = ParseType(dbusType, ref index);
+                if (index != dbusType.Length) throw new GenerationException("Malformed D-Bus type definition", dbusTypeAttribute);
+
+                return type;
             }
-            return type;
+            catch (GenerationException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                throw new GenerationException("Failed to generate code for D-Bus type", dbusTypeAttribute, innerException: e);
+            }
         }
 
         private SyntaxNode ParseType(string dbusType, ref int index)
@@ -369,9 +403,20 @@ namespace Tmds.DBus.Tool
 
         private SyntaxNode InArgToParameter(XElement argXml, int idx)
         {
-            var type = ParseType(argXml.Attribute("type").Value);
-            var name = Prettify((string)argXml.Attribute("name"));
-            return _generator.ParameterDeclaration(name ?? $"arg{idx}", type);
+            try
+            {
+                var type = ParseType(argXml.Attribute("type"));
+                var name = Prettify((string)argXml.Attribute("name"));
+                return _generator.ParameterDeclaration(name ?? $"arg{idx}", type);
+            }
+            catch (GenerationException)
+            {
+                throw;
+            }
+            catch (Exception e)
+            {
+                throw new GenerationException("Failed to generate code for argument", argXml, innerException: e);
+            }
         }
 
        private static string EscapeIdentifier(string identifier)

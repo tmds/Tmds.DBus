@@ -131,6 +131,59 @@ public ref partial struct MessageWriter
         WriteArrayEnd(arrayStart);
     }
 
+    // This method is internal to avoid ambiguity with the existing IEnumerable<T> overload.
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
+    internal void WriteArray<T>(ReadOnlySpan<T> value)
+        where T : notnull
+    {
+#if NET || NETSTANDARD2_1_OR_GREATER
+        if (typeof(T) == typeof(byte))
+        {
+            ReadOnlySpan<byte> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, byte>(ref MemoryMarshal.GetReference(value)), value.Length);
+            WriteArray(span);
+        }
+        else if (typeof(T) == typeof(short))
+        {
+            ReadOnlySpan<short> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, short>(ref MemoryMarshal.GetReference(value)), value.Length);
+            WriteArray(span);
+        }
+        else if (typeof(T) == typeof(ushort))
+        {
+            ReadOnlySpan<ushort> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, ushort>(ref MemoryMarshal.GetReference(value)), value.Length);
+            WriteArray(span);
+        }
+        else if (typeof(T) == typeof(int))
+        {
+            ReadOnlySpan<int> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, int>(ref MemoryMarshal.GetReference(value)), value.Length);
+            WriteArray(span);
+        }
+        else if (typeof(T) == typeof(uint))
+        {
+            ReadOnlySpan<uint> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, uint>(ref MemoryMarshal.GetReference(value)), value.Length);
+            WriteArray(span);
+        }
+        else if (typeof(T) == typeof(long))
+        {
+            ReadOnlySpan<long> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, long>(ref MemoryMarshal.GetReference(value)), value.Length);
+            WriteArray(span);
+        }
+        else if (typeof(T) == typeof(ulong))
+        {
+            ReadOnlySpan<ulong> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, ulong>(ref MemoryMarshal.GetReference(value)), value.Length);
+            WriteArray(span);
+        }
+        else if (typeof(T) == typeof(double))
+        {
+            ReadOnlySpan<double> span = MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<T, double>(ref MemoryMarshal.GetReference(value)), value.Length);
+            WriteArray(span);
+        }
+        else
+#endif
+        {
+            WriteArrayOfT<T>(value);
+        }
+    }
+
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
     public void WriteArray<T>(T[] value)
         where T : notnull

@@ -55,7 +55,7 @@ public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue
         => _dict.Remove(key);
 
     public bool TryGetValue(TKey key,
-#if NET || NETSTANDARD2_1_OR_GREATER
+#if NET
                             [MaybeNullWhen(false)]
 #endif
                             out TValue value)
@@ -63,9 +63,6 @@ public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue
 
     public void Clear()
         => _dict.Clear();
-
-    public System.Collections.Generic.Dictionary<TKey, TValue>.Enumerator GetEnumerator()
-        => _dict.GetEnumerator();
 
     void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
         => ((ICollection<KeyValuePair<TKey, TValue>>)_dict).Add(item);

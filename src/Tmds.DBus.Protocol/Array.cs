@@ -31,9 +31,6 @@ public sealed class Array<T> : IDBusWritable, IList<T>
     public void Clear()
         => _values.Clear();
 
-    public List<T>.Enumerator GetEnumerator()
-        => _values.GetEnumerator();
-
     public int Count => _values.Count;
 
     bool ICollection<T>.IsReadOnly

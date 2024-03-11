@@ -3,6 +3,7 @@ namespace Tmds.DBus.Protocol;
 public ref partial struct Reader
 {
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1
@@ -22,6 +23,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,
@@ -47,6 +49,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2, T3> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,
@@ -73,6 +76,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2, T3, T4> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,
@@ -106,6 +110,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2, T3, T4, T5> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,
@@ -133,6 +138,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2, T3, T4, T5, T6> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,
@@ -162,6 +168,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2, T3, T4, T5, T6, T7> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,
@@ -193,6 +200,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8>> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,
@@ -226,6 +234,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9>> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,
@@ -261,6 +270,7 @@ public ref partial struct Reader
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadStruct)]
+    [Obsolete(Strings.UseNonGenericReadStructObsolete)]
     public ValueTuple<T1, T2, T3, T4, T5, T6, T7, ValueTuple<T8, T9, T10>> ReadStruct
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T1,

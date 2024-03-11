@@ -2,6 +2,9 @@ using System.Collections;
 
 namespace Tmds.DBus.Protocol;
 
+// Using obsolete generic write members
+#pragma warning disable CS0618
+
 public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue>
     where TKey : notnull
     where TValue : notnull

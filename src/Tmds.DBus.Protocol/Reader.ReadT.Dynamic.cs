@@ -5,6 +5,8 @@ namespace Tmds.DBus.Protocol;
 #pragma warning disable IL2055
 #pragma warning disable IL2091
 #pragma warning disable IL2026
+// Using obsolete generic read members
+#pragma warning disable CS0618
 
 public ref partial struct Reader
 {

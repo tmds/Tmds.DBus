@@ -2,6 +2,7 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
-    [RequiresUnreferencedCode($"Use '{nameof(ReadVariantValue)}' instead.")]
+    [RequiresUnreferencedCode(Strings.UseNonObjectReadVariantValue)]
+    [Obsolete(Strings.UseNonObjectReadVariantValueObsolete)]
     public object ReadVariant() => Read<object>();
 }

@@ -1,5 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
+// Using obsolete generic write members
+#pragma warning disable CS0618
+
 public ref partial struct MessageWriter
 {
     public ArrayStart WriteDictionaryStart()
@@ -27,6 +30,7 @@ public ref partial struct MessageWriter
         => WriteDictionary<string, VariantValue>(value);
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
     public void WriteDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
         where TKey : notnull
         where TValue : notnull
@@ -42,6 +46,7 @@ public ref partial struct MessageWriter
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
     public void WriteDictionary<TKey, TValue>(KeyValuePair<TKey, TValue>[] value)
         where TKey : notnull
         where TValue : notnull
@@ -57,6 +62,7 @@ public ref partial struct MessageWriter
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
     public void WriteDictionary<TKey, TValue>(Dictionary<TKey, TValue> value)
         where TKey : notnull
         where TValue : notnull
@@ -72,6 +78,7 @@ public ref partial struct MessageWriter
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
     public void WriteVariantDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
         where TKey : notnull
         where TValue : notnull
@@ -81,6 +88,7 @@ public ref partial struct MessageWriter
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
     public void WriteVariantDictionary<TKey, TValue>(KeyValuePair<TKey, TValue>[] value)
         where TKey : notnull
         where TValue : notnull
@@ -90,6 +98,7 @@ public ref partial struct MessageWriter
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
     public void WriteVariantDictionary<TKey, TValue>(Dictionary<TKey, TValue> value)
         where TKey : notnull
         where TValue : notnull

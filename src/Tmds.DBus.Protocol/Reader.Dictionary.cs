@@ -1,5 +1,9 @@
 namespace Tmds.DBus.Protocol;
 
+
+// Using obsolete generic read members
+#pragma warning disable CS0618
+
 public ref partial struct Reader
 {
     public ArrayEnd ReadDictionaryStart()
@@ -11,6 +15,7 @@ public ref partial struct Reader
         => ReadDictionary<string, VariantValue>();
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadDictionary)]
+    [Obsolete(Strings.UseNonGenericReadDictionaryObsolete)]
     public Dictionary<TKey, TValue> ReadDictionary
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,

@@ -7,6 +7,8 @@ using Xunit;
 
 namespace Tmds.DBus.Protocol.Tests;
 
+#pragma warning disable CS0618 // Using obsolete generic write methods.
+
 public class WriterTests
 {
     private delegate void WriteFunction<T>(ref MessageWriter writer, T value);

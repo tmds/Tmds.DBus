@@ -3,5 +3,6 @@
   <PropertyGroup>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <VersionPrefix>0.16.1</VersionPrefix>
+    <DeterministicSourcePaths>true</DeterministicSourcePaths>
   </PropertyGroup>
 </Project>

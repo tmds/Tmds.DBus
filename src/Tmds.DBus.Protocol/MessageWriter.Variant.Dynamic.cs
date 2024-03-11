@@ -2,7 +2,8 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct MessageWriter
 {
-    [RequiresUnreferencedCode($"Use the overload that accepts a '{nameof(Variant)}' instead.")]
+    [RequiresUnreferencedCode(Strings.UseNonObjectWriteVariant)]
+    [Obsolete(Strings.UseNonObjectWriteVariantObsolete)]
     public void WriteVariant(object value)
     {
         Type type = value.GetType();

@@ -1,5 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
+// Using obsolete generic write members
+#pragma warning disable CS0618
+
 public static class Struct
 {
     public static Struct<T1> Create<T1>(T1 item1)

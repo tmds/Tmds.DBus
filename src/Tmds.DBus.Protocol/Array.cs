@@ -2,6 +2,9 @@ using System.Collections;
 
 namespace Tmds.DBus.Protocol;
 
+// Using obsolete generic write members
+#pragma warning disable CS0618
+
 public sealed class Array<T> : IDBusWritable, IList<T>
     where T : notnull
 {

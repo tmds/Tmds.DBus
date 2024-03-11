@@ -45,6 +45,7 @@ public ref partial struct Reader
         => ReadArrayOfT<T>();
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadArray)]
+    [Obsolete(Strings.UseNonGenericReadArrayObsolete)]
     public T[] ReadArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         if (typeof(T) == typeof(byte))

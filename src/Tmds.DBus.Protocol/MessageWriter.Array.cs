@@ -120,6 +120,7 @@ public ref partial struct MessageWriter
         => WriteArrayOfT(value);
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
+    [Obsolete(Strings.UseNonGenericWriteArrayObsolete)]
     public void WriteArray<T>(IEnumerable<T> value)
         where T : notnull
     {
@@ -132,6 +133,7 @@ public ref partial struct MessageWriter
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
+    [Obsolete(Strings.UseNonGenericWriteArrayObsolete)]
     public void WriteArray<T>(ReadOnlySpan<T> value)
         where T : notnull
     {
@@ -184,6 +186,7 @@ public ref partial struct MessageWriter
     }
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
+    [Obsolete(Strings.UseNonGenericWriteArrayObsolete)]
     public void WriteArray<T>(T[] value)
         where T : notnull
     {

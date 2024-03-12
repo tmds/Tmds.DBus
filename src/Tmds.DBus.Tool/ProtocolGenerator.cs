@@ -305,8 +305,8 @@ namespace Tmds.DBus.Tool
                 AppendLine($"static string[] ReadInvalidated(ref Reader reader)");
                 StartBlock();
                 AppendLine("List<string>? invalidated = null;");
-                AppendLine("ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.String);");
-                AppendLine("while (reader.HasNext(headersEnd))");
+                AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);");
+                AppendLine("while (reader.HasNext(arrayEnd))");
                 StartBlock();
                 AppendLine("invalidated ??= new();");
                 AppendLine("var property = reader.ReadString();");
@@ -326,8 +326,8 @@ namespace Tmds.DBus.Tool
                 AppendLine($"private static {propertiesClassName} ReadProperties(ref Reader reader, List<string>? changedList = null)");
                 StartBlock();
                 AppendLine($"var props = new {propertiesClassName}();");
-                AppendLine("ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);");
-                AppendLine("while (reader.HasNext(headersEnd))");
+                AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
+                AppendLine("while (reader.HasNext(arrayEnd))");
                 StartBlock();
 
                 AppendLine("var property = reader.ReadString();");

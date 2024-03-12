@@ -35,8 +35,8 @@ public ref partial struct Reader
         where TKey : notnull
         where TValue : notnull
     {
-        ArrayEnd headersEnd = ReadDictionaryStart();
-        while (HasNext(headersEnd))
+        ArrayEnd dictEnd = ReadDictionaryStart();
+        while (HasNext(dictEnd))
         {
             var key = Read<TKey>();
             var value = Read<TValue>();

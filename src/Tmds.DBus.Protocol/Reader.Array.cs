@@ -89,8 +89,8 @@ public ref partial struct Reader
     private T[] ReadArrayOfT<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         List<T> items = new();
-        ArrayEnd headersEnd = ReadArrayStart(TypeModel.GetTypeAlignment<T>());
-        while (HasNext(headersEnd))
+        ArrayEnd arrayEnd = ReadArrayStart(TypeModel.GetTypeAlignment<T>());
+        while (HasNext(arrayEnd))
         {
             items.Add(Read<T>());
         }

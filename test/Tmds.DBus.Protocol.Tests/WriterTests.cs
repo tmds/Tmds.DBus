@@ -313,6 +313,9 @@ public class WriterTests
                 new object[] {Struct.Create((byte)1, (byte)2, (byte)3, (byte)4, (byte)5, (byte)6, (byte)7, (byte)8).AsVariant(),
                                                 new byte[] {10, 40, 121, 121, 121, 121, 121, 121, 121, 121, 41, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8},
                                                 new byte[] {10, 40, 121, 121, 121, 121, 121, 121, 121, 121, 41, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}},
+                new object[] {Struct.Create((Variant)1).AsVariant(), new byte[] {3, 40, 118, 41, 0, 0, 0, 0, 1, 105, 0, 0, 0, 0, 0, 1},
+                                                                     new byte[] {3, 40, 118, 41, 0, 0, 0, 0, 1, 105, 0, 0, 1, 0, 0, 0}},
+                // (v)
             };
         }
     }

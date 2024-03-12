@@ -554,8 +554,8 @@ public ref partial struct Reader
             public KeyValuePair<TKey, TValue>[] Read(ref Reader reader)
             {
                 List<KeyValuePair<TKey, TValue>> items = new();
-                ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
-                while (reader.HasNext(headersEnd))
+                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+                while (reader.HasNext(arrayEnd))
                 {
                     TKey key = reader.Read<TKey>();
                     TValue value = reader.Read<TValue>();

@@ -53,10 +53,10 @@ public partial class Connection : IDisposable
 
     public async ValueTask ConnectAsync()
     {
-        await ConnectCoreAsync(autoConnect: false).ConfigureAwait(false);
+        await ConnectCoreAsync(explicitConnect: true).ConfigureAwait(false);
     }
 
-    private ValueTask<DBusConnection> ConnectCoreAsync(bool autoConnect = true)
+    private ValueTask<DBusConnection> ConnectCoreAsync(bool explicitConnect = false)
     {
         lock (_gate)
         {
@@ -71,7 +71,13 @@ public partial class Connection : IDisposable
 
             if (!_connectionOptions.AutoConnect)
             {
-                if (autoConnect || _state != ConnectionState.Created)
+                DBusConnection? connection = _connection;
+                if (!explicitConnect && _state == ConnectionState.Disconnected && connection is not null)
+                {
+                    throw new DisconnectedException(connection.DisconnectReason);
+                }
+
+                if (!explicitConnect || _state != ConnectionState.Created)
                 {
                     throw new InvalidOperationException("Can only connect once using an explicit call.");
                 }

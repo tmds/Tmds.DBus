@@ -350,7 +350,7 @@ namespace Mpris.DBus
         public string PlaybackStatus { get; set; } = default!;
         public string LoopStatus { get; set; } = default!;
         public double Volume { get; set; } = default!;
-        public double Shuffle { get; set; } = default!;
+        public bool Shuffle { get; set; } = default!;
         public int Position { get; set; } = default!;
         public double Rate { get; set; } = default!;
         public double MinimumRate { get; set; } = default!;
@@ -848,8 +848,8 @@ namespace Mpris.DBus
                         changedList?.Add("Volume");
                         break;
                     case "Shuffle":
-                        reader.ReadSignature("d");
-                        props.Shuffle = reader.ReadDouble();
+                        reader.ReadSignature("b");
+                        props.Shuffle = reader.ReadBool();
                         changedList?.Add("Shuffle");
                         break;
                     case "Position":

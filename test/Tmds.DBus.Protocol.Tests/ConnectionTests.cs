@@ -23,6 +23,23 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.Equal("hello world", reply);
         }
 
+        [Fact]
+        public async Task DisconnectedException()
+        {
+            var streams = PairedMessageStream.CreatePair();
+            using var conn1 = new Connection("conn1-address");
+            conn1.Connect(streams.Item1);
+            using var conn2 = new Connection("conn2-address");
+            conn2.Connect(streams.Item2);
+
+            // Close the stream at one end.
+            ((PairedMessageStream)streams.Item2).Close();
+            await Task.Yield();
+
+            var proxy = new StringOperationsProxy(conn1, "servicename");
+            await Assert.ThrowsAsync<DisconnectedException>(() => proxy.ConcatAsync("hello ", "world"));
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]

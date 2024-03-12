@@ -4,7 +4,7 @@ public ref partial struct MessageWriter
 {
     public void WriteBool(bool value) => WriteUInt32(value ? 1u : 0u);
 
-    public void WriteByte(byte value) => WritePrimitiveCore<short>(value, DBusType.Byte);
+    public void WriteByte(byte value) => WritePrimitiveCore<byte>(value, DBusType.Byte);
 
     public void WriteInt16(short value) => WritePrimitiveCore<Int16>(value, DBusType.Int16);
 

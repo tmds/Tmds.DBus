@@ -4,6 +4,6 @@ namespace Tmds.DBus.Tool
 {
     interface IGenerator
     {
-        string Generate(IEnumerable<InterfaceDescription> interfaceDescriptions);
+        public bool TryGenerate(IEnumerable<InterfaceDescription> interfaceDescriptions, out string sourceCode);
     }
 }

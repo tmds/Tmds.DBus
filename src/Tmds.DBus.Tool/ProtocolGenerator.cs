@@ -58,7 +58,7 @@ namespace Tmds.DBus.Tool
             _sb.AppendLine(line);
         }
 
-        public string Generate(IEnumerable<InterfaceDescription> interfaceDescriptions)
+        public bool TryGenerate(IEnumerable<InterfaceDescription> interfaceDescriptions, out string sourceCode)
         {
             _sb.Clear();
             AppendLine($"namespace {_settings.Namespace}");
@@ -72,8 +72,21 @@ namespace Tmds.DBus.Tool
 
             foreach (var interf in interfaceDescriptions)
             {
-                AppendLine("");
-                AppendInterface(interf.Name, interf.InterfaceXml);
+                try
+                {
+                    AppendLine("");
+                    AppendInterface(interf.Name, interf.InterfaceXml);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"There was an unexpected exception while generating code for the '{interf.Name}' interface:");
+                    Console.WriteLine(interf.InterfaceXml);
+                    Console.WriteLine();
+                    Console.WriteLine("Exception:");
+                    Console.WriteLine(ex);
+                    sourceCode = default;
+                    return false;
+                }
             }
 
             AppendServiceClass(interfaceDescriptions);
@@ -83,7 +96,8 @@ namespace Tmds.DBus.Tool
 
             EndBlock();
 
-            return _sb.ToString();
+            sourceCode = _sb.ToString();
+            return true;
         }
 
         private void AppendPropertiesChangedClass()

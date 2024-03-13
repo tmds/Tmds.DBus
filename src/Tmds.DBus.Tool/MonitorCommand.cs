@@ -19,10 +19,11 @@ class MonitorCommand : Command
         _busOption = AddBusOption();
     }
 
-    public override void Execute()
+    public override bool Execute()
     {
         var address = ParseBusAddress(_busOption);
         MonitorBusAsync(address).Wait();
+        return true;
     }
 
     private async Task MonitorBusAsync(string address)

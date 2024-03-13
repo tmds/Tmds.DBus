@@ -31,7 +31,7 @@ namespace Tmds.DBus.Tool
             _files = AddFilesArgument();
         }
 
-        public override void Execute()
+        public override bool Execute()
         {
             var address = ParseBusAddress(_busOption);
             if (_typeArgument.Value == null)
@@ -72,6 +72,7 @@ namespace Tmds.DBus.Tool
             {
                 throw new ArgumentException("Unknown type", "type");
             }
+            return true;
         }
 
         class DBusObject

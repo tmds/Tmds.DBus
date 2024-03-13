@@ -97,7 +97,7 @@ public ref partial struct Reader
         return items.ToArray();
     }
 
-    public unsafe T[] ReadArrayOfNumeric<T>() where T : unmanaged
+    private unsafe T[] ReadArrayOfNumeric<T>() where T : unmanaged
     {
         int length = ReadInt32();
         if (sizeof(T) > 4)

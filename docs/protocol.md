@@ -211,19 +211,6 @@ Note: this example shows how to writing an array of strings. There is a `WriteAr
 ### Reading a dictionary
 
 ```cs
-ArrayStart arrayStart = writer.WriteDictionaryStart();
-foreach (var item in value)
-{
-    writer.WriteDictionaryEntryStart();
-    writer.Write... // write the key
-    writer.Write... // write the value
-}
-writer.WriteDictionaryEnd(arrayStart);
-```
-
-### Reading a dictionary
-
-```cs
 Dictionary<byte, string> dictionary = new();
 ArrayEnd dictEnd = reader.ReadDictionaryStart();
 while (reader.HasNext(dictEnd))
@@ -232,6 +219,19 @@ while (reader.HasNext(dictEnd))
     var value = reader.ReadString();
     dictionary[key] = value;
 }
+```
+
+### Writing a dictionary
+
+```cs
+ArrayStart arrayStart = writer.WriteDictionaryStart();
+foreach (var item in value)
+{
+    writer.WriteDictionaryEntryStart();
+    writer.Write... // write the key
+    writer.Write... // write the value
+}
+writer.WriteDictionaryEnd(arrayStart);
 ```
 
 ### Reading a struct

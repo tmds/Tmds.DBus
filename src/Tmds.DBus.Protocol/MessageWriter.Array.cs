@@ -132,9 +132,7 @@ public ref partial struct MessageWriter
         WriteArrayEnd(arrayStart);
     }
 
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
-    [Obsolete(Strings.UseNonGenericWriteArrayObsolete)]
-    public void WriteArray<T>(ReadOnlySpan<T> value)
+    internal void WriteArray<T>(ReadOnlySpan<T> value)
         where T : notnull
     {
 #if NET || NETSTANDARD2_1_OR_GREATER

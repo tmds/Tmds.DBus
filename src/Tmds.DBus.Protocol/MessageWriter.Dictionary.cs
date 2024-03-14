@@ -16,18 +16,18 @@ public ref partial struct MessageWriter
 
     // Write method for the common 'a{sv}' type.
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call WriteDictionary with these types.
-    public void WriteDictionary(IEnumerable<KeyValuePair<string, VariantValue>> value)
-        => WriteDictionary<string, VariantValue>(value);
+    public void WriteDictionary(IEnumerable<KeyValuePair<string, Variant>> value)
+        => WriteDictionary<string, Variant>(value);
 
     // Write method for the common 'a{sv}' type.
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call WriteDictionary with these types.
-    public void WriteDictionary(KeyValuePair<string, VariantValue>[] value)
-        => WriteDictionary<string, VariantValue>(value);
+    public void WriteDictionary(KeyValuePair<string, Variant>[] value)
+        => WriteDictionary<string, Variant>(value);
 
     // Write method for the common 'a{sv}' type.
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call WriteDictionary with these types.
-    public void WriteDictionary(Dictionary<string, VariantValue> value)
-        => WriteDictionary<string, VariantValue>(value);
+    public void WriteDictionary(Dictionary<string, Variant> value)
+        => WriteDictionary<string, Variant>(value);
 
     [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
     [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]

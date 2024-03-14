@@ -180,7 +180,7 @@ When there is no such method, the item type can be read using a `while` loop as 
 
 ```cs
 List<byte[]> arrayOfByteArrays = new();
-ArrayEnd arrayEnd = reader.ReadArrayStart();
+ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Array);
 while (reader.HasNext(arrayEnd))
 {
     arrayOfByteArrays.Add(reader.ReadArrayOfByte());

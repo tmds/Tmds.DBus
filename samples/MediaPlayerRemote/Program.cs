@@ -31,7 +31,9 @@ foreach (var p in availablePlayers)
 string firstPlayer = availablePlayers.First();
 Console.WriteLine($"Using: {firstPlayer}");
 
-Player player = new Player(new MprisService(connection,firstPlayer));
+var mpris = new MprisService(connection,firstPlayer);
+
+Player player = new Player(mpris);
 foreach (var track in await player.GetTracksAsync())
 {
     Console.WriteLine($"* {track}");

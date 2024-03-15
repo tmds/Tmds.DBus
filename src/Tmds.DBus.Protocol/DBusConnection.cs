@@ -118,6 +118,7 @@ class DBusConnection : IDisposable
     private Observer? _currentObserver;
     private SynchronizationContext? _currentSynchronizationContext;
     private TaskCompletionSource<Exception?>? _disconnectedTcs;
+    private CancellationTokenSource _abortedCts;
     private bool _isMonitor;
     private Action<Exception?, DisposableMessage>? _monitorHandler;
 
@@ -140,6 +141,7 @@ class DBusConnection : IDisposable
         _matchedObservers = new();
         _pathNodes = new();
         _machineId = machineId;
+        _abortedCts = new();
     }
 
     // For tests.
@@ -319,7 +321,7 @@ class DBusConnection : IDisposable
 
                         if (isMethodCall)
                         {
-                            methodContext = new MethodContext(_parentConnection, message); // TODO: pool.
+                            methodContext = new MethodContext(_parentConnection, message, _abortedCts.Token); // TODO: pool.
 
                             if (message.PathIsSet)
                             {
@@ -518,6 +520,8 @@ class DBusConnection : IDisposable
         Exception disconnectReason = DisconnectReason;
 
         _messageStream?.Close(disconnectReason);
+
+        _abortedCts.Cancel();
 
         if (_pendingCalls is not null)
         {

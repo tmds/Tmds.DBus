@@ -275,7 +275,7 @@ public class PathNodeDictionaryTests
 
     private void AssertChildNames(string[] expectedChildNames, PathNode node)
     {
-        var methodContext = new MethodContext(null!, null!);
+        var methodContext = new MethodContext(null!, null!, default);
         node.CopyChildNamesTo(methodContext);
         if (methodContext.IntrospectChildNameList == null)
         {

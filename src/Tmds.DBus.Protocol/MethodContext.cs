@@ -2,14 +2,16 @@ namespace Tmds.DBus.Protocol;
 
 public class MethodContext
 {
-    internal MethodContext(Connection connection, Message request)
+    internal MethodContext(Connection connection, Message request, CancellationToken requestAborted)
     {
         Connection = connection;
         Request = request;
+        RequestAborted = requestAborted;
     }
 
     public Message Request { get; }
     public Connection Connection { get; }
+    public CancellationToken RequestAborted { get; }
 
     public bool ReplySent { get; private set; }
 

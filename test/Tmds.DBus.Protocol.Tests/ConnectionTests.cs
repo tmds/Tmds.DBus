@@ -40,6 +40,35 @@ namespace Tmds.DBus.Protocol.Tests
             await Assert.ThrowsAsync<DisconnectedException>(() => proxy.ConcatAsync("hello ", "world"));
         }
 
+        [Fact]
+        public async Task DisposeTriggersRequestAborted()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var handler = new WaitForCancellationHandler();
+            conn2.AddMethodHandler(handler);
+
+            Task pendingCall = conn1.CallMethodAsync(CreateMessage());
+
+            conn2.Dispose();
+
+            await Assert.ThrowsAsync<DisconnectedException>(() => pendingCall);
+
+            await handler.WaitForCancelledAsync().WaitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token);
+
+            MessageBuffer CreateMessage()
+            {
+                using var writer = conn1.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    path: handler.Path,
+                    @interface: "org.any",
+                    member: "Any");
+                return writer.CreateMessage();
+            }
+        }
+
         [Theory]
         [InlineData(true)]
         [InlineData(false)]
@@ -384,6 +413,35 @@ namespace Tmds.DBus.Protocol.Tests
                     return writer.CreateMessage();
                 }
             }
+        }
+
+        class WaitForCancellationHandler : IMethodHandler
+        {
+            public string Path => "/";
+
+            private readonly TaskCompletionSource _cancelled = new();
+
+            public async ValueTask HandleMethodAsync(MethodContext context)
+            {
+                try
+                {
+                    while (true)
+                    {
+                        await Task.Delay(int.MaxValue, context.RequestAborted);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    _cancelled.SetResult();
+
+                    throw;
+                }
+            }
+
+            public Task WaitForCancelledAsync() => _cancelled.Task;
+
+            public bool RunMethodHandlerSynchronously(Message message)
+                => true;
         }
 
         class StringOperations : IMethodHandler

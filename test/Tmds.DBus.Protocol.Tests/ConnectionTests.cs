@@ -423,6 +423,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             public async ValueTask HandleMethodAsync(MethodContext context)
             {
+                Console.WriteLine("WaitForCancellationHandler.HandleMethodAsync");
                 try
                 {
                     while (true)

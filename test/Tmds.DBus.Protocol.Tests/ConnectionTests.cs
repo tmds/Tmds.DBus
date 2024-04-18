@@ -43,6 +43,8 @@ namespace Tmds.DBus.Protocol.Tests
         [Fact]
         public async Task DisposeTriggersRequestAborted()
         {
+            TimeSpan timeout = TimeSpan.FromSeconds(30);
+
             var connections = PairedConnection.CreatePair();
             using var conn1 = connections.Item1;
             using var conn2 = connections.Item2;
@@ -52,11 +54,13 @@ namespace Tmds.DBus.Protocol.Tests
 
             Task pendingCall = conn1.CallMethodAsync(CreateMessage());
 
+            await handler.WaitForRequestReceivedAsync().WaitAsync(timeout);
+
             conn2.Dispose();
 
             await Assert.ThrowsAsync<DisconnectedException>(() => pendingCall);
 
-            await handler.WaitForCancelledAsync().WaitAsync(new CancellationTokenSource(TimeSpan.FromMinutes(3)).Token);
+            await handler.WaitForCancelledAsync().WaitAsync(timeout);
 
             MessageBuffer CreateMessage()
             {
@@ -420,10 +424,11 @@ namespace Tmds.DBus.Protocol.Tests
             public string Path => "/";
 
             private readonly TaskCompletionSource _cancelled = new();
+            private readonly TaskCompletionSource _requestReceived = new();
 
             public async ValueTask HandleMethodAsync(MethodContext context)
             {
-                Console.WriteLine("WaitForCancellationHandler.HandleMethodAsync");
+                _requestReceived.TrySetResult();
                 try
                 {
                     while (true)
@@ -438,6 +443,8 @@ namespace Tmds.DBus.Protocol.Tests
                     throw;
                 }
             }
+
+            public Task WaitForRequestReceivedAsync() => _requestReceived.Task;
 
             public Task WaitForCancelledAsync() => _cancelled.Task;
 

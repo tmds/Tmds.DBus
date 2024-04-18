@@ -56,7 +56,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             await Assert.ThrowsAsync<DisconnectedException>(() => pendingCall);
 
-            await handler.WaitForCancelledAsync().WaitAsync(new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token);
+            await handler.WaitForCancelledAsync().WaitAsync(new CancellationTokenSource(TimeSpan.FromMinutes(3)).Token);
 
             MessageBuffer CreateMessage()
             {

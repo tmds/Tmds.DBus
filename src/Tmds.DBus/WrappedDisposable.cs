@@ -91,17 +91,20 @@ namespace Tmds.DBus
 
         public void Dispose()
         {
+            IDisposable disposable;
             lock (_gate)
             {
                 _disposed = true;
-                _disposable?.Dispose();
+                disposable = _disposable;
             }
+            _disposable?.Dispose();
         }
 
         public IDisposable Disposable
         {
             set
             {
+                bool dispose = false;
                 lock (_gate)
                 {
                     if (_disposable != null)
@@ -109,10 +112,11 @@ namespace Tmds.DBus
                         throw new InvalidOperationException("Already set");
                     }
                     _disposable = value;
-                    if (_disposed)
-                    {
-                        _disposable.Dispose();
-                    }
+                    dispose = _disposed;
+                }
+                if (dispose)
+                {
+                    value.Dispose();
                 }
             }
         }

@@ -214,7 +214,7 @@ public class PathNodeDictionaryTests
             new MethodHandler("invalid_path"),
         ]));
 
-        Assert.Empty(dictionary);
+        Assert.Equal(0, dictionary.Count);
     }
 
     [Fact]
@@ -271,6 +271,109 @@ public class PathNodeDictionaryTests
         Assert.Equal(root, root1.Parent);
         Assert.Null(root1.MethodHandler);
         AssertChildNames([ "node2" ], root1);
+    }
+
+    [Fact]
+    public void Remove()
+    {
+        var dictionary = new PathNodeDictionary();
+        dictionary.AddMethodHandlers(
+        [
+            new MethodHandler("/root1"),
+        ]);
+        Assert.Equal(2, dictionary.Count);
+
+        dictionary.RemoveMethodHandler("/root1");
+
+        Assert.Equal(0, dictionary.Count);
+    }
+
+    [Fact]
+    public void RemoveRemovesUnneededParentNodes()
+    {
+        var dictionary = new PathNodeDictionary();
+        dictionary.AddMethodHandlers(
+        [
+            new MethodHandler("/root1/node1"),
+        ]);
+        Assert.Equal(3, dictionary.Count);
+
+        dictionary.RemoveMethodHandler("/root1/node1");
+
+        Assert.Equal(0, dictionary.Count);
+    }
+
+    [Fact]
+    public void RemoveRetainsNeededParentNodes()
+    {
+        var dictionary = new PathNodeDictionary();
+        dictionary.AddMethodHandlers(
+        [
+            new MethodHandler("/root1"),
+            new MethodHandler("/root1/node1"),
+        ]);
+        Assert.Equal(3, dictionary.Count);
+
+        dictionary.RemoveMethodHandler("/root1/node1");
+
+        Assert.Equal(2, dictionary.Count);
+
+        PathNode root = dictionary["/"];
+        Assert.Null(root.Parent);
+        Assert.Null(root.MethodHandler);
+        AssertChildNames([ "root1" ], root);
+
+        PathNode root1 = dictionary["/root1"];
+        Assert.Equal(root, root1.Parent);
+        Assert.NotNull(root1.MethodHandler);
+        AssertChildNames([ ], root1);
+    }
+
+    [Fact]
+    public void RemoveRetainsForChildNodes()
+    {
+        var dictionary = new PathNodeDictionary();
+        dictionary.AddMethodHandlers(
+        [
+            new MethodHandler("/root1"),
+            new MethodHandler("/root1/node1"),
+        ]);
+        Assert.Equal(3, dictionary.Count);
+
+        dictionary.RemoveMethodHandler("/root1");
+
+        PathNode root = dictionary["/"];
+        Assert.Null(root.Parent);
+        Assert.Null(root.MethodHandler);
+        AssertChildNames([ "root1" ], root);
+
+        PathNode root1 = dictionary["/root1"];
+        Assert.Equal(root, root1.Parent);
+        Assert.Null(root1.MethodHandler);
+        AssertChildNames([ "node1" ], root1);
+
+        PathNode node1 = dictionary["/root1/node1"];
+        Assert.Equal(root1, node1.Parent);
+        Assert.NotNull(node1.MethodHandler);
+        AssertChildNames([ ], node1);
+
+        Assert.Equal(3, dictionary.Count);
+    }
+
+    [Fact]
+    public void RemoveMultiple()
+    {
+        var dictionary = new PathNodeDictionary();
+        dictionary.AddMethodHandlers(
+        [
+            new MethodHandler("/root1"),
+            new MethodHandler("/root2"),
+        ]);
+        Assert.Equal(3, dictionary.Count);
+
+        dictionary.RemoveMethodHandlers([ "/root1", "/root2" ]);
+
+        Assert.Equal(0, dictionary.Count);
     }
 
     private void AssertChildNames(string[] expectedChildNames, PathNode node)

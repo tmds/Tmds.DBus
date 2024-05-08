@@ -5,14 +5,9 @@ The `Tmds.DBus.Tool` packages extends the dotnet cli to facilitate developing .N
 The tool supports:
 - [codegen](#codegen): generate C# code for consuming D-Bus services.
 - [list](#list): list the available objects, interfaces and services.
+- [monitor](#monitor): prints message bus messages.
 
-The tool can be added by using a `DotNetCliToolReference` in the project file.
-
-```xml
-  <ItemGroup>
-    <DotNetCliToolReference Include="Tmds.DBus.Tool" Version="0.5.0" />
-  </ItemGroup>
-```
+The tool can be installed using `dotnet tool install -g Tmds.DBus.Tool`
 
 Now it can be invoked from the command line:
 ```
@@ -78,3 +73,7 @@ The `list` command can also be used to list interfaces from XML files.
 ```
 $ dotnet dbus list interfaces /usr/share/dbus-1/interfaces/*.xml
 ```
+
+## monitor
+
+The `monitor` command registers the tool as a bus monitor and prints out the message bus messages.

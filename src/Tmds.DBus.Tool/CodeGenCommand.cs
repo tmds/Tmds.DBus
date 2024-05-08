@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.Extensions.CommandLineUtils;
 using Microsoft.CodeAnalysis;
+using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool
 {
@@ -51,7 +52,7 @@ namespace Tmds.DBus.Tool
         internal CommandOption AddServiceNameOption()
             => Configuration.Option("--service-name", ".NET name for the service.", CommandOptionType.SingleValue);
 
-        public override void Execute()
+        public override bool Execute()
         {
             if (!_serviceOption.HasValue() && _files.Values == null)
             {
@@ -112,7 +113,7 @@ namespace Tmds.DBus.Tool
                 Files = _files.Values,
                 ProtocolApi = _protocolOption.HasValue()
             };
-            GenerateCodeAsync(codeGenArguments).Wait();
+            return TryGenerateCodeAsync(codeGenArguments).GetAwaiter().GetResult();
         }
 
         class Visitor
@@ -171,7 +172,7 @@ namespace Tmds.DBus.Tool
             public List<InterfaceDescription> Descriptions => _introspections.Values.ToList();
         }
 
-        private async Task GenerateCodeAsync(CodeGenArguments codeGenArguments)
+        private async Task<bool> TryGenerateCodeAsync(CodeGenArguments codeGenArguments)
         {
             var visitor = new Visitor(codeGenArguments);
             if (codeGenArguments.Service != null)
@@ -204,7 +205,11 @@ namespace Tmds.DBus.Tool
                         NoInternalsVisibleTo = codeGenArguments.NoInternalsVisibleTo,
                         TypesAccessModifier = codeGenArguments.TypesAccessModifier
                     });
-            var code = generator.Generate(descriptions);
+
+            if (!generator.TryGenerate(descriptions, out string code))
+            {
+                return false;
+            }
 
             if (codeGenArguments.OutputFileName != null)
             {
@@ -213,8 +218,9 @@ namespace Tmds.DBus.Tool
             }
             else
             {
-                System.Console.WriteLine(code);
+                Console.WriteLine(code);
             }
+            return true;
         }
 
         class CodeGenArguments

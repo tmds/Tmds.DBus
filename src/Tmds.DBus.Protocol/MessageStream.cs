@@ -10,7 +10,7 @@ class MessageStream : IMessageStream
 {
     private static readonly ReadOnlyMemory<byte> OneByteArray = new[] { (byte)0 };
     private readonly Socket _socket;
-    private readonly UnixFdCollection? _fdCollection;
+    private UnixFdCollection? _fdCollection;
     private bool _supportsFdPassing;
     private readonly MessagePool _messagePool;
 
@@ -23,6 +23,7 @@ class MessageStream : IMessageStream
     private readonly PipeReader _pipeReader;
 
     private Exception? _completionException;
+    private bool _isMonitor;
 
     public MessageStream(Socket socket)
     {
@@ -38,11 +39,12 @@ class MessageStream : IMessageStream
         var pipe = new Pipe(new PipeOptions(useSynchronizationContext: false));
         _pipeReader = pipe.Reader;
         _pipeWriter = pipe.Writer;
-        if (_supportsFdPassing)
-        {
-            _fdCollection = new();
-        }
         _messagePool = new();
+    }
+
+    public void BecomeMonitor()
+    {
+        _isMonitor = true;
     }
 
     private async void ReadFromSocketIntoPipe()
@@ -121,7 +123,7 @@ class MessageStream : IMessageStream
                 ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
                 ReadOnlySequence<byte> buffer = result.Buffer;
 
-                ReadMessages(ref buffer, _fdCollection, _messagePool, handler, state);
+                ReadMessages(ref buffer, handler, state);
 
                 reader.AdvanceTo(buffer.Start, buffer.End);
             }
@@ -136,10 +138,10 @@ class MessageStream : IMessageStream
             _fdCollection?.Dispose();
         }
 
-        static void ReadMessages<TState>(ref ReadOnlySequence<byte> buffer, UnixFdCollection? fdCollection, MessagePool messagePool, IMessageStream.MessageReceivedHandler<TState> handler, TState state)
+        void ReadMessages<TState>(ref ReadOnlySequence<byte> buffer, IMessageStream.MessageReceivedHandler<TState> handler, TState state)
         {
             Message? message;
-            while ((message = Message.TryReadMessage(messagePool, ref buffer, fdCollection)) != null)
+            while ((message = Message.TryReadMessage(_messagePool, ref buffer, _fdCollection, _isMonitor)) != null)
             {
                 handler(closeReason: null, message, state);
             }
@@ -167,6 +169,10 @@ class MessageStream : IMessageStream
         // auth
         var authenticationResult = await SendAuthCommandsAsync(userId, supportsFdPassing).ConfigureAwait(false);
         _supportsFdPassing = authenticationResult.SupportsFdPassing;
+        if (_supportsFdPassing)
+        {
+            _fdCollection = new();
+        }
         if (guid != Guid.Empty)
         {
             if (guid != authenticationResult.Guid)

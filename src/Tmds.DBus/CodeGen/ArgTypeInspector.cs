@@ -162,17 +162,14 @@ namespace Tmds.DBus.CodeGen
             {
                 return false;
             }
-            if (!typeInfo.IsLayoutSequential)
+            if (IsValueTuple(typeInfo))
             {
-                if (IsValueTuple(typeInfo))
-                {
-                    isValueTuple = true;
-                    return true;
-                }
-                else
-                {
-                    return false;
-                }
+                isValueTuple = true;
+                return true;
+            }
+            else if (!typeInfo.IsLayoutSequential)
+            {
+                return false;
             }
 
             if (typeInfo.ImplementedInterfaces.Contains(s_idbusObjectType))

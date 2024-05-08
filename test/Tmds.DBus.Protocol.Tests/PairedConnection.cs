@@ -89,9 +89,12 @@ namespace Tmds.DBus.Protocol.Tests
             return ValueTask.FromResult(true);
         }
 
-        public void Close(Exception closeReason)
+        public void Close(Exception? closeReason = null)
         {
             TrySendMessageAsync(null!); // Use null as EOF.
         }
+
+        public void BecomeMonitor()
+            => throw new InvalidOperationException();
     }
 }

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.CommandLineUtils;
+using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool
 {
@@ -12,18 +13,14 @@ namespace Tmds.DBus.Tool
                 Configuration = configuration;
                 configuration.HelpOption(Command.HelpTemplate);
                 Configure();
-                configuration.OnExecute(() =>
-                {
-                    Execute();
-                    return 0;
-                });
+                configuration.OnExecute(() => Execute() ? 0 : 1);
             });
         }
 
         public const string HelpTemplate = "-h|--help";
         public string Name { get; protected set; }
         public abstract void Configure();
-        public abstract void Execute();
+        public abstract bool Execute();
 
         internal CommandOption AddServiceOption()
             => Configuration.Option("--service", "DBus service", CommandOptionType.SingleValue);

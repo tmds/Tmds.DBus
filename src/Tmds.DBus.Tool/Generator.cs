@@ -65,14 +65,27 @@ namespace Tmds.DBus.Tool
             };
         }
 
-        public string Generate(IEnumerable<InterfaceDescription> interfaceDescriptions)
+        public bool TryGenerate(IEnumerable<InterfaceDescription> interfaceDescriptions, out string sourceCode)
         {
             var importDeclarations = ImportNamespaceDeclarations();
             var namespaceDeclarations = new List<SyntaxNode>();
             var internalsVisibleTo = _generator.Attribute("InternalsVisibleTo", _generator.DottedName("Tmds.DBus.Connection.DynamicAssemblyName"));
             foreach (var interfaceDescription in interfaceDescriptions)
             {
-                namespaceDeclarations.AddRange(DBusInterfaceDeclaration(interfaceDescription.Name, interfaceDescription.InterfaceXml));
+                try
+                {
+                    namespaceDeclarations.AddRange(DBusInterfaceDeclaration(interfaceDescription.Name, interfaceDescription.InterfaceXml));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"There was an unexpected exception while generating code for the '{interfaceDescription.Name}' interface:");
+                    Console.WriteLine(interfaceDescription.InterfaceXml);
+                    Console.WriteLine();
+                    Console.WriteLine("Exception:");
+                    Console.WriteLine(ex);
+                    sourceCode = default;
+                    return false;
+                }
             }
             var namespaceDeclaration = _generator.NamespaceDeclaration(_generator.DottedName(_settings.Namespace), namespaceDeclarations);
             var compilationUnit = _generator.CompilationUnit(importDeclarations.Concat(new[] { namespaceDeclaration }));
@@ -80,7 +93,8 @@ namespace Tmds.DBus.Tool
             {
                 compilationUnit = _generator.AddAttributes(compilationUnit, internalsVisibleTo);
             }
-            return compilationUnit.NormalizeWhitespace().ToFullString();
+            sourceCode = compilationUnit.NormalizeWhitespace().ToFullString();
+            return true;
         }
 
         private IEnumerable<SyntaxNode> DBusInterfaceDeclaration(string name, XElement interfaceXml)

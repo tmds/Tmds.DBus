@@ -166,9 +166,9 @@ public static class Address
         {
             return string.Empty;
         }
-        if (len > Int32.MaxValue)
+        if (len > int.MaxValue)
         {
-            len = Int32.MaxValue;
+            len = int.MaxValue;
         }
         byte[] bytes = new byte[len];
         int count = s.Read(bytes, 0, (int)len);

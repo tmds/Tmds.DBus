@@ -41,11 +41,11 @@ namespace Tmds.DBus
                 }
                 if (File.Exists(MachineUuidPath))
                 {
-                    _machineId = Guid.Parse(File.ReadAllText(MachineUuidPath).Substring(0, 32)).ToString();
+                    _machineId = Guid.Parse(File.ReadAllText(MachineUuidPath).Substring(0, 32)).ToString("N");
                 }
                 else
                 {
-                    _machineId = Guid.Empty.ToString();
+                    _machineId = Guid.Empty.ToString("N");
                 }
                 return _machineId;
             }

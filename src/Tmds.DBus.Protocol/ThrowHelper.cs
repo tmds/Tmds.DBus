@@ -1,5 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
-
 namespace Tmds.DBus.Protocol;
 
 static class ThrowHelper

@@ -31,7 +31,9 @@ foreach (var p in availablePlayers)
 string firstPlayer = availablePlayers.First();
 Console.WriteLine($"Using: {firstPlayer}");
 
-Player player = new Player(new MprisService(connection,firstPlayer));
+var mpris = new MprisService(connection,firstPlayer);
+
+Player player = new Player(mpris);
 foreach (var track in await player.GetTracksAsync())
 {
     Console.WriteLine($"* {track}");
@@ -103,7 +105,7 @@ class Player
 
             try
             {
-                Dictionary<string, object>? metadata = null;
+                Dictionary<string, VariantValue>? metadata = null;
                 if (changes.HasChanged(nameof(PlayerProperties.Metadata)))
                 {
                     metadata = changes.Properties.Metadata;
@@ -123,7 +125,7 @@ class Player
             }
         }
 
-        void UpdateCurrentTitle(Dictionary<string, object> metadata, bool initial = false)
+        void UpdateCurrentTitle(Dictionary<string, VariantValue> metadata, bool initial = false)
         {
             if (initial && CurrentTitle is not null)
             {
@@ -161,8 +163,8 @@ class Player
         }
     }
 
-    private static string GetTitle(Dictionary<string, object> metadata)
-        => (metadata.TryGetValue("xesam:title", out object? value) ? value.ToString() : null) ?? "???";
+    private static string GetTitle(Dictionary<string, VariantValue> metadata)
+        => (metadata.TryGetValue("xesam:title", out VariantValue value) ? value.GetString() : null) ?? "???";
 
     public Task PreviousAsync() => _player.PreviousAsync();
 

@@ -5,386 +5,35 @@ namespace Mpris.DBus
     using SafeHandle = System.Runtime.InteropServices.SafeHandle;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    record MediaPlayer2Properties
-    {
-        public string Identity { get; set; } = default!;
-        public string DesktopEntry { get; set; } = default!;
-        public string[] SupportedMimeTypes { get; set; } = default!;
-        public string[] SupportedUriSchemes { get; set; } = default!;
-        public bool HasTrackList { get; set; } = default!;
-        public bool CanQuit { get; set; } = default!;
-        public bool CanSetFullscreen { get; set; } = default!;
-        public bool Fullscreen { get; set; } = default!;
-        public bool CanRaise { get; set; } = default!;
-    }
-    partial class MediaPlayer2 : MprisObject
-    {
-        private const string __Interface = "org.mpris.MediaPlayer2";
-        public MediaPlayer2(MprisService service, ObjectPath path) : base(service, path)
-        { }
-        public Task QuitAsync()
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: __Interface,
-                    member: "Quit");
-                return writer.CreateMessage();
-            }
-        }
-        public Task RaiseAsync()
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: __Interface,
-                    member: "Raise");
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetIdentityAsync(string value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("Identity");
-                writer.WriteSignature("s");
-                writer.WriteString(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetDesktopEntryAsync(string value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("DesktopEntry");
-                writer.WriteSignature("s");
-                writer.WriteString(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetSupportedMimeTypesAsync(string[] value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("SupportedMimeTypes");
-                writer.WriteSignature("as");
-                writer.WriteArray(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetSupportedUriSchemesAsync(string[] value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("SupportedUriSchemes");
-                writer.WriteSignature("as");
-                writer.WriteArray(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetHasTrackListAsync(bool value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("HasTrackList");
-                writer.WriteSignature("b");
-                writer.WriteBool(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetCanQuitAsync(bool value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("CanQuit");
-                writer.WriteSignature("b");
-                writer.WriteBool(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetCanSetFullscreenAsync(bool value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("CanSetFullscreen");
-                writer.WriteSignature("b");
-                writer.WriteBool(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetFullscreenAsync(bool value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("Fullscreen");
-                writer.WriteSignature("b");
-                writer.WriteBool(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetCanRaiseAsync(bool value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("CanRaise");
-                writer.WriteSignature("b");
-                writer.WriteBool(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task<string> GetIdentityAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Identity"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
-        public Task<string> GetDesktopEntryAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "DesktopEntry"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
-        public Task<string[]> GetSupportedMimeTypesAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedMimeTypes"), (Message m, object? s) => ReadMessage_v_as(m, (MprisObject)s!), this);
-        public Task<string[]> GetSupportedUriSchemesAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedUriSchemes"), (Message m, object? s) => ReadMessage_v_as(m, (MprisObject)s!), this);
-        public Task<bool> GetHasTrackListAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "HasTrackList"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
-        public Task<bool> GetCanQuitAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanQuit"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
-        public Task<bool> GetCanSetFullscreenAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSetFullscreen"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
-        public Task<bool> GetFullscreenAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Fullscreen"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
-        public Task<bool> GetCanRaiseAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanRaise"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
-        public Task<MediaPlayer2Properties> GetPropertiesAsync()
-        {
-            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m, (MprisObject)s!), this);
-            static MediaPlayer2Properties ReadMessage(Message message, MprisObject _)
-            {
-                var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
-            }
-        }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<MediaPlayer2Properties>> handler, bool emitOnCapturedContext = true)
-        {
-            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext);
-            static PropertyChanges<MediaPlayer2Properties> ReadMessage(Message message, MprisObject _)
-            {
-                var reader = message.GetBodyReader();
-                reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
-                return new PropertyChanges<MediaPlayer2Properties>(ReadProperties(ref reader, changed), changed.ToArray(), ReadInvalidated(ref reader));
-            }
-            static string[] ReadInvalidated(ref Reader reader)
-            {
-                List<string>? invalidated = null;
-                ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.String);
-                while (reader.HasNext(headersEnd))
-                {
-                    invalidated ??= new();
-                    var property = reader.ReadString();
-                    switch (property)
-                    {
-                        case "Identity": invalidated.Add("Identity"); break;
-                        case "DesktopEntry": invalidated.Add("DesktopEntry"); break;
-                        case "SupportedMimeTypes": invalidated.Add("SupportedMimeTypes"); break;
-                        case "SupportedUriSchemes": invalidated.Add("SupportedUriSchemes"); break;
-                        case "HasTrackList": invalidated.Add("HasTrackList"); break;
-                        case "CanQuit": invalidated.Add("CanQuit"); break;
-                        case "CanSetFullscreen": invalidated.Add("CanSetFullscreen"); break;
-                        case "Fullscreen": invalidated.Add("Fullscreen"); break;
-                        case "CanRaise": invalidated.Add("CanRaise"); break;
-                    }
-                }
-                return invalidated?.ToArray() ?? Array.Empty<string>();
-            }
-        }
-        private static MediaPlayer2Properties ReadProperties(ref Reader reader, List<string>? changedList = null)
-        {
-            var props = new MediaPlayer2Properties();
-            ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(headersEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Identity":
-                        reader.ReadSignature("s");
-                        props.Identity = reader.ReadString();
-                        changedList?.Add("Identity");
-                        break;
-                    case "DesktopEntry":
-                        reader.ReadSignature("s");
-                        props.DesktopEntry = reader.ReadString();
-                        changedList?.Add("DesktopEntry");
-                        break;
-                    case "SupportedMimeTypes":
-                        reader.ReadSignature("as");
-                        props.SupportedMimeTypes = reader.ReadArray<string>();
-                        changedList?.Add("SupportedMimeTypes");
-                        break;
-                    case "SupportedUriSchemes":
-                        reader.ReadSignature("as");
-                        props.SupportedUriSchemes = reader.ReadArray<string>();
-                        changedList?.Add("SupportedUriSchemes");
-                        break;
-                    case "HasTrackList":
-                        reader.ReadSignature("b");
-                        props.HasTrackList = reader.ReadBool();
-                        changedList?.Add("HasTrackList");
-                        break;
-                    case "CanQuit":
-                        reader.ReadSignature("b");
-                        props.CanQuit = reader.ReadBool();
-                        changedList?.Add("CanQuit");
-                        break;
-                    case "CanSetFullscreen":
-                        reader.ReadSignature("b");
-                        props.CanSetFullscreen = reader.ReadBool();
-                        changedList?.Add("CanSetFullscreen");
-                        break;
-                    case "Fullscreen":
-                        reader.ReadSignature("b");
-                        props.Fullscreen = reader.ReadBool();
-                        changedList?.Add("Fullscreen");
-                        break;
-                    case "CanRaise":
-                        reader.ReadSignature("b");
-                        props.CanRaise = reader.ReadBool();
-                        changedList?.Add("CanRaise");
-                        break;
-                    default:
-                        reader.ReadVariant();
-                        break;
-                }
-            }
-            return props;
-        }
-    }
     record PlayerProperties
     {
-        public Dictionary<string, object> Metadata { get; set; } = default!;
         public string PlaybackStatus { get; set; } = default!;
         public string LoopStatus { get; set; } = default!;
-        public double Volume { get; set; } = default!;
-        public double Shuffle { get; set; } = default!;
-        public int Position { get; set; } = default!;
         public double Rate { get; set; } = default!;
+        public bool Shuffle { get; set; } = default!;
+        public Dictionary<string, VariantValue> Metadata { get; set; } = default!;
+        public double Volume { get; set; } = default!;
+        public long Position { get; set; } = default!;
         public double MinimumRate { get; set; } = default!;
         public double MaximumRate { get; set; } = default!;
-        public bool CanControl { get; set; } = default!;
+        public bool CanGoNext { get; set; } = default!;
+        public bool CanGoPrevious { get; set; } = default!;
         public bool CanPlay { get; set; } = default!;
         public bool CanPause { get; set; } = default!;
         public bool CanSeek { get; set; } = default!;
+        public bool CanControl { get; set; } = default!;
     }
     partial class Player : MprisObject
     {
         private const string __Interface = "org.mpris.MediaPlayer2.Player";
         public Player(MprisService service, ObjectPath path) : base(service, path)
         { }
-        public Task PreviousAsync()
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: __Interface,
-                    member: "Previous");
-                return writer.CreateMessage();
-            }
-        }
         public Task NextAsync()
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -393,31 +42,17 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
-        public Task StopAsync()
+        public Task PreviousAsync()
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
                     @interface: __Interface,
-                    member: "Stop");
-                return writer.CreateMessage();
-            }
-        }
-        public Task PlayAsync()
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: __Interface,
-                    member: "Play");
+                    member: "Previous");
                 return writer.CreateMessage();
             }
         }
@@ -426,7 +61,7 @@ namespace Mpris.DBus
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -440,7 +75,7 @@ namespace Mpris.DBus
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -449,80 +84,91 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
-        public Task SeekAsync(long a0)
+        public Task StopAsync()
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: __Interface,
+                    member: "Stop");
+                return writer.CreateMessage();
+            }
+        }
+        public Task PlayAsync()
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: __Interface,
+                    member: "Play");
+                return writer.CreateMessage();
+            }
+        }
+        public Task SeekAsync(long offset)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
                     @interface: __Interface,
                     signature: "x",
                     member: "Seek");
-                writer.WriteInt64(a0);
+                writer.WriteInt64(offset);
                 return writer.CreateMessage();
             }
         }
-        public Task OpenUriAsync(string a0)
+        public Task SetPositionAsync(ObjectPath trackId, long position)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: __Interface,
-                    signature: "s",
-                    member: "OpenUri");
-                writer.WriteString(a0);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetPositionAsync(ObjectPath a0, long a1)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
                     @interface: __Interface,
                     signature: "ox",
                     member: "SetPosition");
-                writer.WriteObjectPath(a0);
-                writer.WriteInt64(a1);
+                writer.WriteObjectPath(trackId);
+                writer.WriteInt64(position);
                 return writer.CreateMessage();
             }
         }
-        public Task SetMetadataAsync(Dictionary<string, object> value)
+        public Task OpenUriAsync(string uri)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("Metadata");
-                writer.WriteSignature("a{sv}");
-                writer.WriteDictionary(value);
+                    @interface: __Interface,
+                    signature: "s",
+                    member: "OpenUri");
+                writer.WriteString(uri);
                 return writer.CreateMessage();
             }
         }
+        public ValueTask<IDisposable> WatchSeekedAsync(Action<Exception?, long> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "Seeked", (Message m, object? s) => ReadMessage_x(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
         public Task SetPlaybackStatusAsync(string value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -541,7 +187,7 @@ namespace Mpris.DBus
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -555,69 +201,12 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
-        public Task SetVolumeAsync(double value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("Volume");
-                writer.WriteSignature("d");
-                writer.WriteDouble(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetShuffleAsync(double value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("Shuffle");
-                writer.WriteSignature("d");
-                writer.WriteDouble(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetPositionAsync(int value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                using var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Service.Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("Position");
-                writer.WriteSignature("i");
-                writer.WriteInt32(value);
-                return writer.CreateMessage();
-            }
-        }
         public Task SetRateAsync(double value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -631,12 +220,88 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
+        public Task SetShuffleAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("Shuffle");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetMetadataAsync(Dictionary<string, Variant> value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("Metadata");
+                writer.WriteSignature("a{sv}");
+                writer.WriteDictionary(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetVolumeAsync(double value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("Volume");
+                writer.WriteSignature("d");
+                writer.WriteDouble(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetPositionAsync(long value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("Position");
+                writer.WriteSignature("x");
+                writer.WriteInt64(value);
+                return writer.CreateMessage();
+            }
+        }
         public Task SetMinimumRateAsync(double value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -655,7 +320,7 @@ namespace Mpris.DBus
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -669,12 +334,12 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
-        public Task SetCanControlAsync(bool value)
+        public Task SetCanGoNextAsync(bool value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -682,7 +347,26 @@ namespace Mpris.DBus
                     signature: "ssv",
                     member: "Set");
                 writer.WriteString(__Interface);
-                writer.WriteString("CanControl");
+                writer.WriteString("CanGoNext");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetCanGoPreviousAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("CanGoPrevious");
                 writer.WriteSignature("b");
                 writer.WriteBool(value);
                 return writer.CreateMessage();
@@ -693,7 +377,7 @@ namespace Mpris.DBus
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -712,7 +396,7 @@ namespace Mpris.DBus
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -731,7 +415,7 @@ namespace Mpris.DBus
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -745,32 +429,55 @@ namespace Mpris.DBus
                 return writer.CreateMessage();
             }
         }
-        public Task<Dictionary<string, object>> GetMetadataAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Metadata"), (Message m, object? s) => ReadMessage_v_aesv(m, (MprisObject)s!), this);
+        public Task SetCanControlAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("CanControl");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
         public Task<string> GetPlaybackStatusAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "PlaybackStatus"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
         public Task<string> GetLoopStatusAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "LoopStatus"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
-        public Task<double> GetVolumeAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Volume"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
-        public Task<double> GetShuffleAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Shuffle"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
-        public Task<int> GetPositionAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Position"), (Message m, object? s) => ReadMessage_v_i(m, (MprisObject)s!), this);
         public Task<double> GetRateAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Rate"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
+        public Task<bool> GetShuffleAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Shuffle"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<Dictionary<string, VariantValue>> GetMetadataAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Metadata"), (Message m, object? s) => ReadMessage_v_aesv(m, (MprisObject)s!), this);
+        public Task<double> GetVolumeAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Volume"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
+        public Task<long> GetPositionAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Position"), (Message m, object? s) => ReadMessage_v_x(m, (MprisObject)s!), this);
         public Task<double> GetMinimumRateAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "MinimumRate"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
         public Task<double> GetMaximumRateAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "MaximumRate"), (Message m, object? s) => ReadMessage_v_d(m, (MprisObject)s!), this);
-        public Task<bool> GetCanControlAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanControl"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<bool> GetCanGoNextAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanGoNext"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<bool> GetCanGoPreviousAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanGoPrevious"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanPlayAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanPlay"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanPauseAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanPause"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<bool> GetCanSeekAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSeek"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<bool> GetCanControlAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanControl"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
         public Task<PlayerProperties> GetPropertiesAsync()
         {
             return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m, (MprisObject)s!), this);
@@ -780,9 +487,9 @@ namespace Mpris.DBus
                 return ReadProperties(ref reader);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<PlayerProperties>> handler, bool emitOnCapturedContext = true)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<PlayerProperties>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
         {
-            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
             static PropertyChanges<PlayerProperties> ReadMessage(Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
@@ -793,26 +500,28 @@ namespace Mpris.DBus
             static string[] ReadInvalidated(ref Reader reader)
             {
                 List<string>? invalidated = null;
-                ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.String);
-                while (reader.HasNext(headersEnd))
+                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(arrayEnd))
                 {
                     invalidated ??= new();
                     var property = reader.ReadString();
                     switch (property)
                     {
-                        case "Metadata": invalidated.Add("Metadata"); break;
                         case "PlaybackStatus": invalidated.Add("PlaybackStatus"); break;
                         case "LoopStatus": invalidated.Add("LoopStatus"); break;
-                        case "Volume": invalidated.Add("Volume"); break;
-                        case "Shuffle": invalidated.Add("Shuffle"); break;
-                        case "Position": invalidated.Add("Position"); break;
                         case "Rate": invalidated.Add("Rate"); break;
+                        case "Shuffle": invalidated.Add("Shuffle"); break;
+                        case "Metadata": invalidated.Add("Metadata"); break;
+                        case "Volume": invalidated.Add("Volume"); break;
+                        case "Position": invalidated.Add("Position"); break;
                         case "MinimumRate": invalidated.Add("MinimumRate"); break;
                         case "MaximumRate": invalidated.Add("MaximumRate"); break;
-                        case "CanControl": invalidated.Add("CanControl"); break;
+                        case "CanGoNext": invalidated.Add("CanGoNext"); break;
+                        case "CanGoPrevious": invalidated.Add("CanGoPrevious"); break;
                         case "CanPlay": invalidated.Add("CanPlay"); break;
                         case "CanPause": invalidated.Add("CanPause"); break;
                         case "CanSeek": invalidated.Add("CanSeek"); break;
+                        case "CanControl": invalidated.Add("CanControl"); break;
                     }
                 }
                 return invalidated?.ToArray() ?? Array.Empty<string>();
@@ -821,17 +530,12 @@ namespace Mpris.DBus
         private static PlayerProperties ReadProperties(ref Reader reader, List<string>? changedList = null)
         {
             var props = new PlayerProperties();
-            ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(headersEnd))
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
             {
                 var property = reader.ReadString();
                 switch (property)
                 {
-                    case "Metadata":
-                        reader.ReadSignature("a{sv}");
-                        props.Metadata = reader.ReadDictionary<string, object>();
-                        changedList?.Add("Metadata");
-                        break;
                     case "PlaybackStatus":
                         reader.ReadSignature("s");
                         props.PlaybackStatus = reader.ReadString();
@@ -842,25 +546,30 @@ namespace Mpris.DBus
                         props.LoopStatus = reader.ReadString();
                         changedList?.Add("LoopStatus");
                         break;
+                    case "Rate":
+                        reader.ReadSignature("d");
+                        props.Rate = reader.ReadDouble();
+                        changedList?.Add("Rate");
+                        break;
+                    case "Shuffle":
+                        reader.ReadSignature("b");
+                        props.Shuffle = reader.ReadBool();
+                        changedList?.Add("Shuffle");
+                        break;
+                    case "Metadata":
+                        reader.ReadSignature("a{sv}");
+                        props.Metadata = reader.ReadDictionaryOfStringToVariantValue();
+                        changedList?.Add("Metadata");
+                        break;
                     case "Volume":
                         reader.ReadSignature("d");
                         props.Volume = reader.ReadDouble();
                         changedList?.Add("Volume");
                         break;
-                    case "Shuffle":
-                        reader.ReadSignature("d");
-                        props.Shuffle = reader.ReadDouble();
-                        changedList?.Add("Shuffle");
-                        break;
                     case "Position":
-                        reader.ReadSignature("i");
-                        props.Position = reader.ReadInt32();
+                        reader.ReadSignature("x");
+                        props.Position = reader.ReadInt64();
                         changedList?.Add("Position");
-                        break;
-                    case "Rate":
-                        reader.ReadSignature("d");
-                        props.Rate = reader.ReadDouble();
-                        changedList?.Add("Rate");
                         break;
                     case "MinimumRate":
                         reader.ReadSignature("d");
@@ -872,10 +581,15 @@ namespace Mpris.DBus
                         props.MaximumRate = reader.ReadDouble();
                         changedList?.Add("MaximumRate");
                         break;
-                    case "CanControl":
+                    case "CanGoNext":
                         reader.ReadSignature("b");
-                        props.CanControl = reader.ReadBool();
-                        changedList?.Add("CanControl");
+                        props.CanGoNext = reader.ReadBool();
+                        changedList?.Add("CanGoNext");
+                        break;
+                    case "CanGoPrevious":
+                        reader.ReadSignature("b");
+                        props.CanGoPrevious = reader.ReadBool();
+                        changedList?.Add("CanGoPrevious");
                         break;
                     case "CanPlay":
                         reader.ReadSignature("b");
@@ -892,8 +606,193 @@ namespace Mpris.DBus
                         props.CanSeek = reader.ReadBool();
                         changedList?.Add("CanSeek");
                         break;
+                    case "CanControl":
+                        reader.ReadSignature("b");
+                        props.CanControl = reader.ReadBool();
+                        changedList?.Add("CanControl");
+                        break;
                     default:
-                        reader.ReadVariant();
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            return props;
+        }
+    }
+    record PlaylistsProperties
+    {
+        public uint PlaylistCount { get; set; } = default!;
+        public string[] Orderings { get; set; } = default!;
+        public (bool, (ObjectPath, string, string)) ActivePlaylist { get; set; } = default!;
+    }
+    partial class Playlists : MprisObject
+    {
+        private const string __Interface = "org.mpris.MediaPlayer2.Playlists";
+        public Playlists(MprisService service, ObjectPath path) : base(service, path)
+        { }
+        public Task ActivatePlaylistAsync(ObjectPath playlistId)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: __Interface,
+                    signature: "o",
+                    member: "ActivatePlaylist");
+                writer.WriteObjectPath(playlistId);
+                return writer.CreateMessage();
+            }
+        }
+        public Task<(ObjectPath, string, string)[]> GetPlaylistsAsync(uint index, uint maxCount, string order, bool reverseOrder)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => ReadMessage_arossz(m, (MprisObject)s!), this);
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: __Interface,
+                    signature: "uusb",
+                    member: "GetPlaylists");
+                writer.WriteUInt32(index);
+                writer.WriteUInt32(maxCount);
+                writer.WriteString(order);
+                writer.WriteBool(reverseOrder);
+                return writer.CreateMessage();
+            }
+        }
+        public ValueTask<IDisposable> WatchPlaylistChangedAsync(Action<Exception?, (ObjectPath, string, string)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "PlaylistChanged", (Message m, object? s) => ReadMessage_rossz(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
+        public Task SetPlaylistCountAsync(uint value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("PlaylistCount");
+                writer.WriteSignature("u");
+                writer.WriteUInt32(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetOrderingsAsync(string[] value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("Orderings");
+                writer.WriteSignature("as");
+                writer.WriteArray(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetActivePlaylistAsync((bool, (ObjectPath, string, string)) value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("ActivePlaylist");
+                writer.WriteSignature("(b(oss))");
+                WriteType_rbrosszz(ref writer, value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task<uint> GetPlaylistCountAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "PlaylistCount"), (Message m, object? s) => ReadMessage_v_u(m, (MprisObject)s!), this);
+        public Task<string[]> GetOrderingsAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Orderings"), (Message m, object? s) => ReadMessage_v_as(m, (MprisObject)s!), this);
+        public Task<(bool, (ObjectPath, string, string))> GetActivePlaylistAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "ActivePlaylist"), (Message m, object? s) => ReadMessage_v_rbrosszz(m, (MprisObject)s!), this);
+        public Task<PlaylistsProperties> GetPropertiesAsync()
+        {
+            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m, (MprisObject)s!), this);
+            static PlaylistsProperties ReadMessage(Message message, MprisObject _)
+            {
+                var reader = message.GetBodyReader();
+                return ReadProperties(ref reader);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<PlaylistsProperties>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
+            static PropertyChanges<PlaylistsProperties> ReadMessage(Message message, MprisObject _)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                List<string> changed = new(), invalidated = new();
+                return new PropertyChanges<PlaylistsProperties>(ReadProperties(ref reader, changed), changed.ToArray(), ReadInvalidated(ref reader));
+            }
+            static string[] ReadInvalidated(ref Reader reader)
+            {
+                List<string>? invalidated = null;
+                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(arrayEnd))
+                {
+                    invalidated ??= new();
+                    var property = reader.ReadString();
+                    switch (property)
+                    {
+                        case "PlaylistCount": invalidated.Add("PlaylistCount"); break;
+                        case "Orderings": invalidated.Add("Orderings"); break;
+                        case "ActivePlaylist": invalidated.Add("ActivePlaylist"); break;
+                    }
+                }
+                return invalidated?.ToArray() ?? Array.Empty<string>();
+            }
+        }
+        private static PlaylistsProperties ReadProperties(ref Reader reader, List<string>? changedList = null)
+        {
+            var props = new PlaylistsProperties();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "PlaylistCount":
+                        reader.ReadSignature("u");
+                        props.PlaylistCount = reader.ReadUInt32();
+                        changedList?.Add("PlaylistCount");
+                        break;
+                    case "Orderings":
+                        reader.ReadSignature("as");
+                        props.Orderings = reader.ReadArrayOfString();
+                        changedList?.Add("Orderings");
+                        break;
+                    case "ActivePlaylist":
+                        reader.ReadSignature("(b(oss))");
+                        props.ActivePlaylist = ReadType_rbrosszz(ref reader);
+                        changedList?.Add("ActivePlaylist");
+                        break;
+                    default:
+                        reader.ReadVariantValue();
                         break;
                 }
             }
@@ -910,86 +809,86 @@ namespace Mpris.DBus
         private const string __Interface = "org.mpris.MediaPlayer2.TrackList";
         public TrackList(MprisService service, ObjectPath path) : base(service, path)
         { }
-        public Task<Dictionary<string, object>[]> GetTracksMetadataAsync(ObjectPath[] a0)
+        public Task<Dictionary<string, VariantValue>[]> GetTracksMetadataAsync(ObjectPath[] trackIds)
         {
             return this.Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => ReadMessage_aaesv(m, (MprisObject)s!), this);
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
                     @interface: __Interface,
                     signature: "ao",
                     member: "GetTracksMetadata");
-                writer.WriteArray(a0);
+                writer.WriteArray(trackIds);
                 return writer.CreateMessage();
             }
         }
-        public Task AddTrackAsync(string a0, ObjectPath a1, bool a2)
+        public Task AddTrackAsync(string uri, ObjectPath afterTrack, bool setAsCurrent)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
                     @interface: __Interface,
                     signature: "sob",
                     member: "AddTrack");
-                writer.WriteString(a0);
-                writer.WriteObjectPath(a1);
-                writer.WriteBool(a2);
+                writer.WriteString(uri);
+                writer.WriteObjectPath(afterTrack);
+                writer.WriteBool(setAsCurrent);
                 return writer.CreateMessage();
             }
         }
-        public Task RemoveTrackAsync(ObjectPath a0)
+        public Task RemoveTrackAsync(ObjectPath trackId)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
                     @interface: __Interface,
                     signature: "o",
                     member: "RemoveTrack");
-                writer.WriteObjectPath(a0);
+                writer.WriteObjectPath(trackId);
                 return writer.CreateMessage();
             }
         }
-        public Task GoToAsync(ObjectPath a0)
+        public Task GoToAsync(ObjectPath trackId)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
                     @interface: __Interface,
                     signature: "o",
                     member: "GoTo");
-                writer.WriteObjectPath(a0);
+                writer.WriteObjectPath(trackId);
                 return writer.CreateMessage();
             }
         }
-        public ValueTask<IDisposable> WatchTrackListReplacedAsync(Action<Exception?, (ObjectPath[] A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackListReplaced", (Message m, object? s) => ReadMessage_aoo(m, (MprisObject)s!), handler, emitOnCapturedContext);
-        public ValueTask<IDisposable> WatchTrackAddedAsync(Action<Exception?, (Dictionary<string, object> A0, ObjectPath A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackAdded", (Message m, object? s) => ReadMessage_aesvo(m, (MprisObject)s!), handler, emitOnCapturedContext);
-        public ValueTask<IDisposable> WatchTrackRemovedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackRemoved", (Message m, object? s) => ReadMessage_o(m, (MprisObject)s!), handler, emitOnCapturedContext);
-        public ValueTask<IDisposable> WatchTrackMetadataChangedAsync(Action<Exception?, (ObjectPath A0, Dictionary<string, object> A1)> handler, bool emitOnCapturedContext = true)
-            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackMetadataChanged", (Message m, object? s) => ReadMessage_oaesv(m, (MprisObject)s!), handler, emitOnCapturedContext);
+        public ValueTask<IDisposable> WatchTrackListReplacedAsync(Action<Exception?, (ObjectPath[] Tracks, ObjectPath CurrentTrack)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackListReplaced", (Message m, object? s) => ReadMessage_aoo(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
+        public ValueTask<IDisposable> WatchTrackAddedAsync(Action<Exception?, (Dictionary<string, VariantValue> Metadata, ObjectPath AfterTrack)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackAdded", (Message m, object? s) => ReadMessage_aesvo(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
+        public ValueTask<IDisposable> WatchTrackRemovedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackRemoved", (Message m, object? s) => ReadMessage_o(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
+        public ValueTask<IDisposable> WatchTrackMetadataChangedAsync(Action<Exception?, (ObjectPath TrackId, Dictionary<string, VariantValue> Metadata)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "TrackMetadataChanged", (Message m, object? s) => ReadMessage_oaesv(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
         public Task SetTracksAsync(ObjectPath[] value)
         {
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -1008,7 +907,7 @@ namespace Mpris.DBus
             return this.Connection.CallMethodAsync(CreateMessage());
             MessageBuffer CreateMessage()
             {
-                using var writer = this.Connection.GetMessageWriter();
+                var writer = this.Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
                     destination: Service.Destination,
                     path: Path,
@@ -1035,9 +934,9 @@ namespace Mpris.DBus
                 return ReadProperties(ref reader);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<TrackListProperties>> handler, bool emitOnCapturedContext = true)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<TrackListProperties>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
         {
-            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext);
+            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
             static PropertyChanges<TrackListProperties> ReadMessage(Message message, MprisObject _)
             {
                 var reader = message.GetBodyReader();
@@ -1048,8 +947,8 @@ namespace Mpris.DBus
             static string[] ReadInvalidated(ref Reader reader)
             {
                 List<string>? invalidated = null;
-                ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.String);
-                while (reader.HasNext(headersEnd))
+                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(arrayEnd))
                 {
                     invalidated ??= new();
                     var property = reader.ReadString();
@@ -1065,15 +964,15 @@ namespace Mpris.DBus
         private static TrackListProperties ReadProperties(ref Reader reader, List<string>? changedList = null)
         {
             var props = new TrackListProperties();
-            ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(headersEnd))
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
             {
                 var property = reader.ReadString();
                 switch (property)
                 {
                     case "Tracks":
                         reader.ReadSignature("ao");
-                        props.Tracks = reader.ReadArray<ObjectPath>();
+                        props.Tracks = reader.ReadArrayOfObjectPath();
                         changedList?.Add("Tracks");
                         break;
                     case "CanEditTracks":
@@ -1082,7 +981,346 @@ namespace Mpris.DBus
                         changedList?.Add("CanEditTracks");
                         break;
                     default:
-                        reader.ReadVariant();
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            return props;
+        }
+    }
+    record MediaPlayer2Properties
+    {
+        public bool CanQuit { get; set; } = default!;
+        public bool Fullscreen { get; set; } = default!;
+        public bool CanSetFullscreen { get; set; } = default!;
+        public bool CanRaise { get; set; } = default!;
+        public bool HasTrackList { get; set; } = default!;
+        public string Identity { get; set; } = default!;
+        public string DesktopEntry { get; set; } = default!;
+        public string[] SupportedUriSchemes { get; set; } = default!;
+        public string[] SupportedMimeTypes { get; set; } = default!;
+    }
+    partial class MediaPlayer2 : MprisObject
+    {
+        private const string __Interface = "org.mpris.MediaPlayer2";
+        public MediaPlayer2(MprisService service, ObjectPath path) : base(service, path)
+        { }
+        public Task RaiseAsync()
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: __Interface,
+                    member: "Raise");
+                return writer.CreateMessage();
+            }
+        }
+        public Task QuitAsync()
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: __Interface,
+                    member: "Quit");
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetCanQuitAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("CanQuit");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetFullscreenAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("Fullscreen");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetCanSetFullscreenAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("CanSetFullscreen");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetCanRaiseAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("CanRaise");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetHasTrackListAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("HasTrackList");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetIdentityAsync(string value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("Identity");
+                writer.WriteSignature("s");
+                writer.WriteString(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetDesktopEntryAsync(string value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("DesktopEntry");
+                writer.WriteSignature("s");
+                writer.WriteString(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetSupportedUriSchemesAsync(string[] value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("SupportedUriSchemes");
+                writer.WriteSignature("as");
+                writer.WriteArray(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetSupportedMimeTypesAsync(string[] value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Service.Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("SupportedMimeTypes");
+                writer.WriteSignature("as");
+                writer.WriteArray(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task<bool> GetCanQuitAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanQuit"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<bool> GetFullscreenAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Fullscreen"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<bool> GetCanSetFullscreenAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSetFullscreen"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<bool> GetCanRaiseAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanRaise"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<bool> GetHasTrackListAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "HasTrackList"), (Message m, object? s) => ReadMessage_v_b(m, (MprisObject)s!), this);
+        public Task<string> GetIdentityAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Identity"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
+        public Task<string> GetDesktopEntryAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "DesktopEntry"), (Message m, object? s) => ReadMessage_v_s(m, (MprisObject)s!), this);
+        public Task<string[]> GetSupportedUriSchemesAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedUriSchemes"), (Message m, object? s) => ReadMessage_v_as(m, (MprisObject)s!), this);
+        public Task<string[]> GetSupportedMimeTypesAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedMimeTypes"), (Message m, object? s) => ReadMessage_v_as(m, (MprisObject)s!), this);
+        public Task<MediaPlayer2Properties> GetPropertiesAsync()
+        {
+            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m, (MprisObject)s!), this);
+            static MediaPlayer2Properties ReadMessage(Message message, MprisObject _)
+            {
+                var reader = message.GetBodyReader();
+                return ReadProperties(ref reader);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<MediaPlayer2Properties>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m, (MprisObject)s!), handler, emitOnCapturedContext, flags);
+            static PropertyChanges<MediaPlayer2Properties> ReadMessage(Message message, MprisObject _)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                List<string> changed = new(), invalidated = new();
+                return new PropertyChanges<MediaPlayer2Properties>(ReadProperties(ref reader, changed), changed.ToArray(), ReadInvalidated(ref reader));
+            }
+            static string[] ReadInvalidated(ref Reader reader)
+            {
+                List<string>? invalidated = null;
+                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(arrayEnd))
+                {
+                    invalidated ??= new();
+                    var property = reader.ReadString();
+                    switch (property)
+                    {
+                        case "CanQuit": invalidated.Add("CanQuit"); break;
+                        case "Fullscreen": invalidated.Add("Fullscreen"); break;
+                        case "CanSetFullscreen": invalidated.Add("CanSetFullscreen"); break;
+                        case "CanRaise": invalidated.Add("CanRaise"); break;
+                        case "HasTrackList": invalidated.Add("HasTrackList"); break;
+                        case "Identity": invalidated.Add("Identity"); break;
+                        case "DesktopEntry": invalidated.Add("DesktopEntry"); break;
+                        case "SupportedUriSchemes": invalidated.Add("SupportedUriSchemes"); break;
+                        case "SupportedMimeTypes": invalidated.Add("SupportedMimeTypes"); break;
+                    }
+                }
+                return invalidated?.ToArray() ?? Array.Empty<string>();
+            }
+        }
+        private static MediaPlayer2Properties ReadProperties(ref Reader reader, List<string>? changedList = null)
+        {
+            var props = new MediaPlayer2Properties();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "CanQuit":
+                        reader.ReadSignature("b");
+                        props.CanQuit = reader.ReadBool();
+                        changedList?.Add("CanQuit");
+                        break;
+                    case "Fullscreen":
+                        reader.ReadSignature("b");
+                        props.Fullscreen = reader.ReadBool();
+                        changedList?.Add("Fullscreen");
+                        break;
+                    case "CanSetFullscreen":
+                        reader.ReadSignature("b");
+                        props.CanSetFullscreen = reader.ReadBool();
+                        changedList?.Add("CanSetFullscreen");
+                        break;
+                    case "CanRaise":
+                        reader.ReadSignature("b");
+                        props.CanRaise = reader.ReadBool();
+                        changedList?.Add("CanRaise");
+                        break;
+                    case "HasTrackList":
+                        reader.ReadSignature("b");
+                        props.HasTrackList = reader.ReadBool();
+                        changedList?.Add("HasTrackList");
+                        break;
+                    case "Identity":
+                        reader.ReadSignature("s");
+                        props.Identity = reader.ReadString();
+                        changedList?.Add("Identity");
+                        break;
+                    case "DesktopEntry":
+                        reader.ReadSignature("s");
+                        props.DesktopEntry = reader.ReadString();
+                        changedList?.Add("DesktopEntry");
+                        break;
+                    case "SupportedUriSchemes":
+                        reader.ReadSignature("as");
+                        props.SupportedUriSchemes = reader.ReadArrayOfString();
+                        changedList?.Add("SupportedUriSchemes");
+                        break;
+                    case "SupportedMimeTypes":
+                        reader.ReadSignature("as");
+                        props.SupportedMimeTypes = reader.ReadArrayOfString();
+                        changedList?.Add("SupportedMimeTypes");
+                        break;
+                    default:
+                        reader.ReadVariantValue();
                         break;
                 }
             }
@@ -1095,9 +1333,10 @@ namespace Mpris.DBus
         public string Destination { get; }
         public MprisService(Tmds.DBus.Protocol.Connection connection, string destination)
             => (Connection, Destination) = (connection, destination);
-        public MediaPlayer2 CreateMediaPlayer2(string path) => new MediaPlayer2(this, path);
         public Player CreatePlayer(string path) => new Player(this, path);
+        public Playlists CreatePlaylists(string path) => new Playlists(this, path);
         public TrackList CreateTrackList(string path) => new TrackList(this, path);
+        public MediaPlayer2 CreateMediaPlayer2(string path) => new MediaPlayer2(this, path);
     }
     class MprisObject
     {
@@ -1108,7 +1347,7 @@ namespace Mpris.DBus
             => (Service, Path) = (service, path);
         protected MessageBuffer CreateGetPropertyMessage(string @interface, string property)
         {
-            using var writer = this.Connection.GetMessageWriter();
+            var writer = this.Connection.GetMessageWriter();
             writer.WriteMethodCallHeader(
                 destination: Service.Destination,
                 path: Path,
@@ -1121,7 +1360,7 @@ namespace Mpris.DBus
         }
         protected MessageBuffer CreateGetAllPropertiesMessage(string @interface)
         {
-            using var writer = this.Connection.GetMessageWriter();
+            var writer = this.Connection.GetMessageWriter();
             writer.WriteMethodCallHeader(
                 destination: Service.Destination,
                 path: Path,
@@ -1131,7 +1370,7 @@ namespace Mpris.DBus
             writer.WriteString(@interface);
             return writer.CreateMessage();
         }
-        protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, PropertyChanges<TProperties>> handler, bool emitOnCapturedContext)
+        protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, PropertyChanges<TProperties>> handler, bool emitOnCapturedContext, ObserverFlags flags)
         {
             var rule = new MatchRule
             {
@@ -1144,9 +1383,9 @@ namespace Mpris.DBus
             };
             return this.Connection.AddMatchAsync(rule, reader,
                                                     (Exception? ex, PropertyChanges<TProperties> changes, object? rs, object? hs) => ((Action<Exception?, PropertyChanges<TProperties>>)hs!).Invoke(ex, changes),
-                                                    this, handler, emitOnCapturedContext);
+                                                    this, handler, emitOnCapturedContext, flags);
         }
-        public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, string @interface, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext)
+        public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, string @interface, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext, ObserverFlags flags)
         {
             var rule = new MatchRule
             {
@@ -1158,9 +1397,9 @@ namespace Mpris.DBus
             };
             return this.Connection.AddMatchAsync(rule, reader,
                                                     (Exception? ex, TArg arg, object? rs, object? hs) => ((Action<Exception?, TArg>)hs!).Invoke(ex, arg),
-                                                    this, handler, emitOnCapturedContext);
+                                                    this, handler, emitOnCapturedContext, flags);
         }
-        public ValueTask<IDisposable> WatchSignalAsync(string sender, string @interface, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext)
+        public ValueTask<IDisposable> WatchSignalAsync(string sender, string @interface, ObjectPath path, string signal, Action<Exception?> handler, bool emitOnCapturedContext, ObserverFlags flags)
         {
             var rule = new MatchRule
             {
@@ -1171,7 +1410,12 @@ namespace Mpris.DBus
                 Interface = @interface
             };
             return this.Connection.AddMatchAsync<object>(rule, (Message message, object? state) => null!,
-                                                            (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext);
+                                                            (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), this, handler, emitOnCapturedContext, flags);
+        }
+        protected static long ReadMessage_x(Message message, MprisObject _)
+        {
+            var reader = message.GetBodyReader();
+            return reader.ReadInt64();
         }
         protected static string ReadMessage_v_s(Message message, MprisObject _)
         {
@@ -1179,11 +1423,11 @@ namespace Mpris.DBus
             reader.ReadSignature("s");
             return reader.ReadString();
         }
-        protected static string[] ReadMessage_v_as(Message message, MprisObject _)
+        protected static double ReadMessage_v_d(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            reader.ReadSignature("as");
-            return reader.ReadArray<string>();
+            reader.ReadSignature("d");
+            return reader.ReadDouble();
         }
         protected static bool ReadMessage_v_b(Message message, MprisObject _)
         {
@@ -1191,40 +1435,62 @@ namespace Mpris.DBus
             reader.ReadSignature("b");
             return reader.ReadBool();
         }
-        protected static Dictionary<string, object> ReadMessage_v_aesv(Message message, MprisObject _)
+        protected static Dictionary<string, VariantValue> ReadMessage_v_aesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("a{sv}");
-            return reader.ReadDictionary<string, object>();
+            return reader.ReadDictionaryOfStringToVariantValue();
         }
-        protected static double ReadMessage_v_d(Message message, MprisObject _)
+        protected static long ReadMessage_v_x(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            reader.ReadSignature("d");
-            return reader.ReadDouble();
+            reader.ReadSignature("x");
+            return reader.ReadInt64();
         }
-        protected static int ReadMessage_v_i(Message message, MprisObject _)
+        protected static (ObjectPath, string, string)[] ReadMessage_arossz(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            reader.ReadSignature("i");
-            return reader.ReadInt32();
+            return ReadType_arossz(ref reader);
         }
-        protected static Dictionary<string, object>[] ReadMessage_aaesv(Message message, MprisObject _)
+        protected static (ObjectPath, string, string) ReadMessage_rossz(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            return reader.ReadArray<Dictionary<string, object>>();
+            return ReadType_rossz(ref reader);
+        }
+        protected static uint ReadMessage_v_u(Message message, MprisObject _)
+        {
+            var reader = message.GetBodyReader();
+            reader.ReadSignature("u");
+            return reader.ReadUInt32();
+        }
+        protected static string[] ReadMessage_v_as(Message message, MprisObject _)
+        {
+            var reader = message.GetBodyReader();
+            reader.ReadSignature("as");
+            return reader.ReadArrayOfString();
+        }
+        protected static (bool, (ObjectPath, string, string)) ReadMessage_v_rbrosszz(Message message, MprisObject _)
+        {
+            var reader = message.GetBodyReader();
+            reader.ReadSignature("(b(oss))");
+            return ReadType_rbrosszz(ref reader);
+        }
+        protected static Dictionary<string, VariantValue>[] ReadMessage_aaesv(Message message, MprisObject _)
+        {
+            var reader = message.GetBodyReader();
+            return ReadType_aaesv(ref reader);
         }
         protected static (ObjectPath[], ObjectPath) ReadMessage_aoo(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            var arg0 = reader.ReadArray<ObjectPath>();
+            var arg0 = reader.ReadArrayOfObjectPath();
             var arg1 = reader.ReadObjectPath();
             return (arg0, arg1);
         }
-        protected static (Dictionary<string, object>, ObjectPath) ReadMessage_aesvo(Message message, MprisObject _)
+        protected static (Dictionary<string, VariantValue>, ObjectPath) ReadMessage_aesvo(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
-            var arg0 = reader.ReadDictionary<string, object>();
+            var arg0 = reader.ReadDictionaryOfStringToVariantValue();
             var arg1 = reader.ReadObjectPath();
             return (arg0, arg1);
         }
@@ -1233,18 +1499,59 @@ namespace Mpris.DBus
             var reader = message.GetBodyReader();
             return reader.ReadObjectPath();
         }
-        protected static (ObjectPath, Dictionary<string, object>) ReadMessage_oaesv(Message message, MprisObject _)
+        protected static (ObjectPath, Dictionary<string, VariantValue>) ReadMessage_oaesv(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadObjectPath();
-            var arg1 = reader.ReadDictionary<string, object>();
+            var arg1 = reader.ReadDictionaryOfStringToVariantValue();
             return (arg0, arg1);
         }
         protected static ObjectPath[] ReadMessage_v_ao(Message message, MprisObject _)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("ao");
-            return reader.ReadArray<ObjectPath>();
+            return reader.ReadArrayOfObjectPath();
+        }
+        protected static (bool, (ObjectPath, string, string)) ReadType_rbrosszz(ref Reader reader)
+        {
+            return (reader.ReadBool(), ReadType_rossz(ref reader));
+        }
+        protected static (ObjectPath, string, string) ReadType_rossz(ref Reader reader)
+        {
+            return (reader.ReadObjectPath(), reader.ReadString(), reader.ReadString());
+        }
+        protected static (ObjectPath, string, string)[] ReadType_arossz(ref Reader reader)
+        {
+            List<(ObjectPath, string, string)> list = new();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                list.Add(ReadType_rossz(ref reader));
+            }
+            return list.ToArray();
+        }
+        protected static Dictionary<string, VariantValue>[] ReadType_aaesv(ref Reader reader)
+        {
+            List<Dictionary<string, VariantValue>> list = new();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Array);
+            while (reader.HasNext(arrayEnd))
+            {
+                list.Add(reader.ReadDictionaryOfStringToVariantValue());
+            }
+            return list.ToArray();
+        }
+        protected static void WriteType_rbrosszz(ref MessageWriter writer, (bool, (ObjectPath, string, string)) value)
+        {
+            writer.WriteStructureStart();
+            writer.WriteBool(value.Item1);
+            WriteType_rossz(ref writer, value.Item2);
+        }
+        protected static void WriteType_rossz(ref MessageWriter writer, (ObjectPath, string, string) value)
+        {
+            writer.WriteStructureStart();
+            writer.WriteObjectPath(value.Item1);
+            writer.WriteString(value.Item2);
+            writer.WriteString(value.Item3);
         }
     }
     class PropertyChanges<TProperties>

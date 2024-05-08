@@ -1,49 +1,84 @@
 namespace Tmds.DBus.Protocol;
 
+// Using obsolete generic write members
+#pragma warning disable CS0618
+
 public ref partial struct MessageWriter
 {
+    public ArrayStart WriteDictionaryStart()
+        => WriteArrayStart(DBusType.Struct);
+
+    public void WriteDictionaryEnd(ArrayStart start)
+        => WriteArrayEnd(start);
+
+    public void WriteDictionaryEntryStart()
+        => WriteStructureStart();
+
+    // Write method for the common 'a{sv}' type.
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call WriteDictionary with these types.
+    public void WriteDictionary(IEnumerable<KeyValuePair<string, Variant>> value)
+        => WriteDictionary<string, Variant>(value);
+
+    // Write method for the common 'a{sv}' type.
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call WriteDictionary with these types.
+    public void WriteDictionary(KeyValuePair<string, Variant>[] value)
+        => WriteDictionary<string, Variant>(value);
+
+    // Write method for the common 'a{sv}' type.
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call WriteDictionary with these types.
+    public void WriteDictionary(Dictionary<string, Variant> value)
+        => WriteDictionary<string, Variant>(value);
+
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
     public void WriteDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
         where TKey : notnull
         where TValue : notnull
     {
-        ArrayStart arrayStart = WriteArrayStart(DBusType.Struct);
+        ArrayStart arrayStart = WriteDictionaryStart();
         foreach (var item in value)
         {
-            WriteStructureStart();
+            WriteDictionaryEntryStart();
             Write<TKey>(item.Key);
             Write<TValue>(item.Value);
         }
-        WriteArrayEnd(arrayStart);
+        WriteDictionaryEnd(arrayStart);
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
     public void WriteDictionary<TKey, TValue>(KeyValuePair<TKey, TValue>[] value)
         where TKey : notnull
         where TValue : notnull
     {
-        ArrayStart arrayStart = WriteArrayStart(DBusType.Struct);
+        ArrayStart arrayStart = WriteDictionaryStart();
         foreach (var item in value)
         {
-            WriteStructureStart();
+            WriteDictionaryEntryStart();
             Write<TKey>(item.Key);
             Write<TValue>(item.Value);
         }
-        WriteArrayEnd(arrayStart);
+        WriteDictionaryEnd(arrayStart);
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
     public void WriteDictionary<TKey, TValue>(Dictionary<TKey, TValue> value)
         where TKey : notnull
         where TValue : notnull
     {
-        ArrayStart arrayStart = WriteArrayStart(DBusType.Struct);
+        ArrayStart arrayStart = WriteDictionaryStart();
         foreach (var item in value)
         {
-            WriteStructureStart();
+            WriteDictionaryEntryStart();
             Write<TKey>(item.Key);
             Write<TValue>(item.Value);
         }
-        WriteArrayEnd(arrayStart);
+        WriteDictionaryEnd(arrayStart);
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
     public void WriteVariantDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
         where TKey : notnull
         where TValue : notnull
@@ -52,6 +87,8 @@ public ref partial struct MessageWriter
         WriteDictionary(value);
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
     public void WriteVariantDictionary<TKey, TValue>(KeyValuePair<TKey, TValue>[] value)
         where TKey : notnull
         where TValue : notnull
@@ -60,6 +97,8 @@ public ref partial struct MessageWriter
         WriteDictionary(value);
     }
 
+    [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
+    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
     public void WriteVariantDictionary<TKey, TValue>(Dictionary<TKey, TValue> value)
         where TKey : notnull
         where TValue : notnull
@@ -71,54 +110,19 @@ public ref partial struct MessageWriter
     // This method writes a Dictionary without using generics at the 'cost' of boxing.
     // private void WriteDictionary(IDictionary value)
     // {
-    //     ArrayStart arrayStart = WriteArrayStart(DBusType.Struct);
+    //     ArrayStart arrayStart = WriteDictionaryStart();
     //     foreach (System.Collections.DictionaryEntry de in dictionary)
     //     {
-    //         WriteStructureStart();
+    //         WriteDictionaryEntryStart();
     //         Write(de.Key, asVariant: keyType == typeof(object));
     //         Write(de.Value, asVariant: valueType == typeof(object));
     //     }
-    //     WriteArrayEnd(ref arrayStart);
+    //     WriteDictionaryEnd(ref arrayStart);
     // }
 
-    sealed class DictionaryTypeWriter<TKey, TValue> : ITypeWriter<IEnumerable<KeyValuePair<TKey, TValue>>>
-        where TKey : notnull
-        where TValue : notnull
+    private static void WriteDictionarySignature<TKey, TValue>(ref MessageWriter writer) where TKey : notnull where TValue : notnull
     {
-        public void Write(ref MessageWriter writer, IEnumerable<KeyValuePair<TKey, TValue>> value)
-        {
-            writer.WriteDictionary(value);
-        }
-
-        public void WriteVariant(ref MessageWriter writer, object value)
-        {
-            WriteDictionarySignature<TKey, TValue>(ref writer);
-            writer.WriteDictionary((IEnumerable<KeyValuePair<TKey, TValue>>)value);
-        }
-    }
-
-    public static void AddDictionaryTypeWriter<TKey, TValue>()
-        where TKey : notnull
-        where TValue : notnull
-    {
-        lock (_typeWriters)
-        {
-            Type keyType = typeof(IEnumerable<KeyValuePair<TKey, TValue>>);
-            if (!_typeWriters.ContainsKey(keyType))
-            {
-                _typeWriters.Add(keyType, new DictionaryTypeWriter<TKey, TValue>());
-            }
-        }
-    }
-
-    private ITypeWriter CreateDictionaryTypeWriter(Type keyType, Type valueType)
-    {
-        Type writerType = typeof(DictionaryTypeWriter<,>).MakeGenericType(new[] { keyType, valueType });
-        return (ITypeWriter)Activator.CreateInstance(writerType)!;
-    }
-
-    private static void WriteDictionarySignature<TKey, TValue>(ref MessageWriter writer)
-    {
-        writer.WriteSignature(TypeModel.GetSignature<IDictionary<TKey, TValue>>());
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        writer.WriteSignature(TypeModel.GetSignature<Dict<TKey, TValue>>(buffer));
     }
 }

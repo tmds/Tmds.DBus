@@ -21,20 +21,27 @@ static class DBusEnvironment
         }
     }
 
+    private static string? _machineId;
+
     public static string MachineId
     {
         get
         {
-            const string MachineUuidPath = @"/var/lib/dbus/machine-id";
+            if (_machineId == null)
+            {
+                const string MachineUuidPath = @"/var/lib/dbus/machine-id";
 
-            if (File.Exists(MachineUuidPath))
-            {
-                return Guid.Parse(File.ReadAllText(MachineUuidPath).Substring(0, 32)).ToString();
+                if (File.Exists(MachineUuidPath))
+                {
+                    _machineId = Guid.Parse(File.ReadAllText(MachineUuidPath).Substring(0, 32)).ToString("N");
+                }
+                else
+                {
+                    _machineId = Guid.Empty.ToString("N");
+                }
             }
-            else
-            {
-                return Guid.Empty.ToString();
-            }
+
+            return _machineId;
         }
     }
 

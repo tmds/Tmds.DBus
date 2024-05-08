@@ -13,5 +13,7 @@ public class ClientSetupResult
 
     public string? UserId { get; set; }
 
+    public string? MachineId { get; set; }
+
     public bool SupportsFdPassing { get; set; }
 }

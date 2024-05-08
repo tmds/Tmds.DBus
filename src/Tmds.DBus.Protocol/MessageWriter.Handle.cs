@@ -9,6 +9,12 @@ public ref partial struct MessageWriter
         WriteInt32(idx);
     }
 
+    public void WriteVariantHandle(SafeHandle value)
+    {
+        WriteSignature(ProtocolConstants.UnixFdSignature);
+        WriteHandle(value);
+    }
+
     private int HandleCount => _handles?.Count ?? 0;
 
     private void AddHandle(SafeHandle handle)

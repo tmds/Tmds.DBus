@@ -1,16 +1,12 @@
 namespace Tmds.DBus.Protocol;
 
-static class TypeModel
+static partial class TypeModel
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static DBusType GetTypeAlignment<T>()
     {
         // TODO (perf): add caching.
-        if (typeof(T) == typeof(object))
-        {
-            return DBusType.Variant;
-        }
-        else if (typeof(T) == typeof(byte))
+        if (typeof(T) == typeof(byte))
         {
             return DBusType.Byte;
         }
@@ -18,31 +14,31 @@ static class TypeModel
         {
             return DBusType.Bool;
         }
-        else if (typeof(T) == typeof(Int16))
+        else if (typeof(T) == typeof(short))
         {
             return DBusType.Int16;
         }
-        else if (typeof(T) == typeof(UInt16))
+        else if (typeof(T) == typeof(ushort))
         {
             return DBusType.UInt16;
         }
-        else if (typeof(T) == typeof(Int32))
+        else if (typeof(T) == typeof(int))
         {
             return DBusType.Int32;
         }
-        else if (typeof(T) == typeof(UInt32))
+        else if (typeof(T) == typeof(uint))
         {
             return DBusType.UInt32;
         }
-        else if (typeof(T) == typeof(Int64))
+        else if (typeof(T) == typeof(long))
         {
             return DBusType.Int64;
         }
-        else if (typeof(T) == typeof(UInt64))
+        else if (typeof(T) == typeof(ulong))
         {
             return DBusType.UInt64;
         }
-        else if (typeof(T) == typeof(Double))
+        else if (typeof(T) == typeof(double))
         {
             return DBusType.Double;
         }
@@ -58,136 +54,185 @@ static class TypeModel
         {
             return DBusType.Signature;
         }
-        else if (typeof(T).IsArray)
+        else if (typeof(T) == typeof(Variant))
         {
-            return DBusType.Array;
+            return DBusType.Variant;
         }
-        else if (ExtractGenericInterface(typeof(T), typeof(System.Collections.Generic.IEnumerable<>)) != null)
+        else if (typeof(T).IsConstructedGenericType)
         {
-            return DBusType.Array;
+            Type type = typeof(T).GetGenericTypeDefinition();
+            if (type == typeof(Dict<,>))
+            {
+                return DBusType.Array;
+            }
+            else if (type == typeof(Array<>))
+            {
+                return DBusType.Array;
+            }
+            else if (type == typeof(Struct<>) ||
+                     type == typeof(Struct<,>) ||
+                     type == typeof(Struct<,,>) ||
+                     type == typeof(Struct<,,,>) ||
+                     type == typeof(Struct<,,,,>) ||
+                     type == typeof(Struct<,,,,,>) ||
+                     type == typeof(Struct<,,,,,,>) ||
+                     type == typeof(Struct<,,,,,,,>) ||
+                     type == typeof(Struct<,,,,,,,,>) ||
+                     type == typeof(Struct<,,,,,,,,,>))
+            {
+                return DBusType.Struct;
+            }
         }
         else if (typeof(T).IsAssignableTo(typeof(SafeHandle)))
         {
             return DBusType.UnixFd;
         }
-        return DBusType.Struct;
-    }
-
-    public static Type? ExtractGenericInterface(Type queryType, Type interfaceType)
-    {
-        if (IsGenericInstantiation(queryType, interfaceType))
+        else if (Feature.IsDynamicCodeEnabled)
         {
-            return queryType;
+            return GetTypeAlignmentDynamic<T>();
         }
 
-        return GetGenericInstantiation(queryType, interfaceType);
+        ThrowNotSupportedType(typeof(T));
+        return default;
     }
 
-    public static Type DetermineVariantType(Utf8Span signature)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void EnsureSupportedVariantType<T>()
     {
-        Func<DBusType, Type[], Type> map = (dbusType, innerTypes) =>
+        if (typeof(T) == typeof(byte))
+        { }
+        else if (typeof(T) == typeof(bool))
+        { }
+        else if (typeof(T) == typeof(short))
+        { }
+        else if (typeof(T) == typeof(ushort))
+        { }
+        else if (typeof(T) == typeof(int))
+        { }
+        else if (typeof(T) == typeof(uint))
+        { }
+        else if (typeof(T) == typeof(long))
+        { }
+        else if (typeof(T) == typeof(ulong))
+        { }
+        else if (typeof(T) == typeof(double))
+        { }
+        else if (typeof(T) == typeof(string))
+        { }
+        else if (typeof(T) == typeof(ObjectPath))
+        { }
+        else if (typeof(T) == typeof(Signature))
+        { }
+        else if (typeof(T) == typeof(Variant))
+        { }
+        else if (typeof(T).IsConstructedGenericType)
         {
-            switch (dbusType)
+            Type type = typeof(T).GetGenericTypeDefinition();
+            if (type == typeof(Dict<,>) ||
+                type == typeof(Array<>) ||
+                type == typeof(Struct<>) ||
+                type == typeof(Struct<,>) ||
+                type == typeof(Struct<,,>) ||
+                type == typeof(Struct<,,,>) ||
+                type == typeof(Struct<,,,,>) ||
+                type == typeof(Struct<,,,,,>) ||
+                type == typeof(Struct<,,,,,,>) ||
+                type == typeof(Struct<,,,,,,,>) ||
+                type == typeof(Struct<,,,,,,,,>) ||
+                type == typeof(Struct<,,,,,,,,,>))
             {
-                case DBusType.Byte: return typeof(byte);
-                case DBusType.Bool: return typeof(bool);
-                case DBusType.Int16: return typeof(Int16);
-                case DBusType.UInt16: return typeof(UInt16);
-                case DBusType.Int32: return typeof(Int32);
-                case DBusType.UInt32: return typeof(UInt32);
-                case DBusType.Int64: return typeof(Int64);
-                case DBusType.UInt64: return typeof(UInt64);
-                case DBusType.Double: return typeof(double);
-                case DBusType.String: return typeof(string);
-                case DBusType.ObjectPath: return typeof(ObjectPath);
-                case DBusType.Signature: return typeof(Signature);
-                case DBusType.UnixFd: return typeof(SafeHandle);
-                case DBusType.Array: return innerTypes[0].MakeArrayType();
-                case DBusType.DictEntry: return typeof(Dictionary<,>).MakeGenericType(innerTypes);
-                case DBusType.Struct:
-                    switch (innerTypes.Length)
-                    {
-                        case 1: return typeof(ValueTuple<>).MakeGenericType(innerTypes);
-                        case 2: return typeof(ValueTuple<,>).MakeGenericType(innerTypes);
-                        case 3: return typeof(ValueTuple<,,>).MakeGenericType(innerTypes);
-                        case 4: return typeof(ValueTuple<,,,>).MakeGenericType(innerTypes);
-                        case 5: return typeof(ValueTuple<,,,,>).MakeGenericType(innerTypes);
-                        case 6: return typeof(ValueTuple<,,,,,>).MakeGenericType(innerTypes);
-                        case 7: return typeof(ValueTuple<,,,,,,>).MakeGenericType(innerTypes);
-                        case 8:
-                        case 9:
-                        case 10:
-                            var types = new Type[8];
-                            innerTypes.AsSpan(0, 7).CopyTo(types);
-                            types[7] = innerTypes.Length switch
-                            {
-                                8 => typeof(ValueTuple<>).MakeGenericType(new[] { innerTypes[7] }),
-                                9 => typeof(ValueTuple<,>).MakeGenericType(new[] { innerTypes[7], innerTypes[8] }),
-                                10 => typeof(ValueTuple<,,>).MakeGenericType(new[] { innerTypes[7], innerTypes[8], innerTypes[9] }),
-                                _ => null!
-                            };
-                            return typeof(ValueTuple<,,,,,,,>).MakeGenericType(types);
-                    }
-                    break;
-            }
-            return typeof(object);
-        };
-
-        // TODO (perf): add caching.
-        return SignatureReader.Transform(signature, map);
-    }
-
-    private static bool IsGenericInstantiation(Type candidate, Type interfaceType)
-    {
-        return
-            candidate.IsGenericType &&
-            candidate.GetGenericTypeDefinition() == interfaceType;
-    }
-
-    private static Type? GetGenericInstantiation(Type queryType, Type interfaceType)
-    {
-        Type? bestMatch = null;
-        var interfaces = queryType.GetInterfaces();
-        foreach (var @interface in interfaces)
-        {
-            if (IsGenericInstantiation(@interface, interfaceType))
-            {
-                if (bestMatch == null)
+                foreach (var innerType in type.GenericTypeArguments)
                 {
-                    bestMatch = @interface;
-                }
-                else if (StringComparer.Ordinal.Compare(@interface.FullName, bestMatch.FullName) < 0)
-                {
-                    bestMatch = @interface;
+                    EnsureSupportedVariantType(innerType);
                 }
             }
+            else
+            {
+                ThrowNotSupportedType(typeof(T));
+            }
         }
-
-        if (bestMatch != null)
-        {
-            return bestMatch;
-        }
-
-        var baseType = queryType?.BaseType;
-        if (baseType == null)
-        {
-            return null;
-        }
+        else if (typeof(T).IsAssignableTo(typeof(SafeHandle)))
+        { }
         else
         {
-            return GetGenericInstantiation(baseType, interfaceType);
+            ThrowNotSupportedType(typeof(T));
         }
+    }
+
+    private static void EnsureSupportedVariantType(Type type)
+    {
+        if (type == typeof(byte))
+        { }
+        else if (type == typeof(bool))
+        { }
+        else if (type == typeof(short))
+        { }
+        else if (type == typeof(ushort))
+        { }
+        else if (type == typeof(int))
+        { }
+        else if (type == typeof(uint))
+        { }
+        else if (type == typeof(long))
+        { }
+        else if (type == typeof(ulong))
+        { }
+        else if (type == typeof(double))
+        { }
+        else if (type == typeof(string))
+        { }
+        else if (type == typeof(ObjectPath))
+        { }
+        else if (type == typeof(Signature))
+        { }
+        else if (type == typeof(Variant))
+        { }
+        else if (type.IsConstructedGenericType)
+        {
+            Type typeDefinition = type.GetGenericTypeDefinition();
+            if (typeDefinition == typeof(Dict<,>) ||
+                typeDefinition == typeof(Array<>) ||
+                typeDefinition == typeof(Struct<>) ||
+                typeDefinition == typeof(Struct<,>) ||
+                typeDefinition == typeof(Struct<,,>) ||
+                typeDefinition == typeof(Struct<,,,>) ||
+                typeDefinition == typeof(Struct<,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,,,,>) ||
+                typeDefinition == typeof(Struct<,,,,,,,,,>))
+            {
+                foreach (var innerType in typeDefinition.GenericTypeArguments)
+                {
+                    EnsureSupportedVariantType(innerType);
+                }
+            }
+            else
+            {
+                ThrowNotSupportedType(type);
+            }
+        }
+        else if (type.IsAssignableTo(typeof(SafeHandle)))
+        { }
+        else
+        {
+            ThrowNotSupportedType(type);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Utf8Span GetSignature<T>(scoped Span<byte> buffer)
+    {
+        Debug.Assert(buffer.Length >= ProtocolConstants.MaxSignatureLength);
+
+        int bytesWritten = AppendTypeSignature(typeof(T), buffer);
+        return new Utf8Span(buffer.Slice(0, bytesWritten).ToArray());
     }
 
     private static int AppendTypeSignature(Type type, Span<byte> signature)
     {
-        Type? extractedType;
-        if (type == typeof(object))
-        {
-            signature[0] = (byte)DBusType.Variant;
-            return 1;
-        }
-        else if (type == typeof(byte))
+        if (type == typeof(byte))
         {
             signature[0] = (byte)DBusType.Byte;
             return 1;
@@ -197,37 +242,37 @@ static class TypeModel
             signature[0] = (byte)DBusType.Bool;
             return 1;
         }
-        else if (type == typeof(Int16))
+        else if (type == typeof(short))
         {
             signature[0] = (byte)DBusType.Int16;
             return 1;
         }
-        else if (type == typeof(UInt16))
+        else if (type == typeof(ushort))
         {
             signature[0] = (byte)DBusType.UInt16;
             return 1;
         }
-        else if (type == typeof(Int32))
+        else if (type == typeof(int))
         {
             signature[0] = (byte)DBusType.Int32;
             return 1;
         }
-        else if (type == typeof(UInt32))
+        else if (type == typeof(uint))
         {
             signature[0] = (byte)DBusType.UInt32;
             return 1;
         }
-        else if (type == typeof(Int64))
+        else if (type == typeof(long))
         {
             signature[0] = (byte)DBusType.Int64;
             return 1;
         }
-        else if (type == typeof(UInt64))
+        else if (type == typeof(ulong))
         {
             signature[0] = (byte)DBusType.UInt64;
             return 1;
         }
-        else if (type == typeof(Double))
+        else if (type == typeof(double))
         {
             signature[0] = (byte)DBusType.Double;
             return 1;
@@ -247,71 +292,68 @@ static class TypeModel
             signature[0] = (byte)DBusType.Signature;
             return 1;
         }
-        else if (type.IsArray)
+        else if (type == typeof(Variant))
         {
-            int bytesWritten = 0;
-            signature[bytesWritten++] = (byte)DBusType.Array;
-            bytesWritten += AppendTypeSignature(type.GetElementType()!, signature.Slice(bytesWritten));
-            return bytesWritten;
+            signature[0] = (byte)DBusType.Variant;
+            return 1;
         }
-        else if (type.FullName!.StartsWith("System.ValueTuple"))
+        else if (type.IsConstructedGenericType)
         {
-            int bytesWritten = 0;
-            signature[bytesWritten++] = (byte)'(';
-            Type[] typeArguments = type.GenericTypeArguments;
-            do
+            Type genericTypeDefinition = type.GetGenericTypeDefinition();
+            if (genericTypeDefinition == typeof(Dict<,>))
             {
-                for (int i = 0; i < typeArguments.Length; i++)
+                int length = 0;
+                signature[length++] = (byte)'a';
+                signature[length++] = (byte)'{';
+                length += AppendTypeSignature(type.GenericTypeArguments[0], signature.Slice(length));
+                length += AppendTypeSignature(type.GenericTypeArguments[1], signature.Slice(length));
+                signature[length++] = (byte)'}';
+                return length;
+            }
+            else if (genericTypeDefinition == typeof(Array<>))
+            {
+                int length = 0;
+                signature[length++] = (byte)'a';
+                length += AppendTypeSignature(type.GenericTypeArguments[0], signature.Slice(length));
+                return length;
+            }
+            else if (genericTypeDefinition == typeof(Struct<>) ||
+                     genericTypeDefinition == typeof(Struct<,>) ||
+                     genericTypeDefinition == typeof(Struct<,,>) ||
+                     genericTypeDefinition == typeof(Struct<,,,>) ||
+                     genericTypeDefinition == typeof(Struct<,,,,>) ||
+                     genericTypeDefinition == typeof(Struct<,,,,,>) ||
+                     genericTypeDefinition == typeof(Struct<,,,,,,>) ||
+                     genericTypeDefinition == typeof(Struct<,,,,,,,>) ||
+                     genericTypeDefinition == typeof(Struct<,,,,,,,,>) ||
+                     genericTypeDefinition == typeof(Struct<,,,,,,,,,>))
+            {
+                int length = 0;
+                signature[length++] = (byte)'(';
+                foreach (var innerType in type.GenericTypeArguments)
                 {
-                    if (i == 7)
-                    {
-                        break;
-                    }
-                    bytesWritten += AppendTypeSignature(typeArguments[i], signature.Slice(bytesWritten));
+                    length += AppendTypeSignature(innerType, signature.Slice(length));
                 }
-                if (typeArguments.Length == 8)
-                {
-                    typeArguments = typeArguments[7].GenericTypeArguments;
-                }
-                else
-                {
-                    break;
-                }
-            } while (true);
-            signature[bytesWritten++] = (byte)')';
-            return bytesWritten;
-        }
-        else if ((extractedType = TypeModel.ExtractGenericInterface(type, typeof(IDictionary<,>))) != null)
-        {
-            int bytesWritten = 0;
-            signature[bytesWritten++] = (byte)'a';
-            signature[bytesWritten++] = (byte)'{';
-            bytesWritten += AppendTypeSignature(extractedType.GenericTypeArguments[0], signature.Slice(bytesWritten));
-            bytesWritten += AppendTypeSignature(extractedType.GenericTypeArguments[1], signature.Slice(bytesWritten));
-            signature[bytesWritten++] = (byte)'}';
-            return bytesWritten;
+                signature[length++] = (byte)')';
+                return length;
+            }
         }
         else if (type.IsAssignableTo(typeof(SafeHandle)))
         {
             signature[0] = (byte)DBusType.UnixFd;
             return 1;
         }
+        else if (Feature.IsDynamicCodeEnabled)
+        {
+            return AppendTypeSignatureDynamic(type, signature);
+        }
+
+        ThrowNotSupportedType(type);
         return 0;
     }
 
-    public static ReadOnlySpan<byte> GetSignature<T>() => SignatureCache<T>.Signature;
-
-    static class SignatureCache<T>
+    private static void ThrowNotSupportedType(Type type)
     {
-        private static readonly byte[] s_signature = GetSignature(typeof(T));
-
-        public static ReadOnlySpan<byte> Signature => s_signature;
-
-        private static byte[] GetSignature(Type type)
-        {
-            Span<byte> buffer = stackalloc byte[256];
-            int bytesWritten = TypeModel.AppendTypeSignature(type, buffer);
-            return buffer.Slice(0, bytesWritten).ToArray();
-        }
+        throw new NotSupportedException($"Unsupported type {type.FullName}");
     }
 }

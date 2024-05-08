@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
@@ -18,13 +16,13 @@ public ref partial struct Reader
         return ReadInt32() != 0;
     }
 
-    public UInt16 ReadUInt16()
-        => (UInt16)ReadInt16();
+    public ushort ReadUInt16()
+        => (ushort)ReadInt16();
 
-    public Int16 ReadInt16()
+    public short ReadInt16()
     {
         AlignReader(DBusType.Int16);
-        bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out Int16 rv) : _reader.TryReadLittleEndian(out rv);
+        bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out short rv) : _reader.TryReadLittleEndian(out rv);
         if (!dataRead)
         {
             ThrowHelper.ThrowIndexOutOfRange();
@@ -46,13 +44,13 @@ public ref partial struct Reader
         return rv;
     }
 
-    public UInt64 ReadUInt64()
-        => (UInt64)ReadInt64();
+    public ulong ReadUInt64()
+        => (ulong)ReadInt64();
 
-    public Int64 ReadInt64()
+    public long ReadInt64()
     {
         AlignReader(DBusType.Int64);
-        bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out Int64 rv) : _reader.TryReadLittleEndian(out rv);
+        bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out long rv) : _reader.TryReadLittleEndian(out rv);
         if (!dataRead)
         {
             ThrowHelper.ThrowIndexOutOfRange();
@@ -63,7 +61,7 @@ public ref partial struct Reader
     public unsafe double ReadDouble()
     {
         double value;
-        *(Int64*)&value = ReadInt64();
+        *(long*)&value = ReadInt64();
         return value;
     }
 
@@ -128,4 +126,7 @@ public ref partial struct Reader
             return new ReadOnlySpan<byte>(buffer);
         }
     }
+
+    private bool ReverseEndianness
+        => BitConverter.IsLittleEndian != !_isBigEndian;
 }

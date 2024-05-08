@@ -1,16 +1,10 @@
 using System;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Tmds.DBus.Protocol;
 
-namespace Tmds.DBus
+namespace Tmds.DBus.Tool
 {
-
-    [DBusInterface("org.freedesktop.DBus.Introspectable")]
-    public interface IIntrospectable : IDBusObject
-    {
-        Task<string> IntrospectAsync();
-    }
-
     class NodeVisitor
     {
         public static Task VisitAsync(string filename, Func<string, XElement, bool> visit)
@@ -26,10 +20,20 @@ namespace Tmds.DBus
 
         private static async Task<bool> VisitAsyncInternal(Connection connection, string service, string objectPath, bool recurse, Func<string, XElement, bool> visit)
         {
-            var introspectable = connection.CreateProxy<IIntrospectable>(service, objectPath);
-            var xml = await introspectable.IntrospectAsync();
+            var xml = await connection.CallMethodAsync(CreateMessage(objectPath), (Message m, object s) => m.GetBodyReader().ReadString(), null);
             var nodeXml = XDocument.Parse(xml).Root;
             return await GetInterfacesFromIntrospection(connection, service, objectPath, nodeXml, recurse, visit);
+
+            MessageBuffer CreateMessage(string path)
+            {
+                using var writer = connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: service,
+                    path: path,
+                    @interface: "org.freedesktop.DBus.Introspectable",
+                    member: "Introspect");
+                return writer.CreateMessage();
+            }
         }
 
         private static async Task<bool> GetInterfacesFromIntrospection(Connection connection, string service, string objectPath, XElement nodeXml, bool recurse, Func<string, XElement, bool> visit)

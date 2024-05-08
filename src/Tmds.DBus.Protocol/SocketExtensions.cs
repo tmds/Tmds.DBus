@@ -48,7 +48,7 @@ static class SocketExtensions
     {
         if (handles is null || handles.Count == 0)
         {
-            return socket.SendAsync(buffer);
+            return SendAsync(socket, buffer);
         }
         else
         {
@@ -60,7 +60,7 @@ static class SocketExtensions
     {
         while (buffer.Length > 0)
         {
-            int sent = await socket.SendAsync(buffer, SocketFlags.None);
+            int sent = await socket.SendAsync(buffer, SocketFlags.None).ConfigureAwait(false);
             buffer = buffer.Slice(sent);
         }
     }
@@ -77,7 +77,7 @@ static class SocketExtensions
                 {
                     return default;
                 }
-                return socket.SendAsync(buffer.Slice(rv));
+                return SendAsync(socket, buffer.Slice(rv));
             }
             else
             {
@@ -100,12 +100,12 @@ static class SocketExtensions
             iovs[0].Base = ptr;
             iovs[0].Length = (SizeT)buffer.Length;
 
-            msghdr msg = new msghdr();
+            Msghdr msg = new Msghdr();
             msg.msg_iov = iovs;
             msg.msg_iovlen = (SizeT)1;
 
             var fdm = new cmsg_fd();
-            int size = sizeof(cmsghdr) + 4 * handles.Count;
+            int size = sizeof(Cmsghdr) + 4 * handles.Count;
             msg.msg_control = &fdm;
             msg.msg_controllen = (SizeT)size;
             fdm.hdr.cmsg_len = (SizeT)size;
@@ -151,7 +151,7 @@ static class SocketExtensions
             iov.Base = buf;
             iov.Length = (SizeT)buffer.Length;
 
-            msghdr msg = new msghdr();
+            Msghdr msg = new Msghdr();
             msg.msg_iov = &iov;
             msg.msg_iovlen = (SizeT)1;
 
@@ -171,7 +171,7 @@ static class SocketExtensions
                 {
                     if (cm.hdr.cmsg_level == SOL_SOCKET && cm.hdr.cmsg_type == SCM_RIGHTS)
                     {
-                        int msgFdCount = ((int)cm.hdr.cmsg_len - sizeof(cmsghdr)) / sizeof(int);
+                        int msgFdCount = ((int)cm.hdr.cmsg_len - sizeof(Cmsghdr)) / sizeof(int);
                         for (int i = 0; i < msgFdCount; i++)
                         {
                             handles.AddHandle(new IntPtr(cm.fds[i]));
@@ -194,7 +194,7 @@ static class SocketExtensions
     static readonly int EAGAIN = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 35 : 11;
     const int SCM_RIGHTS = 1;
 
-    private unsafe struct msghdr
+    private unsafe struct Msghdr
     {
         public IntPtr msg_name; //optional address
         public uint msg_namelen; //size of address
@@ -211,7 +211,7 @@ static class SocketExtensions
         public SizeT Length;
     }
 
-    private struct cmsghdr
+    private struct Cmsghdr
     {
         public SizeT cmsg_len; //data byte count, including header
         public int cmsg_level; //originating protocol
@@ -220,7 +220,7 @@ static class SocketExtensions
 
     private unsafe struct cmsg_fd
     {
-        public cmsghdr hdr;
+        public Cmsghdr hdr;
         public fixed int fds[64];
     }
 

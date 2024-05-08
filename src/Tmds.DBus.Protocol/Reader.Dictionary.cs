@@ -1,53 +1,48 @@
-using System.Reflection;
-
 namespace Tmds.DBus.Protocol;
+
+
+// Using obsolete generic read members
+#pragma warning disable CS0618
 
 public ref partial struct Reader
 {
-    public Dictionary<TKey, TValue> ReadDictionary<TKey, TValue>()
+    public ArrayEnd ReadDictionaryStart()
+        => ReadArrayStart(DBusType.Struct);
+
+    // Read method for the common 'a{sv}' type.
+    [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call ReadDictionary with these types.
+    public Dictionary<string, VariantValue> ReadDictionaryOfStringToVariantValue()
+        => ReadDictionary<string, VariantValue>();
+
+    [RequiresUnreferencedCode(Strings.UseNonGenericReadDictionary)]
+    [Obsolete(Strings.UseNonGenericReadDictionaryObsolete)]
+    public Dictionary<TKey, TValue> ReadDictionary
+        <
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TValue
+        >
+        ()
+        where TKey : notnull
+        where TValue : notnull
+            => ReadDictionary<TKey, TValue>(new Dictionary<TKey, TValue>());
+
+    internal Dictionary<TKey, TValue> ReadDictionary
+        <
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TValue
+        >
+        (Dictionary<TKey, TValue> dictionary)
         where TKey : notnull
         where TValue : notnull
     {
-        Dictionary<TKey, TValue> dictionary = new();
-        ArrayEnd headersEnd = ReadArrayStart(DBusType.Struct);
-        while (HasNext(headersEnd))
+        ArrayEnd dictEnd = ReadDictionaryStart();
+        while (HasNext(dictEnd))
         {
             var key = Read<TKey>();
             var value = Read<TValue>();
-            dictionary.Add(key, value);
+            // Use the indexer to avoid throwing if the key is present multiple times.
+            dictionary[key] = value;
         }
         return dictionary;
-    }
-
-    sealed class DictionaryTypeReader<TKey, TValue> : ITypeReader<Dictionary<TKey, TValue>>, ITypeReader<object>
-        where TKey : notnull
-        where TValue : notnull
-    {
-        object ITypeReader<object>.Read(ref Reader reader) => Read(ref reader);
-
-        public Dictionary<TKey, TValue> Read(ref Reader reader)
-        {
-            return reader.ReadDictionary<TKey, TValue>();
-        }
-    }
-
-    public static void AddDictionaryTypeReader<TKey, TValue>()
-        where TKey : notnull
-        where TValue : notnull
-    {
-        lock (_typeReaders)
-        {
-            Type keyType = typeof(Dictionary<TKey, TValue>);
-            if (!_typeReaders.ContainsKey(keyType))
-            {
-                _typeReaders.Add(keyType, new DictionaryTypeReader<TKey, TValue>());
-            }
-        }
-    }
-
-    private ITypeReader CreateDictionaryTypeReader(Type keyType, Type valueType)
-    {
-        Type readerType = typeof(DictionaryTypeReader<,>).MakeGenericType(new[] { keyType, valueType });
-        return (ITypeReader)Activator.CreateInstance(readerType)!;
     }
 }

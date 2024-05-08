@@ -4,7 +4,7 @@ public delegate T MessageValueReader<T>(Message message, object? state);
 
 public partial class Connection : IDisposable
 {
-    private static readonly Exception s_disposedSentinel = new ObjectDisposedException(typeof(Connection).FullName);
+    internal static readonly Exception DisposedException = new ObjectDisposedException(typeof(Connection).FullName);
     private static Connection? s_systemConnection;
     private static Connection? s_sessionConnection;
 
@@ -46,17 +46,17 @@ public partial class Connection : IDisposable
     // For tests.
     internal void Connect(IMessageStream stream)
     {
-        _connection = new DBusConnection(this);
+        _connection = new DBusConnection(this, DBusEnvironment.MachineId);
         _connection.Connect(stream);
         _state = ConnectionState.Connected;
     }
 
     public async ValueTask ConnectAsync()
     {
-        await ConnectCoreAsync(autoConnect: false).ConfigureAwait(false);
+        await ConnectCoreAsync(explicitConnect: true).ConfigureAwait(false);
     }
 
-    private ValueTask<DBusConnection> ConnectCoreAsync(bool autoConnect = true)
+    private ValueTask<DBusConnection> ConnectCoreAsync(bool explicitConnect = false)
     {
         lock (_gate)
         {
@@ -71,7 +71,13 @@ public partial class Connection : IDisposable
 
             if (!_connectionOptions.AutoConnect)
             {
-                if (autoConnect || _state != ConnectionState.Created)
+                DBusConnection? connection = _connection;
+                if (!explicitConnect && _state == ConnectionState.Disconnected && connection is not null)
+                {
+                    throw new DisconnectedException(connection.DisconnectReason);
+                }
+
+                if (!explicitConnect || _state != ConnectionState.Created)
                 {
                     throw new InvalidOperationException("Can only connect once using an explicit call.");
                 }
@@ -98,7 +104,7 @@ public partial class Connection : IDisposable
         {
             _connectCts = new();
             _setupResult = await _connectionOptions.SetupAsync(_connectCts.Token).ConfigureAwait(false);
-            connection = _connection = new DBusConnection(this);
+            connection = _connection = new DBusConnection(this, _setupResult.MachineId ?? DBusEnvironment.MachineId);
 
             await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token).ConfigureAwait(false);
 
@@ -150,7 +156,7 @@ public partial class Connection : IDisposable
             _disposed = true;
         }
 
-        Disconnect(s_disposedSentinel);
+        Disconnect(DisposedException);
     }
 
     internal void Disconnect(Exception disconnectReason, DBusConnection? trigger = null)
@@ -226,20 +232,36 @@ public partial class Connection : IDisposable
         return await connection.CallMethodAsync(message, reader, readerState).ConfigureAwait(false);
     }
 
-    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true, bool subscribe = true)
+    [Obsolete("Use an overload that accepts ObserverFlags.")]
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true, bool subscribe = true)
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, ObserverFlags.EmitOnDispose | (!subscribe ? ObserverFlags.NoSubscribe : default));
+
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, ObserverFlags flags, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true)
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, flags);
+
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, bool emitOnCapturedContext, ObserverFlags flags)
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext ? SynchronizationContext.Current : null, flags);
+
+    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, ObserverFlags flags)
     {
-        SynchronizationContext? synchronizationContext = emitOnCapturedContext ? SynchronizationContext.Current : null;
         DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
-        return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, subscribe).ConfigureAwait(false);
+        return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, flags).ConfigureAwait(false);
     }
 
     public void AddMethodHandler(IMethodHandler methodHandler)
-        => AddMethodHandlers(new[] { methodHandler });
+        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler), methodHandler);
 
-    public void AddMethodHandlers(IList<IMethodHandler> methodHandlers)
-    {
-        GetConnection().AddMethodHandlers(methodHandlers);
-    }
+    public void AddMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers)
+        => UpdateMethodHandlers((dictionary, handlers) => dictionary.AddMethodHandlers(handlers), methodHandlers);
+
+    public void RemoveMethodHandler(string path)
+        => UpdateMethodHandlers((dictionary, path) => dictionary.RemoveMethodHandler(path), path);
+
+    public void RemoveMethodHandlers(IEnumerable<string> paths)
+        => UpdateMethodHandlers((dictionary, paths) => dictionary.RemoveMethodHandlers(paths), paths);
+        
+    private void UpdateMethodHandlers<T>(Action<IMethodHandlerDictionary, T> update, T state)
+        => GetConnection().UpdateMethodHandlers(update, state);
 
     private static Connection CreateConnection(ref Connection? field, string? address)
     {
@@ -249,7 +271,7 @@ public partial class Connection : IDisposable
         {
             return connection;
         }
-        var newConnection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true });
+        var newConnection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true, IsShared = true });
         connection = Interlocked.CompareExchange(ref field, newConnection, null);
         if (connection != null)
         {

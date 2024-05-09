@@ -98,6 +98,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         _o = s;
     }
+    internal VariantValue(VariantValue value)
+    {
+        _l = (long)VariantValueType.VariantValue << TypeShift;
+        _o = value;
+    }
     // Array
     internal VariantValue(VariantValueType itemType, VariantValue[] items)
     {
@@ -301,6 +306,18 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     {
         EnsureTypeIs(VariantValueType.Signature);
         return UnsafeGetString();
+    }
+
+    public VariantValue GetVariantValue()
+    {
+        EnsureTypeIs(VariantValueType.VariantValue);
+        return UnsafeGetVariantValue();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private VariantValue UnsafeGetVariantValue()
+    {
+        return (VariantValue)_o!;
     }
 
     public double GetDouble()

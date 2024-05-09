@@ -467,4 +467,19 @@ public class VariantValueTests
 
         Assert.Equal(-1, vv.Count);
     }
+
+    [Fact]
+    public void WrappedVariantValue()
+    {
+        VariantValue vv = new VariantValue(new VariantValue(1));
+
+        Assert.Equal(VariantValueType.VariantValue, vv.Type);
+        Assert.Equal(VariantValueType.Invalid, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+
+        Assert.Equal(new VariantValue(1), vv.GetVariantValue());
+
+        Assert.Equal(1, vv.GetVariantValue().GetInt32());
+    }
 }

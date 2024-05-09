@@ -46,7 +46,7 @@ public ref partial struct Reader
                 int idx = (int)ReadUInt32();
                 return new VariantValue(_handles, idx);
             case DBusType.Variant:
-                return ReadVariantValue();
+                return new VariantValue(ReadVariantValue());
             case DBusType.Array:
                 sigReader = new(innerSignature);
                 if (!sigReader.TryRead(out type, out innerSignature))

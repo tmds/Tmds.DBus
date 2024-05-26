@@ -1,6 +1,6 @@
 namespace Tmds.DBus.Protocol;
 
-sealed class CloseSafeHandle : SafeHandle
+public sealed class CloseSafeHandle : SafeHandle
 {
     public CloseSafeHandle() :
         base(new IntPtr(-1), ownsHandle: true)

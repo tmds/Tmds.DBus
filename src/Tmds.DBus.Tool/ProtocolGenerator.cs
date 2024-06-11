@@ -6,6 +6,7 @@ using System.Text;
 using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Tmds.DBus.Protocol;
+using Microsoft.Win32.SafeHandles;
 
 namespace Tmds.DBus.Tool
 {
@@ -67,7 +68,6 @@ namespace Tmds.DBus.Tool
 
             AppendLine($"using System;");
             AppendLine($"using Tmds.DBus.Protocol;");
-            AppendLine($"using SafeHandle = System.Runtime.InteropServices.SafeHandle;");
             AppendLine($"using System.Collections.Generic;");
             AppendLine("using System.Threading.Tasks;");
 
@@ -899,7 +899,7 @@ namespace Tmds.DBus.Tool
                 case "v":
                     return $"reader.{nameof(Reader.ReadVariantValue)}()";
                 case "h":
-                    return $"reader.{nameof(Reader.ReadHandle)}<{typeof(SafeHandle).FullName}>()";
+                    return $"reader.{nameof(Reader.ReadHandle)}<{typeof(SafeFileHandle).FullName}>()";
 
                 case "ay":
                     return $"reader.{nameof(Reader.ReadArrayOfByte)}()";
@@ -928,7 +928,7 @@ namespace Tmds.DBus.Tool
                 case "av":
                     return $"reader.{nameof(Reader.ReadArrayOfVariantValue)}()";
                 case "ah":
-                    return $"reader.{nameof(Reader.ReadArrayOfHandle)}<{typeof(SafeHandle).FullName}>()";
+                    return $"reader.{nameof(Reader.ReadArrayOfHandle)}<{typeof(SafeFileHandle).FullName}>()";
 
                 case "a{sv}":
                     return $"reader.{nameof(Reader.ReadDictionaryOfStringToVariantValue)}()";
@@ -1012,7 +1012,7 @@ namespace Tmds.DBus.Tool
                case DBusType.Variant:
                    return readNotWrite ? "VariantValue" : "Variant";
                case DBusType.UnixFd:
-                   return "SafeHandle";
+                   return typeof(SafeHandle).FullName;
 
                case DBusType.Array:
                     {

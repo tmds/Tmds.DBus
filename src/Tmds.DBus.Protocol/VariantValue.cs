@@ -512,7 +512,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
 #if NET6_0_OR_GREATER
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 #endif
-    T>() where T : SafeHandle
+    T>() where T : SafeHandle, new()
     {
         EnsureTypeIs(VariantValueType.UnixFd);
         return UnsafeReadHandle<T>();

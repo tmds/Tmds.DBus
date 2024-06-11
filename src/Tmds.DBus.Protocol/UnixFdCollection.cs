@@ -93,7 +93,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         throw new ObjectDisposedException(typeof(UnixFdCollection).FullName);
     }
 
-    public T? ReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>(int index) where T : SafeHandle
+    public T? ReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>(int index) where T : SafeHandle, new()
         => ReadHandleGeneric<T>(index);
 
     // The caller of this method owns the handle and is responsible for Disposing it.

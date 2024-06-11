@@ -41,7 +41,7 @@ public ref partial struct Reader
     public VariantValue[] ReadArrayOfVariantValue()
         => ReadArrayOfT<VariantValue>();
 
-    public T[] ReadArrayOfHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : SafeHandle
+    public T[] ReadArrayOfHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : SafeHandle, new()
         => ReadArrayOfT<T>();
 
     [RequiresUnreferencedCode(Strings.UseNonGenericReadArray)]

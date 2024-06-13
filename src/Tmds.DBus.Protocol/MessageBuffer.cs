@@ -27,10 +27,12 @@ public sealed class MessageBuffer : IDisposable
 
     public void Dispose() => ReturnToPool();
 
+    public void RefHandles() => Handles?.RefHandles();
+
     internal void ReturnToPool()
     {
         _data.Reset();
-        Handles?.DisposeHandles();
+        Handles?.Dispose();
         Handles = null;
         _messagePool.Return(this);
     }

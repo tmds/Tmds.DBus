@@ -96,7 +96,8 @@ public sealed class Message
     {
         _data.Reset();
         ClearHeaders();
-        _handles?.DisposeHandles();
+        _handles?.Dispose();
+        _handles = null;
         _pool.Return(this);
     }
 

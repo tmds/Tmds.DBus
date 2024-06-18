@@ -36,7 +36,7 @@ public class MethodContext
     {
         if (ReplySent || NoReplyExpected)
         {
-            message.Dispose();
+            message.ReturnToPool();
             if (ReplySent)
             {
                 throw new InvalidOperationException("A reply has already been sent.");

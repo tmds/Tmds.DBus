@@ -59,7 +59,7 @@ public readonly struct Variant
         _l = (long)value;
         _o = UInt64Type;
     }
-    internal unsafe Variant(double value)
+    public unsafe Variant(double value)
     {
         _l = *(long*)&value;
         _o = DoubleType;

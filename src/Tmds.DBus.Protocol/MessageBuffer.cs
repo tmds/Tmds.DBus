@@ -1,6 +1,6 @@
 namespace Tmds.DBus.Protocol;
 
-public sealed class MessageBuffer : IDisposable
+public sealed class MessageBuffer
 {
     private readonly MessageBufferPool _messagePool;
 
@@ -25,10 +25,12 @@ public sealed class MessageBuffer : IDisposable
         Handles = handles;
     }
 
-    public void Dispose() => ReturnToPool();
+    internal void RefHandles() => Handles?.RefHandles();
 
-    public void RefHandles() => Handles?.RefHandles();
-
+    // Users should create a message using a MessageWriter
+    // and then hand it to the Connection class which is responsible for calling this method.
+    // A library user is never considered the owner of this message and therefore
+    // we don't provide a public method for a user to Dispose/ReturnToPool.
     internal void ReturnToPool()
     {
         _data.Reset();

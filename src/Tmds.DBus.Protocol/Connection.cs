@@ -296,25 +296,24 @@ public partial class Connection : IDisposable
 
     public bool TrySendMessage(MessageBuffer message)
     {
+        bool messageSent = false;
         try
         {
             DBusConnection? connection = GetConnection(ifConnected: true);
-            if (connection is null)
-            {
-                message.ReturnToPool();
-                return false;
-            }
-            else
+            if (connection is not null)
             {
                 RefHandles(message);
                 connection.SendMessage(message);
-                return true;
+                messageSent = true;
             }
+            return messageSent;
         }
-        catch
+        finally
         {
-            message.ReturnToPool();
-            throw;
+            if (!messageSent)
+            {
+                message.ReturnToPool();
+            }
         }
     }
 

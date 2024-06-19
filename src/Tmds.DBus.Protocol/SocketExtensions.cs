@@ -129,7 +129,9 @@ static class SocketExtensions
                 finally
                 {
                     if (refAdded)
+                    {
                         handle.DangerousRelease();
+                    }
                 }
             }
         }
@@ -175,7 +177,9 @@ static class SocketExtensions
             finally
             {
                 if (refAdded)
+                {
                     handle.DangerousRelease();
+                }
             }
         }
     }

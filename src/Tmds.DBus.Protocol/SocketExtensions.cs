@@ -44,7 +44,7 @@ static class SocketExtensions
         }
     }
 
-    public static ValueTask SendAsync(this Socket socket, ReadOnlyMemory<byte> buffer, IReadOnlyList<SafeHandle>? handles)
+    public static ValueTask SendAsync(this Socket socket, ReadOnlyMemory<byte> buffer, UnixFdCollection? handles)
     {
         if (handles is null || handles.Count == 0)
         {
@@ -65,7 +65,7 @@ static class SocketExtensions
         }
     }
 
-    private static ValueTask SendAsyncWithHandlesAsync(this Socket socket, ReadOnlyMemory<byte> buffer, IReadOnlyList<SafeHandle> handles)
+    private static ValueTask SendAsyncWithHandlesAsync(this Socket socket, ReadOnlyMemory<byte> buffer, UnixFdCollection handles)
     {
         socket.Blocking = false;
         do
@@ -92,7 +92,7 @@ static class SocketExtensions
         } while (true);
     }
 
-    private static unsafe int sendmsg(Socket socket, ReadOnlyMemory<byte> buffer, IReadOnlyList<SafeHandle> handles)
+    private static unsafe int sendmsg(Socket socket, ReadOnlyMemory<byte> buffer, UnixFdCollection handles)
     {
         fixed (byte* ptr = buffer.Span)
         {
@@ -113,32 +113,26 @@ static class SocketExtensions
             fdm.hdr.cmsg_type = SCM_RIGHTS;
 
             SafeHandle handle = socket.GetSafeHandle();
-            int handleRefsAdded = 0;
-            bool refAdded = false;
-            try
+            lock (handles.SyncObject)
             {
-                handle.DangerousAddRef(ref refAdded);
-                for (int i = 0, j = 0; i < handles.Count; i++)
+                bool refAdded = false;
+                try
                 {
-                    bool added = false;
-                    SafeHandle h = handles[i];
-                    h.DangerousAddRef(ref added);
-                    handleRefsAdded++;
-                    fdm.fds[j++] = h.DangerousGetHandle().ToInt32();
-                }
+                    handle.DangerousAddRef(ref refAdded);
+                    for (int i = 0, j = 0; i < handles.Count; i++)
+                    {
+                        fdm.fds[j++] = handles.DangerousGetHandle(i);
+                    }
 
-                return (int)sendmsg(handle.DangerousGetHandle().ToInt32(), new IntPtr(&msg), 0);
-            }
-            finally
-            {
-                for (int i = 0; i < handleRefsAdded; i++)
+                    return (int)sendmsg(handle.DangerousGetHandle().ToInt32(), new IntPtr(&msg), 0);
+                }
+                finally
                 {
-                    SafeHandle h = handles[i];
-                    h.DangerousRelease();
+                    if (refAdded)
+                    {
+                        handle.DangerousRelease();
+                    }
                 }
-
-                if (refAdded)
-                    handle.DangerousRelease();
             }
         }
     }
@@ -183,7 +177,9 @@ static class SocketExtensions
             finally
             {
                 if (refAdded)
+                {
                     handle.DangerousRelease();
+                }
             }
         }
     }

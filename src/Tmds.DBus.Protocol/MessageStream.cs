@@ -85,7 +85,7 @@ class MessageStream : IMessageStream
             var message = await _messageReader.ReadAsync().ConfigureAwait(false);
             try
             {
-                IReadOnlyList<SafeHandle>? handles = _supportsFdPassing ? message.Handles : null;
+                UnixFdCollection? handles = _supportsFdPassing ? message.Handles : null;
                 var buffer = message.AsReadOnlySequence();
                 if (buffer.IsSingleSegment)
                 {

@@ -25,6 +25,8 @@ public sealed class MessageBuffer
         Handles = handles;
     }
 
+    internal void RefHandles() => Handles?.RefHandles();
+
     // Users should create a message using a MessageWriter
     // and then hand it to the Connection class which is responsible for calling this method.
     // A library user is never considered the owner of this message and therefore
@@ -32,7 +34,7 @@ public sealed class MessageBuffer
     internal void ReturnToPool()
     {
         _data.Reset();
-        Handles?.DisposeHandles();
+        Handles?.Dispose();
         Handles = null;
         _messagePool.Return(this);
     }

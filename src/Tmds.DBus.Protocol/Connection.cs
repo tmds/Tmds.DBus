@@ -207,6 +207,7 @@ public partial class Connection : IDisposable
         DBusConnection connection;
         try
         {
+            RefHandles(message);
             connection = await ConnectCoreAsync().ConfigureAwait(false);
         }
         catch
@@ -222,6 +223,7 @@ public partial class Connection : IDisposable
         DBusConnection connection;
         try
         {
+            RefHandles(message);
             connection = await ConnectCoreAsync().ConfigureAwait(false);
         }
         catch
@@ -230,6 +232,15 @@ public partial class Connection : IDisposable
             throw;
         }
         return await connection.CallMethodAsync(message, reader, readerState).ConfigureAwait(false);
+    }
+
+    private void RefHandles(MessageBuffer message)
+    {
+        // Take a reference on any handles we might be sending.
+        // This ensures the handles are valid or that we throw an exception at this point.
+        // It also enables a user to to dispose the handles as soon as Connection method returns
+        // (without having to await it).
+        message.RefHandles();
     }
 
     [Obsolete("Use an overload that accepts ObserverFlags.")]
@@ -285,14 +296,25 @@ public partial class Connection : IDisposable
 
     public bool TrySendMessage(MessageBuffer message)
     {
-        DBusConnection? connection = GetConnection(ifConnected: true);
-        if (connection is null)
+        bool messageSent = false;
+        try
         {
-            message.ReturnToPool();
-            return false;
+            DBusConnection? connection = GetConnection(ifConnected: true);
+            if (connection is not null)
+            {
+                RefHandles(message);
+                connection.SendMessage(message);
+                messageSent = true;
+            }
+            return messageSent;
         }
-        connection.SendMessage(message);
-        return true;
+        finally
+        {
+            if (!messageSent)
+            {
+                message.ReturnToPool();
+            }
+        }
     }
 
     public Task<Exception?> DisconnectedAsync()

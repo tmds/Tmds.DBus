@@ -13,6 +13,9 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
     // We don't need to lock it while adding handles, or reading them to send them.
     private readonly object _gate;
     private bool _disposed;
+    private bool _handlesReffed;
+
+    internal object SyncObject => _gate;
 
     internal bool IsRawHandleCollection => _rawHandles is not null;
 
@@ -36,6 +39,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 
     internal void AddHandle(SafeHandle handle)
     {
+        Debug.Assert(!_handlesReffed);
         if (handle is null)
         {
             throw new ArgumentNullException(nameof(handle));
@@ -149,14 +153,6 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         throw new NotSupportedException();
     }
 
-    public void DisposeHandles(int count = -1)
-    {
-        if (count != 0)
-        {
-            DisposeHandles(true, count);
-        }
-    }
-
     public void Dispose()
     {
         lock (_gate)
@@ -166,8 +162,57 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 return;
             }
             _disposed = true;
-            DisposeHandles(true);
+
+            DisposeHandles(disposing: true);
         }
+
+        GC.SuppressFinalize(this);
+    }
+
+    internal void RefHandles()
+    {
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                ThrowDisposed();
+            }
+
+            int handleRefsAdded = 0;
+            try
+            {
+                for (int i = 0; i < Count; i++)
+                {
+                    bool added = false;
+                    SafeHandle h = this[i];
+                    h.DangerousAddRef(ref added);
+                    handleRefsAdded++;
+                }
+
+                _handlesReffed = true;
+            }
+            catch
+            {
+                for (int i = 0; i < handleRefsAdded; i++)
+                {
+                    SafeHandle h = this[i];
+                    h.DangerousRelease();
+                }
+
+                throw;
+            }
+        }
+    }
+
+    internal int DangerousGetHandle(int i)
+    {
+        Debug.Assert(Monitor.IsEntered(_gate));
+        if (!_handlesReffed)
+        {
+            throw new InvalidOperationException("Trying to send an unreffed handle.");
+        }
+        int fd = this[i].DangerousGetHandle().ToInt32();
+        return fd;
     }
 
     ~UnixFdCollection()
@@ -175,18 +220,26 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         DisposeHandles(false);
     }
 
-    private void DisposeHandles(bool disposing, int count = -1)
+    private void DisposeHandles(bool disposing)
     {
-        if (count == -1)
+        bool handlesReffed = _handlesReffed;
+        if (handlesReffed)
         {
-            count = Count;
+            _handlesReffed = false;
+
+            for (int i = 0; i < Count; i++)
+            {
+                SafeHandle h = this[i];
+                h.DangerousRelease();
+            }
         }
 
-        if (disposing)
+        if (disposing || handlesReffed)
         {
+            // dispose managed state
             if (_handles is not null)
             {
-                for (int i = 0; i < count; i++)
+                for (int i = 0; i < Count; i++)
                 {
                     var handle = _handles[i];
                     if (handle.Handle is not null)
@@ -194,24 +247,23 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                         handle.Handle.Dispose();
                     }
                 }
-                _handles.RemoveRange(0, count);
+                _handles.Clear();
             }
         }
-        else
-        {
-            if (_rawHandles is not null)
-            {
-                for (int i = 0; i < count; i++)
-                {
-                    var handle = _rawHandles[i];
 
-                    if (handle.RawHandle != InvalidRawHandle)
-                    {
-                        close(handle.RawHandle.ToInt32());
-                    }
+        // free unmanaged resources
+        if (_rawHandles is not null)
+        {
+            for (int i = 0; i < Count; i++)
+            {
+                var handle = _rawHandles[i];
+
+                if (handle.RawHandle != InvalidRawHandle)
+                {
+                    close(handle.RawHandle.ToInt32());
                 }
-                _rawHandles.RemoveRange(0, count);
             }
+            _rawHandles.Clear();
         }
     }
 

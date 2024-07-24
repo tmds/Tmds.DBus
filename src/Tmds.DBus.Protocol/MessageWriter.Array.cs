@@ -119,6 +119,19 @@ public ref partial struct MessageWriter
     public void WriteArray(IEnumerable<SafeHandle> value)
         => WriteArrayOfT(value);
 
+#if !NET5_0_OR_GREATER
+    internal void WriteArray<T>(IEnumerable<T> value)
+        where T : notnull
+    {
+        ArrayStart arrayStart = WriteArrayStart(TypeModel.GetTypeAlignment<T>());
+        foreach (var item in value)
+        {
+            Write<T>(item);
+        }
+        WriteArrayEnd(arrayStart);
+    }
+#endif
+
     internal void WriteArray<T>(ReadOnlySpan<T> value)
         where T : notnull
     {

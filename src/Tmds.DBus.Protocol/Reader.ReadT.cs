@@ -61,10 +61,6 @@ public ref partial struct Reader
         {
             return (T)(object)ReadVariantValue();
         }
-        else if (Feature.IsDynamicCodeEnabled)
-        {
-            return ReadDynamic<T>();
-        }
 
         ThrowNotSupportedType(typeof(T));
         return default!;

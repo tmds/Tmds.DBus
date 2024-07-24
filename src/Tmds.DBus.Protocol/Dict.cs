@@ -35,7 +35,6 @@ public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue
     void IDBusWritable.WriteTo(ref MessageWriter writer)
         => writer.WriteDictionary<TKey, TValue>(_dict);
 
-
     ICollection<TKey> IDictionary<TKey, TValue>.Keys => _dict.Keys;
 
     ICollection<TValue> IDictionary<TKey, TValue>.Values => _dict.Values;

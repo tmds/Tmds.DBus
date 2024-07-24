@@ -128,21 +128,6 @@ public class WriterTests
     }
 
     [Theory]
-    [InlineData(4, new byte[] { 0, 0, 0, 28, 1, 0, 0, 0, 0, 0, 0, 3, 111, 110, 101, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 3, 116, 119, 111, 0 },
-                   new byte[] { 28, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 111, 110, 101, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 116, 119, 111, 0 })]
-    public void WriteDictionary(int alignment, byte[] bigEndianData, byte[] littleEndianData)
-    {
-        var value = new Dictionary<byte, string>
-        {
-            { 1, "one" },
-            { 2, "two" }
-        };
-        TestWrite<IEnumerable<KeyValuePair<byte, string>>>(value, (ref MessageWriter writer, IEnumerable<KeyValuePair<byte, string>> value) => writer.WriteDictionary(value), alignment, bigEndianData, littleEndianData);
-        TestWrite<KeyValuePair<byte, string>[]>(value.AsEnumerable().ToArray(), (ref MessageWriter writer, KeyValuePair<byte, string>[] value) => writer.WriteDictionary(value), alignment, bigEndianData, littleEndianData);
-        TestWrite<Dictionary<byte, string>>(value, (ref MessageWriter writer, Dictionary<byte, string> value) => writer.WriteDictionary(value), alignment, bigEndianData, littleEndianData);
-    }
-
-    [Theory]
     [InlineData(4, new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 },
                    new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 })]
     public void WriteHandle(int alignment, byte[] bigEndianData, byte[] littleEndianData)
@@ -172,12 +157,6 @@ public class WriterTests
         {
             File.Delete(filename);
         }
-    }
-
-    [Theory, MemberData(nameof(WriteVariantAsObjectTestData))]
-    public void WriteVariantAsObject(object value, byte[] bigEndianData, byte[] littleEndianData)
-    {
-        TestWrite(value, (ref MessageWriter writer, object value) => writer.WriteVariant(value), alignment: 0, bigEndianData, littleEndianData);
     }
 
     [Theory, MemberData(nameof(WriteVariantAsVariantTestData))]

@@ -87,10 +87,6 @@ static partial class TypeModel
         {
             return DBusType.UnixFd;
         }
-        else if (Feature.IsDynamicCodeEnabled)
-        {
-            return GetTypeAlignmentDynamic<T>();
-        }
 
         ThrowNotSupportedType(typeof(T));
         return default;
@@ -342,10 +338,6 @@ static partial class TypeModel
         {
             signature[0] = (byte)DBusType.UnixFd;
             return 1;
-        }
-        else if (Feature.IsDynamicCodeEnabled)
-        {
-            return AppendTypeSignatureDynamic(type, signature);
         }
 
         ThrowNotSupportedType(type);

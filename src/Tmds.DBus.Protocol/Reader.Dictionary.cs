@@ -14,9 +14,7 @@ public ref partial struct Reader
     public Dictionary<string, VariantValue> ReadDictionaryOfStringToVariantValue()
         => ReadDictionary<string, VariantValue>();
 
-    [RequiresUnreferencedCode(Strings.UseNonGenericReadDictionary)]
-    [Obsolete(Strings.UseNonGenericReadDictionaryObsolete)]
-    public Dictionary<TKey, TValue> ReadDictionary
+    private Dictionary<TKey, TValue> ReadDictionary
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TValue

@@ -29,9 +29,7 @@ public ref partial struct MessageWriter
     public void WriteDictionary(Dictionary<string, Variant> value)
         => WriteDictionary<string, Variant>(value);
 
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
-    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
-    public void WriteDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
+    private void WriteDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
         where TKey : notnull
         where TValue : notnull
     {
@@ -45,9 +43,7 @@ public ref partial struct MessageWriter
         WriteDictionaryEnd(arrayStart);
     }
 
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
-    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
-    public void WriteDictionary<TKey, TValue>(KeyValuePair<TKey, TValue>[] value)
+    private void WriteDictionary<TKey, TValue>(KeyValuePair<TKey, TValue>[] value)
         where TKey : notnull
         where TValue : notnull
     {
@@ -61,9 +57,7 @@ public ref partial struct MessageWriter
         WriteDictionaryEnd(arrayStart);
     }
 
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteDictionary)]
-    [Obsolete(Strings.UseNonGenericWriteDictionaryObsolete)]
-    public void WriteDictionary<TKey, TValue>(Dictionary<TKey, TValue> value)
+    internal void WriteDictionary<TKey, TValue>(Dictionary<TKey, TValue> value)
         where TKey : notnull
         where TValue : notnull
     {
@@ -75,54 +69,5 @@ public ref partial struct MessageWriter
             Write<TValue>(item.Value);
         }
         WriteDictionaryEnd(arrayStart);
-    }
-
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
-    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
-    public void WriteVariantDictionary<TKey, TValue>(IEnumerable<KeyValuePair<TKey, TValue>> value)
-        where TKey : notnull
-        where TValue : notnull
-    {
-        WriteDictionarySignature<TKey, TValue>(ref this);
-        WriteDictionary(value);
-    }
-
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
-    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
-    public void WriteVariantDictionary<TKey, TValue>(KeyValuePair<TKey, TValue>[] value)
-        where TKey : notnull
-        where TValue : notnull
-    {
-        WriteDictionarySignature<TKey, TValue>(ref this);
-        WriteDictionary(value);
-    }
-
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteVariantDictionary)]
-    [Obsolete(Strings.UseNonGenericWriteVariantDictionaryObsolete)]
-    public void WriteVariantDictionary<TKey, TValue>(Dictionary<TKey, TValue> value)
-        where TKey : notnull
-        where TValue : notnull
-    {
-        WriteDictionarySignature<TKey, TValue>(ref this);
-        WriteDictionary(value);
-    }
-
-    // This method writes a Dictionary without using generics at the 'cost' of boxing.
-    // private void WriteDictionary(IDictionary value)
-    // {
-    //     ArrayStart arrayStart = WriteDictionaryStart();
-    //     foreach (System.Collections.DictionaryEntry de in dictionary)
-    //     {
-    //         WriteDictionaryEntryStart();
-    //         Write(de.Key, asVariant: keyType == typeof(object));
-    //         Write(de.Value, asVariant: valueType == typeof(object));
-    //     }
-    //     WriteDictionaryEnd(ref arrayStart);
-    // }
-
-    private static void WriteDictionarySignature<TKey, TValue>(ref MessageWriter writer) where TKey : notnull where TValue : notnull
-    {
-        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
-        writer.WriteSignature(TypeModel.GetSignature<Dict<TKey, TValue>>(buffer));
     }
 }

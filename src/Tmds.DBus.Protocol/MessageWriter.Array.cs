@@ -119,19 +119,6 @@ public ref partial struct MessageWriter
     public void WriteArray(IEnumerable<SafeHandle> value)
         => WriteArrayOfT(value);
 
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
-    [Obsolete(Strings.UseNonGenericWriteArrayObsolete)]
-    public void WriteArray<T>(IEnumerable<T> value)
-        where T : notnull
-    {
-        ArrayStart arrayStart = WriteArrayStart(TypeModel.GetTypeAlignment<T>());
-        foreach (var item in value)
-        {
-            Write<T>(item);
-        }
-        WriteArrayEnd(arrayStart);
-    }
-
     internal void WriteArray<T>(ReadOnlySpan<T> value)
         where T : notnull
     {
@@ -180,49 +167,6 @@ public ref partial struct MessageWriter
 #endif
         {
             WriteArrayOfT<T>(value);
-        }
-    }
-
-    [RequiresUnreferencedCode(Strings.UseNonGenericWriteArray)]
-    [Obsolete(Strings.UseNonGenericWriteArrayObsolete)]
-    public void WriteArray<T>(T[] value)
-        where T : notnull
-    {
-        if (typeof(T) == typeof(byte))
-        {
-            WriteArray((byte[])(object)value);
-        }
-        else if (typeof(T) == typeof(short))
-        {
-            WriteArray((short[])(object)value);
-        }
-        else if (typeof(T) == typeof(ushort))
-        {
-            WriteArray((ushort[])(object)value);
-        }
-        else if (typeof(T) == typeof(int))
-        {
-            WriteArray((int[])(object)value);
-        }
-        else if (typeof(T) == typeof(uint))
-        {
-            WriteArray((uint[])(object)value);
-        }
-        else if (typeof(T) == typeof(long))
-        {
-            WriteArray((long[])(object)value);
-        }
-        else if (typeof(T) == typeof(ulong))
-        {
-            WriteArray((ulong[])(object)value);
-        }
-        else if (typeof(T) == typeof(double))
-        {
-            WriteArray((double[])(object)value);
-        }
-        else
-        {
-            WriteArrayOfT<T>(value.AsSpan());
         }
     }
 

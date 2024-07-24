@@ -4,8 +4,6 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
-    private delegate object ValueReader(ref Reader reader);
-
     private readonly bool _isBigEndian;
     private readonly UnixFdCollection? _handles;
     private readonly int _handleCount;

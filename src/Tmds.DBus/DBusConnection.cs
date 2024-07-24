@@ -3,17 +3,15 @@
 // See COPYING for details
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Tmds.DBus.Protocol;
 using Tmds.DBus.Transports;
 using System.Threading.Tasks.Sources;
+
 namespace Tmds.DBus
 {
     class DBusConnection
@@ -121,14 +119,12 @@ namespace Tmds.DBus
                 throw new ArgumentException("No addresses were found", nameof(connectionContext.ConnectionAddress));
             }
 
-            Guid _serverId = Guid.Empty;
             IMessageStream stream = null;
             var index = 0;
             while (index < _entries.Length)
             {
                 AddressEntry entry = _entries[index++];
 
-                _serverId = entry.Guid;
                 try
                 {
                     stream = await Transport.ConnectAsync(entry, connectionContext, cancellationToken).ConfigureAwait(false);

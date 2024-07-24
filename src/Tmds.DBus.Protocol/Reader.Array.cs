@@ -44,48 +44,6 @@ public ref partial struct Reader
     public T[] ReadArrayOfHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : SafeHandle, new()
         => ReadArrayOfT<T>();
 
-    [RequiresUnreferencedCode(Strings.UseNonGenericReadArray)]
-    [Obsolete(Strings.UseNonGenericReadArrayObsolete)]
-    public T[] ReadArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
-    {
-        if (typeof(T) == typeof(byte))
-        {
-            return (T[])(object)ReadArrayOfNumeric<byte>();
-        }
-        else if (typeof(T) == typeof(short))
-        {
-            return (T[])(object)ReadArrayOfNumeric<short>();
-        }
-        else if (typeof(T) == typeof(ushort))
-        {
-            return (T[])(object)ReadArrayOfNumeric<ushort>();
-        }
-        else if (typeof(T) == typeof(int))
-        {
-            return (T[])(object)ReadArrayOfNumeric<int>();
-        }
-        else if (typeof(T) == typeof(uint))
-        {
-            return (T[])(object)ReadArrayOfNumeric<uint>();
-        }
-        else if (typeof(T) == typeof(long))
-        {
-            return (T[])(object)ReadArrayOfNumeric<long>();
-        }
-        else if (typeof(T) == typeof(ulong))
-        {
-            return (T[])(object)ReadArrayOfNumeric<ulong>();
-        }
-        else if (typeof(T) == typeof(double))
-        {
-            return (T[])(object)ReadArrayOfNumeric<double>();
-        }
-        else
-        {
-            return ReadArrayOfT<T>();
-        }
-    }
-
     private T[] ReadArrayOfT<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         List<T> items = new();

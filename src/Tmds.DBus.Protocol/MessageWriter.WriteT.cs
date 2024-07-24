@@ -65,10 +65,6 @@ public ref partial struct MessageWriter
         {
             (value as IDBusWritable)!.WriteTo(ref this);
         }
-        else if (Feature.IsDynamicCodeEnabled)
-        {
-            WriteDynamic<T>(value);
-        }
         else
         {
             ThrowNotSupportedType(typeof(T));

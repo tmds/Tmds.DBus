@@ -84,19 +84,19 @@ namespace Tmds.DBus.Tests
                 var dictionary = new Dictionary<string, object>{{"key1", 1}, {"key2", 2}};
                 await conn2.RegisterObjectAsync(new PropertyObject(dictionary));
 
-                var proxy = conn1.CreateProxy<IPropertyObject>(conn2Info.LocalName, PropertyObject.Path);
+                var proxy = conn1.CreateProxy<IPropertyProxyObject>(conn2Info.LocalName, PropertyObject.Path);
 
-                var properties = await proxy.GetAllAsync();
+                var properties = await proxy.GetAllPropertiesAsync();
 
                 Assert.Equal(dictionary, properties);
-                var val1 = await proxy.GetAsync("key1");
+                var val1 = await proxy.GetPropertyAsync("key1");
                 Assert.Equal(1, val1);
 
                 var tcs = new TaskCompletionSource<PropertyChanges>();
-                await proxy.WatchPropertiesAsync(_ => tcs.SetResult(_));
-                await proxy.SetAsync("key1", "changed");
+                await proxy.WatchPropzAsync(_ => tcs.SetResult(_));
+                await proxy.SetPropertyAsync("key1", "changed");
 
-                var val1Changed = await proxy.GetAsync("key1");
+                var val1Changed = await proxy.GetPropertyAsync("key1");
                 Assert.Equal("changed", val1Changed);
 
                 var changes = await tcs.Task;

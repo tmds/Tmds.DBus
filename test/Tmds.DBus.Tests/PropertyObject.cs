@@ -23,24 +23,24 @@ namespace Tmds.DBus.Tests
 
         public event Action<PropertyChanges> OnPropertiesChanged;
 
-        public Task<IDictionary<string, object>> GetAllAsync()
+        public Task<IDictionary<string, object>> GetAllPropsAsync()
         {
             return Task.FromResult(_properties);
         }
 
-        public Task<object> GetAsync(string prop)
+        public Task<object> GetPropAsync(string prop)
         {
             return Task.FromResult(_properties[prop]);
         }
 
-        public Task SetAsync(string prop, object val)
+        public Task SetPropAsync(string prop, object val)
         {
             _properties[prop] = val;
             OnPropertiesChanged?.Invoke(PropertyChanges.ForProperty(prop, val));
             return Task.CompletedTask;
         }
 
-        public Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler)
+        public Task<IDisposable> WatchPropsAsync(Action<PropertyChanges> handler)
         {
             return SignalWatcher.AddAsync(this, nameof(OnPropertiesChanged), handler);
         }

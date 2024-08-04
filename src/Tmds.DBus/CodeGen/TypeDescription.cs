@@ -292,6 +292,7 @@ namespace Tmds.DBus.CodeGen
                     var methodDescription = new MethodDescription(member, name, inArguments, inSignature, outType, isGenericOut, outSignature, outArguments);
                     if (member.Name == interfaceAttribute.GetPropertyMethod)
                     {
+                        methodDescription.Name = "Get";
                         if (propertyGetMethod != null)
                         {
                             throw new ArgumentException($"Multiple property Get methods are declared: {memberName}, {propertyGetMethod.MethodInfo.ToString()}");
@@ -305,6 +306,7 @@ namespace Tmds.DBus.CodeGen
                     }
                     else if (member.Name == interfaceAttribute.GetAllPropertiesMethod)
                     {
+                        methodDescription.Name = "GetAll";
                         if (propertyGetAllMethod != null)
                         {
                             throw new ArgumentException($"Multiple property GetAll are declared: {memberName}, {propertyGetAllMethod.MethodInfo.ToString()}");
@@ -325,6 +327,7 @@ namespace Tmds.DBus.CodeGen
                     }
                     else if (member.Name == interfaceAttribute.SetPropertyMethod)
                     {
+                        methodDescription.Name = "Set";
                         if (propertySetMethod != null)
                         {
                             throw new ArgumentException($"Multiple property Set are declared: {memberName}, {propertySetMethod.MethodInfo.ToString()}");

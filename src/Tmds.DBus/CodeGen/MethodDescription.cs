@@ -25,7 +25,7 @@ namespace Tmds.DBus.CodeGen
 
         public InterfaceDescription Interface { get; internal set; }
         public MethodInfo MethodInfo { get; }
-        public string Name { get; }
+        public string Name { get; set; }
         public Type OutType { get; }
         public Signature? OutSignature { get; }
         private IList<ArgumentDescription> _outArguments;

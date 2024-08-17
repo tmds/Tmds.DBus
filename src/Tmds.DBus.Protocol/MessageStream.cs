@@ -9,7 +9,8 @@ namespace Tmds.DBus.Protocol;
 class MessageStream : IMessageStream
 {
     private static readonly ReadOnlyMemory<byte> OneByteArray = new[] { (byte)0 };
-    private readonly Socket _socket;
+    private readonly Socket? _socket;
+    private readonly Stream _stream;
     private UnixFdCollection? _fdCollection;
     private bool _supportsFdPassing;
     private readonly MessagePool _messagePool;
@@ -26,8 +27,18 @@ class MessageStream : IMessageStream
     private bool _isMonitor;
 
     public MessageStream(Socket socket)
+        : this(socket, null)
+    {}
+
+    public MessageStream(Stream stream)
+        : this(null, stream)
+    {}
+
+    private MessageStream(Socket? socket, Stream? stream)
     {
         _socket = socket;
+        _stream = stream ?? new NetworkStream(_socket!, ownsSocket: true);
+
         Channel<MessageBuffer> channel = Channel.CreateUnbounded<MessageBuffer>(new UnboundedChannelOptions
         {
             AllowSynchronousContinuations = true,
@@ -56,7 +67,16 @@ class MessageStream : IMessageStream
             while (true)
             {
                 Memory<byte> memory = writer.GetMemory(1024);
-                int bytesRead = await _socket.ReceiveAsync(memory, _fdCollection).ConfigureAwait(false);
+                int bytesRead;
+                if (_socket is not null)
+                {
+                    bytesRead = await _socket.ReceiveAsync(memory, _fdCollection).ConfigureAwait(false);
+                }
+                else
+                {
+                    bytesRead = await _stream.ReadAsync(memory).ConfigureAwait(false);
+                }
+
                 if (bytesRead == 0)
                 {
                     throw new IOException("Connection closed by peer");
@@ -89,14 +109,14 @@ class MessageStream : IMessageStream
                 var buffer = message.AsReadOnlySequence();
                 if (buffer.IsSingleSegment)
                 {
-                    await _socket.SendAsync(buffer.First, handles).ConfigureAwait(false);
+                    await WriteAsync(buffer.First, handles).ConfigureAwait(false);
                 }
                 else
                 {
                     SequencePosition position = buffer.Start;
                     while (buffer.TryGet(ref position, out ReadOnlyMemory<byte> memory))
                     {
-                        await _socket.SendAsync(memory, handles).ConfigureAwait(false);
+                        await WriteAsync(memory, handles).ConfigureAwait(false);
                         handles = null;
                     }
                 }
@@ -110,6 +130,18 @@ class MessageStream : IMessageStream
             {
                 message.ReturnToPool();
             }
+        }
+    }
+
+    private ValueTask WriteAsync(ReadOnlyMemory<byte> memory, UnixFdCollection? handles)
+    {
+        if (_socket is not null)
+        {
+            return _socket.SendAsync(memory, handles);
+        }
+        else
+        {
+            return _stream.WriteAsync(memory);
         }
     }
 
@@ -165,7 +197,7 @@ class MessageStream : IMessageStream
         ReadFromSocketIntoPipe();
 
         // send 1 byte
-        await _socket.SendAsync(OneByteArray, SocketFlags.None).ConfigureAwait(false);
+        await _stream.WriteAsync(OneByteArray).ConfigureAwait(false);
         // auth
         var authenticationResult = await SendAuthCommandsAsync(userId, supportsFdPassing).ConfigureAwait(false);
         _supportsFdPassing = authenticationResult.SupportsFdPassing;
@@ -334,7 +366,7 @@ class MessageStream : IMessageStream
     {
         int length = Encoding.ASCII.GetBytes(message.AsSpan(), lineBuffer.Span);
         lineBuffer = lineBuffer.Slice(0, length);
-        await _socket.SendAsync(lineBuffer, SocketFlags.None).ConfigureAwait(false);
+        await _stream.WriteAsync(lineBuffer).ConfigureAwait(false);
     }
 
     private async ValueTask<int> ReadLineAsync(Memory<byte> lineBuffer)
@@ -396,6 +428,7 @@ class MessageStream : IMessageStream
         if (previous is null)
         {
             _socket?.Dispose();
+            _stream.Dispose();
             _messageWriter.Complete();
         }
         return previous ?? closeReason;

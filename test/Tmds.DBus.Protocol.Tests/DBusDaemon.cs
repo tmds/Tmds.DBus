@@ -70,8 +70,14 @@ namespace Tmds.DBus.Protocol.Tests
                 File.Delete(_configFile);
             }
             _state = State.Disposed;
-            _process?.Kill();
-            _process?.Dispose();
+
+            try
+            {
+                _process?.Kill();
+                _process?.Dispose();
+            }
+            catch
+            { }
         }
 
         public Task StartAsync(DBusDaemonProtocol protocol = DBusDaemonProtocol.Default, string? socketPath = null)

@@ -11,7 +11,7 @@ public class ClientConnectionOptions : ConnectionOptions
         _address = address;
     }
 
-    protected ClientConnectionOptions()
+    protected internal ClientConnectionOptions()
     {
         _address = string.Empty;
     }

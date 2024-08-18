@@ -106,7 +106,14 @@ public partial class Connection : IDisposable
             _setupResult = await _connectionOptions.SetupAsync(_connectCts.Token).ConfigureAwait(false);
             connection = _connection = new DBusConnection(this, _setupResult.MachineId ?? DBusEnvironment.MachineId);
 
-            await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token).ConfigureAwait(false);
+            if (_setupResult.ConnectionStream is Stream stream)
+            {
+                await connection.ConnectAsync(stream, _setupResult.UserId, _connectCts.Token).ConfigureAwait(false);
+            }
+            else
+            {
+                await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token).ConfigureAwait(false);
+            }
 
             lock (_gate)
             {

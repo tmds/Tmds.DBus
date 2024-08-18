@@ -1,5 +1,8 @@
+using System;
 using System.IO;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Win32.SafeHandles;
 using Xunit;
@@ -26,6 +29,44 @@ namespace Tmds.DBus.Protocol.Tests
                 await connection.ConnectAsync();
 
                 Assert.StartsWith(":", connection.UniqueName);
+            }
+        }
+
+        [Fact]
+        public async Task ConnectionStream()
+        {
+            var tokenTcs = new TaskCompletionSource<object?>();
+            var token = new object();
+            using (var dbusDaemon = new DBusDaemon())
+            {
+                await dbusDaemon.StartAsync(DBusDaemonProtocol.Unix);
+                var address = dbusDaemon.Address!;
+
+                Socket socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+                Assert.StartsWith("unix:path=", address);
+                string path = address.Substring(10);
+                path = path.Substring(0, path.IndexOf(',')); // strip ',guid=...'
+                await socket.ConnectAsync(new UnixDomainSocketEndPoint(path));
+
+                var connection = new Connection(new MyConnectionOptions
+                {
+                    ConnectFunction = () => ValueTask.FromResult(
+                        new ClientSetupResult()
+                        {
+                            TeardownToken = token,
+                            ConnectionStream = new NetworkStream(socket, ownsSocket: true)
+                        }),
+                    DisposeAction = o => tokenTcs.SetResult(o)
+                });
+
+                await connection.ConnectAsync();
+                Assert.True(socket.Connected);
+                Assert.StartsWith(":", connection.UniqueName);
+
+                connection.Dispose();
+                Assert.False(socket.Connected); // The ConnectionStream was disposed
+                var disposeToken = await tokenTcs.Task;
+                Assert.Equal(token, disposeToken);
             }
         }
 
@@ -142,6 +183,18 @@ namespace Tmds.DBus.Protocol.Tests
                 context.Reply(writer.CreateMessage());
                 return default;
             }
+        }
+
+        private class MyConnectionOptions : ClientConnectionOptions
+        {
+            public required Func<ValueTask<ClientSetupResult>> ConnectFunction { get; set; }
+            public required Action<object?> DisposeAction { get; set; }
+
+            protected internal override ValueTask<ClientSetupResult> SetupAsync(CancellationToken cancellationToken)
+                => ConnectFunction();
+
+            protected internal override void Teardown(object? token)
+                => DisposeAction(token);
         }
     }
 }

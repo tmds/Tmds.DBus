@@ -238,6 +238,40 @@ class DBusConnection : IDisposable
         throw new ArgumentException("No addresses were found", nameof(address));
     }
 
+    public async ValueTask ConnectAsync(Stream stream, string? userId, CancellationToken cancellationToken)
+    {
+        _state = ConnectionState.Connecting;
+
+        try
+        {
+            MessageStream messageStream = new MessageStream(stream);
+            _messageStream = messageStream;
+
+            await messageStream.DoClientAuthAsync(default(Guid), userId, supportsFdPassing: false).ConfigureAwait(false);
+
+            messageStream.ReceiveMessages(
+                static (Exception? exception, Message message, DBusConnection connection) =>
+                    connection.HandleMessages(exception, message), this);
+
+            lock (_gate)
+            {
+                if (_state != ConnectionState.Connecting)
+                {
+                    throw new DisconnectedException(DisconnectReason);
+                }
+                _state = ConnectionState.Connected;
+            }
+
+            _localName = await GetLocalNameAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            stream.Dispose();
+
+            throw;
+        }
+    }
+
     private async Task<string?> GetLocalNameAsync()
     {
         MyValueTaskSource<string?> vts = new();

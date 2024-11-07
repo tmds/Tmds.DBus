@@ -403,7 +403,7 @@ namespace Tmds.DBus.Tool
         private void AppendInterface(string name, XElement interfaceXml)
         {
             var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument);
-            var writableProperties = ReadableProperties(interfaceXml).Select(ToArgument);
+            var writableProperties = WritableProperties(interfaceXml).Select(ToArgument);
 
             string propertiesClassName = $"{name}Properties";
 

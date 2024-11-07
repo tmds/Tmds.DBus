@@ -480,7 +480,7 @@ namespace Tmds.DBus.Tool
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
                 AppendLine("List<string> changed = new(), invalidated = new();");
-                AppendLine($"return new PropertyChanges<{propertiesClassName}>(ReadProperties(ref reader, changed), changed.ToArray(), ReadInvalidated(ref reader));");
+                AppendLine($"return new PropertyChanges<{propertiesClassName}>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());");
                 EndBlock();
                 AppendLine($"static string[] ReadInvalidated(ref Reader reader)");
                 StartBlock();

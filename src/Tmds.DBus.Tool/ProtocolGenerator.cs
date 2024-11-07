@@ -127,7 +127,7 @@ namespace Tmds.DBus.Tool
             foreach (var interf in interfaceDescriptions)
             {
                 string interfaceName = interf.Name;
-                AppendLine($"public {interfaceName} Create{interfaceName}(string path) => new {interfaceName}(this, path);");
+                AppendLine($"public {interfaceName} Create{interfaceName}(ObjectPath path) => new {interfaceName}(this, path);");
             }
             EndBlock();
         }

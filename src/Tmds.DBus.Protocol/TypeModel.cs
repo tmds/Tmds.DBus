@@ -218,12 +218,12 @@ static partial class TypeModel
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Utf8Span GetSignature<T>(scoped Span<byte> buffer)
+    public static ReadOnlySpan<byte> GetSignature<T>(scoped Span<byte> buffer)
     {
         Debug.Assert(buffer.Length >= ProtocolConstants.MaxSignatureLength);
 
         int bytesWritten = AppendTypeSignature(typeof(T), buffer);
-        return new Utf8Span(buffer.Slice(0, bytesWritten).ToArray());
+        return buffer.Slice(0, bytesWritten).ToArray();
     }
 
     private static int AppendTypeSignature(Type type, Span<byte> signature)

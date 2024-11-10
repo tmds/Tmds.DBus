@@ -252,18 +252,18 @@ public readonly struct Variant
     }
 
     // Dictionary, Struct, Array.
-    private unsafe Variant(Utf8Span signature, IDBusWritable value)
+    private unsafe Variant(ReadOnlySpan<byte> signature, IDBusWritable value)
     {
         if (value is null)
         {
             throw new ArgumentNullException(nameof(value));
         }
         // Store the signature in the long if it is large enough.
-        if (signature.Span.Length <= 8)
+        if (signature.Length <= 8)
         {
             long l = 0;
             Span<byte> span = new Span<byte>(&l, 8);
-            signature.Span.CopyTo(span);
+            signature.CopyTo(span);
             if (BitConverter.IsLittleEndian)
             {
                 l = BinaryPrimitives.ReverseEndianness(l);
@@ -274,8 +274,8 @@ public readonly struct Variant
         }
         else
         {
-            _l = (long)signature.Span[0] << TypeShift;
-            _o = new ValueTuple<byte[], IDBusWritable>(signature.Span.ToArray(), value);
+            _l = (long)signature[0] << TypeShift;
+            _o = new ValueTuple<byte[], IDBusWritable>(signature.ToArray(), value);
         }
     }
 
@@ -407,7 +407,7 @@ public readonly struct Variant
                 writer.WriteVariantObjectPath(GetObjectPath());
                 break;
             case DBusType.Signature:
-                writer.WriteVariantSignature(new Utf8Span(GetSignature()));
+                writer.WriteVariantSignature(GetSignature());
                 break;
             case DBusType.UnixFd:
                 writer.WriteVariantHandle(GetUnixFd());
@@ -415,13 +415,13 @@ public readonly struct Variant
 
             case DBusType.Array:
             case DBusType.Struct:
-                Utf8Span signature;
+                ReadOnlySpan<byte> signature;
                 IDBusWritable writable;
                 if ((_l << 8) == 0)
                 {
                     // The signature is stored in the object.
                     var o = (ValueTuple<byte[], IDBusWritable>)_o!;
-                    signature = new Utf8Span(o.Item1);
+                    signature = o.Item1;
                     writable = o.Item2;
                 }
                 else
@@ -438,7 +438,7 @@ public readonly struct Variant
                     {
                         length = 8;
                     }
-                    signature = new Utf8Span(span.Slice(0, length));
+                    signature = span.Slice(0, length);
                     writable = (_o as IDBusWritable)!;
                 }
                 writer.WriteSignature(signature);

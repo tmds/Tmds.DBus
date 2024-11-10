@@ -127,7 +127,7 @@ namespace Tmds.DBus.Tool
             foreach (var interf in interfaceDescriptions)
             {
                 string interfaceName = interf.Name;
-                AppendLine($"public {interfaceName} Create{interfaceName}(string path) => new {interfaceName}(this, path);");
+                AppendLine($"public {interfaceName} Create{interfaceName}(ObjectPath path) => new {interfaceName}(this, path);");
             }
             EndBlock();
         }
@@ -403,7 +403,7 @@ namespace Tmds.DBus.Tool
         private void AppendInterface(string name, XElement interfaceXml)
         {
             var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument);
-            var writableProperties = ReadableProperties(interfaceXml).Select(ToArgument);
+            var writableProperties = WritableProperties(interfaceXml).Select(ToArgument);
 
             string propertiesClassName = $"{name}Properties";
 
@@ -480,7 +480,7 @@ namespace Tmds.DBus.Tool
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
                 AppendLine("List<string> changed = new(), invalidated = new();");
-                AppendLine($"return new PropertyChanges<{propertiesClassName}>(ReadProperties(ref reader, changed), changed.ToArray(), ReadInvalidated(ref reader));");
+                AppendLine($"return new PropertyChanges<{propertiesClassName}>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());");
                 EndBlock();
                 AppendLine($"static string[] ReadInvalidated(ref Reader reader)");
                 StartBlock();

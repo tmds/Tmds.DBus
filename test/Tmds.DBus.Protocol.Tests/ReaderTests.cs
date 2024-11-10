@@ -105,7 +105,7 @@ public class ReaderTests
                               new byte[] { 4, 0, 0, 0, (byte)'/', (byte)'a', (byte)'/', (byte)'b', 0 })]
     public void ReadObjectPath(string expected, int alignment, byte[] bigEndianData, byte[] littleEndianData)
     {
-        TestRead(expected, (ref Reader reader) => reader.ReadObjectPathAsSpan().ToString(), alignment, bigEndianData, littleEndianData);
+        TestRead(expected, (ref Reader reader) => reader.ReadObjectPathAsString(), alignment, bigEndianData, littleEndianData);
     }
 
     [Theory]

@@ -57,7 +57,7 @@ public ref partial struct MessageWriter
 
     public void WriteMethodReturnHeader(
         uint replySerial,
-        Utf8Span destination = default,
+        ReadOnlySpan<byte> destination = default,
         string? signature = null)
     {
         ArrayStart start = WriteHeaderStart(MessageType.MethodReturn, MessageFlags.None);

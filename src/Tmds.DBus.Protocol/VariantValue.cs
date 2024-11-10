@@ -1093,17 +1093,17 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         get
         {
             Span<byte> span = stackalloc byte[ProtocolConstants.MaxSignatureLength];
-            return GetSignature(span).ToString();
+            return Encoding.UTF8.GetString(GetSignature(span));
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Utf8Span GetSignature(scoped Span<byte> buffer)
+    private ReadOnlySpan<byte> GetSignature(scoped Span<byte> buffer)
     {
         Debug.Assert(buffer.Length >= ProtocolConstants.MaxSignatureLength);
 
         int bytesWritten = AppendTypeSignature(buffer);
-        return new Utf8Span(buffer.Slice(0, bytesWritten).ToArray());
+        return buffer.Slice(0, bytesWritten).ToArray();
     }
 
     private int AppendTypeSignature(Span<byte> signature)

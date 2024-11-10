@@ -280,7 +280,7 @@ class MonitorCommand : Command
                 addNewLine = false;
                 break;
             case DBusType.Variant:
-                innerSignature = reader.ReadSignature().Span;
+                innerSignature = reader.ReadSignatureAsSpan();
                 sigReader = new(innerSignature);
                 sigReader.TryRead(out type, out innerSignature);
                 AppendValue(sb, indent, ref reader, type, innerSignature, isDictEntryValue: isDictEntryValue);

@@ -7,11 +7,11 @@ public ref partial struct Reader
 
     private VariantValue ReadVariantValue(byte nesting)
     {
-        Utf8Span signature = ReadSignatureAsSpan();
+        ReadOnlySpan<byte> signature = ReadSignatureAsSpan();
         SignatureReader sigReader = new(signature);
         if (!sigReader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
         {
-            ThrowInvalidSignature($"Invalid variant signature: {signature.ToString()}");
+            ThrowInvalidSignature($"Invalid variant signature: {Encoding.UTF8.GetString(signature)}");
         }
         return ReadTypeAsVariantValue(type, innerSignature, nesting);
     }

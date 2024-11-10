@@ -22,7 +22,7 @@ public ref partial struct MessageWriter
 
     public void WriteDouble(double value) => WritePrimitiveCore<double>(value, DBusType.Double);
 
-    public void WriteString(Utf8Span value) => WriteStringCore(value);
+    public void WriteString(ReadOnlySpan<byte> value) => WriteStringCore(value);
 
     public void WriteString(string value) => WriteStringCore(value);
 
@@ -48,7 +48,7 @@ public ref partial struct MessageWriter
         WriteByte(0);
     }
 
-    public void WriteObjectPath(Utf8Span value) => WriteStringCore(value);
+    public void WriteObjectPath(ReadOnlySpan<byte> value) => WriteStringCore(value);
 
     public void WriteObjectPath(string value) => WriteStringCore(value);
 
@@ -108,19 +108,19 @@ public ref partial struct MessageWriter
         WriteDouble(value);
     }
 
-    public void WriteVariantString(Utf8Span value)
+    public void WriteVariantString(ReadOnlySpan<byte> value)
     {
         WriteSignature(ProtocolConstants.StringSignature);
         WriteString(value);
     }
 
-    public void WriteVariantSignature(Utf8Span value)
+    public void WriteVariantSignature(ReadOnlySpan<byte> value)
     {
         WriteSignature(ProtocolConstants.SignatureSignature);
         WriteSignature(value);
     }
 
-    public void WriteVariantObjectPath(Utf8Span value)
+    public void WriteVariantObjectPath(ReadOnlySpan<byte> value)
     {
         WriteSignature(ProtocolConstants.ObjectPathSignature);
         WriteObjectPath(value);

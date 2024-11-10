@@ -47,11 +47,11 @@ public ref partial struct MessageWriter
         }
         else if (typeof(T) == typeof(ObjectPath))
         {
-            WriteString(((ObjectPath)(object)value).ToString());
+            WriteObjectPath(((ObjectPath)(object)value));
         }
         else if (typeof(T) == typeof(Signature))
         {
-            WriteSignature(((Signature)(object)value).ToString());
+            WriteSignature(((Signature)(object)value));
         }
         else if (typeof(T) == typeof(Variant))
         {

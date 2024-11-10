@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using Microsoft.Win32.SafeHandles;
 using Xunit;
 
@@ -294,11 +295,11 @@ public class VariantValueTests
     [InlineData("sis", 1)]
     public void Signature(string s, byte nesting)
     {
-        Signature value = new Signature(s);
+        Signature value = new Signature(Encoding.UTF8.GetBytes(s));
         VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
         UnwrapVariant(ref vv, nesting);
 
-        Assert.Equal(s, vv.GetSignature());
+        Assert.Equal(s, vv.GetSignature().ToString());
 
         Assert.Equal(VariantValueType.Signature, vv.Type);
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);

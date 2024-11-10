@@ -288,7 +288,7 @@ class DBusConnection : IDisposable
                 }
                 else if (message.MessageType == MessageType.MethodReturn)
                 {
-                    vtsState.SetResult(message.GetBodyReader().ReadString().ToString());
+                    vtsState.SetResult(message.GetBodyReader().ReadString());
                 }
                 else
                 {

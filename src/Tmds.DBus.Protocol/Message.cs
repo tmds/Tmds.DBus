@@ -190,7 +190,7 @@ public sealed class Message
         while (reader.HasNext(headersEnd))
         {
             MessageHeader hdrType = (MessageHeader)reader.ReadByte();
-            ReadOnlySpan<byte> sig = reader.ReadSignature();
+            ReadOnlySpan<byte> sig = reader.ReadSignatureAsSpan();
             switch (hdrType)
             {
                 case MessageHeader.Path:
@@ -215,7 +215,7 @@ public sealed class Message
                     _sender.Set(reader.ReadStringAsSpan());
                     break;
                 case MessageHeader.Signature:
-                    _signature.Set(reader.ReadSignature());
+                    _signature.Set(reader.ReadSignatureAsSpan());
                     break;
                 case MessageHeader.UnixFds:
                     UnixFdCount = (int)reader.ReadUInt32();

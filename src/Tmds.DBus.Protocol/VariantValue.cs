@@ -221,12 +221,12 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     internal VariantValue(Signature value, byte nesting)
     {
         _l = GetTypeMetadata(VariantValueType.Signature, nesting);
-        string s = value.ToString();
-        if (s.Length == 0)
+        byte[] data = value.Data;
+        if (data.Length == 0)
         {
             throw new ArgumentException(nameof(value));
         }
-        _o = s;
+        _o = data;
     }
     // Array
     internal VariantValue(VariantValueType itemType, object? itemSignature, VariantValue[] items, byte nesting)
@@ -520,10 +520,16 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return UnsafeGetString();
     }
 
-    public string GetSignature()
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Signature UnsafeGetSignature()
+    {
+        return new Signature((_o as byte[])!);
+    }
+
+    public Signature GetSignature()
     {
         EnsureTypeIs(VariantValueType.Signature);
-        return UnsafeGetString();
+        return UnsafeGetSignature();
     }
 
     public double GetDouble()
@@ -722,7 +728,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         else if (typeof(T) == typeof(string))
         {
-            EnsureTypeIs(type, [ VariantValueType.String, VariantValueType.Signature, VariantValueType.ObjectPath ]);
+            EnsureTypeIs(type, [ VariantValueType.String, VariantValueType.ObjectPath ]);
+        }
+        else if (typeof(T) == typeof(Signature))
+        {
+            EnsureTypeIs(type, VariantValueType.Signature);
         }
         else if (typeof(T) == typeof(VariantValue))
         { }
@@ -984,7 +994,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             case VariantValueType.ObjectPath:
                 return $"{UnsafeGetString()}{TypeSuffix(includeTypeSuffix, type, nesting)}";
             case VariantValueType.Signature:
-                return $"{UnsafeGetString()}{TypeSuffix(includeTypeSuffix, type, nesting)}";
+                return $"{UnsafeGetSignature()}{TypeSuffix(includeTypeSuffix, type, nesting)}";
             case VariantValueType.Struct:
                 var values = (_o as VariantValue[]) ?? Array.Empty<VariantValue>();
                 return $"({string.Join(", ", values.Select(v => v.ToString(includeTypeSuffix: false)))}){TypeSuffix(includeTypeSuffix, type, nesting)}";
@@ -1069,8 +1079,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 return true;
             case VariantValueType.String:
             case VariantValueType.ObjectPath:
-            case VariantValueType.Signature:
                 return (_o as string)!.Equals(other._o as string, StringComparison.Ordinal);
+            case VariantValueType.Signature:
+                return (_o as byte[])!.SequenceEqual((other._o as byte[])!);
         }
         // Always return false for composite types and handles.
         return false;

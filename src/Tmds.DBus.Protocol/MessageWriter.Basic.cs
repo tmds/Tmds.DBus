@@ -26,13 +26,15 @@ public ref partial struct MessageWriter
 
     public void WriteString(string value) => WriteStringCore(value);
 
-    public void WriteSignature(Utf8Span value)
+    public void WriteSignature(Signature value)
+        => WriteSignature(value.Data);
+
+    public void WriteSignature(ReadOnlySpan<byte> value)
     {
-        ReadOnlySpan<byte> span = value;
-        int length = span.Length;
+        int length = value.Length;
         WriteByte((byte)length);
         var dst = GetSpan(length);
-        span.CopyTo(dst);
+        value.CopyTo(dst);
         Advance(length);
         WriteByte((byte)0);
     }
@@ -49,6 +51,8 @@ public ref partial struct MessageWriter
     public void WriteObjectPath(Utf8Span value) => WriteStringCore(value);
 
     public void WriteObjectPath(string value) => WriteStringCore(value);
+
+    public void WriteObjectPath(ObjectPath value) => WriteStringCore(value.ToString());
 
     public void WriteVariantBool(bool value)
     {

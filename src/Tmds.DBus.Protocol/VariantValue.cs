@@ -253,13 +253,20 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     internal VariantValue(VariantValueType itemType, VariantValue[] items, object? itemSignature = null) :
         this(itemType, itemSignature, items, nesting: 0)
     { }
-    internal VariantValue(VariantValueType itemType, string[] items) :
-        this(itemType, items, nesting: 0)
+    internal VariantValue(string[] items) :
+        this(items, nesting: 0)
     { }
-    internal VariantValue(VariantValueType itemType, string[] items, byte nesting)
+    internal VariantValue(string[] items, byte nesting)
     {
-        Debug.Assert(itemType == VariantValueType.String || itemType == VariantValueType.ObjectPath);
-        _l = GetArrayTypeMetadata(itemType, items.Length, nesting);
+        _l = GetArrayTypeMetadata(VariantValueType.String, items.Length, nesting);
+        _o = items;
+    }
+    internal VariantValue(ObjectPath[] items) :
+        this(items, nesting: 0)
+    { }
+    internal VariantValue(ObjectPath[] items, byte nesting)
+    {
+        _l = GetArrayTypeMetadata(VariantValueType.ObjectPath, items.Length, nesting);
         _o = items;
     }
     internal VariantValue(byte[] items) :
@@ -514,7 +521,16 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return (_o as string)!;
     }
 
-    public string GetObjectPath()
+    private ObjectPath UnsafeGetObjectPath()
+        => new ObjectPath(UnsafeGetString());
+
+    public ObjectPath GetObjectPath()
+    {
+        EnsureTypeIs(VariantValueType.ObjectPath);
+        return UnsafeGetObjectPath();
+    }
+
+    public string GetObjectPathAsString()
     {
         EnsureTypeIs(VariantValueType.ObjectPath);
         return UnsafeGetString();
@@ -588,6 +604,14 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         else if (typeof(T) == typeof(string))
         {
             return (T)(object)UnsafeGetString();
+        }
+        else if (typeof(T) == typeof(Signature))
+        {
+            return (T)(object)UnsafeGetSignature();
+        }
+        else if (typeof(T) == typeof(ObjectPath))
+        {
+            return (T)(object)UnsafeGetObjectPath();
         }
         else if (typeof(T) == typeof(VariantValue))
         {
@@ -728,7 +752,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         else if (typeof(T) == typeof(string))
         {
-            EnsureTypeIs(type, [ VariantValueType.String, VariantValueType.ObjectPath ]);
+            EnsureTypeIs(type, VariantValueType.String);
+        }
+        else if (typeof(T) == typeof(ObjectPath))
+        {
+            EnsureTypeIs(type, VariantValueType.ObjectPath);
         }
         else if (typeof(T) == typeof(Signature))
         {
@@ -815,8 +843,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 case VariantValueType.Double:
                     return new VariantValue((_o as double[])![i]);
                 case VariantValueType.String:
-                case VariantValueType.ObjectPath:
                     return new VariantValue((_o as string[])![i]);
+                case VariantValueType.ObjectPath:
+                    return new VariantValue((_o as ObjectPath[])![i]);
             }
         }
 

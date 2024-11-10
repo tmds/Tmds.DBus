@@ -315,8 +315,8 @@ public class VariantValueTests
     [InlineData(1)]
     public void Array(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(VariantValueType.String, new string[] { "1", "2" }, nesting)
-                                      : new VariantValue(VariantValueType.String, new string[] { "1", "2" });
+        VariantValue vv = nesting > 0 ? new VariantValue(new string[] { "1", "2" }, nesting)
+                                      : new VariantValue(new string[] { "1", "2" });
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);

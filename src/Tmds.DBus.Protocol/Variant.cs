@@ -82,12 +82,12 @@ public readonly struct Variant
     public Variant(Signature value)
     {
         _l = (long)DBusType.Signature << TypeShift;
-        string s = value.ToString();
-        if (s.Length == 0)
+        byte[] data = value.Data;
+        if (data.Length == 0)
         {
             throw new ArgumentException(nameof(value));
         }
-        _o = s;
+        _o = data;
     }
     public Variant(SafeHandle value)
     {
@@ -336,10 +336,10 @@ public readonly struct Variant
         DebugAssertTypeIs(DBusType.ObjectPath);
         return (_o as string)!;
     }
-    private string GetSignature()
+    private byte[] GetSignature()
     {
         DebugAssertTypeIs(DBusType.Signature);
-        return (_o as string)!;
+        return (_o as byte[])!;
     }
     private SafeHandle GetUnixFd()
     {
@@ -407,7 +407,7 @@ public readonly struct Variant
                 writer.WriteVariantObjectPath(GetObjectPath());
                 break;
             case DBusType.Signature:
-                writer.WriteVariantSignature(GetSignature());
+                writer.WriteVariantSignature(new Utf8Span(GetSignature()));
                 break;
             case DBusType.UnixFd:
                 writer.WriteVariantHandle(GetUnixFd());

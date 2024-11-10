@@ -97,7 +97,7 @@ public class ReaderTests
                           new byte[] { 3, (byte)'s', (byte)'i', (byte)'s', 0 })]
     public void ReadSignature(string expected, int alignment, byte[] bigEndianData, byte[] littleEndianData)
     {
-        TestRead(expected, (ref Reader reader) => reader.ReadSignature().ToString(), alignment, bigEndianData, littleEndianData);
+        TestRead(expected, (ref Reader reader) => reader.ReadSignatureAsString(), alignment, bigEndianData, littleEndianData);
     }
 
     [Theory]
@@ -300,7 +300,7 @@ public class ReaderTests
                 new object[] {new VariantValue(new ObjectPath("/a/b")),
                                                 new byte[] {1, 111, 0, 0, 0, 0, 0, 4, 47, 97, 47, 98, 0},
                                                 new byte[] {1, 111, 0, 0, 4, 0, 0, 0, 47, 97, 47, 98, 0}},
-                new object[] {new VariantValue(new Signature("sis")),
+                new object[] {new VariantValue(new Signature("sis"u8)),
                                                 new byte[] {1, 103, 0, 3, 115, 105, 115, 0},
                                                 new byte[] {1, 103, 0, 3, 115, 105, 115, 0}},
                 new object[] {new VariantValue(new long[] { 1, 2}),
@@ -349,7 +349,7 @@ public class ReaderTests
                 new object[] {VariantValue.CreateVariant(new VariantValue(new ObjectPath("/a/b"))),
                                                 new byte[] {1, 118, 0, 1, 111, 0, 0, 0, 0, 0, 0, 4, 47, 97, 47, 98, 0},
                                                 new byte[] {1, 118, 0, 1, 111, 0, 0, 0, 4, 0, 0, 0, 47, 97, 47, 98, 0}},
-                new object[] {VariantValue.CreateVariant(new VariantValue(new Signature("sis"))),
+                new object[] {VariantValue.CreateVariant(new VariantValue(new Signature("sis"u8))),
                                                 new byte[] {1, 118, 0, 1, 103, 0, 3, 115, 105, 115, 0},
                                                 new byte[] {1, 118, 0, 1, 103, 0, 3, 115, 105, 115, 0}},
                 new object[] {VariantValue.CreateVariant(new VariantValue(new long[] { 1, 2})),

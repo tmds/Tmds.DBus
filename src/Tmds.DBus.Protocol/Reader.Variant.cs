@@ -117,10 +117,13 @@ public ref partial struct Reader
                     {
                         return new VariantValue(ReadArrayOfDouble(), nesting);
                     }
-                    else if (type == DBusType.String ||
-                             type == DBusType.ObjectPath)
+                    else if (type == DBusType.String)
                     {
-                        return new VariantValue(ToVariantValueType(type), ReadArrayOfString(), nesting);
+                        return new VariantValue(ReadArrayOfString(), nesting);
+                    }
+                    else if (type == DBusType.ObjectPath)
+                    {
+                        return new VariantValue(ReadArrayOfObjectPath(), nesting);
                     }
                     else
                     {

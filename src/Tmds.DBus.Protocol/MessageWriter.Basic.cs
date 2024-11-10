@@ -22,14 +22,14 @@ public ref partial struct MessageWriter
 
     public void WriteDouble(double value) => WritePrimitiveCore<double>(value, DBusType.Double);
 
-    public void WriteString(ReadOnlySpan<byte> value) => WriteStringCore(value);
+    public void WriteString(scoped ReadOnlySpan<byte> value) => WriteStringCore(value);
 
     public void WriteString(string value) => WriteStringCore(value);
 
     public void WriteSignature(Signature value)
         => WriteSignature(value.Data);
 
-    public void WriteSignature(ReadOnlySpan<byte> value)
+    public void WriteSignature(scoped ReadOnlySpan<byte> value)
     {
         int length = value.Length;
         WriteByte((byte)length);
@@ -48,7 +48,7 @@ public ref partial struct MessageWriter
         WriteByte(0);
     }
 
-    public void WriteObjectPath(ReadOnlySpan<byte> value) => WriteStringCore(value);
+    public void WriteObjectPath(scoped ReadOnlySpan<byte> value) => WriteStringCore(value);
 
     public void WriteObjectPath(string value) => WriteStringCore(value);
 
@@ -108,19 +108,19 @@ public ref partial struct MessageWriter
         WriteDouble(value);
     }
 
-    public void WriteVariantString(ReadOnlySpan<byte> value)
+    public void WriteVariantString(scoped ReadOnlySpan<byte> value)
     {
         WriteSignature(ProtocolConstants.StringSignature);
         WriteString(value);
     }
 
-    public void WriteVariantSignature(ReadOnlySpan<byte> value)
+    public void WriteVariantSignature(scoped ReadOnlySpan<byte> value)
     {
         WriteSignature(ProtocolConstants.SignatureSignature);
         WriteSignature(value);
     }
 
-    public void WriteVariantObjectPath(ReadOnlySpan<byte> value)
+    public void WriteVariantObjectPath(scoped ReadOnlySpan<byte> value)
     {
         WriteSignature(ProtocolConstants.ObjectPathSignature);
         WriteObjectPath(value);
@@ -144,7 +144,7 @@ public ref partial struct MessageWriter
         WriteObjectPath(value);
     }
 
-    private void WriteStringCore(ReadOnlySpan<byte> span)
+    private void WriteStringCore(scoped ReadOnlySpan<byte> span)
     {
         int length = span.Length;
         WriteUInt32((uint)length);
@@ -174,7 +174,7 @@ public ref partial struct MessageWriter
         Advance(length);
     }
 
-    private int WriteRaw(ReadOnlySpan<byte> data)
+    private int WriteRaw(scoped ReadOnlySpan<byte> data)
     {
         int totalLength = data.Length;
         if (totalLength <= MaxSizeHint)

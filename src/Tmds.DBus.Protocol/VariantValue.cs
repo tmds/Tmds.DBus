@@ -1122,22 +1122,192 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         get
         {
             Span<byte> span = stackalloc byte[ProtocolConstants.MaxSignatureLength];
-            return Encoding.UTF8.GetString(GetSignature(span));
+            return Encoding.UTF8.GetString(GetSignature(Type, span));
         }
     }
 
+    internal void WriteVariantTo(ref MessageWriter writer)
+    {
+        WriteValueTo(ref writer, nestingOffset: +1);
+    }
+
+    private void WriteValueTo(ref MessageWriter writer, int nestingOffset)
+    {
+        (VariantValueType type, int nesting) = DetermineTypeAndNesting();
+
+        nesting += nestingOffset;
+        while (nesting > 1)
+        {
+            writer.WriteSignature(ProtocolConstants.VariantSignature);
+            nesting--;
+        }
+        if (nesting == 1)
+        {
+            WriteSignatureTo(type, ref writer);
+        }
+
+        switch (type)
+        {
+            case VariantValueType.Byte:
+                writer.WriteByte(UnsafeGetByte());
+                break;
+            case VariantValueType.Bool:
+                writer.WriteBool(UnsafeGetBool());
+                break;
+            case VariantValueType.Int16:
+                writer.WriteInt16(UnsafeGetInt16());
+                break;
+            case VariantValueType.UInt16:
+                writer.WriteUInt16(UnsafeGetUInt16());
+                break;
+            case VariantValueType.Int32:
+                writer.WriteInt32(UnsafeGetInt32());
+                break;
+            case VariantValueType.UInt32:
+                writer.WriteUInt32(UnsafeGetUInt32());
+                break;
+            case VariantValueType.Int64:
+                writer.WriteInt64(UnsafeGetInt64());
+                break;
+            case VariantValueType.UInt64:
+                writer.WriteUInt64(UnsafeGetUInt64());
+                break;
+            case VariantValueType.Double:
+                writer.WriteDouble(UnsafeGetDouble());
+                break;
+            case VariantValueType.String:
+                writer.WriteString(UnsafeGetString());
+                break;
+            case VariantValueType.ObjectPath:
+                writer.WriteObjectPath(UnsafeGetString());
+                break;
+            case VariantValueType.Signature:
+                writer.WriteSignature(UnsafeGetSignature());
+                break;
+            case VariantValueType.UnixFd:
+                writer.WriteHandle(UnsafeReadHandle<Microsoft.Win32.SafeHandles.SafeFileHandle>() ?? throw new ArgumentNullException("SafeHandle unavailable."));
+                break;
+            case VariantValueType.Array:
+                WriteArrayTo(ref writer);
+                break;
+            case VariantValueType.Struct:
+                WriteStructTo(ref writer);
+                break;
+            case VariantValueType.Dictionary:
+                WriteDictionaryTo(ref writer);
+                break;
+            default:
+                throw new ArgumentException($"VariantValueType: {type}");
+        }
+    }
+
+    private void WriteStructTo(ref MessageWriter writer)
+    {
+        writer.WriteStructureStart();
+        var items = (_o as VariantValue[])!;
+        int mask = (int)(_l >> StructVariantMaskShift);
+        foreach (var item in items)
+        {
+            item.WriteValueTo(ref writer, mask & 1);
+            mask >>= 1;
+        }
+    }
+
+    private void WriteDictionaryTo(ref MessageWriter writer)
+    {
+        ArrayStart arrayStart = writer.WriteDictionaryStart();
+        if (UnsafeCount > 0)
+        {
+            DBusType keyType = ToDBusType(UnsafeDetermineInnerType(DictionaryKeyTypeShift));
+            DBusType valueType = ToDBusType(UnsafeDetermineInnerType(DictionaryValueTypeShift));
+            int keyNestingOffset = keyType == DBusType.Variant ? 1 : 0;
+            int valueNestingOffset = valueType == DBusType.Variant ? 1 : 0;
+
+            var pairs = (_o as KeyValuePair<VariantValue, VariantValue>[])!;
+            foreach (var pair in pairs)
+            {
+                writer.WriteDictionaryEntryStart();
+                pair.Key.WriteValueTo(ref writer, keyNestingOffset);
+                pair.Value.WriteValueTo(ref writer, valueNestingOffset);
+            }
+        }
+        writer.WriteDictionaryEnd(arrayStart);
+    }
+
+    private void WriteArrayTo(ref MessageWriter writer)
+    {
+        DBusType itemType = ToDBusType(UnsafeDetermineInnerType(ArrayItemTypeShift));
+        switch (itemType)
+        {
+            case DBusType.Byte:
+                writer.WriteArray((_o as byte[])!);
+                return;
+            case DBusType.Int16:
+                writer.WriteArray((_o as short[])!);
+                return;
+            case DBusType.UInt16:
+                writer.WriteArray((_o as ushort[])!);
+                return;
+            case DBusType.Int32:
+                writer.WriteArray((_o as int[])!);
+                return;
+            case DBusType.UInt32:
+                writer.WriteArray((_o as uint[])!);
+                return;
+            case DBusType.Int64:
+                writer.WriteArray((_o as long[])!);
+                return;
+            case DBusType.UInt64:
+                writer.WriteArray((_o as ulong[])!);
+                return;
+            case DBusType.Double:
+                writer.WriteArray((_o as double[])!);
+                return;
+            case DBusType.String:
+                writer.WriteArray((_o as string[])!);
+                return;
+            case DBusType.ObjectPath:
+                writer.WriteArray((_o as ObjectPath[])!);
+                return;
+        }
+
+        ArrayStart arrayStart = writer.WriteArrayStart(itemType);
+        var items = _o as VariantValue[];
+        if (items is not null)
+        {
+            int nestingOffset = itemType == DBusType.Variant ? 1 : 0;
+            foreach (var item in items)
+            {
+                item.WriteValueTo(ref writer, nestingOffset);
+            }
+        }
+        writer.WriteArrayEnd(arrayStart);
+    }
+
+    private static DBusType ToDBusType(VariantValueType type)
+        => (DBusType)type;
+
+    private void WriteSignatureTo(VariantValueType type, ref MessageWriter writer)
+    {
+        Span<byte> span = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        ReadOnlySpan<byte> signature = GetSignature(type, span);
+        writer.WriteSignature(signature);
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ReadOnlySpan<byte> GetSignature(scoped Span<byte> buffer)
+    private ReadOnlySpan<byte> GetSignature(VariantValueType type, Span<byte> buffer)
     {
         Debug.Assert(buffer.Length >= ProtocolConstants.MaxSignatureLength);
 
-        int bytesWritten = AppendTypeSignature(buffer);
-        return buffer.Slice(0, bytesWritten).ToArray();
+        int bytesWritten = AppendTypeSignature(type, buffer);
+        return buffer.Slice(0, bytesWritten);
     }
 
     private int AppendTypeSignature(Span<byte> signature)
+        => AppendTypeSignature(Type, signature);
+
+    private int AppendTypeSignature(VariantValueType type, Span<byte> signature)
     {
-        VariantValueType type = Type;
         switch (type)
         {
             case VariantValueType.Invalid:

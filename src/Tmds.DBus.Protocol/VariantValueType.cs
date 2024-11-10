@@ -1,14 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
-public enum VariantValueType
+public enum VariantValueType : byte
 {
     Invalid = 0,
-
-    // VariantValue is used for a variant for which we read the value
-    // and no longer track its signature.
-    VariantValue = 1,
-
-    //  Match the DBusType values for easy conversion.
     Byte = DBusType.Byte,
     Bool = DBusType.Bool,
     Int16 = DBusType.Int16,
@@ -25,6 +19,5 @@ public enum VariantValueType
     Struct = DBusType.Struct,
     Dictionary = DBusType.DictEntry,
     UnixFd = DBusType.UnixFd,
-    // We don't need this : variants are resolved into the VariantValue.
-    // Variant = DBusType.Variant,
+    Variant = DBusType.Variant,
 }

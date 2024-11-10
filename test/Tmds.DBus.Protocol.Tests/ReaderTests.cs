@@ -150,6 +150,10 @@ public class ReaderTests
 
     public bool Equals(VariantValue lhs, VariantValue other)
     {
+        if (lhs.Signature != other.Signature)
+        {
+            return false;
+        }
         if (lhs.Equals(other))
         {
             return true;
@@ -161,8 +165,14 @@ public class ReaderTests
         }
         switch (type)
         {
+            case VariantValueType.Variant:
+                return Equals(lhs.GetVariantValue(), other.GetVariantValue());
             case VariantValueType.Array:
                 if (lhs.Count != other.Count)
+                {
+                    return false;
+                }
+                if (lhs.ItemType != other.ItemType)
                 {
                     return false;
                 }
@@ -185,7 +195,11 @@ public class ReaderTests
                 }
                 for (int i = 0; i < lhs.Count; i++)
                 {
-                    if (!lhs.GetItem(i).Equals(other.GetItem(i)))
+                    if (lhs.GetStructFieldType(i) != other.GetStructFieldType(i))
+                    {
+                        return false;
+                    }
+                    if (!Equals(lhs.GetItem(i), other.GetItem(i)))
                     {
                         return false;
                     }
@@ -201,11 +215,19 @@ public class ReaderTests
                 {
                     return false;
                 }
+                if (lhs.KeyType != other.KeyType)
+                {
+                    return false;
+                }
+                if (lhs.ValueType != other.ValueType)
+                {
+                    return false;
+                }
                 for (int i = 0; i < lhs.Count; i++)
                 {
                     var pair1 = lhs.GetDictionaryEntry(i);
                     var pair2 = lhs.GetDictionaryEntry(i);
-                    if (!pair1.Key.Equals(pair2.Key) || !pair2.Value.Equals(pair2.Value))
+                    if (!Equals(pair1.Key, pair2.Key) || !Equals(pair1.Value, pair2.Value))
                     {
                         return false;
                     }
@@ -236,6 +258,12 @@ public class ReaderTests
                 {
                     KeyValuePair.Create(new VariantValue(1), new VariantValue("one")),
                     KeyValuePair.Create(new VariantValue(1), new VariantValue("two")),
+                });
+            VariantValue stringVariantDictionary = new VariantValue(VariantValueType.String, VariantValueType.Variant,
+                new[]
+                {
+                    KeyValuePair.Create(new VariantValue("one"), new VariantValue(1)),
+                    KeyValuePair.Create(new VariantValue("two"), VariantValue.CreateVariant(new VariantValue(2))),
                 });
             return new[]
             {
@@ -278,13 +306,98 @@ public class ReaderTests
                 new object[] {new VariantValue(new long[] { 1, 2}),
                                                 new byte[] {2, 97, 120, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2},
                                                 new byte[] {2, 97, 120, 0, 16, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0}},
-                new object[] {new VariantValue(new VariantValue[] { new VariantValue(1L), new VariantValue("hw") }), new byte[] {4, 40, 120, 115, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 104, 119, 0},
-                                                                                        new byte[] {4, 40, 120, 115, 41, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 104, 119, 0}},
+                new object[] {new VariantValue(new VariantValue[] { new VariantValue(1L), new VariantValue("hw") }),
+                                                new byte[] {4, 40, 120, 115, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 104, 119, 0},
+                                                new byte[] {4, 40, 120, 115, 41, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 104, 119, 0}},
                 new object[] {myDictionary,     new byte[] {5, 97, 123, 121, 115, 125, 0, 0, 0, 0, 0, 28, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 3, 111, 110, 101, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 3, 116, 119, 111, 0},
                                                 new byte[] {5, 97, 123, 121, 115, 125, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 111, 110, 101, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 116, 119, 111, 0}},
                 new object[] {new VariantValue(new VariantValue[] { new VariantValue((byte)1), new VariantValue((byte)2), new VariantValue((byte)3), new VariantValue((byte)4), new VariantValue((byte)5), new VariantValue((byte)6), new VariantValue((byte)7), new VariantValue((byte)8) }),
                                                 new byte[] {10, 40, 121, 121, 121, 121, 121, 121, 121, 121, 41, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8},
                                                 new byte[] {10, 40, 121, 121, 121, 121, 121, 121, 121, 121, 41, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}},
+
+                // Above values wrapped in a Variant.
+                new object[] {VariantValue.CreateVariant(new VariantValue(true)),
+                                                new byte[] {1, 118, 0, 1, 98, 0, 0, 0, 0, 0, 0, 1},
+                                                new byte[] {1, 118, 0, 1, 98, 0, 0, 0, 1, 0, 0, 0}},
+                new object[] {VariantValue.CreateVariant(new VariantValue((byte)5)),
+                                                new byte[] {1, 118, 0, 1, 121, 0, 5},
+                                                new byte[] {1, 118, 0, 1, 121, 0, 5}},
+                new object[] {VariantValue.CreateVariant(new VariantValue((short)0x0102)),
+                                                new byte[] {1, 118, 0, 1, 110, 0, 1, 2},
+                                                new byte[] {1, 118, 0, 1, 110, 0, 2, 1}},
+                new object[] {VariantValue.CreateVariant(new VariantValue(0x01020304)),
+                                                new byte[] {1, 118, 0, 1, 105, 0, 0, 0, 1, 2, 3, 4},
+                                                new byte[] {1, 118, 0, 1, 105, 0, 0, 0, 4, 3, 2, 1}},
+                new object[] {VariantValue.CreateVariant(new VariantValue(0x0102030405060708)),
+                                                new byte[] {1, 118, 0, 1, 120, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8},
+                                                new byte[] {1, 118, 0, 1, 120, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1}},
+                new object[] {VariantValue.CreateVariant(new VariantValue(1.0)),
+                                                new byte[] {1, 118, 0, 1, 100, 0, 0, 0, 63, 240, 0, 0, 0, 0, 0, 0},
+                                                new byte[] {1, 118, 0, 1, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 240, 63}},
+                new object[] {VariantValue.CreateVariant(new VariantValue((ushort)0x0102)),
+                                                new byte[] {1, 118, 0, 1, 113, 0, 1, 2},
+                                                new byte[] {1, 118, 0, 1, 113, 0, 2, 1}},
+                new object[] {VariantValue.CreateVariant(new VariantValue((uint)0x01020304)),
+                                                new byte[] {1, 118, 0, 1, 117, 0, 0, 0, 1, 2, 3, 4},
+                                                new byte[] {1, 118, 0, 1, 117, 0, 0, 0, 4, 3, 2, 1}},
+                new object[] {VariantValue.CreateVariant(new VariantValue((ulong)0x0102030405060708)),
+                                                new byte[] {1, 118, 0, 1, 116, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8},
+                                                new byte[] {1, 118, 0, 1, 116, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1}},
+                new object[] {VariantValue.CreateVariant(new VariantValue("hw")),
+                                                new byte[] {1, 118, 0, 1, 115, 0, 0, 0, 0, 0, 0, 2, 104, 119, 0},
+                                                new byte[] {1, 118, 0, 1, 115, 0, 0, 0, 2, 0, 0, 0, 104, 119, 0}},
+                new object[] {VariantValue.CreateVariant(new VariantValue(new ObjectPath("/a/b"))),
+                                                new byte[] {1, 118, 0, 1, 111, 0, 0, 0, 0, 0, 0, 4, 47, 97, 47, 98, 0},
+                                                new byte[] {1, 118, 0, 1, 111, 0, 0, 0, 4, 0, 0, 0, 47, 97, 47, 98, 0}},
+                new object[] {VariantValue.CreateVariant(new VariantValue(new Signature("sis"))),
+                                                new byte[] {1, 118, 0, 1, 103, 0, 3, 115, 105, 115, 0},
+                                                new byte[] {1, 118, 0, 1, 103, 0, 3, 115, 105, 115, 0}},
+                new object[] {VariantValue.CreateVariant(new VariantValue(new long[] { 1, 2})),
+                                                new byte[] {1, 118, 0, 2, 97, 120, 0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2},
+                                                new byte[] {1, 118, 0, 2, 97, 120, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0}},
+                new object[] {VariantValue.CreateVariant(new VariantValue(new VariantValue[] { new VariantValue(1L), new VariantValue("hw") })),
+                                                new byte[] {1, 118, 0, 4, 40, 120, 115, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 104, 119, 0},
+                                                new byte[] {1, 118, 0, 4, 40, 120, 115, 41, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 104, 119, 0}},
+                new object[] {VariantValue.CreateVariant(myDictionary),
+                                                new byte[] {1, 118, 0, 5, 97, 123, 121, 115, 125, 0, 0, 0, 0, 0, 0, 28, 1, 0, 0, 0, 0, 0, 0, 3, 111, 110, 101, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 3, 116, 119, 111, 0},
+                                                new byte[] {1, 118, 0, 5, 97, 123, 121, 115, 125, 0, 0, 0, 28, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 111, 110, 101, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 116, 119, 111, 0}},
+                new object[] {VariantValue.CreateVariant(new VariantValue(new VariantValue[] { new VariantValue((byte)1), new VariantValue((byte)2), new VariantValue((byte)3), new VariantValue((byte)4), new VariantValue((byte)5), new VariantValue((byte)6), new VariantValue((byte)7), new VariantValue((byte)8) })),
+                                                new byte[] {1, 118, 0, 10, 40, 121, 121, 121, 121, 121, 121, 121, 121, 41, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8},
+                                                new byte[] {1, 118, 0, 10, 40, 121, 121, 121, 121, 121, 121, 121, 121, 41, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}},
+
+                // Nested variants.
+                // v -> (v) / v -> i
+                new object[] {VariantValue.CreateVariant(new VariantValue(new VariantValue[] { VariantValue.CreateVariant(new VariantValue(1)) })),
+                                                new byte[] {1, 118, 0, 3, 40, 118, 41, 0, 1, 105, 0, 0, 0, 0, 0, 1},
+                                                new byte[] {1, 118, 0, 3, 40, 118, 41, 0, 1, 105, 0, 0, 1, 0, 0, 0}},
+                // v -> (v) / v -> v / v -> i
+                new object[] {VariantValue.CreateVariant(new VariantValue(new VariantValue[] { VariantValue.CreateVariant(VariantValue.CreateVariant(new VariantValue(1))) })),
+                                                new byte[] {1, 118, 0, 3, 40, 118, 41, 0, 1, 118, 0, 1, 105, 0, 0, 0, 0, 0, 0, 1},
+                                                new byte[] {1, 118, 0, 3, 40, 118, 41, 0, 1, 118, 0, 1, 105, 0, 0, 0, 1, 0, 0, 0}},
+                // v -> av / v -> i
+                new object[] {VariantValue.CreateVariant(new VariantValue(VariantValueType.Variant, new VariantValue[] { 1 })),
+                                                new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 0, 0, 0, 8, 1, 105, 0, 0, 0, 0, 0, 1},
+                                                new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 8, 0, 0, 0, 1, 105, 0, 0, 1, 0, 0, 0}},
+                // v -> av / v -> v / v -> i
+                new object[] {VariantValue.CreateVariant(new VariantValue(VariantValueType.Variant, new VariantValue[] { VariantValue.CreateVariant(1) })),
+                                                new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 0, 0, 0, 9, 1, 118, 0, 1, 105, 0, 0, 0, 0, 0, 0, 1},
+                                                new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 9, 0, 0, 0, 1, 118, 0, 1, 105, 0, 0, 0, 1, 0, 0, 0}},
+                // v -> a{sv}
+                //   0: v -> i
+                //   1: v -> v / v -> i
+                new object[] {VariantValue.CreateVariant(stringVariantDictionary),
+                                                new byte[] {1, 118, 0, 5, 97, 123, 115, 118, 125, 0, 0, 0, 0, 0, 0, 36, 0, 0, 0, 3, 111, 110, 101, 0, 1, 105, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 116, 119, 111, 0, 1, 118, 0, 1, 105, 0, 0, 0, 0, 0, 0, 2},
+                                                new byte[] {1, 118, 0, 5, 97, 123, 115, 118, 125, 0, 0, 0, 36, 0, 0, 0, 3, 0, 0, 0, 111, 110, 101, 0, 1, 105, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 116, 119, 111, 0, 1, 118, 0, 1, 105, 0, 0, 0, 2, 0, 0, 0}},
+
+                // Signature for empty array/dictionary
+                // a(i)
+                new object[] {new VariantValue(VariantValueType.Struct, itemSignature: new byte[] { 40, 105, 41 }, Array.Empty<VariantValue>(), nesting: 0),
+                                                new byte[] {4, 97, 40, 105, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                                                new byte[] {4, 97, 40, 105, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
+                // a{s(i)}
+                new object[] {new VariantValue(VariantValueType.String, VariantValueType.Struct, valueSignature: new byte[] { 40, 105, 41 }, Array.Empty<KeyValuePair<VariantValue, VariantValue>>(), nesting: 0),
+                                                new byte[] {7, 97, 123, 115, 40, 105, 41, 125, 0, 0, 0, 0, 0, 0, 0, 0},
+                                                new byte[] {7, 97, 123, 115, 40, 105, 41, 125, 0, 0, 0, 0, 0, 0, 0, 0}},
             };
         }
     }

@@ -6,4 +6,9 @@ public ref partial struct MessageWriter
     {
         value.WriteTo(ref this);
     }
+
+    public void WriteVariant(VariantValue value)
+    {
+        value.WriteVariantTo(ref this);
+    }
 }

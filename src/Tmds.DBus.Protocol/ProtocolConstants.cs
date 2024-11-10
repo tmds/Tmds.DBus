@@ -18,6 +18,7 @@ static class ProtocolConstants
     public static ReadOnlySpan<byte> StringSignature => new byte[] { (byte)'s' };
     public static ReadOnlySpan<byte> ObjectPathSignature => new byte[] { (byte)'o' };
     public static ReadOnlySpan<byte> SignatureSignature => new byte[] { (byte)'g' };
+    public static ReadOnlySpan<byte> VariantSignature => new byte[] { (byte)'v' };
 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

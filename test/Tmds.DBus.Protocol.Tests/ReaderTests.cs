@@ -178,14 +178,10 @@ public class ReaderTests
                 }
                 for (int i = 0; i < lhs.Count; i++)
                 {
-                    if (!lhs.GetItem(i).Equals(other.GetItem(i)))
+                    if (!Equals(lhs.GetItem(i), other.GetItem(i)))
                     {
                         return false;
                     }
-                }
-                if (lhs.Count == 0 && lhs.ItemType != other.ItemType)
-                {
-                    return false;
                 }
                 return true;
             case VariantValueType.Struct:
@@ -226,7 +222,7 @@ public class ReaderTests
                 for (int i = 0; i < lhs.Count; i++)
                 {
                     var pair1 = lhs.GetDictionaryEntry(i);
-                    var pair2 = lhs.GetDictionaryEntry(i);
+                    var pair2 = other.GetDictionaryEntry(i);
                     if (!Equals(pair1.Key, pair2.Key) || !Equals(pair1.Value, pair2.Value))
                     {
                         return false;
@@ -256,8 +252,8 @@ public class ReaderTests
             VariantValue myDictionary = new VariantValue(VariantValueType.Byte, VariantValueType.String,
                 new[]
                 {
-                    KeyValuePair.Create(new VariantValue(1), new VariantValue("one")),
-                    KeyValuePair.Create(new VariantValue(1), new VariantValue("two")),
+                    KeyValuePair.Create(new VariantValue((byte)1), new VariantValue("one")),
+                    KeyValuePair.Create(new VariantValue((byte)2), new VariantValue("two")),
                 });
             VariantValue stringVariantDictionary = new VariantValue(VariantValueType.String, VariantValueType.Variant,
                 new[]
@@ -303,6 +299,9 @@ public class ReaderTests
                 new object[] {new VariantValue(new Signature("sis"u8)),
                                                 new byte[] {1, 103, 0, 3, 115, 105, 115, 0},
                                                 new byte[] {1, 103, 0, 3, 115, 105, 115, 0}},
+                new object[] {new VariantValue(new byte[] { }),
+                                                new byte[] {2, 97, 121, 0, 0, 0, 0, 0},
+                                                new byte[] {2, 97, 121, 0, 0, 0, 0, 0}},
                 new object[] {new VariantValue(new long[] { 1, 2}),
                                                 new byte[] {2, 97, 120, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2},
                                                 new byte[] {2, 97, 120, 0, 16, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0}},
@@ -380,8 +379,8 @@ public class ReaderTests
                                                 new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 8, 0, 0, 0, 1, 105, 0, 0, 1, 0, 0, 0}},
                 // v -> av / v -> v / v -> i
                 new object[] {VariantValue.CreateVariant(new VariantValue(VariantValueType.Variant, new VariantValue[] { VariantValue.CreateVariant(1) })),
-                                                new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 0, 0, 0, 9, 1, 118, 0, 1, 105, 0, 0, 0, 0, 0, 0, 1},
-                                                new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 9, 0, 0, 0, 1, 118, 0, 1, 105, 0, 0, 0, 1, 0, 0, 0}},
+                                                new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 0, 0, 0, 12, 1, 118, 0, 1, 105, 0, 0, 0, 0, 0, 0, 1},
+                                                new byte[] {1, 118, 0, 2, 97, 118, 0, 0, 12, 0, 0, 0, 1, 118, 0, 1, 105, 0, 0, 0, 1, 0, 0, 0}},
                 // v -> a{sv}
                 //   0: v -> i
                 //   1: v -> v / v -> i

@@ -65,6 +65,9 @@ public ref partial struct Reader
         return value;
     }
 
+    public Signature ReadSignature()
+        => new Signature(ReadSignatureAsSpan());
+
     public ReadOnlySpan<byte> ReadSignatureAsSpan()
     {
         int length = ReadByte();
@@ -87,6 +90,15 @@ public ref partial struct Reader
         }
     }
 
+    public void ReadSignature(ReadOnlySpan<byte> expected)
+    {
+        ReadOnlySpan<byte> signature = ReadSignatureAsSpan();
+        if (!signature.SequenceEqual(expected))
+        {
+            ThrowHelper.ThrowUnexpectedSignature(signature, Encoding.UTF8.GetString(expected));
+        }
+    }
+
     public ReadOnlySpan<byte> ReadObjectPathAsSpan() => ReadSpan();
 
     public ObjectPath ReadObjectPath() => new ObjectPath(ReadString());
@@ -96,8 +108,6 @@ public ref partial struct Reader
     public ReadOnlySpan<byte> ReadStringAsSpan() => ReadSpan();
 
     public string ReadString() => Encoding.UTF8.GetString(ReadSpan());
-
-    public Signature ReadSignatureAsSignature() => new Signature(ReadSignatureAsSpan());
 
     public string ReadSignatureAsString() => Encoding.UTF8.GetString(ReadSignatureAsSpan());
 

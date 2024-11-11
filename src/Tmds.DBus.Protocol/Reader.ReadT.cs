@@ -51,7 +51,7 @@ public ref partial struct Reader
         }
         else if (typeof(T) == typeof(Signature))
         {
-            return (T)(object)ReadSignatureAsSignature();
+            return (T)(object)ReadSignature();
         }
         else if (typeof(T).IsAssignableTo(typeof(SafeHandle)))
         {

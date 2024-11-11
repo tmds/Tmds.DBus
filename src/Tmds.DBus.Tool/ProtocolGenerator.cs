@@ -518,7 +518,7 @@ namespace Tmds.DBus.Tool
                 {
                     AppendLine($"case \"{property.Name}\":");
                     _indentation++;
-                    AppendLine($"reader.ReadSignature(\"{property.Signature}\");");
+                    AppendLine($"reader.ReadSignature(\"{property.Signature}\"u8);");
                     AppendLine($"props.{property.NameUpper} = {CallReadArgumentType(property.Signature)};");
                     AppendLine($"changedList?.Add(\"{property.NameUpper}\");");
                     AppendLine("break;");
@@ -757,7 +757,7 @@ namespace Tmds.DBus.Tool
             AppendLine("var reader = message.GetBodyReader();");
             if (variant)
             {
-                AppendLine($"reader.ReadSignature(\"{signature}\");");
+                AppendLine($"reader.ReadSignature(\"{signature}\"u8);");
             }
             if (args.Length == 1)
             {

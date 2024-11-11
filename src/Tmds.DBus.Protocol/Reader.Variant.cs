@@ -44,7 +44,7 @@ public ref partial struct Reader
             case DBusType.ObjectPath:
                 return new VariantValue(ReadObjectPath(), nesting);
             case DBusType.Signature:
-                return new VariantValue(ReadSignatureAsSignature(), nesting);
+                return new VariantValue(ReadSignature(), nesting);
             case DBusType.UnixFd:
                 int idx = (int)ReadUInt32();
                 return new VariantValue(_handles, idx, nesting);

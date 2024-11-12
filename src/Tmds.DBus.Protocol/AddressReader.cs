@@ -2,7 +2,7 @@ namespace Tmds.DBus.Protocol;
 
 static class AddressParser
 {
-    public struct AddressEntry
+    public readonly struct AddressEntry
     {
         internal string String { get; }
         internal int Offset { get; }

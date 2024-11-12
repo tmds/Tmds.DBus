@@ -1,8 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
-public struct ObjectPath
+public readonly struct ObjectPath
 {
-    private string _value;
+    private readonly string _value;
 
     public ObjectPath(string value)
     {

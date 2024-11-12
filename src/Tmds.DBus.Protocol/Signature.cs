@@ -1,8 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
-public struct Signature
+public readonly struct Signature
 {
-    private byte[]? _value;
+    private readonly byte[]? _value;
 
     // note: C# compiler treats these as static data.
     public static ReadOnlySpan<byte> Byte => new byte[] { (byte)'y' };

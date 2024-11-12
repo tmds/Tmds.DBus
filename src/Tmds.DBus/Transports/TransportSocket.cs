@@ -27,7 +27,7 @@ namespace Tmds.DBus.Transports
         static readonly int EAGAIN = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 35 : 11;
         const int SCM_RIGHTS = 1;
 
-        private unsafe struct msghdr
+        private unsafe struct Msghdr
         {
             public IntPtr msg_name; //optional address
             public uint msg_namelen; //size of address
@@ -44,7 +44,7 @@ namespace Tmds.DBus.Transports
             public SizeT Length;
         }
 
-        private struct cmsghdr
+        private struct Cmsghdr
         {
             public SizeT cmsg_len; //data byte count, including header
             public int cmsg_level; //originating protocol
@@ -53,7 +53,7 @@ namespace Tmds.DBus.Transports
 
         private unsafe struct cmsg_fd
         {
-            public cmsghdr hdr;
+            public Cmsghdr hdr;
             public fixed int fds[64];
         }
 
@@ -175,7 +175,7 @@ namespace Tmds.DBus.Transports
                     iov.Base = buf + offset;
                     iov.Length = (SizeT)count;
                     
-                    msghdr msg = new msghdr ();
+                    Msghdr msg = new Msghdr ();
                     msg.msg_iov = &iov;
                     msg.msg_iovlen = (SizeT)1;
 
@@ -196,7 +196,7 @@ namespace Tmds.DBus.Transports
                     {
                         if (cm.hdr.cmsg_level == SOL_SOCKET && cm.hdr.cmsg_type == SCM_RIGHTS)
                         {
-                            int msgFdCount = ((int)cm.hdr.cmsg_len - sizeof(cmsghdr)) / sizeof(int);
+                            int msgFdCount = ((int)cm.hdr.cmsg_len - sizeof(Cmsghdr)) / sizeof(int);
                             for (int i = 0; i < msgFdCount; i++)
                             {
                                 fileDescriptors.Add(new UnixFd(cm.fds[i]));
@@ -309,7 +309,7 @@ namespace Tmds.DBus.Transports
             }
         }
 
-        private unsafe int SendMsg(msghdr* msg, int length)
+        private unsafe int SendMsg(Msghdr* msg, int length)
         {
             // This method does NOT handle splitting msg and EAGAIN
             do
@@ -356,12 +356,12 @@ namespace Tmds.DBus.Transports
                     int bodyLength = message.Body?.Length ?? 0;
                     iovs[1].Length = (SizeT)bodyLength;
 
-                    msghdr msg = new msghdr ();
+                    Msghdr msg = new Msghdr ();
                     msg.msg_iov = iovs;
                     msg.msg_iovlen = (SizeT)2;
 
                     var fdm = new cmsg_fd ();
-                    int size = sizeof(cmsghdr) + 4 * message.UnixFds.Length;
+                    int size = sizeof(Cmsghdr) + 4 * message.UnixFds.Length;
                     msg.msg_control = &fdm;
                     msg.msg_controllen = (SizeT)size;
                     fdm.hdr.cmsg_len = (SizeT)size;

@@ -21,7 +21,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
-    <PackageReference Include="Microsoft.Extensions.CommandLineUtils" />
+    <PackageReference Include="McMaster.Extensions.CommandLineUtils" />
     <ProjectReference Include="../Tmds.DBus.Protocol/Tmds.DBus.Protocol.csproj" />
   </ItemGroup>
 </Project>

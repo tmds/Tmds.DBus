@@ -5,7 +5,7 @@ namespace Tmds.DBus.Protocol;
 // Using obsolete generic write members
 #pragma warning disable CS0618
 
-public sealed class Array<T> : IDBusWritable, IList<T>
+public sealed class Array<T> : IDBusWritable, IList<T>, IVariantValueConvertable
     where T : notnull
 {
     private readonly List<T> _values;
@@ -74,6 +74,74 @@ public sealed class Array<T> : IDBusWritable, IList<T>
 
     public static implicit operator Variant(Array<T> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Array<T> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            return VariantValue.Array((byte[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(bool))
+        {
+            return VariantValue.Array((bool[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(short))
+        {
+            return VariantValue.Array((short[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(ushort))
+        {
+            return VariantValue.Array((ushort[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(int))
+        {
+            return VariantValue.Array((int[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(uint))
+        {
+            return VariantValue.Array((uint[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(long))
+        {
+            return VariantValue.Array((long[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(ulong))
+        {
+            return VariantValue.Array((ulong[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(double))
+        {
+            return VariantValue.Array((double[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(string))
+        {
+            return VariantValue.Array((string[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(ObjectPath))
+        {
+            return VariantValue.Array((ObjectPath[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(Signature))
+        {
+            return VariantValue.Array((Signature[])(object)_values.ToArray());
+        }
+        else if (typeof(T) == typeof(SafeHandle))
+        {
+            return VariantValue.Array((SafeHandle[])(object)_values.ToArray());
+        }
+        else if (typeof(T).IsAssignableTo(typeof(IVariantValueConvertable)))
+        {
+            Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+            return VariantValue.Array(TypeModel.GetSignature<T>(buffer), _values.Select(v => (v as IVariantValueConvertable)!.AsVariantValue()).ToArray());
+        }
+        else
+        {
+            throw new NotSupportedException($"Cannot convert type {typeof(T).FullName}");
+        }
+    }
 
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // this is a supported variant type.
     void IDBusWritable.WriteTo(ref MessageWriter writer)

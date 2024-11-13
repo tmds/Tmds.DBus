@@ -250,6 +250,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         _o = count == 0 ? valueSignature : pairs;
     }
     // Struct
+    internal static VariantValue StructFromStruct(VariantValue[] fields)
+        => StructCore(fields, nesting: 0);
+
     private static VariantValue StructCore(VariantValue[] fields, byte nesting)
     {
         long variantMask = 0;

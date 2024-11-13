@@ -5,7 +5,7 @@ namespace Tmds.DBus.Protocol;
 // Using obsolete generic write members
 #pragma warning disable CS0618
 
-public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue>
+public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue>, IVariantValueConvertable
     where TKey : notnull
     where TValue : notnull
 {
@@ -85,4 +85,16 @@ public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue
 
     IEnumerator IEnumerable.GetEnumerator()
         => _dict.GetEnumerator();
+
+    public static implicit operator VariantValue(Dict<TKey, TValue> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        ReadOnlySpan<byte> sig = TypeModel.GetSignature<TKey>(buffer);
+        DBusType keyType = (DBusType)sig[0];
+        KeyValuePair<VariantValue, VariantValue>[] pairs = _dict.Select(pair => new KeyValuePair<VariantValue, VariantValue>(VariantValueConverter.ToVariantValue(pair.Key), VariantValueConverter.ToVariantValue(pair.Value))).ToArray();
+        return VariantValue.Dictionary(keyType, TypeModel.GetSignature<TValue>(buffer), pairs);
+    }
 }

@@ -17,9 +17,9 @@ public class VariantValueTests
     [InlineData(0, 1)]
     [InlineData(1, 1)]
     [InlineData(byte.MaxValue, 1)]
-    public void Byte(Byte value, byte nesting)
+    public void Byte(byte value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.Byte(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetByte());
@@ -28,7 +28,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("y", vv.Signature);
+        Assert.Equal("y", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -40,7 +40,7 @@ public class VariantValueTests
     [InlineData(false, 1)]
     public void Bool(bool value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.Bool(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetBool());
@@ -49,7 +49,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("b", vv.Signature);
+        Assert.Equal("b", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -67,7 +67,7 @@ public class VariantValueTests
     [InlineData(short.MaxValue, 1)]
     public void Int16(Int16 value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.Int16(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetInt16());
@@ -76,7 +76,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("n", vv.Signature);
+        Assert.Equal("n", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -92,7 +92,7 @@ public class VariantValueTests
     [InlineData(ushort.MaxValue, 1)]
     public void UInt16(UInt16 value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.UInt16(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetUInt16());
@@ -101,7 +101,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("q", vv.Signature);
+        Assert.Equal("q", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -119,7 +119,7 @@ public class VariantValueTests
     [InlineData(int.MaxValue, 1)]
     public void Int32(Int32 value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.Int32(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetInt32());
@@ -128,7 +128,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("i", vv.Signature);
+        Assert.Equal("i", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -144,7 +144,7 @@ public class VariantValueTests
     [InlineData(uint.MaxValue, 1)]
     public void UInt32(UInt32 value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.UInt32(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetUInt32());
@@ -153,7 +153,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("u", vv.Signature);
+        Assert.Equal("u", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -176,7 +176,7 @@ public class VariantValueTests
     [InlineData(long.MaxValue, 3)]
     public void Int64(Int64 value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.Int64(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetInt64());
@@ -185,7 +185,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("x", vv.Signature);
+        Assert.Equal("x", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -205,7 +205,7 @@ public class VariantValueTests
     [InlineData(ulong.MaxValue, 3)]
     public void UInt64(UInt64 value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.UInt64(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetUInt64());
@@ -214,7 +214,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("t", vv.Signature);
+        Assert.Equal("t", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -237,7 +237,7 @@ public class VariantValueTests
     [InlineData(double.MaxValue, 3)]
     public void Double(Double value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.Double(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetDouble());
@@ -246,7 +246,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("d", vv.Signature);
+        Assert.Equal("d", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -256,7 +256,7 @@ public class VariantValueTests
     [InlineData("test", 1)]
     public void String(String value, byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.String(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(value, vv.GetString());
@@ -265,7 +265,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("s", vv.Signature);
+        Assert.Equal("s", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -276,7 +276,7 @@ public class VariantValueTests
     public void ObjectPath(string s, byte nesting)
     {
         ObjectPath value = new ObjectPath(s);
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        VariantValue vv = Nest(VariantValue.ObjectPath(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(s, vv.GetObjectPath());
@@ -285,7 +285,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("o", vv.Signature);
+        Assert.Equal("o", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -295,8 +295,8 @@ public class VariantValueTests
     [InlineData("sis", 1)]
     public void Signature(string s, byte nesting)
     {
-        Signature value = new Signature(Encoding.UTF8.GetBytes(s));
-        VariantValue vv = nesting > 0 ? new(value, nesting) : new(value);
+        Signature value = new Signature(Encoding.UTF8.GetBytes(s).AsSpan());
+        VariantValue vv = Nest(VariantValue.Signature(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(s, vv.GetSignature().ToString());
@@ -305,7 +305,7 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("g", vv.Signature);
+        Assert.Equal("g", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
     }
@@ -315,15 +315,14 @@ public class VariantValueTests
     [InlineData(1)]
     public void Array(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(new string[] { "1", "2" }, nesting)
-                                      : new VariantValue(new string[] { "1", "2" });
+        VariantValue vv = Nest(VariantValue.Array(new string[] { "1", "2" }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.String, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("as", vv.Signature);
+        Assert.Equal("as", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -338,15 +337,14 @@ public class VariantValueTests
     [InlineData(1)]
     public void ArrayOfByte(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(new byte[] { 1, 2 }, nesting)
-                                      : new VariantValue(new byte[] { 1, 2 });
+        VariantValue vv = Nest(VariantValue.Array(new byte[] { 1, 2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.Byte, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("ay", vv.Signature);
+        Assert.Equal("ay", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -361,15 +359,14 @@ public class VariantValueTests
     [InlineData(1)]
     public void ArrayOfInt16(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(new short[] { 1, 2 }, nesting)
-                                      : new VariantValue(new short[] { 1, 2 });
+        VariantValue vv = Nest(VariantValue.Array(new short[] { 1, 2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.Int16, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("an", vv.Signature);
+        Assert.Equal("an", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -384,15 +381,14 @@ public class VariantValueTests
     [InlineData(1)]
     public void ArrayOfUInt16(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(new ushort[] { 1, 2 }, nesting)
-                                      : new VariantValue(new ushort[] { 1, 2 });
+        VariantValue vv = Nest(VariantValue.Array(new ushort[] { 1, 2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.UInt16, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("aq", vv.Signature);
+        Assert.Equal("aq", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -407,15 +403,14 @@ public class VariantValueTests
     [InlineData(1)]
     public void ArrayOfInt32(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(new int[] { 1, 2 }, nesting)
-                                      : new VariantValue(new int[] { 1, 2 });
+        VariantValue vv = Nest(VariantValue.Array(new int[] { 1, 2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.Int32, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("ai", vv.Signature);
+        Assert.Equal("ai", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -430,15 +425,14 @@ public class VariantValueTests
     [InlineData(1)]
     public void ArrayOfUInt32(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(new uint[] { 1, 2 }, nesting)
-                                      : new VariantValue(new uint[] { 1, 2 });
+        VariantValue vv = Nest(VariantValue.Array(new uint[] { 1, 2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.UInt32, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("au", vv.Signature);
+        Assert.Equal("au", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -453,15 +447,14 @@ public class VariantValueTests
     [InlineData(1)]
     public void ArrayOfInt64(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(new long[] { 1, 2 }, nesting)
-                                      : new VariantValue(new long[] { 1, 2 });;
+        VariantValue vv = Nest(VariantValue.Array(new long[] { 1, 2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.Int64, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("ax", vv.Signature);
+        Assert.Equal("ax", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -476,15 +469,14 @@ public class VariantValueTests
     [InlineData(1)]
     public void ArrayOfUInt64(byte nesting)
     {
-        VariantValue vv = nesting > 0 ? new VariantValue(new ulong[] { 1, 2 }, nesting)
-                                      : new VariantValue(new ulong[] { 1, 2 });
+        VariantValue vv = Nest(VariantValue.Array(new ulong[] { 1, 2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.UInt64, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("at", vv.Signature);
+        Assert.Equal("at", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -502,15 +494,14 @@ public class VariantValueTests
         double d1 = Math.PI;
         double d2 = Math.E;
 
-        VariantValue vv = nesting > 0 ? new VariantValue(new double[] { d1, d2 }, nesting)
-                                      : new VariantValue(new double[] { d1, d2 });
+        VariantValue vv = Nest(VariantValue.Array(new [] { d1, d2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Array, vv.Type);
         Assert.Equal(VariantValueType.Double, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("ad", vv.Signature);
+        Assert.Equal("ad", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -520,21 +511,174 @@ public class VariantValueTests
         Assert.Equal(new double[] { d1, d2 }, vv.GetArray<double>());
     }
 
+    [Fact]
+    public void ArrayOfArrayOfInt()
+    {
+        VariantValue vv = VariantValue.Array("ai"u8, new [] { VariantValue.Array(new int[] { 5, 8 }) });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Array, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("aai", vv.GetDBusSignature());
+
+        Assert.Equal(1, vv.Count);
+
+        vv = vv.GetItem(0);
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Int32, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("ai", vv.GetDBusSignature());
+
+        Assert.Equal(2, vv.Count);
+
+        Assert.Equal(5, vv.GetItem(0).GetInt32());
+        Assert.Equal(8, vv.GetItem(1).GetInt32());
+
+        Assert.Equal(new int[] { 5, 8 }, vv.GetArray<int>());
+    }
+
+    [Fact]
+    public void ArrayOfStructWithVariantFields()
+    {
+        VariantValue vv = VariantValue.Array("(yvns)"u8, new [] { VariantValue.Struct(VariantValue.Byte(1), VariantValue.Variant(VariantValue.Int32(2)), VariantValue.Int16(3), VariantValue.String("string")) });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Struct, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("a(yvns)", vv.GetDBusSignature());
+
+        Assert.Equal(1, vv.Count);
+
+        vv = vv.GetItem(0);
+
+        Assert.Equal(VariantValueType.Struct, vv.Type);
+        Assert.Equal(VariantValueType.Invalid, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("(yvns)", vv.GetDBusSignature()); // Variant field is reported as variant.
+
+        Assert.Equal(4, vv.Count);
+
+        Assert.Equal(1, vv.GetItem(0).GetByte());
+        Assert.Equal(2, vv.GetItem(1).GetInt32()); // Variant field value is unwrapped.
+        Assert.Equal(3, vv.GetItem(2).GetInt16());
+        Assert.Equal("string", vv.GetItem(3).GetString());
+    }
+
+    [Fact]
+    public void ArrayOfNestings()
+    {
+        var item1 = KeyValuePair.Create(VariantValue.Byte(1), VariantValue.Struct(VariantValue.String("one")));
+        VariantValue vv = VariantValue.Array("((y)a{y(s)}a(i))"u8, new [] {
+                            VariantValue.Struct(
+                                VariantValue.Struct(VariantValue.Byte(1)),
+                                VariantValue.Dictionary(DBusType.Byte, "(s)"u8, new[] { item1 }),
+                                VariantValue.Array("(i)"u8, new[] { VariantValue.Struct(1) })) });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Struct, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("a((y)a{y(s)}a(i))", vv.GetDBusSignature());
+
+        Assert.Equal(1, vv.Count);
+    }
+
+    [Fact]
+    public void ArrayOfEmptyNestings()
+    {
+        VariantValue vv = VariantValue.Array("((y)a{y(s)}a(i))"u8, new [] {
+                            VariantValue.Struct(
+                                VariantValue.Struct(VariantValue.Byte(1)),
+                                VariantValue.Dictionary(DBusType.Byte, "(s)"u8, []),
+                                VariantValue.Array("(i)"u8, [ ])) });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Struct, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("a((y)a{y(s)}a(i))", vv.GetDBusSignature());
+
+        Assert.Equal(1, vv.Count);
+    }
+
+    [Fact]
+    public void ArrayOfDictionary()
+    {
+        var item1 = KeyValuePair.Create(VariantValue.Byte(1), VariantValue.String("one"));
+        var item2 = KeyValuePair.Create(VariantValue.Byte(2), VariantValue.String("two"));
+        VariantValue dict = VariantValue.Dictionary(DBusType.Byte, Tmds.DBus.Protocol.Signature.String, new[] { item1, item2 });
+
+        VariantValue vv = VariantValue.Array("a{ys}"u8, new [] { dict });
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Dictionary, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("aa{ys}", vv.GetDBusSignature());
+
+        Assert.Equal(1, vv.Count);
+    }
+
+    [Fact]
+    public void EmptyArrayOfArrayOfInt()
+    {
+        VariantValue vv = VariantValue.Array("ai"u8, []);
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Array, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("aai", vv.GetDBusSignature());
+
+        Assert.Equal(0, vv.Count);
+    }
+
+    [Fact]
+    public void EmptyArrayOfStructWithVariantFields()
+    {
+        VariantValue vv = VariantValue.Array("(yvns)"u8, []);
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Struct, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("a(yvns)", vv.GetDBusSignature());
+
+        Assert.Equal(0, vv.Count);
+    }
+
+    [Fact]
+    public void EmptyArrayOfDictionary()
+    {
+        VariantValue vv = VariantValue.Array("a{ys}"u8, []);
+
+        Assert.Equal(VariantValueType.Array, vv.Type);
+        Assert.Equal(VariantValueType.Dictionary, vv.ItemType);
+        Assert.Equal(VariantValueType.Invalid, vv.KeyType);
+        Assert.Equal(VariantValueType.Invalid, vv.ValueType);
+        Assert.Equal("aa{ys}", vv.GetDBusSignature());
+
+        Assert.Equal(0, vv.Count);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
     public void Struct(byte nesting)
     {
-        VariantValue vv = nesting > 0
-                            ? new VariantValue(new VariantValue[] { new VariantValue((byte)1), new VariantValue("string") }, nesting)
-                            : new VariantValue(new VariantValue[] { new VariantValue((byte)1), new VariantValue("string") });
+        VariantValue vv = Nest(VariantValue.Struct(VariantValue.Byte(1), VariantValue.String("string")), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Struct, vv.Type);
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("(ys)", vv.Signature);
+        Assert.Equal("(ys)", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -545,13 +689,13 @@ public class VariantValueTests
     [Fact]
     public void StructWithVariantFields()
     {
-        VariantValue vv = new VariantValue(new VariantValue[] { new VariantValue((byte)1), VariantValue.CreateVariant(2), new VariantValue((short)3), new VariantValue("string") });
+        VariantValue vv = VariantValue.Struct(VariantValue.Byte(1), VariantValue.Variant(VariantValue.Int32(2)), VariantValue.Int16(3), VariantValue.String("string"));
 
         Assert.Equal(VariantValueType.Struct, vv.Type);
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("(yvns)", vv.Signature); // Variant field is reported as variant.
+        Assert.Equal("(yvns)", vv.GetDBusSignature()); // Variant field is reported as variant.
 
         Assert.Equal(4, vv.Count);
 
@@ -566,18 +710,16 @@ public class VariantValueTests
     [InlineData(1)]
     public void Dictionary(byte nesting)
     {
-        var item1 = KeyValuePair.Create(new VariantValue((byte)1), new VariantValue("one"));
-        var item2 = KeyValuePair.Create(new VariantValue((byte)2), new VariantValue("two"));
-        VariantValue vv = nesting > 0
-                            ? new VariantValue(VariantValueType.Byte, VariantValueType.String, valueSignature: null, new[] { item1, item2 }, nesting)
-                            : new VariantValue(VariantValueType.Byte, VariantValueType.String, new[] { item1, item2 });
+        var item1 = KeyValuePair.Create(VariantValue.Byte(1), VariantValue.String("one"));
+        var item2 = KeyValuePair.Create(VariantValue.Byte(2), VariantValue.String("two"));
+        VariantValue vv = Nest(VariantValue.Dictionary(DBusType.Byte, Tmds.DBus.Protocol.Signature.String, new[] { item1, item2 }), nesting);
         UnwrapVariant(ref vv, nesting);
 
         Assert.Equal(VariantValueType.Dictionary, vv.Type);
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Byte, vv.KeyType);
         Assert.Equal(VariantValueType.String, vv.ValueType);
-        Assert.Equal("a{ys}", vv.Signature);
+        Assert.Equal("a{ys}", vv.GetDBusSignature());
 
         Assert.Equal(2, vv.Count);
 
@@ -591,6 +733,12 @@ public class VariantValueTests
 
         Dictionary<byte, string> dict = vv.GetDictionary<byte, string>();
         Assert.Equal(new Dictionary<byte, string>() { { 1, "one"}, { 2, "two" } }, dict);
+    }
+
+    [Fact]
+    public void TypeMismatchThrows()
+    {
+        Assert.Throws<ArgumentException>(() => VariantValue.Array("ai"u8, new [] { VariantValue.Array(new byte[] { 5, 8 }) }));
     }
 
     [Theory]
@@ -617,9 +765,18 @@ public class VariantValueTests
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);
         Assert.Equal(VariantValueType.Invalid, vv.KeyType);
         Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-        Assert.Equal("h", vv.Signature);
+        Assert.Equal("h", vv.GetDBusSignature());
 
         Assert.Equal(-1, vv.Count);
+    }
+
+    private static VariantValue Nest(VariantValue vv, byte nesting)
+    {
+        for (int i = 0; i < nesting; i++)
+        {
+            vv = VariantValue.Variant(vv);
+        }
+        return vv;
     }
 
     private static void UnwrapVariant(ref VariantValue vv, byte nesting)
@@ -630,7 +787,7 @@ public class VariantValueTests
             Assert.Equal(VariantValueType.Invalid, vv.ItemType);
             Assert.Equal(VariantValueType.Invalid, vv.KeyType);
             Assert.Equal(VariantValueType.Invalid, vv.ValueType);
-            Assert.Equal("v", vv.Signature);
+            Assert.Equal("v", vv.GetDBusSignature());
 
             vv = vv.GetVariantValue();
         }

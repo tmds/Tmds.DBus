@@ -281,28 +281,48 @@ Note that `VariantValue` is a small struct, there is no need to pass it by refer
 
 ### Writing a variant
 
-For writing variants, the value must be stored in a `Variant` struct and passed to `Writer.WriteVariant(Variant)`.
+For writing variants, the value must be stored in a `VariantValue` struct and passed to `Writer.WriteVariant(VariantValue)`.
 
-Basic types have implicit conversion to `Variant`.
+Simple types have implicit conversion to `Variant`.
 
 ```cs
-Variant v1 = (byte)1;
-Variant v2 = "string";
-Variant v3 = new ObjectPath("/path");
+VariantValue v1 = (byte)1;
+VariantValue v2 = "string";
+VariantValue v3 = new ObjectPath("/path");
 ```
 
-For composite variant values, the libraries `Struct`/`Array`/`Dict` classes must be used.
+They can also be constructed using a static method:
+
 ```cs
-Variant v4 = Struct.Create((byte)1, Struct.Create("string", "string"));
-Variant v5 = new Dict<byte, Variant>()
-{
-    { 1, Struct.Create(1, 2) },
-    { 2, "string" },
-};
-Variant v6 = new Array<int>() { 1, 2 };
+VariantValue v1 = VariantValue.Byte(1);
+VariantValue v2 = VariantValue.String("string");
+VariantValue v3 = VariantValue.ObjectPath("/path");
 ```
 
-As shown in the previous examples, the composite types support nesting.
+Structs can be created using the static `Struct` method:
 
-Note that the `Variant` struct is a small struct, there is no need to pass it by reference.
+```cs
+VariantValue v1 = VariantValue.Struct("string", 5);
+```
 
+Arrays can be created using the static `Array` method.
+
+For simple types, the C# array can be passed as the argument:
+```cs
+VariantValue v = VariantValue.Array(new int[] { 1, 2, 3 })
+```
+
+For arrays that hold other arrays, dictionaries, or structs, the item signature must be specified and then the items as a `VariantValue[]`:
+
+```cs
+// Array that holds structs of (byte, string).
+VariantValue v = VariantValue.Array("(ys)"u8, new [] { VariantValue.Struct((byte)1, "one"), VariantValue.Struct((byte)1, "two") });
+```
+
+For dictionaries, the `Dictionary` method can be used. It accepts the key type, the value signature, and then the pairs as a `KeyValuePair<VariantValue, VariantValue>[]`.
+
+```cs
+// This example shows how to convert a strongly typed .NET Dictionary to a VariantValue.
+Dictionary<byte, int> dict = ...;
+VariantValue v = VariantValue.Dictionary(DBusType.Byte, "i"u8, dict.Select(pair => KeyValuePair.Create((VariantValue)pair.Key, (VariantValue)pair.Value)).ToArray());
+```

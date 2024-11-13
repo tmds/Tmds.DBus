@@ -20,6 +20,13 @@ static class ProtocolConstants
     public static ReadOnlySpan<byte> SignatureSignature => new byte[] { (byte)'g' };
     public static ReadOnlySpan<byte> VariantSignature => new byte[] { (byte)'v' };
 
+    private static ReadOnlySpan<byte> SingleTypes => new byte[] { (byte)'y', (byte)'b', (byte)'n', (byte)'q', (byte)'i', (byte)'u', (byte)'x', (byte)'t', (byte)'d', (byte)'h', (byte)'s', (byte)'o', (byte)'g', (byte)'v' };
+
+    public static bool IsSingleCompleteType(byte b)
+    {
+        return SingleTypes.IndexOf(b) != -1;
+    }
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetTypeAlignment(DBusType type)

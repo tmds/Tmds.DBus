@@ -1010,7 +1010,7 @@ namespace Tmds.DBus.Tool
                case DBusType.Signature:
                    return "Signature";
                case DBusType.Variant:
-                   return readNotWrite ? "VariantValue" : "Variant";
+                   return "VariantValue";
                case DBusType.UnixFd:
                    return typeof(SafeHandle).FullName;
 

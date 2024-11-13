@@ -81,7 +81,7 @@ public ref partial struct Reader
                         items.Add(new KeyValuePair<VariantValue, VariantValue>(key, value));
                     }
                     ReadOnlySpan<byte> valueSignature = itemSignature.Slice(2, itemSignature.Length - 3);
-                    return new VariantValue(ToVariantValueType(keyType), ToVariantValueType(valueType), VariantValue.GetSignatureObject(items.Count, valueSignature), items.ToArray(), nesting);
+                    return new VariantValue(ToVariantValueType(keyType, keyInnerSignature), ToVariantValueType(valueType, valueInnerSignature), VariantValue.GetSignatureObject(items.Count, valueSignature), items.ToArray(), nesting);
                 }
                 else
                 {
@@ -136,7 +136,7 @@ public ref partial struct Reader
                                                     : ReadTypeAsVariantValue(type, innerSignature, nesting: 0);
                             items.Add(value);
                         }
-                        return new VariantValue(ToVariantValueType(type), VariantValue.GetSignatureObject(items.Count, itemSignature), items.ToArray(), nesting);
+                        return new VariantValue(ToVariantValueType(type, innerSignature), VariantValue.GetSignatureObject(items.Count, itemSignature), items.ToArray(), nesting);
                     }
                 }
             case DBusType.Struct:
@@ -148,11 +148,6 @@ public ref partial struct Reader
                     int i = 0;
                     while (sigReader.TryRead(out type, out innerSignature))
                     {
-                        if (i > VariantValue.MaxStructFields)
-                        {
-                            VariantValue.ThrowMaxStructFieldsExceeded();
-                        }
-                        variantMask <<= 1;
                         VariantValue value;
                         if (type == DBusType.Variant)
                         {
@@ -182,6 +177,13 @@ public ref partial struct Reader
         throw new ProtocolException(message);
     }
 
-    private static VariantValueType ToVariantValueType(DBusType type)
-        => (VariantValueType)type;
+    private static VariantValueType ToVariantValueType(DBusType type, ReadOnlySpan<byte> innerSignature)
+    {
+        VariantValueType rv = (VariantValueType)type;
+        if (rv == VariantValueType.Array && innerSignature[0] == (byte)DBusType.DictEntry)
+        {
+            rv = VariantValueType.Dictionary;
+        }
+        return rv;
+    }
 }

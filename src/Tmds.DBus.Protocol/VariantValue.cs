@@ -17,9 +17,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     private const int DictionaryKeyTypeShift = 8 * 5;
     private const int DictionaryValueTypeShift = 8 * 4;
     private const long StripMetadataMask = 0xffffffffL;
+    private const long MetadataMask = ~StripMetadataMask;
     private const long StructVariantMask = 0xffffL;
     private const int StructVariantMaskShift = 8 * 4;
-    internal const int MaxStructFields = 2 * 8;
+    private const int MaxStructFields = 2 * 8;
 
     private bool UnsafeIsStructFieldVariant(int index)
         => (_l & (1L << (index + StructVariantMaskShift))) != 0;
@@ -48,15 +49,15 @@ public readonly struct VariantValue : IEquatable<VariantValue>
 
         public readonly long L { get; }
     }
-    private const long Int64 = ((long)VariantValueType.Int64) << TypeShift;
-    private const long UInt64 = ((long)VariantValueType.UInt64) << TypeShift;
-    private const long Double = ((long)VariantValueType.Double) << TypeShift;
-    private const long VariantOfInt64 = (1L << NestingShift) | Int64;
-    private const long VariantOfUInt64 = (1L << NestingShift) | UInt64;
-    private const long VariantOfDouble = (1L << NestingShift) | Double;
-    private static readonly object Int64TypeDescriptor = new TypeData(Int64);
-    private static readonly object UInt64TypeDescriptor = new TypeData(UInt64);
-    private static readonly object DoubleTypeDescriptor = new TypeData(Double);
+    private const long L_Int64 = ((long)VariantValueType.Int64) << TypeShift;
+    private const long L_UInt64 = ((long)VariantValueType.UInt64) << TypeShift;
+    private const long L_Double = ((long)VariantValueType.Double) << TypeShift;
+    private const long VariantOfInt64 = (1L << NestingShift) | L_Int64;
+    private const long VariantOfUInt64 = (1L << NestingShift) | L_UInt64;
+    private const long VariantOfDouble = (1L << NestingShift) | L_Double;
+    private static readonly object Int64TypeDescriptor = new TypeData(L_Int64);
+    private static readonly object UInt64TypeDescriptor = new TypeData(L_UInt64);
+    private static readonly object DoubleTypeDescriptor = new TypeData(L_Double);
     private static readonly object VariantOfInt64TypeDescriptor = new TypeData(VariantOfInt64);
     private static readonly object VariantOfUInt64TypeDescriptor = new TypeData(VariantOfUInt64);
     private static readonly object VariantOfDoubleTypeDescriptor = new TypeData(VariantOfDouble);
@@ -77,9 +78,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         l = UpdateNesting(l, change);
         return l switch
         {
-            Int64 => Int64TypeDescriptor,
-            UInt64 => UInt64TypeDescriptor,
-            Double => DoubleTypeDescriptor,
+            L_Int64 => Int64TypeDescriptor,
+            L_UInt64 => UInt64TypeDescriptor,
+            L_Double => DoubleTypeDescriptor,
             VariantOfInt64 => VariantOfInt64TypeDescriptor,
             VariantOfUInt64 => VariantOfUInt64TypeDescriptor,
             VariantOfDouble => VariantOfDoubleTypeDescriptor,
@@ -107,57 +108,36 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         _l = l;
         _o = o;
     }
-    internal VariantValue(byte value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(byte value, byte nesting)
     {
         _l = value | GetTypeMetadata(VariantValueType.Byte, nesting);
         _o = null;
     }
-    internal VariantValue(bool value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(bool value, byte nesting)
     {
         _l = (value ? 1L : 0) | GetTypeMetadata(VariantValueType.Bool, nesting);
         _o = null;
     }
-    internal VariantValue(short value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(short value, byte nesting)
     {
         _l = (ushort)value | GetTypeMetadata(VariantValueType.Int16, nesting);
         _o = null;
     }
-    internal VariantValue(ushort value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(ushort value, byte nesting)
     {
         _l = value | GetTypeMetadata(VariantValueType.UInt16, nesting);
         _o = null;
     }
-    internal VariantValue(int value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(int value, byte nesting)
     {
         _l = (uint)value | GetTypeMetadata(VariantValueType.Int32, nesting);
         _o = null;
     }
-    internal VariantValue(uint value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(uint value, byte nesting)
     {
         _l = value | GetTypeMetadata(VariantValueType.UInt32, nesting);
         _o = null;
     }
-    internal VariantValue(long value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(long value, byte nesting)
     {
         _l = value;
@@ -168,9 +148,6 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             _ => new TypeData(GetTypeMetadata(VariantValueType.Int64, nesting))
         };
     }
-    internal VariantValue(ulong value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(ulong value, byte nesting)
     {
         _l = (long)value;
@@ -181,9 +158,6 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             _ => new TypeData(GetTypeMetadata(VariantValueType.UInt64, nesting))
         };
     }
-    internal unsafe VariantValue(double value) :
-        this(value, nesting: 0)
-    { }
     internal unsafe VariantValue(double value, byte nesting)
     {
         _l = *(long*)&value;
@@ -194,140 +168,75 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             _ => new TypeData(GetTypeMetadata(VariantValueType.Double, nesting))
         };
     }
-    internal VariantValue(string value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(string value, byte nesting)
     {
+        ThrowIfNull(value, nameof(value));
         _l = GetTypeMetadata(VariantValueType.String, nesting);
-        _o = value ?? throw new ArgumentNullException(nameof(value));
+        _o = value;
     }
-    internal VariantValue(ObjectPath value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(ObjectPath value, byte nesting)
     {
+        value.ThrowIfEmpty();
         _l = GetTypeMetadata(VariantValueType.ObjectPath, nesting);
-        string s = value.ToString();
-        if (s.Length == 0)
-        {
-            throw new ArgumentException(nameof(value));
-        }
-        _o = s;
+        _o = value.ToString();
     }
-    internal VariantValue(Signature value) :
-        this(value, nesting: 0)
-    { }
     internal VariantValue(Signature value, byte nesting)
     {
         _l = GetTypeMetadata(VariantValueType.Signature, nesting);
-        byte[] data = value.Data;
-        if (data.Length == 0)
-        {
-            throw new ArgumentException(nameof(value));
-        }
-        _o = data;
+        _o = value.Data;;
     }
     // Array
     internal VariantValue(VariantValueType itemType, object? itemSignature, VariantValue[] items, byte nesting)
     {
-        Debug.Assert(
-            itemType != VariantValueType.Byte &&
-            itemType != VariantValueType.Int16 &&
-            itemType != VariantValueType.UInt16 &&
-            itemType != VariantValueType.Int32 &&
-            itemType != VariantValueType.UInt32 &&
-            itemType != VariantValueType.Int64 &&
-            itemType != VariantValueType.UInt64 &&
-            itemType != VariantValueType.Double
-        );
         int count = items.Length;
         _l = GetArrayTypeMetadata(itemType, count, nesting);
         _o = count == 0 ? itemSignature : items;
-        if (_o?.GetType() == typeof(int))
-        {
-            throw new Exception();
-        }
     }
-    // For testing
-    internal VariantValue(VariantValueType itemType, VariantValue[] items, object? itemSignature = null) :
-        this(itemType, itemSignature, items, nesting: 0)
-    { }
-    internal VariantValue(string[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(string[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.String, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(ObjectPath[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(ObjectPath[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.ObjectPath, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(byte[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(byte[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.Byte, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(short[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(short[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.Int16, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(ushort[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(ushort[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.UInt16, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(int[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(int[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.Int32, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(uint[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(uint[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.UInt32, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(long[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(long[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.Int64, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(ulong[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(ulong[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.UInt64, items.Length, nesting);
         _o = items;
     }
-    internal VariantValue(double[] items) :
-        this(items, nesting: 0)
-    { }
     internal VariantValue(double[] items, byte nesting)
     {
         _l = GetArrayTypeMetadata(VariantValueType.Double, items.Length, nesting);
@@ -340,39 +249,34 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         _l = GetDictionaryTypeMetadata(keyType, valueType, count, nesting);
         _o = count == 0 ? valueSignature : pairs;
     }
-    // For testing
-    internal VariantValue(VariantValueType keyType, VariantValueType valueType, KeyValuePair<VariantValue, VariantValue>[] pairs, object? valueSignature = null) :
-        this(keyType, valueType, valueSignature, pairs, nesting: 0)
-    { }
     // Struct
-    internal VariantValue(VariantValue[] fields) :
-        this(fields, nesting: 0)
-    { }
-    internal VariantValue(VariantValue[] fields, byte nesting)
+    private static VariantValue StructCore(VariantValue[] fields, byte nesting)
     {
         long variantMask = 0;
         for (int i = 0; i < fields.Length; i++)
         {
-            if (i > VariantValue.MaxStructFields)
-            {
-                ThrowMaxStructFieldsExceeded();
-            }
             VariantValue value = fields[i];
+            value.ThrowIfInvalid();
+
             if (value.Type == VariantValueType.Variant)
             {
                 variantMask |= (1L << i);
                 fields[i] = value.GetVariantValue();
             }
         }
-        _l = GetStructMetadata(variantMask, fields.Length, nesting);
-        _o = fields;
+
+        return new VariantValue(variantMask, fields, nesting: 0);
     }
-    internal static void ThrowMaxStructFieldsExceeded()
+    private static void ThrowMaxStructFieldsExceeded()
     {
         throw new NotSupportedException($"Struct types {VariantValue.MaxStructFields}+ fields are not supported.");
     }
     internal VariantValue(long variantMask, VariantValue[] fields, byte nesting)
     {
+        if (fields.Length > MaxStructFields)
+        {
+            ThrowMaxStructFieldsExceeded();
+        }
         _l = GetStructMetadata(variantMask, fields.Length, nesting);
         _o = fields;
     }
@@ -384,20 +288,6 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     {
         _l = (long)index | GetTypeMetadata(VariantValueType.UnixFd, nesting);
         _o = fdCollection;
-    }
-    // Variant
-    internal static VariantValue CreateVariant(VariantValue value)
-    {
-        object? o = value._o;
-        long l = value._l;
-        if (o is TypeData td)
-        {
-            return new VariantValue(l, UpdateNesting(td, +1));
-        }
-        else
-        {
-            return new VariantValue(UpdateNesting(l, +1), o);
-        }
     }
 
     public VariantValue GetVariantValue()
@@ -656,7 +546,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
 
         if (UnsafeCount == 0)
         {
-            return Array.Empty<T>();
+            return System.Array.Empty<T>();
         }
 
         // Return the array by reference when we can.
@@ -697,6 +587,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         else if (typeof(T) == typeof(string))
         {
             return (T[])(object)(_o as string[])!;
+        }
+        else if (typeof(T) == typeof(ObjectPath))
+        {
+            return (T[])(object)(_o as ObjectPath[])!;
         }
         else
         {
@@ -827,25 +721,25 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             switch (UnsafeDetermineInnerType(ArrayItemTypeShift))
             {
                 case VariantValueType.Byte:
-                    return new VariantValue((_o as byte[])![i]);
+                    return Byte((_o as byte[])![i]);
                 case VariantValueType.Int16:
-                    return new VariantValue((_o as short[])![i]);
+                    return Int16((_o as short[])![i]);
                 case VariantValueType.UInt16:
-                    return new VariantValue((_o as ushort[])![i]);
+                    return UInt16((_o as ushort[])![i]);
                 case VariantValueType.Int32:
-                    return new VariantValue((_o as int[])![i]);
+                    return Int32((_o as int[])![i]);
                 case VariantValueType.UInt32:
-                    return new VariantValue((_o as uint[])![i]);
+                    return UInt32((_o as uint[])![i]);
                 case VariantValueType.Int64:
-                    return new VariantValue((_o as long[])![i]);
+                    return Int64((_o as long[])![i]);
                 case VariantValueType.UInt64:
-                    return new VariantValue((_o as ulong[])![i]);
+                    return UInt64((_o as ulong[])![i]);
                 case VariantValueType.Double:
-                    return new VariantValue((_o as double[])![i]);
+                    return Double((_o as double[])![i]);
                 case VariantValueType.String:
-                    return new VariantValue((_o as string[])![i]);
+                    return String((_o as string[])![i]);
                 case VariantValueType.ObjectPath:
-                    return new VariantValue((_o as ObjectPath[])![i]);
+                    return ObjectPath((_o as ObjectPath[])![i]);
             }
         }
 
@@ -873,29 +767,607 @@ public readonly struct VariantValue : IEquatable<VariantValue>
 
     // implicit conversion to VariantValue for basic D-Bus types (except Unix_FD).
     public static implicit operator VariantValue(byte value)
-        => new VariantValue(value);
+        => Byte(value);
     public static implicit operator VariantValue(bool value)
-        => new VariantValue(value);
+        => Bool(value);
     public static implicit operator VariantValue(short value)
-        => new VariantValue(value);
+        => Int16(value);
     public static implicit operator VariantValue(ushort value)
-        => new VariantValue(value);
+        => UInt16(value);
     public static implicit operator VariantValue(int value)
-        => new VariantValue(value);
+        => Int32(value);
     public static implicit operator VariantValue(uint value)
-        => new VariantValue(value);
+        => UInt32(value);
     public static implicit operator VariantValue(long value)
-        => new VariantValue(value);
+        => Int64(value);
     public static implicit operator VariantValue(ulong value)
-        => new VariantValue(value);
+        => UInt64(value);
     public static implicit operator VariantValue(double value)
-        => new VariantValue(value);
+        => Double(value);
     public static implicit operator VariantValue(string value)
-        => new VariantValue(value);
+        => String(value);
     public static implicit operator VariantValue(ObjectPath value)
-        => new VariantValue(value);
+        => ObjectPath(value);
     public static implicit operator VariantValue(Signature value)
-        => new VariantValue(value);
+        => Signature(value);
+
+    public static VariantValue Byte(byte value) => new VariantValue(value, nesting: 0);
+    public static VariantValue Bool(bool value) => new VariantValue(value, nesting: 0);
+    public static VariantValue Int16(short value) => new VariantValue(value, nesting: 0);
+    public static VariantValue UInt16(ushort value) => new VariantValue(value, nesting: 0);
+    public static VariantValue Int32(int value) => new VariantValue(value, nesting: 0);
+    public static VariantValue UInt32(uint value) => new VariantValue(value, nesting: 0);
+    public static VariantValue Int64(long value) => new VariantValue(value, nesting: 0);
+    public static VariantValue UInt64(ulong value) => new VariantValue(value, nesting: 0);
+    public static VariantValue Double(double value) => new VariantValue(value, nesting: 0);
+    public static VariantValue ObjectPath(ObjectPath value) => new VariantValue(value, nesting: 0);
+    public static VariantValue Signature(Signature value) => new VariantValue(value, nesting: 0);
+    public static VariantValue String(string value)
+    {
+        ThrowIfNull(value, nameof(value));
+        return new VariantValue(value, nesting: 0);
+    }
+    public static VariantValue UnixFd(SafeHandle handle)
+    {
+        ThrowIfNull(handle, nameof(handle));
+        var fds = new UnixFdCollection(isRawHandleCollection: false);
+        fds.AddHandle(handle);
+        return new VariantValue(fds, index: 0);
+    }
+    public static VariantValue Variant(VariantValue value)
+    {
+        value.ThrowIfInvalid();
+
+        object? o = value._o;
+        long l = value._l;
+        if (o is TypeData td)
+        {
+            return new VariantValue(l, UpdateNesting(td, +1));
+        }
+        else
+        {
+            return new VariantValue(UpdateNesting(l, +1), o);
+        }
+    }
+    public static VariantValue Struct(VariantValue item1)
+        => StructCore(new[] { item1 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2)
+        => StructCore(new[] { item1, item2 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3)
+        => StructCore(new[] { item1, item2, item3 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4)
+        => StructCore(new[] { item1, item2, item3, item4 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5)
+        => StructCore(new[] { item1, item2, item3, item4, item5 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6)
+        => StructCore(new[] { item1, item2, item3, item4, item5, item6 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6, VariantValue item7)
+        => StructCore(new[] { item1, item2, item3, item4, item5, item6, item7 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6, VariantValue item7, VariantValue item8)
+        => StructCore(new[] { item1, item2, item3, item4, item5, item6, item7, item8 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6, VariantValue item7, VariantValue item8, VariantValue item9)
+        => StructCore(new[] { item1, item2, item3, item4, item5, item6, item7, item8, item9 }, nesting: 0);
+    public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6, VariantValue item7, VariantValue item8, VariantValue item9, VariantValue item10)
+        => StructCore(new[] { item1, item2, item3, item4, item5, item6, item7, item8, item9, item10 }, nesting: 0);
+
+    public static VariantValue Array(byte[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(short[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(ushort[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(int[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(uint[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(long[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(ulong[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(double[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(ObjectPath[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(string[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        if (System.Array.IndexOf(items, null) != -1)
+        {
+            ThrowArgumentNull(nameof(items));
+        }
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(SafeHandle[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        if (System.Array.IndexOf(items, null) != -1)
+        {
+            ThrowArgumentNull(nameof(items));
+        }
+        VariantValue[] values = new VariantValue[items.Length];
+        var fds = new UnixFdCollection(isRawHandleCollection: false);
+        for (int i = 0; i < items.Length; i++)
+        {
+            SafeHandle handle = items[i];
+            fds.AddHandle(handle);
+            values[i] = new VariantValue(fds, i);
+        }
+        return new VariantValue(VariantValueType.UnixFd, itemSignature: null, values, nesting: 0);
+    }
+    public static VariantValue Array(Signature[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        VariantValue[] values = new VariantValue[items.Length];
+        for (int i = 0; i < items.Length; i++)
+        {
+            values[i] = Signature(items[i]);
+        }
+        return new VariantValue(VariantValueType.Signature, itemSignature: null, values, nesting: 0);
+    }
+    public static VariantValue Array(bool[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        VariantValue[] values = new VariantValue[items.Length];
+        for (int i = 0; i < items.Length; i++)
+        {
+            values[i] = Bool(items[i]);
+        }
+        return new VariantValue(VariantValueType.Bool, itemSignature: null, values, nesting: 0);
+    }
+    public static VariantValue Array(ReadOnlySpan<byte> itemSignature, VariantValue[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        ThrowIfSignatureEmpty(itemSignature, nameof(itemSignature));
+
+        VariantValueType firstType = DetermineType(itemSignature);
+
+        if (firstType != VariantValueType.Array
+            && firstType != VariantValueType.Struct
+            && firstType != VariantValueType.Dictionary
+            && firstType != VariantValueType.Variant)
+        {
+            throw new ArgumentException($"Unsupported item type: {firstType}. Use a type-safe overload for the item type.");
+        }
+
+        int count = items.Length;
+        if (count == 0)
+        {
+            ThrowIfSignatureNotSingleComplete(itemSignature, nameof(itemSignature));
+        }
+        else
+        {
+            SignatureCheck sigCheck = new(itemSignature);
+            foreach (var item in items)
+            {
+                sigCheck.ThrowIfNoMatch(item);
+            }
+        }
+
+        return new VariantValue(firstType, itemSignature: GetSignatureObject(count, itemSignature), items, nesting: 0);
+    }
+
+    private static void ThrowIfSignatureEmpty(ReadOnlySpan<byte> signature, string paramName)
+    {
+        if (signature.IsEmpty)
+        {
+            ThrowSignatureEmpty(paramName);
+        }
+    }
+
+    private static void ThrowIfSignatureNotSingleComplete(ReadOnlySpan<byte> signature, string paramName)
+    {
+        Debug.Assert(signature.Length > 0);
+        if (!IsSingleOrComplete(signature))
+        {
+            ThrowSignatureIsNotSingleOrComplete(signature, paramName);
+        }
+    }
+
+    private static bool IsSingleOrComplete(ReadOnlySpan<byte> signature)
+    {
+        Debug.Assert(signature.Length > 0);
+        if (signature.Length == 1)
+        {
+            return ProtocolConstants.IsSingleCompleteType(signature[0]);
+        }
+        else
+        {
+            DBusType type = (DBusType)signature[0];
+            switch (type)
+            {
+                case DBusType.Array:
+                    if (signature.Length == 1)
+                    {
+                        return false;
+                    }
+                    if (signature[1] == (byte)DBusType.DictEntry)
+                    {
+                        if (signature[signature.Length - 1] != (byte)'}' || signature.Length < 5)
+                        {
+                            return false;
+                        }
+                        return IsSingleOrComplete(signature.Slice(2, 1)) && IsSingleOrComplete(signature.Slice(3, signature.Length - 4));
+                    }
+                    else
+                    {
+                        return IsSingleOrComplete(signature.Slice(1));
+                    }
+                case DBusType.Struct:
+                    if (signature[signature.Length - 1] != (byte)')' || signature.Length < 3)
+                    {
+                        return false;
+                    }
+                    signature = signature.Slice(1, signature.Length - 2);
+                    while (TryReadSingleCompleteType(ref signature, out ReadOnlySpan<byte> itemSignature))
+                    {
+                        if (!IsSingleOrComplete(itemSignature))
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                default:
+                    return false;
+
+            }
+        }
+    }
+
+    private static void ThrowSignatureEmpty(string paramName)
+    {
+        throw new ArgumentException("Signature is empty.", paramName);
+    }
+
+    private static void ThrowSignatureIsNotSingleOrComplete(ReadOnlySpan<byte> signature, string paramName)
+    {
+        throw new ArgumentException($"Signature '{Encoding.UTF8.GetString(signature)}' is not a single complete type.", paramName);
+    }
+
+    public static VariantValue Dictionary(DBusType keyType, ReadOnlySpan<byte> valueSignature, KeyValuePair<VariantValue, VariantValue>[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        ThrowIfSignatureEmpty(valueSignature, nameof(valueSignature));
+
+        ReadOnlySpan<byte> keySignature = [ (byte)keyType ];
+
+        int count = items.Length;
+        if (count == 0)
+        {
+            ThrowIfSignatureNotSingleComplete(keySignature, nameof(keyType));
+            ThrowIfSignatureNotSingleComplete(valueSignature, nameof(valueSignature));
+        }
+        else
+        {
+            SignatureCheck keySigCheck = new(keySignature);
+            SignatureCheck valueSigCheck = new(valueSignature);
+            foreach (var item in items)
+            {
+                keySigCheck.ThrowIfNoMatch(item.Key);
+                valueSigCheck.ThrowIfNoMatch(item.Value);
+            }
+        }
+
+        return new VariantValue((VariantValueType)keyType, DetermineType(valueSignature), GetSignatureObject(count, valueSignature), items, nesting: 0);
+    }
+
+    internal static VariantValueType DetermineType(ReadOnlySpan<byte> signature)
+    {
+        VariantValueType type = (VariantValueType)signature[0];
+        if (type == VariantValueType.Array && (DBusType)signature[1] == DBusType.DictEntry)
+        {
+            type = VariantValueType.Dictionary;
+        }
+        return type;
+    }
+
+    readonly ref struct SignatureCheck
+    {
+        private readonly ReadOnlySpan<byte> _signature;
+        private readonly object? _typeDef;
+        private readonly long _typeL;
+        private readonly bool _extendedCheck;
+
+        public SignatureCheck(ReadOnlySpan<byte> signature)
+        {
+            Debug.Assert(signature.Length > 0);
+
+            VariantValueType signatureType = (VariantValueType)signature[0];
+            
+            _signature = signature;
+            _typeDef = null;
+            _extendedCheck = false;
+
+            if (signatureType == VariantValueType.Array)
+            {
+                if (signature.Length > 1)
+                {
+                    if (signature[1] == (byte)DBusType.DictEntry)
+                    {
+                        if (signature.Length >= 5 &&
+                            signature[signature.Length - 1] == (byte)'}')
+                        {
+                            VariantValueType keyType = (VariantValueType)signature[2];
+                            VariantValueType valueType = (VariantValueType)signature[3];
+                            _extendedCheck = valueType == VariantValueType.Array || valueType == VariantValueType.Struct;
+                            if (valueType == VariantValueType.Array && signature[4] == '{') // a{xa{
+                            {
+                                valueType = VariantValueType.Dictionary;
+                            }
+
+                            _typeL = (((long)VariantValueType.Dictionary) << TypeShift) |
+                                     (((long)keyType) << DictionaryKeyTypeShift) |
+                                     (((long)valueType) << DictionaryValueTypeShift);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        VariantValueType itemType = (VariantValueType)signature[1];
+                        _extendedCheck = itemType == VariantValueType.Array || itemType == VariantValueType.Struct;
+                        if (itemType == VariantValueType.Array)
+                        {
+                            if (signature.Length < 3)
+                            {
+                                ThrowInvalidSignature(signature);
+                            }
+                            if (signature[2] == '{') // aa{
+                            {
+                                itemType = VariantValueType.Dictionary;
+                            }
+                        }
+
+                        _typeL = (((long)VariantValueType.Array) << TypeShift) |
+                                 (((long)itemType) << ArrayItemTypeShift);
+                        return;
+                    }
+                }
+            }
+            else if (signatureType == VariantValueType.Struct)
+            {
+                if (signature[signature.Length - 1] == (byte)')')
+                {
+                    _typeL = (((long)VariantValueType.Struct) << TypeShift) |
+                             (((long)GetStructVariantMask(signature)) << StructVariantMaskShift);
+                    _extendedCheck = true;
+                    return;
+                }
+            }
+            else if (signature.Length == 1)
+            {
+                switch (signatureType)
+                {
+                    case VariantValueType.Invalid:
+                        ThrowInvalidSignature(signature);
+                        return;
+                    case VariantValueType.Variant:
+                        _typeL = 0;
+                        return;
+                    case VariantValueType.Int64:
+                        _typeDef = Int64TypeDescriptor;
+                        _typeL = 0;
+                        return;
+                    case VariantValueType.UInt64:
+                        _typeDef = UInt64TypeDescriptor;
+                        _typeL = 0;
+                        return;
+                    case VariantValueType.Double:
+                        _typeDef = DoubleTypeDescriptor;
+                        _typeL = 0;
+                        return;
+                    default:
+                        _typeL = ((long)signatureType) << TypeShift;
+                        return;
+                }
+            }
+
+            ThrowInvalidSignature(signature);
+        }
+
+        private static long GetStructVariantMask(ReadOnlySpan<byte> signature)
+        {
+            signature = signature.Slice(1, signature.Length - 1);
+            int i = 0;
+            long mask = 0;
+            while (TryReadSingleCompleteType(ref signature, out ReadOnlySpan<byte> itemSignature))
+            {
+                if (itemSignature.SequenceEqual(Tmds.DBus.Protocol.Signature.Variant))
+                {
+                    mask |= 1L << i;
+                }
+                i++;
+            }
+            return mask;
+        }
+
+        private void ThrowInvalidSignature(ReadOnlySpan<byte> signature)
+        {
+            throw new ArgumentException($"Invalid signature: '{Encoding.UTF8.GetString(signature)}'", nameof(signature));
+        }
+
+        public void ThrowIfNoMatch(VariantValue vv)
+        {
+            if (_typeDef is not null)
+            {
+                if (object.ReferenceEquals(vv._o, _typeDef))
+                {
+                    return;
+                }
+            }
+            else if (_typeL != 0)
+            {
+                if ((vv._l & MetadataMask) == _typeL)
+                {
+                    if (_extendedCheck)
+                    {
+                        ExtendedCheck(vv);
+                    }
+                    return;
+                }
+            }
+            else
+            {
+                // signature is Variant, just ensure the value is valid.
+                vv.ThrowIfInvalid();
+                return;
+            }
+
+            ThrowValueSignatureMismatch(vv, _signature);
+        }
+
+        private static void ThrowValueSignatureMismatch(VariantValue vv, ReadOnlySpan<byte> signature)
+        {
+            throw new ArgumentException($"Value {vv} does not match signature: '{Encoding.UTF8.GetString(signature)}'");
+        }
+
+        private void ExtendedCheck(VariantValue vv)
+        {
+            // We've already verified type matches the signature.
+            VariantValueType type = vv.UnsafeDetermineInnerType(TypeShift);
+            if (type == VariantValueType.Array)
+            {
+                ReadOnlySpan<byte> itemSignature = _signature.Slice(1);
+                if (vv.UnsafeCount == 0)
+                {
+                    if (itemSignature.SequenceEqual((vv._o as byte[])!))
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    VariantValue item = (vv._o as VariantValue[])![0];
+                    SignatureCheck sigCheck = new(itemSignature);
+                    sigCheck.ThrowIfNoMatch(item);
+                    return;
+                }
+            }
+            else if (type == VariantValueType.Dictionary)
+            {
+                // We've already verified the key type matches.
+                ReadOnlySpan<byte> valueSignature = _signature.Slice(3, _signature.Length - 4);
+                if (vv.UnsafeCount == 0)
+                {
+                    if (valueSignature.SequenceEqual((vv._o as byte[])!))
+                    {
+                        return;
+                    }
+                }
+                else
+                {
+                    KeyValuePair<VariantValue, VariantValue> pair = (vv._o as KeyValuePair<VariantValue, VariantValue>[])![0];
+                    SignatureCheck sigCheck = new(valueSignature);
+                    sigCheck.ThrowIfNoMatch(pair.Value);
+                    return;
+                }
+            }
+            else if (type == VariantValueType.Struct)
+            {
+                // We've already verified the variant mask matches.
+                ReadOnlySpan<byte> signature = _signature.Slice(1, _signature.Length - 2);
+                var items = (vv._o as VariantValue[])!;
+                int mask = (int)(vv._l >> StructVariantMaskShift);
+                foreach (var item in items)
+                {
+                    if (!TryReadSingleCompleteType(ref signature, out ReadOnlySpan<byte> itemSignature))
+                    {
+                        goto NoMatch;
+                    }
+                    if ((mask & 1) == 0)
+                    {
+                        SignatureCheck sigCheck = new(itemSignature);
+                        sigCheck.ThrowIfNoMatch(item);
+                    }
+                    mask >>= 1;
+                }
+                if (signature.Length == 0)
+                {
+                    return;
+                }
+            }
+
+            NoMatch:
+            ThrowValueSignatureMismatch(vv, _signature);
+        }
+    }
+
+    // The signature returned in itemSignature is best-effort. It may be an invalid signature.
+    private static bool TryReadSingleCompleteType(ref ReadOnlySpan<byte> signature, out ReadOnlySpan<byte> itemSignature)
+    {
+        ReadOnlySpan<byte> s = signature;
+
+        int length = 0;
+        while (s.Length > 0 && s[0] == (byte)DBusType.Array)
+        {
+            s = s.Slice(1);
+            length++;
+        }
+
+        if (s.Length > 0)
+        {
+            DBusType type = (DBusType)s[0];
+            length++;
+            if (type == DBusType.Struct || type == DBusType.DictEntry)
+            {
+                s = s.Slice(1);
+                byte startChar = (byte)type;
+                byte endChar = type == DBusType.Struct ? (byte)')' : (byte)'}';
+                int count = 1;
+                do
+                {
+                    int offset = s.IndexOfAny(startChar, endChar);
+                    if (offset == -1)
+                    {
+                        // Signature is invalid. Return the whole thing.
+                        length = signature.Length;
+                        break;
+                    }
+
+                    if (s[offset] == startChar)
+                    {
+                        count++;
+                    }
+                    else
+                    {
+                        count--;
+                    }
+
+                    length += offset + 1;
+                    s = s.Slice(offset + 1);
+                } while (count > 0);
+            }
+        }
+
+        itemSignature = signature.Slice(0, length);
+        signature = signature.Slice(length);
+        return length != 0;
+    }
 
     public VariantValueType ItemType
         => DetermineInnerType(VariantValueType.Array, ArrayItemTypeShift);
@@ -906,7 +1378,8 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     public VariantValueType ValueType
         => DetermineInnerType(VariantValueType.Dictionary, DictionaryValueTypeShift);
 
-    public VariantValueType GetStructFieldType(int index)
+    // For Testing
+    internal VariantValueType GetStructFieldType(int index)
     {
         EnsureTypeIs(VariantValueType.Struct);
         if (index < 0 || index > UnsafeCount)
@@ -919,6 +1392,25 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return ((VariantValue[])_o!)[index].Type;
     }
+
+    private void ThrowIfInvalid()
+    {
+        if (_l == 0 && _o is null)
+        {
+            ThrowArgumentNull("value");
+        }
+    }
+
+    private static void ThrowIfNull(object? argument, string paramName)
+    {
+        if (argument is null)
+        {
+            ThrowArgumentNull(paramName);
+        }
+    }
+
+    internal static void ThrowArgumentNull(string paramName) =>
+        throw new ArgumentNullException(paramName);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureTypeIs(VariantValueType expected)
@@ -936,7 +1428,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void EnsureTypeIs(VariantValueType actual, VariantValueType[] expected)
     {
-        if (Array.IndexOf<VariantValueType>(expected, actual) == -1)
+        if (System.Array.IndexOf<VariantValueType>(expected, actual) == -1)
         {
             ThrowCannotRetrieveAs(actual, expected);
         }
@@ -1019,13 +1511,12 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             case VariantValueType.Double:
                 return $"{UnsafeGetDouble()}{TypeSuffix(includeTypeSuffix, type, nesting)}";
             case VariantValueType.String:
-                return $"{UnsafeGetString()}{TypeSuffix(includeTypeSuffix, type, nesting)}";
             case VariantValueType.ObjectPath:
                 return $"{UnsafeGetString()}{TypeSuffix(includeTypeSuffix, type, nesting)}";
             case VariantValueType.Signature:
                 return $"{UnsafeGetSignature()}{TypeSuffix(includeTypeSuffix, type, nesting)}";
             case VariantValueType.Struct:
-                var values = (_o as VariantValue[]) ?? Array.Empty<VariantValue>();
+                var values = (_o as VariantValue[])!;
                 return $"({string.Join(", ", values.Select(v => v.ToString(includeTypeSuffix: false)))}){TypeSuffix(includeTypeSuffix, type, nesting)}";
             default:
                 return $"{TypeString(type, nesting)}";
@@ -1041,7 +1532,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         if (type == VariantValueType.Struct)
         {
             var _this = this;
-            var values = (_o as VariantValue[]) ?? Array.Empty<VariantValue>();
+            var values = (_o as VariantValue[])!;
             suffix = $"<{string.Join(", ", values.Select((v, idx) => _this.UnsafeIsStructFieldVariant(idx) ? VariantValueType.Variant : v.Type))}>";
         }
         else if (type == VariantValueType.Array)
@@ -1117,13 +1608,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     }
 
     // For testing.
-    internal string Signature
+    internal string GetDBusSignature()
     {
-        get
-        {
-            Span<byte> span = stackalloc byte[ProtocolConstants.MaxSignatureLength];
-            return Encoding.UTF8.GetString(GetSignature(Type, span));
-        }
+        Span<byte> span = stackalloc byte[ProtocolConstants.MaxSignatureLength];
+        return Encoding.UTF8.GetString(GetSignature(Type, span));
     }
 
     internal void WriteVariantTo(ref MessageWriter writer)
@@ -1185,7 +1673,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 writer.WriteSignature(UnsafeGetSignature());
                 break;
             case VariantValueType.UnixFd:
-                writer.WriteHandle(UnsafeReadHandle<Microsoft.Win32.SafeHandles.SafeFileHandle>() ?? throw new ArgumentNullException("SafeHandle unavailable."));
+                SafeHandle? handle = UnsafeReadHandle<Microsoft.Win32.SafeHandles.SafeFileHandle>();
+                if (handle is null)
+                {
+                    throw new InvalidOperationException("Handle already read");
+                }
                 break;
             case VariantValueType.Array:
                 WriteArrayTo(ref writer);
@@ -1383,12 +1875,13 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         {
             return false;
         }
+    }
 
-        static bool IsSimpleSignature(VariantValueType type)
+    // Signature consists of a single character.
+    private static bool IsSimpleSignature(VariantValueType type)
             => type != VariantValueType.Array &&
                type != VariantValueType.Dictionary &&
                type != VariantValueType.Struct;
-    }
 
     private static void ThrowTypeInvalid()
     {

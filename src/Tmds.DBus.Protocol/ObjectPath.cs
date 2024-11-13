@@ -4,7 +4,24 @@ public struct ObjectPath
 {
     private string _value;
 
-    public ObjectPath(string value) => _value = value;
+    public ObjectPath(string value)
+    {
+        _value = value;
+        ThrowIfEmpty();
+    }
+
+    internal void ThrowIfEmpty()
+    {
+        if (_value is null || _value.Length == 0)
+        {
+            ThrowEmptyException();
+        }
+    }
+
+    private void ThrowEmptyException()
+    {
+        throw new ArgumentException($"{nameof(ObjectPath)} is empty.");
+    }
 
     public override string ToString() => _value ?? "";
 

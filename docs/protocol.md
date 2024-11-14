@@ -323,3 +323,6 @@ VariantValue v7 = new Dict<byte, VariantValue>()
 };
 VariantValue v8 = new Array<int>() { 1, 2 };
 ```
+
+`VariantValue` avoids copies when possible. You should not modify the data used to construct a `VariantValue` until that value was written.
+The data returned by some methods (like `GetArray`) may return the underlying data. If you modify it, other users of the object may observe the changes.

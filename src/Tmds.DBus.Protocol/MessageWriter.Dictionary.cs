@@ -6,13 +6,13 @@ namespace Tmds.DBus.Protocol;
 public ref partial struct MessageWriter
 {
     public ArrayStart WriteDictionaryStart()
-        => WriteArrayStart(DBusType.Struct);
+        => WriteArrayStart(DBusType.DictEntry);
 
     public void WriteDictionaryEnd(ArrayStart start)
         => WriteArrayEnd(start);
 
     public void WriteDictionaryEntryStart()
-        => WriteStructureStart();
+        => WritePadding(DBusType.DictEntry);
 
     // Write method for the common 'a{sv}' type.
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call WriteDictionary with these types.

@@ -261,6 +261,11 @@ public class ReaderTests
                     KeyValuePair.Create(VariantValue.String("one"), VariantValue.Int32(1)),
                     KeyValuePair.Create(VariantValue.String("two"), VariantValue.Variant(VariantValue.Int32(2))),
                 });
+            var myDict = new Dict<byte, string>
+            {
+                { 1, "one" },
+                { 2, "two" }
+            };
             return new[]
             {
                 new object[] {(VariantValue)(true),
@@ -397,6 +402,23 @@ public class ReaderTests
                 new object[] {new VariantValue(VariantValueType.String, VariantValueType.Struct, valueSignature: new byte[] { 40, 105, 41 }, Array.Empty<KeyValuePair<VariantValue, VariantValue>>(), nesting: 0),
                                                 new byte[] {7, 97, 123, 115, 40, 105, 41, 125, 0, 0, 0, 0, 0, 0, 0, 0},
                                                 new byte[] {7, 97, 123, 115, 40, 105, 41, 125, 0, 0, 0, 0, 0, 0, 0, 0}},
+
+                // Dict/Array/Struct
+                new object[] {new Array<long>([1, 2]).AsVariantValue(),
+                                                new byte[] {2, 97, 120, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2},
+                                                new byte[] {2, 97, 120, 0, 16, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0}},
+                new object[] {Struct.Create(1L, "hw").AsVariantValue(),
+                                                new byte[] {4, 40, 120, 115, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 104, 119, 0},
+                                                new byte[] {4, 40, 120, 115, 41, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 104, 119, 0}},
+                new object[] {myDict.AsVariantValue(),
+                                                new byte[] {5, 97, 123, 121, 115, 125, 0, 0, 0, 0, 0, 28, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 3, 111, 110, 101, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 3, 116, 119, 111, 0},
+                                                new byte[] {5, 97, 123, 121, 115, 125, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 3, 0, 0, 0, 111, 110, 101, 0, 0, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 116, 119, 111, 0}},
+                new object[] {Struct.Create((byte)1, (byte)2, (byte)3, (byte)4, (byte)5, (byte)6, (byte)7, (byte)8).AsVariantValue(),
+                                                new byte[] {10, 40, 121, 121, 121, 121, 121, 121, 121, 121, 41, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8},
+                                                new byte[] {10, 40, 121, 121, 121, 121, 121, 121, 121, 121, 41, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}},
+                new object[] {Struct.Create((VariantValue)1).AsVariantValue(),
+                                                new byte[] {3, 40, 118, 41, 0, 0, 0, 0, 1, 105, 0, 0, 0, 0, 0, 1},
+                                                new byte[] {3, 40, 118, 41, 0, 0, 0, 0, 1, 105, 0, 0, 1, 0, 0, 0}},
             };
         }
     }

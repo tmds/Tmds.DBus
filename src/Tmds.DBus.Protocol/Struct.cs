@@ -91,7 +91,7 @@ public static class Struct
             => new Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(item1, item2, item3, item4, item5, item6, item7, item8, item9, item10);
 }
 
-public sealed class Struct<T1> : IDBusWritable
+public sealed class Struct<T1> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
 {
     public T1 Item1;
@@ -114,9 +114,21 @@ public sealed class Struct<T1> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+            ]
+        );
+    }
 }
 
-public sealed class Struct<T1,T2> : IDBusWritable
+public sealed class Struct<T1,T2> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
 {
@@ -142,8 +154,21 @@ public sealed class Struct<T1,T2> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+            ]
+        );
+    }
 }
-public sealed class Struct<T1,T2,T3> : IDBusWritable
+public sealed class Struct<T1,T2,T3> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
     where T3  : notnull
@@ -172,8 +197,22 @@ public sealed class Struct<T1,T2,T3> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2, T3> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2, T3> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+                VariantValueConverter.ToVariantValue(Item3, nest: true),
+            ]
+        );
+    }
 }
-public sealed class Struct<T1,T2,T3,T4> : IDBusWritable
+public sealed class Struct<T1,T2,T3,T4> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
     where T3  : notnull
@@ -205,8 +244,23 @@ public sealed class Struct<T1,T2,T3,T4> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2, T3, T4> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2, T3, T4> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+                VariantValueConverter.ToVariantValue(Item3, nest: true),
+                VariantValueConverter.ToVariantValue(Item4, nest: true),
+            ]
+        );
+    }
 }
-public sealed class Struct<T1,T2,T3,T4,T5> : IDBusWritable
+public sealed class Struct<T1,T2,T3,T4,T5> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
     where T3  : notnull
@@ -241,8 +295,24 @@ public sealed class Struct<T1,T2,T3,T4,T5> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2, T3, T4, T5> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+                VariantValueConverter.ToVariantValue(Item3, nest: true),
+                VariantValueConverter.ToVariantValue(Item4, nest: true),
+                VariantValueConverter.ToVariantValue(Item5, nest: true),
+            ]
+        );
+    }
 }
-public sealed class Struct<T1,T2,T3,T4,T5,T6> : IDBusWritable
+public sealed class Struct<T1,T2,T3,T4,T5,T6> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
     where T3  : notnull
@@ -280,8 +350,25 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+                VariantValueConverter.ToVariantValue(Item3, nest: true),
+                VariantValueConverter.ToVariantValue(Item4, nest: true),
+                VariantValueConverter.ToVariantValue(Item5, nest: true),
+                VariantValueConverter.ToVariantValue(Item6, nest: true),
+            ]
+        );
+    }
 }
-public sealed class Struct<T1,T2,T3,T4,T5,T6,T7> : IDBusWritable
+public sealed class Struct<T1,T2,T3,T4,T5,T6,T7> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
     where T3  : notnull
@@ -322,8 +409,26 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6, T7> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+                VariantValueConverter.ToVariantValue(Item3, nest: true),
+                VariantValueConverter.ToVariantValue(Item4, nest: true),
+                VariantValueConverter.ToVariantValue(Item5, nest: true),
+                VariantValueConverter.ToVariantValue(Item6, nest: true),
+                VariantValueConverter.ToVariantValue(Item7, nest: true),
+            ]
+        );
+    }
 }
-public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8> : IDBusWritable
+public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
     where T3  : notnull
@@ -367,8 +472,27 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6, T7, T8> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+                VariantValueConverter.ToVariantValue(Item3, nest: true),
+                VariantValueConverter.ToVariantValue(Item4, nest: true),
+                VariantValueConverter.ToVariantValue(Item5, nest: true),
+                VariantValueConverter.ToVariantValue(Item6, nest: true),
+                VariantValueConverter.ToVariantValue(Item7, nest: true),
+                VariantValueConverter.ToVariantValue(Item8, nest: true),
+            ]
+        );
+    }
 }
-public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9> : IDBusWritable
+public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
     where T3  : notnull
@@ -415,8 +539,28 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+                VariantValueConverter.ToVariantValue(Item3, nest: true),
+                VariantValueConverter.ToVariantValue(Item4, nest: true),
+                VariantValueConverter.ToVariantValue(Item5, nest: true),
+                VariantValueConverter.ToVariantValue(Item6, nest: true),
+                VariantValueConverter.ToVariantValue(Item7, nest: true),
+                VariantValueConverter.ToVariantValue(Item8, nest: true),
+                VariantValueConverter.ToVariantValue(Item9, nest: true),
+            ]
+        );
+    }
 }
-public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10> : IDBusWritable
+public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
     where T3  : notnull
@@ -466,4 +610,25 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10> : IDBusWritable
 
     public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> value)
         => value.AsVariant();
+
+    public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> value)
+        => value.AsVariantValue();
+
+    public VariantValue AsVariantValue()
+    {
+        return VariantValue.StructFromStruct(
+            [
+                VariantValueConverter.ToVariantValue(Item1, nest: true),
+                VariantValueConverter.ToVariantValue(Item2, nest: true),
+                VariantValueConverter.ToVariantValue(Item3, nest: true),
+                VariantValueConverter.ToVariantValue(Item4, nest: true),
+                VariantValueConverter.ToVariantValue(Item5, nest: true),
+                VariantValueConverter.ToVariantValue(Item6, nest: true),
+                VariantValueConverter.ToVariantValue(Item7, nest: true),
+                VariantValueConverter.ToVariantValue(Item8, nest: true),
+                VariantValueConverter.ToVariantValue(Item9, nest: true),
+                VariantValueConverter.ToVariantValue(Item10, nest: true),
+            ]
+        );
+    }
 }

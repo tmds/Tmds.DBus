@@ -192,54 +192,70 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         _l = GetArrayTypeMetadata(itemType, count, nesting);
         _o = count == 0 ? itemSignature : items;
     }
-    internal VariantValue(string[] items, byte nesting)
+    internal VariantValue(IList<VariantValue> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.String, items.Length, nesting);
+        Debug.Assert(items is VariantValue[] or List<VariantValue>);
+        _l = GetArrayTypeMetadata(VariantValueType.Variant, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(ObjectPath[] items, byte nesting)
+    internal VariantValue(IList<string> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.ObjectPath, items.Length, nesting);
+        Debug.Assert(items is string[] or List<string>);
+        _l = GetArrayTypeMetadata(VariantValueType.String, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(byte[] items, byte nesting)
+    internal VariantValue(IList<ObjectPath> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.Byte, items.Length, nesting);
+        Debug.Assert(items is ObjectPath[] or List<ObjectPath>);
+        _l = GetArrayTypeMetadata(VariantValueType.ObjectPath, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(short[] items, byte nesting)
+    internal VariantValue(IList<byte> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.Int16, items.Length, nesting);
+        Debug.Assert(items is byte[] or List<byte>);
+        _l = GetArrayTypeMetadata(VariantValueType.Byte, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(ushort[] items, byte nesting)
+    internal VariantValue(IList<short> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.UInt16, items.Length, nesting);
+        Debug.Assert(items is short[] or List<short>);
+        _l = GetArrayTypeMetadata(VariantValueType.Int16, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(int[] items, byte nesting)
+    internal VariantValue(IList<ushort> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.Int32, items.Length, nesting);
+        Debug.Assert(items is ushort[] or List<ushort>);
+        _l = GetArrayTypeMetadata(VariantValueType.UInt16, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(uint[] items, byte nesting)
+    internal VariantValue(IList<int> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.UInt32, items.Length, nesting);
+        Debug.Assert(items is int[] or List<int>);
+        _l = GetArrayTypeMetadata(VariantValueType.Int32, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(long[] items, byte nesting)
+    internal VariantValue(IList<uint> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.Int64, items.Length, nesting);
+        Debug.Assert(items is uint[] or List<uint>);
+        _l = GetArrayTypeMetadata(VariantValueType.UInt32, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(ulong[] items, byte nesting)
+    internal VariantValue(IList<long> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.UInt64, items.Length, nesting);
+        Debug.Assert(items is long[] or List<long>);
+        _l = GetArrayTypeMetadata(VariantValueType.Int64, items.Count, nesting);
         _o = items;
     }
-    internal VariantValue(double[] items, byte nesting)
+    internal VariantValue(IList<ulong> items, byte nesting)
     {
-        _l = GetArrayTypeMetadata(VariantValueType.Double, items.Length, nesting);
+        Debug.Assert(items is ulong[] or List<ulong>);
+        _l = GetArrayTypeMetadata(VariantValueType.UInt64, items.Count, nesting);
+        _o = items;
+    }
+    internal VariantValue(IList<double> items, byte nesting)
+    {
+        Debug.Assert(items is double[] or List<double>);
+        _l = GetArrayTypeMetadata(VariantValueType.Double, items.Count, nesting);
         _o = items;
     }
     // Dictionary
@@ -250,6 +266,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         _o = count == 0 ? valueSignature : pairs;
     }
     // Struct
+    internal static VariantValue StructFromStruct(VariantValue[] fields)
+        => StructCore(fields, nesting: 0);
+
     private static VariantValue StructCore(VariantValue[] fields, byte nesting)
     {
         long variantMask = 0;
@@ -538,6 +557,29 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return dict;
     }
 
+    private ReadOnlySpan<T> UnsafeArrayAsSpan<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
+        where T : notnull
+    {
+        if (UnsafeCount == 0)
+        {
+            return System.Array.Empty<T>();
+        }
+
+        if (_o is T[] a)
+        {
+            return a;
+        }
+        else
+        {
+            List<T> list = (_o as List<T>)!;
+#if NET5_0_OR_GREATER
+            return CollectionsMarshal.AsSpan(list);
+#else
+            return list.ToArray();
+#endif
+        }
+    }
+
     public T[] GetArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
         where T : notnull
     {
@@ -552,45 +594,18 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         // Return the array by reference when we can.
         // Don't bother to make a copy in case the caller mutates the data and
         // calls GetArray again to retrieve the original data. It's an unlikely scenario.
-        if (typeof(T) == typeof(byte))
+        if (typeof(T) == typeof(byte)
+            || typeof(T) == typeof(short)
+            || typeof(T) == typeof(int)
+            || typeof(T) == typeof(long)
+            || typeof(T) == typeof(ushort)
+            || typeof(T) == typeof(uint)
+            || typeof(T) == typeof(ulong)
+            || typeof(T) == typeof(double)
+            || typeof(T) == typeof(string)
+            || typeof(T) == typeof(ObjectPath))
         {
-            return (T[])(object)(_o as byte[])!;
-        }
-        else if (typeof(T) == typeof(short))
-        {
-            return (T[])(object)(_o as short[])!;
-        }
-        else if (typeof(T) == typeof(int))
-        {
-            return (T[])(object)(_o as int[])!;
-        }
-        else if (typeof(T) == typeof(long))
-        {
-            return (T[])(object)(_o as long[])!;
-        }
-        else if (typeof(T) == typeof(ushort))
-        {
-            return (T[])(object)(_o as ushort[])!;
-        }
-        else if (typeof(T) == typeof(uint))
-        {
-            return (T[])(object)(_o as uint[])!;
-        }
-        else if (typeof(T) == typeof(ulong))
-        {
-            return (T[])(object)(_o as ulong[])!;
-        }
-        else if (typeof(T) == typeof(double))
-        {
-            return (T[])(object)(_o as double[])!;
-        }
-        else if (typeof(T) == typeof(string))
-        {
-            return (T[])(object)(_o as string[])!;
-        }
-        else if (typeof(T) == typeof(ObjectPath))
-        {
-            return (T[])(object)(_o as ObjectPath[])!;
+            return _o is T[] a ? a : (_o as List<T>)!.ToArray();
         }
         else
         {
@@ -721,29 +736,29 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             switch (UnsafeDetermineInnerType(ArrayItemTypeShift))
             {
                 case VariantValueType.Byte:
-                    return Byte((_o as byte[])![i]);
+                    return Byte((_o as IList<byte>)![i]);
                 case VariantValueType.Int16:
-                    return Int16((_o as short[])![i]);
+                    return Int16((_o as IList<short>)![i]);
                 case VariantValueType.UInt16:
-                    return UInt16((_o as ushort[])![i]);
+                    return UInt16((_o as IList<ushort>)![i]);
                 case VariantValueType.Int32:
-                    return Int32((_o as int[])![i]);
+                    return Int32((_o as IList<int>)![i]);
                 case VariantValueType.UInt32:
-                    return UInt32((_o as uint[])![i]);
+                    return UInt32((_o as IList<uint>)![i]);
                 case VariantValueType.Int64:
-                    return Int64((_o as long[])![i]);
+                    return Int64((_o as IList<long>)![i]);
                 case VariantValueType.UInt64:
-                    return UInt64((_o as ulong[])![i]);
+                    return UInt64((_o as IList<ulong>)![i]);
                 case VariantValueType.Double:
-                    return Double((_o as double[])![i]);
+                    return Double((_o as IList<double>)![i]);
                 case VariantValueType.String:
-                    return String((_o as string[])![i]);
+                    return String((_o as IList<string>)![i]);
                 case VariantValueType.ObjectPath:
-                    return ObjectPath((_o as ObjectPath[])![i]);
+                    return ObjectPath((_o as IList<ObjectPath>)![i]);
             }
         }
 
-        var values = _o as VariantValue[];
+        var values = _o as IList<VariantValue>;
         return values![i];
     }
 
@@ -855,7 +870,17 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    public static VariantValue Array(List<byte> items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
     public static VariantValue Array(short[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(List<short> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
@@ -865,7 +890,17 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    public static VariantValue Array(List<ushort> items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
     public static VariantValue Array(int[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(List<int> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
@@ -875,7 +910,17 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    public static VariantValue Array(List<uint> items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
     public static VariantValue Array(long[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(List<long> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
@@ -885,12 +930,27 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    public static VariantValue Array(List<ulong> items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
     public static VariantValue Array(double[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    public static VariantValue Array(List<double> items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
     public static VariantValue Array(ObjectPath[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(List<ObjectPath> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
@@ -904,6 +964,35 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(items, nesting: 0);
     }
+    public static VariantValue Array(List<string> items)
+    {
+        ThrowIfNull(items, nameof(items));
+        if (items.Contains(null!))
+        {
+            ThrowArgumentNull(nameof(items));
+        }
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue ArrayOfVariant(VariantValue[] items)
+    {
+        ThrowIfNull(items, nameof(items));
+        foreach (var item in items)
+        {
+            item.ThrowIfInvalid();
+        }
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue ArrayOfVariant(List<VariantValue> items)
+    {
+        ThrowIfNull(items, nameof(items));
+        foreach (var item in items)
+        {
+            item.ThrowIfInvalid();
+        }
+        return new VariantValue(items, nesting: 0);
+    }
+    public static VariantValue Array(List<SafeHandle> items)
+        => Array(items.ToArray());
     public static VariantValue Array(SafeHandle[] items)
     {
         ThrowIfNull(items, nameof(items));
@@ -921,6 +1010,8 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(VariantValueType.UnixFd, itemSignature: null, values, nesting: 0);
     }
+    public static VariantValue Array(List<Signature> items)
+        => Array(items.ToArray());
     public static VariantValue Array(Signature[] items)
     {
         ThrowIfNull(items, nameof(items));
@@ -931,6 +1022,8 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(VariantValueType.Signature, itemSignature: null, values, nesting: 0);
     }
+    public static VariantValue Array(List<bool> items)
+        => Array(items.ToArray());
     public static VariantValue Array(bool[] items)
     {
         ThrowIfNull(items, nameof(items));
@@ -941,7 +1034,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(VariantValueType.Bool, itemSignature: null, values, nesting: 0);
     }
-    public static VariantValue Array(ReadOnlySpan<byte> itemSignature, VariantValue[] items)
+    internal static VariantValue Array(ReadOnlySpan<byte> itemSignature, VariantValue[] items)
     {
         ThrowIfNull(items, nameof(items));
         ThrowIfSignatureEmpty(itemSignature, nameof(itemSignature));
@@ -1050,7 +1143,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         throw new ArgumentException($"Signature '{Encoding.UTF8.GetString(signature)}' is not a single complete type.", paramName);
     }
 
-    public static VariantValue Dictionary(DBusType keyType, ReadOnlySpan<byte> valueSignature, KeyValuePair<VariantValue, VariantValue>[] items)
+    internal static VariantValue Dictionary(DBusType keyType, ReadOnlySpan<byte> valueSignature, KeyValuePair<VariantValue, VariantValue>[] items)
     {
         ThrowIfNull(items, nameof(items));
         ThrowIfSignatureEmpty(valueSignature, nameof(valueSignature));
@@ -1262,7 +1355,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 }
                 else
                 {
-                    VariantValue item = (vv._o as VariantValue[])![0];
+                    VariantValue item = (vv._o as IList<VariantValue>)![0];
                     SignatureCheck sigCheck = new(itemSignature);
                     sigCheck.ThrowIfNoMatch(item);
                     return;
@@ -1393,7 +1486,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return ((VariantValue[])_o!)[index].Type;
     }
 
-    private void ThrowIfInvalid()
+    internal void ThrowIfInvalid()
     {
         if (_l == 0 && _o is null)
         {
@@ -1732,34 +1825,34 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         switch (itemType)
         {
             case DBusType.Byte:
-                writer.WriteArray((_o as byte[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<byte>());
                 return;
             case DBusType.Int16:
-                writer.WriteArray((_o as short[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<short>());
                 return;
             case DBusType.UInt16:
-                writer.WriteArray((_o as ushort[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<ushort>());
                 return;
             case DBusType.Int32:
-                writer.WriteArray((_o as int[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<int>());
                 return;
             case DBusType.UInt32:
-                writer.WriteArray((_o as uint[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<uint>());
                 return;
             case DBusType.Int64:
-                writer.WriteArray((_o as long[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<long>());
                 return;
             case DBusType.UInt64:
-                writer.WriteArray((_o as ulong[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<ulong>());
                 return;
             case DBusType.Double:
-                writer.WriteArray((_o as double[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<double>());
                 return;
             case DBusType.String:
-                writer.WriteArray((_o as string[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<string>());
                 return;
             case DBusType.ObjectPath:
-                writer.WriteArray((_o as ObjectPath[])!);
+                writer.WriteArray(UnsafeArrayAsSpan<ObjectPath>());
                 return;
         }
 
@@ -1812,7 +1905,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 VariantValueType itemType = UnsafeDetermineInnerType(ArrayItemTypeShift);
                 if (!TryAppendSignatureFromMetadata(signature, ref length, itemType))
                 {
-                    VariantValue vv = (_o as VariantValue[])![0];
+                    VariantValue vv = (_o as IList<VariantValue>)![0];
                     length += vv.AppendTypeSignature(signature.Slice(length));
                 }
                 return length;

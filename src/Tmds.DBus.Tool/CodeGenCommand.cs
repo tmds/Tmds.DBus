@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Microsoft.Extensions.CommandLineUtils;
+using McMaster.Extensions.CommandLineUtils;
 using Microsoft.CodeAnalysis;
 using Tmds.DBus.Protocol;
 
@@ -234,7 +234,7 @@ namespace Tmds.DBus.Tool
             public string OutputFileName { get; set; }
             public IEnumerable<string> SkipInterfaces { get; set; }
             public Dictionary<string, string> Interfaces { get; set; }
-            public List<string> Files { get; set; }
+            public IReadOnlyList<string> Files { get; set; }
             public bool NoInternalsVisibleTo { get; set; }
             public Accessibility TypesAccessModifier {get; set;}
             public bool ProtocolApi { get; set; }

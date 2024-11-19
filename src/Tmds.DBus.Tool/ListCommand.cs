@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Microsoft.Extensions.CommandLineUtils;
+using McMaster.Extensions.CommandLineUtils;
 using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool
@@ -146,7 +146,7 @@ namespace Tmds.DBus.Tool
             }
         }
 
-        private async Task ListInterfacesAsync(string address, string service, string path, bool recurse, List<string> files)
+        private async Task ListInterfacesAsync(string address, string service, string path, bool recurse, IReadOnlyList<string> files)
         {
             var visitor = new InterfacesVisitor();
             if (service != null)

@@ -433,10 +433,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     private ObjectPath UnsafeGetObjectPath()
         => new ObjectPath(UnsafeGetString());
 
-    public ObjectPath GetObjectPath()
+    [Obsolete($"Call {nameof(GetObjectPathAsString)} instead. {nameof(GetObjectPath)} will be changed to return a {nameof(ObjectPath)} in a future version, which will cause a breaking change.")]
+    public string GetObjectPath()
     {
         EnsureTypeIs(VariantValueType.ObjectPath);
-        return UnsafeGetObjectPath();
+        return UnsafeGetString();
     }
 
     public string GetObjectPathAsString()
@@ -584,7 +585,8 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         where T : notnull
     {
         EnsureTypeIs(VariantValueType.Array);
-        EnsureCanUnsafeGet<T>(ItemType);
+        VariantValueType itemType = UnsafeDetermineInnerType(ArrayItemTypeShift);
+        EnsureCanUnsafeGet<T>(itemType);
 
         if (UnsafeCount == 0)
         {
@@ -602,10 +604,15 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             || typeof(T) == typeof(uint)
             || typeof(T) == typeof(ulong)
             || typeof(T) == typeof(double)
-            || typeof(T) == typeof(string)
+            || (typeof(T) == typeof(string) && itemType != VariantValueType.ObjectPath)
             || typeof(T) == typeof(ObjectPath))
         {
             return _o is T[] a ? a : (_o as List<T>)!.ToArray();
+        }
+        else if (typeof(T) == typeof(string) && itemType == VariantValueType.ObjectPath)
+        {
+            IList<ObjectPath> paths = (_o as IList<ObjectPath>)!;
+            return (T[])(object)paths.Select(path => path.ToString()).ToArray();
         }
         else
         {
@@ -661,7 +668,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         else if (typeof(T) == typeof(string))
         {
-            EnsureTypeIs(type, VariantValueType.String);
+            EnsureTypeIs(type, [ VariantValueType.String, VariantValueType.ObjectPath ]);
         }
         else if (typeof(T) == typeof(ObjectPath))
         {

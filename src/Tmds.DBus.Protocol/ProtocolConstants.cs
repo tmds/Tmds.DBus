@@ -3,23 +3,6 @@ namespace Tmds.DBus.Protocol;
 static class ProtocolConstants
 {
     public const int MaxSignatureLength = 256;
-
-    // note: C# compiler treats these as static data.
-    public static ReadOnlySpan<byte> ByteSignature => new byte[] { (byte)'y' };
-    public static ReadOnlySpan<byte> BooleanSignature => new byte[] { (byte)'b' };
-    public static ReadOnlySpan<byte> Int16Signature => new byte[] { (byte)'n' };
-    public static ReadOnlySpan<byte> UInt16Signature => new byte[] { (byte)'q' };
-    public static ReadOnlySpan<byte> Int32Signature => new byte[] { (byte)'i' };
-    public static ReadOnlySpan<byte> UInt32Signature => new byte[] { (byte)'u' };
-    public static ReadOnlySpan<byte> Int64Signature => new byte[] { (byte)'x' };
-    public static ReadOnlySpan<byte> UInt64Signature => new byte[] { (byte)'t' };
-    public static ReadOnlySpan<byte> DoubleSignature => new byte[] { (byte)'d' };
-    public static ReadOnlySpan<byte> UnixFdSignature => new byte[] { (byte)'h' };
-    public static ReadOnlySpan<byte> StringSignature => new byte[] { (byte)'s' };
-    public static ReadOnlySpan<byte> ObjectPathSignature => new byte[] { (byte)'o' };
-    public static ReadOnlySpan<byte> SignatureSignature => new byte[] { (byte)'g' };
-    public static ReadOnlySpan<byte> VariantSignature => new byte[] { (byte)'v' };
-
     public const int StructAlignment = 8;
     public const int UInt32Alignment = 4;
 

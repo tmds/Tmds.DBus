@@ -11,7 +11,7 @@ public ref partial struct MessageWriter
 
     public void WriteVariantHandle(SafeHandle value)
     {
-        WriteSignature(ProtocolConstants.UnixFdSignature);
+        WriteSignature(Signature.UnixFd);
         WriteHandle(value);
     }
 

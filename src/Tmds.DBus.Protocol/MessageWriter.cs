@@ -67,13 +67,16 @@ public ref partial struct MessageWriter
     }
 
     public ArrayStart WriteArrayStart(DBusType elementType)
+        => WriteArrayStart(ProtocolConstants.GetTypeAlignment(elementType));
+
+    private ArrayStart WriteArrayStart(int alignment)
     {
         // Array length.
-        WritePadding(DBusType.UInt32);
+        WritePadding(ProtocolConstants.UInt32Alignment);
         Span<byte> lengthSpan = GetSpan(4);
         Advance(4);
 
-        WritePadding(elementType);
+        WritePadding(alignment);
 
         return new ArrayStart(lengthSpan, _offset);
     }
@@ -85,7 +88,7 @@ public ref partial struct MessageWriter
 
     public void WriteStructureStart()
     {
-        WritePadding(DBusType.Struct);
+        WritePadding(ProtocolConstants.StructAlignment);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -94,16 +97,6 @@ public ref partial struct MessageWriter
         _buffered += count;
         _offset += count;
         _span = _span.Slice(count);
-    }
-
-    private void WritePadding(DBusType type)
-    {
-        int pad = ProtocolConstants.GetPadding(_offset, type);
-        if (pad != 0)
-        {
-            GetSpan(pad).Slice(0, pad).Fill(0);
-            Advance(pad);
-        }
     }
 
     private void WritePadding(int alignment)

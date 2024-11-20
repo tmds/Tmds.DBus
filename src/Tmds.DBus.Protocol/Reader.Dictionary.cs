@@ -7,7 +7,7 @@ namespace Tmds.DBus.Protocol;
 public ref partial struct Reader
 {
     public ArrayEnd ReadDictionaryStart()
-        => ReadArrayStart(DBusType.Struct);
+        => ReadArrayStart(ProtocolConstants.StructAlignment);
 
     // Read method for the common 'a{sv}' type.
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call ReadDictionary with these types.

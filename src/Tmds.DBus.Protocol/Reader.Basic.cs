@@ -21,7 +21,7 @@ public ref partial struct Reader
 
     public short ReadInt16()
     {
-        AlignReader(DBusType.Int16);
+        AlignReader(alignment: 2);
         bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out short rv) : _reader.TryReadLittleEndian(out rv);
         if (!dataRead)
         {
@@ -35,7 +35,7 @@ public ref partial struct Reader
 
     public int ReadInt32()
     {
-        AlignReader(DBusType.Int32);
+        AlignReader(alignment: 4);
         bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out int rv) : _reader.TryReadLittleEndian(out rv);
         if (!dataRead)
         {
@@ -49,7 +49,7 @@ public ref partial struct Reader
 
     public long ReadInt64()
     {
-        AlignReader(DBusType.Int64);
+        AlignReader(alignment: 8);
         bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out long rv) : _reader.TryReadLittleEndian(out rv);
         if (!dataRead)
         {

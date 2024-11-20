@@ -140,7 +140,7 @@ public sealed class Message
             return null;
         }
 
-        headerFieldLength = (uint)ProtocolConstants.Align((int)headerFieldLength, DBusType.Struct);
+        headerFieldLength = (uint)ProtocolConstants.Align((int)headerFieldLength, ProtocolConstants.StructAlignment);
 
         long totalLength = seqReader.Consumed + headerFieldLength + bodyLength;
 
@@ -186,7 +186,7 @@ public sealed class Message
         var reader = new Reader(IsBigEndian, _data.AsReadOnlySequence);
         reader.Advance(HeaderFieldsLengthOffset);
 
-        ArrayEnd headersEnd = reader.ReadArrayStart(DBusType.Struct);
+        ArrayEnd headersEnd = reader.ReadArrayStart(ProtocolConstants.StructAlignment);
         while (reader.HasNext(headersEnd))
         {
             MessageHeader hdrType = (MessageHeader)reader.ReadByte();

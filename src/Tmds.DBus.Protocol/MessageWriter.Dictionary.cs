@@ -6,7 +6,7 @@ namespace Tmds.DBus.Protocol;
 public ref partial struct MessageWriter
 {
     public ArrayStart WriteDictionaryStart()
-        => WriteArrayStart(DBusType.Struct);
+        => WriteArrayStart(ProtocolConstants.StructAlignment);
 
     public void WriteDictionaryEnd(ArrayStart start)
         => WriteArrayEnd(start);

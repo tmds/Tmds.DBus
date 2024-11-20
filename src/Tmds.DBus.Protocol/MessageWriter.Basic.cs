@@ -56,91 +56,91 @@ public ref partial struct MessageWriter
 
     public void WriteVariantBool(bool value)
     {
-        WriteSignature(ProtocolConstants.BooleanSignature);
+        WriteSignature(Signature.Boolean);
         WriteBool(value);
     }
 
     public void WriteVariantByte(byte value)
     {
-        WriteSignature(ProtocolConstants.ByteSignature);
+        WriteSignature(Signature.Byte);
         WriteByte(value);
     }
 
     public void WriteVariantInt16(short value)
     {
-        WriteSignature(ProtocolConstants.Int16Signature);
+        WriteSignature(Signature.Int16);
         WriteInt16(value);
     }
 
     public void WriteVariantUInt16(ushort value)
     {
-        WriteSignature(ProtocolConstants.UInt16Signature);
+        WriteSignature(Signature.UInt16);
         WriteUInt16(value);
     }
 
     public void WriteVariantInt32(int value)
     {
-        WriteSignature(ProtocolConstants.Int32Signature);
+        WriteSignature(Signature.Int32);
         WriteInt32(value);
     }
 
     public void WriteVariantUInt32(uint value)
     {
-        WriteSignature(ProtocolConstants.UInt32Signature);
+        WriteSignature(Signature.UInt32);
         WriteUInt32(value);
     }
 
     public void WriteVariantInt64(long value)
     {
-        WriteSignature(ProtocolConstants.Int64Signature);
+        WriteSignature(Signature.Int64);
         WriteInt64(value);
     }
 
     public void WriteVariantUInt64(ulong value)
     {
-        WriteSignature(ProtocolConstants.UInt64Signature);
+        WriteSignature(Signature.UInt64);
         WriteUInt64(value);
     }
 
     public void WriteVariantDouble(double value)
     {
-        WriteSignature(ProtocolConstants.DoubleSignature);
+        WriteSignature(Signature.Double);
         WriteDouble(value);
     }
 
     public void WriteVariantString(scoped ReadOnlySpan<byte> value)
     {
-        WriteSignature(ProtocolConstants.StringSignature);
+        WriteSignature(Signature.String);
         WriteString(value);
     }
 
     public void WriteVariantSignature(scoped ReadOnlySpan<byte> value)
     {
-        WriteSignature(ProtocolConstants.SignatureSignature);
+        WriteSignature(Signature.Sig);
         WriteSignature(value);
     }
 
     public void WriteVariantObjectPath(scoped ReadOnlySpan<byte> value)
     {
-        WriteSignature(ProtocolConstants.ObjectPathSignature);
+        WriteSignature(Signature.ObjectPath);
         WriteObjectPath(value);
     }
 
     public void WriteVariantString(string value)
     {
-        WriteSignature(ProtocolConstants.StringSignature);
+        WriteSignature(Signature.String);
         WriteString(value);
     }
 
     public void WriteVariantSignature(string value)
     {
-        WriteSignature(ProtocolConstants.SignatureSignature);
+        WriteSignature(Signature.Sig);
         WriteSignature(value);
     }
 
     public void WriteVariantObjectPath(string value)
     {
-        WriteSignature(ProtocolConstants.ObjectPathSignature);
+        WriteSignature(Signature.ObjectPath);
         WriteObjectPath(value);
     }
 

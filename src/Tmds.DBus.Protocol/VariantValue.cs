@@ -1719,7 +1719,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         nesting += nestingOffset;
         while (nesting > 1)
         {
-            writer.WriteSignature(ProtocolConstants.VariantSignature);
+            writer.WriteSignature(Protocol.Signature.Variant);
             nesting--;
         }
         if (nesting == 1)

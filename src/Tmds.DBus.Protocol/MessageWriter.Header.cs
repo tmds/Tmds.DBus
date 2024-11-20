@@ -120,7 +120,7 @@ public ref partial struct MessageWriter
         {
             WriteStructureStart();
             WriteByte((byte)MessageHeader.Signature);
-            WriteVariantSignature(ProtocolConstants.StringSignature);
+            WriteVariantSignature(Signature.String);
         }
 
         WriteHeaderEnd(start);

@@ -24,16 +24,8 @@ public ref partial struct Reader
         _handleCount = handleCount;
     }
 
-    public void AlignStruct() => AlignReader(DBusType.Struct);
-
-    private void AlignReader(DBusType type)
-    {
-        long pad = ProtocolConstants.GetPadding((int)_reader.Consumed, type);
-        if (pad != 0)
-        {
-            _reader.Advance(pad);
-        }
-    }
+    public void AlignStruct()
+        => AlignReader(ProtocolConstants.StructAlignment);
 
     private void AlignReader(int alignment)
     {
@@ -45,17 +37,20 @@ public ref partial struct Reader
     }
 
     public ArrayEnd ReadArrayStart(DBusType elementType)
+        => ReadArrayStart(ProtocolConstants.GetTypeAlignment(elementType));
+
+    internal ArrayEnd ReadArrayStart(int alignment)
     {
         uint arrayLength = ReadUInt32();
-        AlignReader(elementType);
+        AlignReader(alignment);
         int endOfArray = (int)(_reader.Consumed + arrayLength);
-        return new ArrayEnd(elementType, endOfArray);
+        return new ArrayEnd(alignment, endOfArray);
     }
 
     public bool HasNext(ArrayEnd iterator)
     {
         int consumed = (int)_reader.Consumed;
-        int nextElement = ProtocolConstants.Align(consumed, iterator.Type);
+        int nextElement = ProtocolConstants.Align(consumed, iterator.Alignment);
         if (nextElement >= iterator.EndOfArray)
         {
             return false;
@@ -77,12 +72,12 @@ public ref partial struct Reader
 
 public ref struct ArrayEnd
 {
-    internal readonly DBusType Type;
+    internal readonly int Alignment;
     internal readonly int EndOfArray;
 
-    internal ArrayEnd(DBusType type, int endOfArray)
+    internal ArrayEnd(int alignment, int endOfArray)
     {
-        Type = type;
+        Alignment = alignment;
         EndOfArray = endOfArray;
     }
 }

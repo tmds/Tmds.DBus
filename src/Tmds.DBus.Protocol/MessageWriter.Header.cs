@@ -186,7 +186,7 @@ public ref partial struct MessageWriter
     private void WriteHeaderEnd(ArrayStart start)
     {
         WriteArrayEnd(start);
-        WritePadding(DBusType.Struct);
+        WritePadding(ProtocolConstants.StructAlignment);
     }
 
     private ArrayStart WriteHeaderStart(MessageType type, MessageFlags flags)
@@ -203,7 +203,7 @@ public ref partial struct MessageWriter
         Debug.Assert(_offset == SerialOffset + 4);
 
         // headers
-        ArrayStart start = WriteArrayStart(DBusType.Struct);
+        ArrayStart start = WriteArrayStart(ProtocolConstants.StructAlignment);
 
         // UnixFds
         WriteStructureStart();

@@ -36,7 +36,7 @@ public ref partial struct MessageWriter
         scoped ReadOnlySpan<string> childNames,
         IEnumerable<string>? childNamesEnumerable)
     {
-        WritePadding(DBusType.UInt32);
+        WritePadding(ProtocolConstants.UInt32Alignment);
         Span<byte> lengthSpan = GetSpan(4);
         Advance(4);
 

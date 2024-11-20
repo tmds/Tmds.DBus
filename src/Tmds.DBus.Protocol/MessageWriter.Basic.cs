@@ -6,21 +6,21 @@ public ref partial struct MessageWriter
 
     public void WriteBool(bool value) => WriteUInt32(value ? 1u : 0u);
 
-    public void WriteByte(byte value) => WritePrimitiveCore<byte>(value, DBusType.Byte);
+    public void WriteByte(byte value) => WritePrimitiveCore<byte>(value);
 
-    public void WriteInt16(short value) => WritePrimitiveCore<Int16>(value, DBusType.Int16);
+    public void WriteInt16(short value) => WritePrimitiveCore<Int16>(value);
 
-    public void WriteUInt16(ushort value) => WritePrimitiveCore<UInt16>(value, DBusType.UInt16);
+    public void WriteUInt16(ushort value) => WritePrimitiveCore<UInt16>(value);
 
-    public void WriteInt32(int value) => WritePrimitiveCore<Int32>(value, DBusType.Int32);
+    public void WriteInt32(int value) => WritePrimitiveCore<Int32>(value);
 
-    public void WriteUInt32(uint value) => WritePrimitiveCore<UInt32>(value, DBusType.UInt32);
+    public void WriteUInt32(uint value) => WritePrimitiveCore<UInt32>(value);
 
-    public void WriteInt64(long value) => WritePrimitiveCore<Int64>(value, DBusType.Int64);
+    public void WriteInt64(long value) => WritePrimitiveCore<Int64>(value);
 
-    public void WriteUInt64(ulong value) => WritePrimitiveCore<UInt64>(value, DBusType.UInt64);
+    public void WriteUInt64(ulong value) => WritePrimitiveCore<UInt64>(value);
 
-    public void WriteDouble(double value) => WritePrimitiveCore<double>(value, DBusType.Double);
+    public void WriteDouble(double value) => WritePrimitiveCore<double>(value);
 
     public void WriteString(scoped ReadOnlySpan<byte> value) => WriteStringCore(value);
 
@@ -156,7 +156,7 @@ public ref partial struct MessageWriter
 
     private void WriteStringCore(string s)
     {
-        WritePadding(DBusType.UInt32);
+        WritePadding(ProtocolConstants.UInt32Alignment);
         Span<byte> lengthSpan = GetSpan(4);
         Advance(4);
         int bytesWritten = WriteRaw(s);
@@ -165,10 +165,10 @@ public ref partial struct MessageWriter
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void WritePrimitiveCore<T>(T value, DBusType type)
+    private void WritePrimitiveCore<T>(T value)
     {
-        WritePadding(type);
-        int length = ProtocolConstants.GetFixedTypeLength(type);
+        int length = Marshal.SizeOf<T>();
+        WritePadding(length);
         var span = GetSpan(length);
         Unsafe.WriteUnaligned<T>(ref MemoryMarshal.GetReference(span), value);
         Advance(length);

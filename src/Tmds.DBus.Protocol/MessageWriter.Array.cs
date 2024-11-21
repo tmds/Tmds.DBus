@@ -101,6 +101,15 @@ public ref partial struct MessageWriter
     public void WriteArray(IEnumerable<ObjectPath> value)
         => WriteArrayOfT(value);
 
+    public void WriteArray(VariantValue[] value)
+        => WriteArray(value.AsSpan());
+
+    public void WriteArray(ReadOnlySpan<VariantValue> value)
+        => WriteArrayOfT(value);
+
+    public void WriteArray(IEnumerable<VariantValue> value)
+        => WriteArrayOfT(value);
+
     public void WriteArray(Variant[] value)
         => WriteArray(value.AsSpan());
 

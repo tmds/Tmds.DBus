@@ -1861,6 +1861,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             case DBusType.ObjectPath:
                 writer.WriteArray(UnsafeArrayAsSpan<ObjectPath>());
                 return;
+            case DBusType.Variant:
+                writer.WriteArray(UnsafeArrayAsSpan<VariantValue>());
+                return;
         }
 
         ArrayStart arrayStart = writer.WriteArrayStart(itemType);

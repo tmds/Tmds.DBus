@@ -11,11 +11,10 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 
     // The gate guards someone removing handles while the UnixFdCollection gets disposed by the message.
     // We don't need to lock it while adding handles, or reading them to send them.
-    private readonly object _gate;
     private bool _disposed;
     private bool _handlesReffed;
 
-    internal object SyncObject => _gate;
+    internal object SyncObject { get; }
 
     internal bool IsRawHandleCollection => _rawHandles is not null;
 
@@ -23,11 +22,11 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
     {
         if (isRawHandleCollection)
         {
-            _gate = _rawHandles = new();
+            SyncObject = _rawHandles = new();
         }
         else
         {
-            _gate = _handles = new();
+            SyncObject = _handles = new();
         }
     }
 
@@ -55,7 +54,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
     // We remain responsible for disposing the handle.
     public IntPtr ReadHandleRaw(int index)
     {
-        lock (_gate)
+        lock (SyncObject)
         {
             if (_disposed)
             {
@@ -103,7 +102,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
     // The caller of this method owns the handle and is responsible for Disposing it.
     internal T? ReadHandleGeneric<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>(int index)
     {
-        lock (_gate)
+        lock (SyncObject)
         {
             if (_disposed)
             {
@@ -155,7 +154,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 
     public void Dispose()
     {
-        lock (_gate)
+        lock (SyncObject)
         {
             if (_disposed)
             {
@@ -171,7 +170,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 
     internal void RefHandles()
     {
-        lock (_gate)
+        lock (SyncObject)
         {
             if (_disposed)
             {
@@ -206,7 +205,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 
     internal int DangerousGetHandle(int i)
     {
-        Debug.Assert(Monitor.IsEntered(_gate));
+        Debug.Assert(Monitor.IsEntered(SyncObject));
         if (!_handlesReffed)
         {
             throw new InvalidOperationException("Trying to send an unreffed handle.");

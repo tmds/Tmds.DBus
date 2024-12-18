@@ -7,6 +7,7 @@ class MessageBufferPool
     public static readonly MessageBufferPool Shared = new MessageBufferPool(Environment.ProcessorCount * 2);
 
     private readonly int _maxSize;
+    private readonly Lock _gate = new();
     private readonly Stack<MessageBuffer> _pool = new Stack<MessageBuffer>();
 
     internal MessageBufferPool(int maxSize)
@@ -16,7 +17,7 @@ class MessageBufferPool
 
     public MessageBuffer Rent()
     {
-        lock (_pool)
+        lock (_gate)
         {
             if (_pool.Count > 0)
             {
@@ -31,7 +32,7 @@ class MessageBufferPool
 
     internal void Return(MessageBuffer value)
     {
-        lock (_pool)
+        lock (_gate)
         {
             if (_pool.Count < _maxSize)
             {

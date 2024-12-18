@@ -101,7 +101,7 @@ class DBusConnection : IDisposable
         private readonly object? _state4;
     }
 
-    private readonly object _gate = new object();
+    private readonly Lock _gate = new();
     private readonly Connection _parentConnection;
     private readonly Dictionary<uint, MessageHandler> _pendingCalls;
     private readonly CancellationTokenSource _connectCts;
@@ -903,7 +903,7 @@ class DBusConnection : IDisposable
 
     sealed class Observer : IDisposable
     {
-        private readonly object _gate = new object();
+        private readonly Lock _gate = new();
         private readonly SynchronizationContext? _synchronizationContext;
         private readonly MatchMaker _matchMaker;
         private readonly MessageHandler4 _messageHandler;

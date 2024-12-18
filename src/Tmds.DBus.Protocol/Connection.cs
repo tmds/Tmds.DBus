@@ -21,7 +21,7 @@ public partial class Connection : IDisposable
         Disconnected
     }
 
-    private readonly object _gate = new object();
+    private readonly Lock _gate = new();
     private readonly ClientConnectionOptions _connectionOptions;
     private DBusConnection? _connection;
     private CancellationTokenSource? _connectCts;
@@ -97,7 +97,7 @@ public partial class Connection : IDisposable
 
     private async Task<DBusConnection> DoConnectAsync()
     {
-        Debug.Assert(Monitor.IsEntered(_gate));
+        Debug.Assert(_gate.IsHeldByCurrentThread);
 
         DBusConnection? connection = null;
         try

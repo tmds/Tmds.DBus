@@ -1,12 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../src/Tmds.DBus/Tmds.DBus.csproj" />
+    <ProjectReference Include="../../src/Tmds.DBus.Protocol/Tmds.DBus.Protocol.csproj" />
   </ItemGroup>
 
 </Project>

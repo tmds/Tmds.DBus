@@ -1,96 +1,43 @@
+using Connection = Tmds.DBus.Protocol.Connection;
+using NetworkManager.DBus;
+using Tmds.DBus.Protocol;
 using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Tmds.DBus;
 
-namespace NetworkManager
+string? systemBusAddress = Address.System;
+if (systemBusAddress is null)
 {
-    public enum NetworkManagerState : uint
-    {
-        Unknown = 0,
-        ASleep = 10,
-        Disconnected = 20,
-        Disconnecting = 30,
-        Connecting = 40,
-        ConnectedLocal = 50,
-        ConnectedSite = 60,
-        ConnectedGlobal = 70
-    }
-    public enum NetworkManagerConnectivity : uint
-    {
-        Unknown = 0,
-        None = 1,
-        Portal = 2,
-        Limited = 3,
-        Full = 4
-    }
-
-    [Dictionary]
-    public class NetworkManagerProperties : IEnumerable<KeyValuePair<string,object>>
-    {
-        public bool NetworkingEnabled;
-        public bool WirelessEnabled;
-        public ObjectPath[] ActiveConnections;
-        public string Version;
-        public NetworkManagerState State;
-        public NetworkManagerConnectivity Connectivity;
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-        {
-            return this.GetEnumerator();
-        }
-
-        public IEnumerator<KeyValuePair<string,object>> GetEnumerator()
-        {
-            yield return new KeyValuePair<string, object>(nameof(NetworkingEnabled), NetworkingEnabled);
-            yield return new KeyValuePair<string, object>(nameof(WirelessEnabled), WirelessEnabled);
-            yield return new KeyValuePair<string, object>(nameof(ActiveConnections), ActiveConnections);
-            yield return new KeyValuePair<string, object>(nameof(Version), Version);
-            yield return new KeyValuePair<string, object>(nameof(State), State);
-            yield return new KeyValuePair<string, object>(nameof(Connectivity), Connectivity);
-        }
-    }
-
-    [DBusInterface("org.freedesktop.NetworkManager")]
-    public interface INetworkManager : IDBusObject
-    {
-        Task<ObjectPath[]> GetDevicesAsync();
-        Task<NetworkManagerProperties> GetAllAsync();
-
-        Task<object> GetAsync(string prop);
-        Task SetAsync(string prop, object val);
-        Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler);
-    }
-
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            Console.WriteLine("NetworkManager Sample");
-            Task.Run(async () =>
-            {
-                using (var connection = new Connection(Address.System))
-                {
-                    await connection.ConnectAsync();
-                    var objectPath = new ObjectPath("/org/freedesktop/NetworkManager");
-                    var service = "org.freedesktop.NetworkManager";
-                    var networkManager = connection.CreateProxy<INetworkManager>(service, objectPath);
-                    Console.WriteLine("Devices:");
-
-                    var devices = await networkManager.GetDevicesAsync();
-                    foreach (var device in devices)
-                    {
-                        Console.WriteLine($"* {device}");
-                    }
-                    Console.WriteLine("Properties:");
-                    var properties = await networkManager.GetAllAsync();
-                    foreach (var prop in properties)
-                    {
-                        Console.WriteLine($"* {prop.Key}={prop.Value}");
-                    }
-                }
-            }).Wait();
-        }
-    }
+    Console.Write("Can not determine system bus address");
+    return 1;
 }
+
+Connection connection = new Connection(Address.System!);
+await connection.ConnectAsync();
+Console.WriteLine("Connected to system bus.");
+
+var service = new NetworkManagerService(connection, "org.freedesktop.NetworkManager");
+var networkManager = service.CreateNetworkManager("/org/freedesktop/NetworkManager");
+
+foreach (var devicePath in await networkManager.GetDevicesAsync())
+{
+    var device = service.CreateDevice(devicePath);
+    var interfaceName = await device.GetInterfaceAsync();
+
+    Console.WriteLine($"Subscribing for state changes of '{interfaceName}'.");
+    await device.WatchStateChangedAsync(
+        (Exception? ex, (DeviceState NewState, DeviceState OldState, uint Reason) change) =>
+        {
+            if (ex is null)
+            {
+                Console.WriteLine($"Interface '{interfaceName}' changed from '{change.OldState}' to '{change.NewState}'.");
+            }
+        });
+}
+
+Exception? disconnectReason = await connection.DisconnectedAsync();
+if (disconnectReason is not null)
+{
+    Console.WriteLine("The connection was closed:");
+    Console.WriteLine(disconnectReason);
+    return 1;
+}
+return 0;

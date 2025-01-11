@@ -284,7 +284,7 @@ namespace Mpris.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<PlayerProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -479,7 +479,7 @@ namespace Mpris.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<PlaylistsProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -636,7 +636,7 @@ namespace Mpris.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<TrackListProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -781,7 +781,7 @@ namespace Mpris.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<MediaPlayer2Properties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)

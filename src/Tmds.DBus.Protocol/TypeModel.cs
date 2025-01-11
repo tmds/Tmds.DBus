@@ -54,10 +54,12 @@ static partial class TypeModel
         {
             return DBusType.Signature;
         }
+#pragma warning disable CS0618 // Type or member is obsolete
         else if (typeof(T) == typeof(Variant))
         {
             return DBusType.Variant;
         }
+#pragma warning restore CS0618 // Type or member is obsolete
         else if (typeof(T) == typeof(VariantValue))
         {
             return DBusType.Variant;
@@ -123,8 +125,10 @@ static partial class TypeModel
         { }
         else if (typeof(T) == typeof(Signature))
         { }
+#pragma warning disable CS0618 // Type or member is obsolete
         else if (typeof(T) == typeof(Variant))
         { }
+#pragma warning restore CS0618 // Type or member is obsolete
         else if (typeof(T) == typeof(VariantValue))
         { }
         else if (typeof(T).IsConstructedGenericType)
@@ -187,8 +191,10 @@ static partial class TypeModel
         { }
         else if (type == typeof(Signature))
         { }
+#pragma warning disable CS0618 // Type or member is obsolete
         else if (type == typeof(Variant))
         { }
+#pragma warning restore CS0618 // Type or member is obsolete
         else if (type == typeof(VariantValue))
         { }
         else if (type.IsConstructedGenericType)
@@ -296,11 +302,13 @@ static partial class TypeModel
             signature[0] = (byte)DBusType.Signature;
             return 1;
         }
+#pragma warning disable CS0618 // Type or member is obsolete
         else if (type == typeof(Variant))
         {
             signature[0] = (byte)DBusType.Variant;
             return 1;
         }
+#pragma warning restore CS0618 // Type or member is obsolete
         else if (type == typeof(VariantValue))
         {
             signature[0] = (byte)DBusType.Variant;

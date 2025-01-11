@@ -53,10 +53,12 @@ public ref partial struct MessageWriter
         {
             WriteSignature(((Signature)(object)value));
         }
+#pragma warning disable CS0618 // Type or member is obsolete
         else if (typeof(T) == typeof(Variant))
         {
             ((Variant)(object)value).WriteTo(ref this);
         }
+#pragma warning restore CS0618 // Type or member is obsolete
         else if (typeof(T) == typeof(VariantValue))
         {
             ((VariantValue)(object)value).WriteVariantTo(ref this);

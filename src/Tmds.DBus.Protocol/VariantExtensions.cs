@@ -4,6 +4,7 @@ namespace Tmds.DBus.Protocol;
 // DynamicallyAccessedMemberTypes.PublicParameterlessConstructor.
 #pragma warning disable IL2091
 
+[Obsolete($"Variant will be removed. Use the {nameof(VariantValue)} type instead.")]
 public static class VariantExtensions
 {
     public static Variant AsVariant(this byte value)

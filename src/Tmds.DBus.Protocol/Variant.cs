@@ -4,9 +4,7 @@ namespace Tmds.DBus.Protocol;
 // DynamicallyAccessedMemberTypes.PublicParameterlessConstructor.
 #pragma warning disable IL2091
 
-#if !DEBUG
-[Obsolete($"{nameof(Variant)} will be removed. Use the {nameof(VariantValue)} type instead.")]
-#endif
+[Obsolete($"Variant will be removed. Use the {nameof(VariantValue)} type instead.")]
 public readonly struct Variant
 {
     private static readonly object Int64Type = DBusType.Int64;

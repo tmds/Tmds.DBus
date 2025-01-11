@@ -110,12 +110,15 @@ public ref partial struct MessageWriter
     public void WriteArray(IEnumerable<VariantValue> value)
         => WriteArrayOfT(value);
 
+    [Obsolete($"Variant will be removed. Use the {nameof(VariantValue)} type instead.")]
     public void WriteArray(Variant[] value)
         => WriteArray(value.AsSpan());
 
+    [Obsolete($"Variant will be removed. Use the {nameof(VariantValue)} type instead.")]
     public void WriteArray(ReadOnlySpan<Variant> value)
         => WriteArrayOfT(value);
 
+    [Obsolete($"Variant will be removed. Use the {nameof(VariantValue)} type instead.")]
     public void WriteArray(IEnumerable<Variant> value)
         => WriteArrayOfT(value);
 

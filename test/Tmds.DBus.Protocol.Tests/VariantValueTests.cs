@@ -279,7 +279,7 @@ public class VariantValueTests
         VariantValue vv = Nest(VariantValue.ObjectPath(value), nesting);
         UnwrapVariant(ref vv, nesting);
 
-        Assert.Equal(s, vv.GetObjectPath());
+        Assert.Equal(s, vv.GetObjectPathAsString());
 
         Assert.Equal(VariantValueType.ObjectPath, vv.Type);
         Assert.Equal(VariantValueType.Invalid, vv.ItemType);

@@ -29,5 +29,6 @@ public readonly struct ObjectPath
 
     public static implicit operator ObjectPath(string value) => new ObjectPath(value);
 
+    [Obsolete($"Variant will be removed. Use the {nameof(VariantValue)} type instead.")]
     public Variant AsVariant() => new Variant(this);
 }

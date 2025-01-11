@@ -35,5 +35,6 @@ public readonly struct Signature
     public static implicit operator Signature(ReadOnlySpan<byte> value)
         => new Signature(value);
 
+    [Obsolete($"Variant will be removed. Use the {nameof(VariantValue)} type instead.")]
     public Variant AsVariant() => new Variant(this);
 }

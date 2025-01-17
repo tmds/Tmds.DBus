@@ -536,7 +536,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<NetworkManagerProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -804,7 +804,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<ActiveProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -1004,7 +1004,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<IP4ConfigProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -1169,7 +1169,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<StatisticsProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -1444,7 +1444,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<DeviceProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -1710,7 +1710,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<WiredProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -1871,7 +1871,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<WirelessProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -2024,7 +2024,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<WifiP2PProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -2151,7 +2151,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<DHCP4ConfigProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -2225,7 +2225,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<DnsManagerProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -2332,7 +2332,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<AccessPointProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -2481,7 +2481,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<IP6ConfigProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -2739,7 +2739,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<SettingsProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)
@@ -2951,7 +2951,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new(), invalidated = new();
+                List<string> changed = new();
                 return new PropertyChanges<ConnectionProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
             }
             static string[] ReadInvalidated(ref Reader reader)

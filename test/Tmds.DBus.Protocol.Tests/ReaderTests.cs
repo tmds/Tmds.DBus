@@ -4,8 +4,6 @@ using System.Linq;
 using Microsoft.Win32.SafeHandles;
 using Xunit;
 
-#pragma warning disable CS0618 // Using obsolete generic read methods.
-
 namespace Tmds.DBus.Protocol.Tests;
 
 public class ReaderTests

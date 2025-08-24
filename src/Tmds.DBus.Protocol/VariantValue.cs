@@ -433,11 +433,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     private ObjectPath UnsafeGetObjectPath()
         => new ObjectPath(UnsafeGetString());
 
-    [Obsolete($"Call {nameof(GetObjectPathAsString)} instead. {nameof(GetObjectPath)} will be changed to return a {nameof(ObjectPath)} in a future version, which will cause a breaking change.")]
-    public string GetObjectPath()
+    public ObjectPath GetObjectPath()
     {
         EnsureTypeIs(VariantValueType.ObjectPath);
-        return UnsafeGetString();
+        return UnsafeGetObjectPath();
     }
 
     public string GetObjectPathAsString()

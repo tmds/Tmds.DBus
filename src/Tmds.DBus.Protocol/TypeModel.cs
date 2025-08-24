@@ -54,10 +54,6 @@ static partial class TypeModel
         {
             return DBusType.Signature;
         }
-        else if (typeof(T) == typeof(Variant))
-        {
-            return DBusType.Variant;
-        }
         else if (typeof(T) == typeof(VariantValue))
         {
             return DBusType.Variant;
@@ -123,8 +119,6 @@ static partial class TypeModel
         { }
         else if (typeof(T) == typeof(Signature))
         { }
-        else if (typeof(T) == typeof(Variant))
-        { }
         else if (typeof(T) == typeof(VariantValue))
         { }
         else if (typeof(T).IsConstructedGenericType)
@@ -186,8 +180,6 @@ static partial class TypeModel
         else if (type == typeof(ObjectPath))
         { }
         else if (type == typeof(Signature))
-        { }
-        else if (type == typeof(Variant))
         { }
         else if (type == typeof(VariantValue))
         { }
@@ -294,11 +286,6 @@ static partial class TypeModel
         else if (type == typeof(Signature))
         {
             signature[0] = (byte)DBusType.Signature;
-            return 1;
-        }
-        else if (type == typeof(Variant))
-        {
-            signature[0] = (byte)DBusType.Variant;
             return 1;
         }
         else if (type == typeof(VariantValue))

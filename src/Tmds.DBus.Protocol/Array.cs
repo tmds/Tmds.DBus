@@ -2,9 +2,6 @@ using System.Collections;
 
 namespace Tmds.DBus.Protocol;
 
-// Using obsolete generic write members
-#pragma warning disable CS0618
-
 public sealed class Array<T> : IDBusWritable, IList<T>, IVariantValueConvertable
     where T : notnull
 {
@@ -88,12 +85,6 @@ public sealed class Array<T> : IDBusWritable, IList<T>, IVariantValueConvertable
         ThrowIfReadOnly();
         return _values.Remove(item);
     }
-
-    public Variant AsVariant()
-        => Variant.FromArray(this);
-
-    public static implicit operator Variant(Array<T> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Array<T> value)
         => value.AsVariantValue();

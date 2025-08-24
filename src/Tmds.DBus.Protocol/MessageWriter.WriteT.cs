@@ -53,10 +53,6 @@ public ref partial struct MessageWriter
         {
             WriteSignature(((Signature)(object)value));
         }
-        else if (typeof(T) == typeof(Variant))
-        {
-            ((Variant)(object)value).WriteTo(ref this);
-        }
         else if (typeof(T) == typeof(VariantValue))
         {
             ((VariantValue)(object)value).WriteVariantTo(ref this);

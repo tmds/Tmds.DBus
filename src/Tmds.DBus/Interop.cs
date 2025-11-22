@@ -11,6 +11,8 @@ namespace Tmds.DBus
     using SSizeT = System.IntPtr;
     internal static class Interop
     {
+        private const string LibX11 = "libX11.so.6";
+
         public struct Passwd
         {
             public IntPtr Name;
@@ -33,20 +35,20 @@ namespace Tmds.DBus
         [DllImport ("libc", SetLastError=true)]
         public static extern SSizeT recvmsg(int sockfd, IntPtr msg, int flags);
         
-        [DllImport("libX11")]
+        [DllImport(LibX11)]
         internal static extern IntPtr XOpenDisplay (string name);
-        [DllImport("libX11")]
+        [DllImport(LibX11)]
         internal static extern int XCloseDisplay (IntPtr display);
-        [DllImport("libX11")]
+        [DllImport(LibX11)]
         internal static extern IntPtr XInternAtom (IntPtr display, string atom_name, bool only_if_exists);
-        [DllImport("libX11")]
+        [DllImport(LibX11)]
         internal static extern int XGetWindowProperty(IntPtr display, IntPtr w, IntPtr property, 
             int long_offset, int long_length, bool delete, IntPtr req_type, 
             out IntPtr actual_type_return, out IntPtr actual_format_return, 
             out IntPtr nitems_return, out IntPtr bytes_after_return, out IntPtr prop_return);
-        [DllImport("libX11")]
+        [DllImport(LibX11)]
         internal static extern int XFree(IntPtr data);
-        [DllImport("libX11")]
+        [DllImport(LibX11)]
         internal static extern IntPtr XGetSelectionOwner(IntPtr display, IntPtr Atom);
     }
 }

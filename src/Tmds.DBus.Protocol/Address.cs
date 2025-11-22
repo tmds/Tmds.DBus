@@ -4,6 +4,8 @@ namespace Tmds.DBus.Protocol;
 
 public static class Address
 {
+    private const string LibX11 = "libX11.so.6";
+
     private static bool _systemAddressResolved = false;
     private static string? _systemAddress = null;
     private static bool _sessionAddressResolved = false;
@@ -202,19 +204,19 @@ public static class Address
     [DllImport("libc")]
     private static extern uint getuid();
 
-    [DllImport("libX11")]
+    [DllImport(LibX11)]
     private static extern IntPtr XOpenDisplay(string? name);
-    [DllImport("libX11")]
+    [DllImport(LibX11)]
     private static extern int XCloseDisplay(IntPtr display);
-    [DllImport("libX11")]
+    [DllImport(LibX11)]
     private static extern IntPtr XInternAtom(IntPtr display, string atom_name, bool only_if_exists);
-    [DllImport("libX11")]
+    [DllImport(LibX11)]
     private static extern int XGetWindowProperty(IntPtr display, IntPtr w, IntPtr property,
         int long_offset, int long_length, bool delete, IntPtr req_type,
         out IntPtr actual_type_return, out IntPtr actual_format_return,
         out IntPtr nitems_return, out IntPtr bytes_after_return, out IntPtr prop_return);
-    [DllImport("libX11")]
+    [DllImport(LibX11)]
     private static extern int XFree(IntPtr data);
-    [DllImport("libX11")]
+    [DllImport(LibX11)]
     private static extern IntPtr XGetSelectionOwner(IntPtr display, IntPtr Atom);
 }

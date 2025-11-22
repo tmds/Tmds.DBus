@@ -2,13 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <RollForward>Major</RollForward>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>dotnet-dbus</ToolCommandName>
     <AssemblyName>dotnet-dbus</AssemblyName>
     <PackageId>Tmds.DBus.Tool</PackageId>
-    <PackageType>DotnetCliTool</PackageType>
     <Authors>Tom Deseyn</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>Tom Deseyn</Copyright>

@@ -28,6 +28,4 @@ public readonly struct ObjectPath
     public static implicit operator string(ObjectPath value) => value._value;
 
     public static implicit operator ObjectPath(string value) => new ObjectPath(value);
-
-    public Variant AsVariant() => new Variant(this);
 }

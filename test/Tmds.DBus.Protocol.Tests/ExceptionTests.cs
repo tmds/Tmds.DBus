@@ -2,8 +2,6 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
-#pragma warning disable CS0618 // Using obsolete members
-
 namespace Tmds.DBus.Protocol.Tests
 {
     public class ExceptionTests
@@ -21,7 +19,7 @@ namespace Tmds.DBus.Protocol.Tests
                 new MatchRule(), (Message message, object? state) => "", (Exception? ex, string s, object? s1, object? s2) =>
                 {
                     tcs.SetResult(ex!);
-                });
+                }, ObserverFlags.EmitOnObserverDispose);
 
             disposable.Dispose();
 
@@ -43,7 +41,7 @@ namespace Tmds.DBus.Protocol.Tests
                 new MatchRule(), (Message message, object? state) => "", (Exception? ex, string s, object? s1, object? s2) =>
                 {
                     tcs.SetResult(ex!);
-                });
+                }, ObserverFlags.EmitOnConnectionDispose);
 
             conn1.Dispose();
 

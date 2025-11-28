@@ -110,15 +110,6 @@ public ref partial struct MessageWriter
     public void WriteArray(IEnumerable<VariantValue> value)
         => WriteArrayOfT(value);
 
-    public void WriteArray(Variant[] value)
-        => WriteArray(value.AsSpan());
-
-    public void WriteArray(ReadOnlySpan<Variant> value)
-        => WriteArrayOfT(value);
-
-    public void WriteArray(IEnumerable<Variant> value)
-        => WriteArrayOfT(value);
-
     public void WriteArray(SafeHandle[] value)
         => WriteArray(value.AsSpan());
 

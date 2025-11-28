@@ -2,9 +2,6 @@ using System.Collections;
 
 namespace Tmds.DBus.Protocol;
 
-// Using obsolete generic write members
-#pragma warning disable CS0618
-
 public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue>, IVariantValueConvertable
     where TKey : notnull
     where TValue : notnull
@@ -25,11 +22,6 @@ public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue
         TypeModel.EnsureSupportedVariantType<TValue>();
         _dict = value;
     }
-
-    public Variant AsVariant() => Variant.FromDict(this);
-
-    public static implicit operator Variant(Dict<TKey, TValue> value)
-        => value.AsVariant();
 
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // this is a supported variant type.
     void IDBusWritable.WriteTo(ref MessageWriter writer)

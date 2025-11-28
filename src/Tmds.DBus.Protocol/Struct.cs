@@ -1,8 +1,5 @@
 namespace Tmds.DBus.Protocol;
 
-// Using obsolete generic write members
-#pragma warning disable CS0618
-
 public static class Struct
 {
     public static Struct<T1> Create<T1>(T1 item1)
@@ -109,12 +106,6 @@ public sealed class Struct<T1> : IDBusWritable, IVariantValueConvertable
     private ValueTuple<T1> ToValueTuple()
         => new ValueTuple<T1>(Item1);
 
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1> value)
-        => value.AsVariant();
-
     public static implicit operator VariantValue(Struct<T1> value)
         => value.AsVariantValue();
 
@@ -148,12 +139,6 @@ public sealed class Struct<T1,T2> : IDBusWritable, IVariantValueConvertable
 
     private (T1, T2) ToValueTuple()
         => (Item1, Item2);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2> value)
         => value.AsVariantValue();
@@ -191,12 +176,6 @@ public sealed class Struct<T1,T2,T3> : IDBusWritable, IVariantValueConvertable
 
     private (T1, T2, T3) ToValueTuple()
         => (Item1, Item2, Item3);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2, T3> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2, T3> value)
         => value.AsVariantValue();
@@ -238,12 +217,6 @@ public sealed class Struct<T1,T2,T3,T4> : IDBusWritable, IVariantValueConvertabl
 
     private (T1, T2, T3, T4) ToValueTuple()
         => (Item1, Item2, Item3, Item4);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2, T3, T4> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2, T3, T4> value)
         => value.AsVariantValue();
@@ -289,12 +262,6 @@ public sealed class Struct<T1,T2,T3,T4,T5> : IDBusWritable, IVariantValueConvert
 
     private (T1, T2, T3, T4, T5) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5> value)
         => value.AsVariantValue();
@@ -344,12 +311,6 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6> : IDBusWritable, IVariantValueConv
 
     private (T1, T2, T3, T4, T5, T6) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6> value)
         => value.AsVariantValue();
@@ -403,12 +364,6 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7> : IDBusWritable, IVariantValueC
 
     private (T1, T2, T3, T4, T5, T6, T7) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6, T7> value)
         => value.AsVariantValue();
@@ -466,12 +421,6 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8> : IDBusWritable, IVariantVal
 
     private (T1, T2, T3, T4, T5, T6, T7, T8) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6, T7, T8> value)
         => value.AsVariantValue();
@@ -533,12 +482,6 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9> : IDBusWritable, IVariant
 
     private (T1, T2, T3, T4, T5, T6, T7, T8, T9) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8, Item9);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9> value)
         => value.AsVariantValue();
@@ -604,12 +547,6 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10> : IDBusWritable, IVar
 
     private (T1, T2, T3, T4, T5, T6, T7, T8, T9, T10) ToValueTuple()
         => (Item1, Item2, Item3, Item4, Item5, Item6, Item7, Item8, Item9, Item10);
-
-    public Variant AsVariant()
-        => Variant.FromStruct(this);
-
-    public static implicit operator Variant(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> value)
-        => value.AsVariant();
 
     public static implicit operator VariantValue(Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> value)
         => value.AsVariantValue();

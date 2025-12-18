@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Tmds.DBus.Protocol\Tmds.DBus.Protocol.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Tmds.DBus.SourceGenerator">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- https://gitlab.freedesktop.org/mpris/mpris-spec/ -->
+  <ItemGroup>
+    <AdditionalFiles Include="org.mpris.MediaPlayer2.xml" DBusGeneratorMode="Handler" />
+    <AdditionalFiles Include="org.mpris.MediaPlayer2.Player.xml" DBusGeneratorMode="Handler" />
+    <AdditionalFiles Include="org.mpris.MediaPlayer2.Playlists.xml" DBusGeneratorMode="Handler" />
+    <AdditionalFiles Include="org.mpris.MediaPlayer2.TrackList.xml" DBusGeneratorMode="Handler" />
+  </ItemGroup>
+
+</Project>

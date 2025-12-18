@@ -9,7 +9,7 @@ string playerName = await mediaPlayer.AddToDBusAsync();
 Console.WriteLine($"Media player is available via DBus as '{playerName}'.");
 
 await connection.DisconnectedAsync();
-System.Console.WriteLine("Connection lost. Closing application.");
+Console.WriteLine("Connection lost. Closing application.");
 
 class DBusMediaPlayer
 {
@@ -38,14 +38,15 @@ class DBusMediaPlayer
         }
     }
 
-    private string? _loopStatus = "None";
-    private string? LoopStatus
+    private string _loopStatus = "None";
+    private string LoopStatus
     {
         get => _loopStatus;
         set
         {
+            ArgumentNullException.ThrowIfNull(value);
             _loopStatus = value;
-            EmitPropertyChanged(_playerHandler.InterfaceName, "LoopStatus", value ?? "None");
+            EmitPropertyChanged(_playerHandler.InterfaceName, "LoopStatus", value);
         }
     }
 
@@ -125,23 +126,25 @@ class DBusMediaPlayer
 
     private string[] SupportedUriSchemes
     {
-        get => _mediaPlayerHandler.SupportedUriSchemes?.Select(x => x ?? "").ToArray() ?? Array.Empty<string>();
+        get => _mediaPlayerHandler.SupportedUriSchemes as string[] ?? [];
         set
         {
             ArgumentNullException.ThrowIfNull(value);
+            ThrowIfAnyElementIsNull(value);
             _mediaPlayerHandler.SupportedUriSchemes = value;
-            EmitPropertyChanged(_mediaPlayerHandler.InterfaceName, "SupportedUriSchemes", VariantValue.Array(value.Select(x => x ?? "").ToArray()));
+            EmitPropertyChanged(_mediaPlayerHandler.InterfaceName, "SupportedUriSchemes", VariantValue.Array(value));
         }
     }
 
     private string[] SupportedMimeTypes
     {
-        get => _mediaPlayerHandler.SupportedMimeTypes?.Select(x => x ?? "").ToArray() ?? Array.Empty<string>();
+        get => _mediaPlayerHandler.SupportedMimeTypes as string[] ?? [];
         set
         {
             ArgumentNullException.ThrowIfNull(value);
+            ThrowIfAnyElementIsNull(value);
             _mediaPlayerHandler.SupportedMimeTypes = value;
-            EmitPropertyChanged(_mediaPlayerHandler.InterfaceName, "SupportedMimeTypes", VariantValue.Array(value.Select(x => x ?? "").ToArray()));
+            EmitPropertyChanged(_mediaPlayerHandler.InterfaceName, "SupportedMimeTypes", VariantValue.Array(value));
         }
     }
 
@@ -155,13 +158,14 @@ class DBusMediaPlayer
         }
     }
 
-    private string? DesktopEntry
+    private string DesktopEntry
     {
-        get => _mediaPlayerHandler.DesktopEntry;
+        get => _mediaPlayerHandler.DesktopEntry ?? "";
         set
         {
+            ArgumentNullException.ThrowIfNull(value);
             _mediaPlayerHandler.DesktopEntry = value;
-            EmitPropertyChanged(_mediaPlayerHandler.InterfaceName, "DesktopEntry", value ?? "");
+            EmitPropertyChanged(_mediaPlayerHandler.InterfaceName, "DesktopEntry", value);
         }
     }
 
@@ -256,13 +260,14 @@ class DBusMediaPlayer
         }
     }
 
-    private Dictionary<string, VariantValue>? Metadata
+    private Dictionary<string, VariantValue> Metadata
     {
-        get => _playerHandler.Metadata;
+        get => _playerHandler.Metadata ?? throw new InvalidOperationException($"{nameof(Metadata)} should be initialized");
         set
         {
+            ArgumentNullException.ThrowIfNull(value);
             _playerHandler.Metadata = value;
-            var dict = new Dict<string, VariantValue>(value ?? new Dictionary<string, VariantValue>());
+            var dict = new Dict<string, VariantValue>(value);
             EmitPropertyChanged(_playerHandler.InterfaceName, "Metadata", dict);
         }
     }
@@ -291,8 +296,8 @@ class DBusMediaPlayer
         CanRaise = false;
         CanSetFullscreen = false;
         HasTrackList = false;
-        SupportedUriSchemes = new[] { "file" };
-        SupportedMimeTypes = new[] { "audio/mpeg", "audio/ogg" };
+        SupportedUriSchemes = ["file"];
+        SupportedMimeTypes = ["audio/mpeg", "audio/ogg"];
         PlaybackStatus = "Stopped";
         MinimumRate = 1.0;
         MaximumRate = 1.0;
@@ -387,20 +392,23 @@ class DBusMediaPlayer
         MessageWriter writer = _connection.GetMessageWriter();
         writer.WriteSignalHeader(null, ObjectPath, "org.freedesktop.DBus.Properties", "PropertiesChanged", "sa{sv}as");
         writer.WriteString(interfaceName);
-        writer.WriteDictionary([ KeyValuePair.Create(name, value) ]);
+        writer.WriteDictionary([KeyValuePair.Create(name, value)]);
         writer.WriteArray(Array.Empty<string>());
         _connection.TrySendMessage(writer.CreateMessage());
         writer.Dispose();
     }
 
-    sealed class MediaPlayerHandler : OrgMprisMediaPlayer2Handler
+    private static void ThrowIfAnyElementIsNull(string?[] value)
     {
-        private readonly DBusMediaPlayer _player;
-
-        public MediaPlayerHandler(DBusMediaPlayer player) : base()
+        if (Array.IndexOf(value, null) != -1)
         {
-            _player = player;
+            throw new ArgumentException("Array contains null elements.", nameof(value));
         }
+    }
+
+    sealed class MediaPlayerHandler(DBusMediaPlayer player) : OrgMprisMediaPlayer2Handler
+    {
+        private readonly DBusMediaPlayer _player = player;
 
         public override Connection Connection => _player._connection;
 
@@ -423,21 +431,16 @@ class DBusMediaPlayer
         }
     }
 
-    sealed class MediaPlayerPlayerHandler : OrgMprisMediaPlayer2PlayerHandler
+    sealed class MediaPlayerPlayerHandler(DBusMediaPlayer player) : OrgMprisMediaPlayer2PlayerHandler
     {
-        private readonly DBusMediaPlayer _player;
-
-        public MediaPlayerPlayerHandler(DBusMediaPlayer player) : base()
-        {
-            _player = player;
-        }
+        private readonly DBusMediaPlayer _player = player;
 
         public override Connection Connection => _player._connection;
 
         public override string? LoopStatus
         {
             get => _player.LoopStatus;
-            set => _player.LoopStatus = value;
+            set => _player.LoopStatus = value!;
         }
 
         public override double Rate

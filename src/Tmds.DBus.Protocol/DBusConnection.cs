@@ -109,6 +109,7 @@ class DBusConnection : IDisposable
     private readonly List<Observer> _matchedObservers;
     private readonly PathNodeDictionary _pathNodes;
     private readonly string _machineId;
+    private Dictionary<string, ServiceNameRegistration?>? _serviceNameRegistrations;
 
     private IMessageStream? _messageStream;
     private ConnectionState _state;
@@ -340,6 +341,12 @@ class DBusConnection : IDisposable
 
                     if (monitor is null)
                     {
+                        if (message.MessageType == MessageType.Signal &&
+                            message.Interface.SequenceEqual("org.freedesktop.DBus"u8))
+                        {
+                            HandleDBusInterfaceSignal(message);
+                        }
+
                         if (message.ReplySerial.HasValue)
                         {
                             _pendingCalls.Remove(message.ReplySerial.Value, out pendingCall);
@@ -544,6 +551,7 @@ class DBusConnection : IDisposable
             }
             _state = ConnectionState.Disconnected;
             monitor = _monitorHandler;
+            _serviceNameRegistrations = null;
         }
 
         Exception disconnectReason = DisconnectReason;
@@ -732,6 +740,10 @@ class DBusConnection : IDisposable
             if (_pendingCalls.Count != 0)
             {
                 throw new InvalidOperationException("The connection has pending method calls.");
+            }
+            if (_serviceNameRegistrations?.Count > 0)
+            {
+                throw new InvalidOperationException("The connection has service name registrations.");
             }
 
             HashSet<string>? ruleStrings = null;
@@ -1320,5 +1332,137 @@ class DBusConnection : IDisposable
 
             return writer.CreateMessage();
         }
+    }
+
+    private void HandleDBusInterfaceSignal(Message message)
+    {
+        Debug.Assert(message.MessageType == MessageType.Signal);
+        Debug.Assert(message.Interface.SequenceEqual("org.freedesktop.DBus"u8));
+
+        bool acquiredNotLost = message.Member.SequenceEqual("NameAcquired"u8);
+        string? serviceName = null;
+
+        if (acquiredNotLost || message.Member.SequenceEqual("NameLost"u8))
+        {
+            var reader = message.GetBodyReader();
+            serviceName = reader.ReadString();
+            ServiceNameRegistration? registration = null;
+            lock (_gate)
+            {
+                _serviceNameRegistrations?.TryGetValue(serviceName, out registration);
+            }
+            if (registration is not null)
+            {
+                Action<string, object?>? action = acquiredNotLost ? registration.OnAcquired : registration.OnLost;
+                if (action is not null)
+                {
+                    if (registration.SynchronizationContext is null)
+                    {
+                        action(serviceName, registration.ActionState);
+                    }
+                    else
+                    {
+                        registration.SynchronizationContext.Post(_ => action(serviceName, registration.ActionState), null);
+                    }
+                }
+            }
+        }
+    }
+
+    internal async Task<RequestNameReply> RequestNameAsync(string serviceName, RequestNameOptions flags, Action<string, object?>? onAcquired, Action<string, object?>? onLost, object? actionState, bool emitOnCapturedContext)
+    {
+        Task<uint> reply;
+        lock (_gate)
+        {
+            _serviceNameRegistrations ??= new();
+
+            bool hasAction = onAcquired is not null || onLost is not null;
+            ServiceNameRegistration? registration = hasAction
+                ? new ServiceNameRegistration
+                {
+                    OnAcquired = onAcquired,
+                    OnLost = onLost,
+                    ActionState = actionState,
+                    SynchronizationContext = emitOnCapturedContext ? SynchronizationContext.Current : null
+                }
+                : null;
+#if NETSTANDARD2_0
+            if (_serviceNameRegistrations.ContainsKey(serviceName))
+            {
+                throw new InvalidOperationException("The name is already registered");
+            }
+            _serviceNameRegistrations.Add(serviceName, registration);
+#else
+            if (!_serviceNameRegistrations.TryAdd(serviceName, registration))
+            {
+                throw new InvalidOperationException("The name is already registered");
+            }
+#endif
+            reply = CallMethodAsync(CreateRequestNameMessage(serviceName, (uint)flags), (Message m, object? s) => m.GetBodyReader().ReadUInt32());
+        }
+
+        try
+        {
+            return (RequestNameReply)await reply.ConfigureAwait(false);
+        }
+        catch
+        {
+            lock (_gate)
+            {
+                _serviceNameRegistrations.Remove(serviceName);
+            }
+
+            throw;
+        }
+
+        MessageBuffer CreateRequestNameMessage(string name, uint requestFlags)
+        {
+            var writer = _parentConnection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: "org.freedesktop.DBus",
+                path: "/org/freedesktop/DBus",
+                @interface: "org.freedesktop.DBus",
+                signature: "su",
+                member: "RequestName");
+            writer.WriteString(name);
+            writer.WriteUInt32(requestFlags);
+            return writer.CreateMessage();
+        }
+    }
+
+    internal async Task<ReleaseNameReply> ReleaseNameAsync(string serviceName)
+    {
+        var reply = (ReleaseNameReply)await CallMethodAsync(CreateReleaseNameMessage(serviceName), (Message m, object? s) => m.GetBodyReader().ReadUInt32()).ConfigureAwait(false);
+
+        if (reply == ReleaseNameReply.ReplyReleased)
+        {
+            lock (_gate)
+            {
+                _serviceNameRegistrations?.Remove(serviceName);
+            }
+        }
+
+        return reply;
+
+        MessageBuffer CreateReleaseNameMessage(string name)
+        {
+            var writer = _parentConnection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: "org.freedesktop.DBus",
+                path: "/org/freedesktop/DBus",
+                @interface: "org.freedesktop.DBus",
+                signature: "s",
+                member: "ReleaseName");
+            writer.WriteString(name);
+            return writer.CreateMessage();
+        }
+    }
+
+    internal sealed class ServiceNameRegistration
+    {
+        public Action<string, object?>? OnAcquired;
+        public Action<string, object?>? OnLost;
+        public object? ActionState;
+        public SynchronizationContext? SynchronizationContext;
     }
 }

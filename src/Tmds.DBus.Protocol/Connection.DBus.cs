@@ -100,13 +100,89 @@ public partial class Connection
 
             throw;
         }
-     
+
         while (await channel.Reader.WaitToReadAsync().ConfigureAwait(false))
         {
             if (channel.Reader.TryRead(out DisposableMessage msg))
             {
                 yield return msg;
             }
+        }
+    }
+
+    public Task RequestNameAsync(string name, RequestNameOptions options)
+        => RequestNameAsync(name, options, null, null);
+
+    public async Task RequestNameAsync(string name, RequestNameOptions options = RequestNameOptions.Default, Action<string, object?>? onLost = null, object? actionState = null, bool emitOnCapturedContext = true)
+    {
+        bool isOwner = await TryRequestNameAsync(name, options, onLost, actionState, emitOnCapturedContext);
+        if (!isOwner)
+        {
+            // Model DBUS_REQUEST_NAME_REPLY_EXISTS method return reply as a DBus error reply.
+            throw new DBusException("org.freedesktop.DBus.Error.NameExists", "The name already has an owner.");
+        }
+    }
+
+    public Task<bool> TryRequestNameAsync(string name, RequestNameOptions options)
+        => TryRequestNameAsync(name, options, null, null);
+
+    public async Task<bool> TryRequestNameAsync(string name, RequestNameOptions options = RequestNameOptions.Default, Action<string, object?>? onLost = null, object? actionState = null, bool emitOnCapturedContext = true)
+    {
+        DBusConnection connection = GetConnection();
+        ThrowIfOnLostSetWhenReplacementNotAllowed(onLost, options);
+
+        const RequestNameOptions DoNotQueue = (RequestNameOptions)4;
+        RequestNameReply reply = await connection.RequestNameAsync(name, options | DoNotQueue, onAcquired: null, onLost, actionState, emitOnCapturedContext).ConfigureAwait(false);
+
+        switch (reply)
+        {
+            case RequestNameReply.PrimaryOwner:
+                return true;
+            case RequestNameReply.Exists:
+                return false;
+            case RequestNameReply.AlreadyOwner:
+                throw new InvalidOperationException("Service is already registered by this connection");
+            case RequestNameReply.InQueue:
+            default:
+                throw new ProtocolException("Unexpected reply");
+        }
+    }
+
+    public Task QueueNameRequestAsync(string name, RequestNameOptions options)
+        => QueueNameRequestAsync(name, options, null, null, null);
+
+    public async Task QueueNameRequestAsync(string name, RequestNameOptions options = RequestNameOptions.Default, Action<string, object?>? onAcquired = null, Action<string, object?>? onLost = null, object? actionState = null, bool emitOnCapturedContext = true)
+    {
+        DBusConnection connection = GetConnection();
+        ThrowIfOnLostSetWhenReplacementNotAllowed(onLost, options);
+
+        RequestNameReply reply = await connection.RequestNameAsync(name, options, onAcquired, onLost, actionState, emitOnCapturedContext).ConfigureAwait(false);
+
+        switch (reply)
+        {
+            case RequestNameReply.PrimaryOwner:
+            case RequestNameReply.InQueue:
+                return;
+            case RequestNameReply.AlreadyOwner:
+                throw new InvalidOperationException("Service is already registered by this connection");
+            case RequestNameReply.Exists:
+            default:
+                throw new ProtocolException("Unexpected reply");
+        }
+    }
+
+    public async Task<bool> ReleaseNameAsync(string serviceName)
+    {
+        DBusConnection connection = GetConnection();
+        ReleaseNameReply reply = await connection.ReleaseNameAsync(serviceName).ConfigureAwait(false);
+        return reply == ReleaseNameReply.ReplyReleased;
+    }
+
+    static void ThrowIfOnLostSetWhenReplacementNotAllowed(Action<string, object?>? onLost, RequestNameOptions options)
+    {
+        if (onLost != null && (options & RequestNameOptions.AllowReplacement) == 0)
+        {
+            throw new ArgumentException($"{nameof(onLost)} can only be set when {nameof(RequestNameOptions.AllowReplacement)} is also set", nameof(onLost));
         }
     }
 }

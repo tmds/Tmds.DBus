@@ -421,10 +421,16 @@ class DBusConnection : IDisposable
                         else if (methodHandler is not null)
                         {
                             // methodHandler will dispose methodContext.
-                            await methodHandler.HandleMethodAsync(methodContext).ConfigureAwait(false);
-                            if (!methodContext.DisposesAsynchronously)
+                            try
                             {
-                                methodContext.Dispose(force: true);
+                                await methodHandler.HandleMethodAsync(methodContext).ConfigureAwait(false);
+                            }
+                            finally
+                            {
+                                if (!methodContext.DisposesAsynchronously)
+                                {
+                                    methodContext.Dispose(force: true);
+                                }
                             }
                         }
                         else

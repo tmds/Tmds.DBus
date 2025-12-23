@@ -59,11 +59,14 @@ static class MethodHandlerExtensions
                     context.CanDispose = false;
 
                     await task.ConfigureAwait(false);
-                    context.Dispose(force: true);
                 }
                 catch (Exception ex)
                 {
                     context.Disconnect(ex);
+                }
+                finally
+                {
+                    context.Dispose(force: true);
                 }
             }
         }

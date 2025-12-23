@@ -325,7 +325,7 @@ class DBusConnection : IDisposable
             {
                 bool returnMessageToPool = true;
                 MessageHandler pendingCall = default;
-                IMethodHandler? methodHandler = null;
+                IPathMethodHandler? methodHandler = null;
                 Action<Exception?, DisposableMessage>? monitor = null;
                 bool isMethodCall = message.MessageType == MessageType.MethodCall;
                 MethodContext? methodContext = null;
@@ -362,21 +362,17 @@ class DBusConnection : IDisposable
 
                         if (isMethodCall)
                         {
-                            methodContext = new MethodContext(_parentConnection, message, _abortedCts.Token); // TODO: pool.
+                            // This is a small object. We don't pool it to avoid re-use issues.
+                            methodContext = new MethodContext(_parentConnection, message, _abortedCts.Token);
 
                             if (message.PathIsSet)
                             {
-                                if (_pathNodes.TryGetValue(message.PathAsString!, out PathNode? node))
+                                _pathNodes.TryGetValue(message.PathAsString, out methodHandler, out PathNode? node);
+                                // Track the child name list so we can reply in MethodContext.Dispose.
+                                // HandlesChildPaths handlers need to handle the introspect request themselves.
+                                if (node is not null && methodHandler?.HandlesChildPaths != true && methodContext.IsDBusIntrospectRequest)
                                 {
-                                    methodHandler = node.MethodHandler;
-
-                                    bool isDBusIntrospect = message.Member.SequenceEqual("Introspect"u8) &&
-                                                            message.Interface.SequenceEqual("org.freedesktop.DBus.Introspectable"u8);
-                                    methodContext.IsDBusIntrospectRequest = isDBusIntrospect;
-                                    if (isDBusIntrospect)
-                                    {
-                                        node.CopyChildNamesTo(methodContext);
-                                    }
+                                    node.SetIntrospectChildNames(methodContext);
                                 }
                             }
                         }
@@ -412,31 +408,31 @@ class DBusConnection : IDisposable
 
                     if (isMethodCall)
                     {
+                        returnMessageToPool = false; // methodContext.Dispose will do this.
                         Debug.Assert(methodContext is not null);
-                        if (methodHandler is not null)
-                        {
 // Suppress methodContext nullability warnings.
 #if NETSTANDARD2_0
-#pragma warning disable CS8604
+#pragma warning disable CS8602
 #endif
-                            bool runHandlerSynchronously = methodHandler.RunMethodHandlerSynchronously(message);
-                            if (runHandlerSynchronously)
+                        if (methodContext.IsPeerInterface)
+                        {
+                            HandlePeerInterface(methodContext);
+                        }
+                        else if (methodHandler is not null)
+                        {
+                            // methodHandler will dispose methodContext.
+                            await methodHandler.HandleMethodAsync(methodContext).ConfigureAwait(false);
+                            if (!methodContext.DisposesAsynchronously)
                             {
-                                await methodHandler.HandleMethodAsync(methodContext).ConfigureAwait(false);
-                                HandleNoReplySent(methodContext);
-                            }
-                            else
-                            {
-                                returnMessageToPool = false;
-                                RunMethodHandler(methodHandler, methodContext);
+                                methodContext.Dispose(force: true);
                             }
                         }
                         else
                         {
-                            HandleNoReplySent(methodContext);
+                            methodContext.Dispose(force: true);
                         }
 #if NETSTANDARD2_0
-#pragma warning restore CS8604
+#pragma warning restore CS8602
 #endif
                     }
                 }
@@ -453,53 +449,22 @@ class DBusConnection : IDisposable
         }
     }
 
-    private void HandleNoReplySent(MethodContext context)
+    private void HandlePeerInterface(MethodContext context)
     {
-        if (context.ReplySent || context.NoReplyExpected)
+        using (context)
         {
-            return;
-        }
-
-        if (context.IsDBusIntrospectRequest)
-        {
-            context.ReplyIntrospectXml(interfaceXmls: []);
-            return;
-        }
-
-        var request = context.Request;
-
-        if (request.Interface.SequenceEqual("org.freedesktop.DBus.Peer"u8))
-        {
+            var request = context.Request;
             if (request.Member.SequenceEqual("Ping"u8))
             {
                 using var writer = context.CreateReplyWriter(null);
                 context.Reply(writer.CreateMessage());
-                return;
             }
             else if (request.Member.SequenceEqual("GetMachineId"u8))
             {
                 using var writer = context.CreateReplyWriter("s");
                 writer.WriteString(_machineId);
                 context.Reply(writer.CreateMessage());
-                return;
             }
-        }
-
-        context.ReplyError("org.freedesktop.DBus.Error.UnknownMethod",
-                           $"Method \"{request.MemberAsString}\" with signature \"{request.SignatureAsString}\" on interface \"{request.InterfaceAsString}\" doesn't exist");
-    }
-
-    private async void RunMethodHandler(IMethodHandler methodHandler, MethodContext context)
-    {
-        try
-        {
-            await methodHandler.HandleMethodAsync(context).ConfigureAwait(false);
-            HandleNoReplySent(context);
-            context.Request.ReturnToPool();
-        }
-        catch (Exception ex)
-        {
-            _parentConnection.Disconnect(ex, this);
         }
     }
 

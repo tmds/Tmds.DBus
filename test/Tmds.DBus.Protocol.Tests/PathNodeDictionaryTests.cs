@@ -9,7 +9,7 @@ namespace Tmds.DBus.Protocol.Tests;
 
 public class PathNodeDictionaryTests
 {
-    private class MethodHandler : IMethodHandler
+    private class MethodHandler : IPathMethodHandler
     {
         public MethodHandler(string path)
         {
@@ -18,12 +18,26 @@ public class PathNodeDictionaryTests
 
         public string Path { get; }
 
+        public bool HandlesChildPaths => false;
+
         public ValueTask HandleMethodAsync(MethodContext context)
         {
             throw new NotImplementedException();
         }
+    }
 
-        public bool RunMethodHandlerSynchronously(Message message)
+    private class TreeMethodHandler : IPathMethodHandler
+    {
+        public TreeMethodHandler(string path)
+        {
+            Path = path;
+        }
+
+        public string Path { get; }
+
+        public bool HandlesChildPaths => true;
+
+        public ValueTask HandleMethodAsync(MethodContext context)
         {
             throw new NotImplementedException();
         }
@@ -376,17 +390,138 @@ public class PathNodeDictionaryTests
         Assert.Equal(0, dictionary.Count);
     }
 
+    [Fact]
+    public void TreeHandlerAtRootHandlesChildPaths()
+    {
+        var dictionary = new PathNodeDictionary();
+        var treeHandler = new TreeMethodHandler("/");
+        dictionary.AddMethodHandlers([treeHandler]);
+
+        // Root should be found directly
+        dictionary.TryGetValue("/", out var handler, out var pathNode);
+        Assert.Equal(treeHandler, handler);
+
+        // Child paths should find the root tree handler
+        dictionary.TryGetValue("/child", out handler, out pathNode);
+        Assert.Equal(treeHandler, handler);
+
+        dictionary.TryGetValue("/child/grandchild", out handler, out pathNode);
+        Assert.Equal(treeHandler, handler);
+    }
+
+    [Fact]
+    public void TreeHandlerAtIntermediatePathHandlesChildren()
+    {
+        var dictionary = new PathNodeDictionary();
+        var treeHandler = new TreeMethodHandler("/org/example");
+        dictionary.AddMethodHandlers([treeHandler]);
+
+        // Tree handler path should be found directly
+        dictionary.TryGetValue("/org/example", out var handler, out var pathNode);
+        Assert.Equal(treeHandler, handler);
+
+        // Child paths should find the tree handler
+        dictionary.TryGetValue("/org/example/child", out handler, out pathNode);
+        Assert.Equal(treeHandler, handler);
+
+        dictionary.TryGetValue("/org/example/child/grandchild", out handler, out pathNode);
+        Assert.Equal(treeHandler, handler);
+
+        // Paths outside the tree handler's scope should not find it
+        dictionary.TryGetValue("/org", out handler, out pathNode);
+        Assert.Null(handler);
+
+        dictionary.TryGetValue("/org/other", out handler, out pathNode);
+        Assert.Null(handler);
+    }
+
+    [Fact]
+    public void CannotRegisterHandlerUnderTreeHandler()
+    {
+        var dictionary = new PathNodeDictionary();
+        dictionary.AddMethodHandlers([new TreeMethodHandler("/org/example")]);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            dictionary.AddMethodHandlers([new MethodHandler("/org/example/child")]));
+    }
+
+    [Fact]
+    public void CannotRegisterTreeHandlerWhenChildrenExist()
+    {
+        var dictionary = new PathNodeDictionary();
+        dictionary.AddMethodHandlers([new MethodHandler("/org/example/child")]);
+
+        // Attempting to register a tree handler when children exist should fail
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            dictionary.AddMethodHandlers([new TreeMethodHandler("/org/example")]));
+    }
+
+    [Fact]
+    public void TryGetValueReturnsNullForInvalidPaths()
+    {
+        var dictionary = new PathNodeDictionary();
+        dictionary.AddMethodHandlers([new TreeMethodHandler("/org/example")]);
+
+        dictionary.TryGetValue("noleadingslash", out var handler, out var pathNode);
+        Assert.Null(handler);
+
+        dictionary.TryGetValue("/double//slash", out handler, out pathNode);
+        Assert.Null(handler);
+
+        dictionary.TryGetValue("", out handler, out pathNode);
+        Assert.Null(handler);
+
+        dictionary.TryGetValue(null, out handler, out pathNode);
+        Assert.Null(handler);
+        Assert.Null(pathNode);
+    }
+
+    [Fact]
+    public void TryGetValueReturnsNullWhenNoHandlersRegistered()
+    {
+        var dictionary = new PathNodeDictionary();
+
+        dictionary.TryGetValue("/org/example", out var handler, out var pathNode);
+        Assert.Null(handler);
+        Assert.Null(pathNode);
+    }
+
+    [Fact]
+    public void NonTreeHandlerDoesNotHandleChildPaths()
+    {
+        var dictionary = new PathNodeDictionary();
+        var regularHandler = new MethodHandler("/org/example");
+        dictionary.AddMethodHandlers([regularHandler]);
+
+        // Regular handler should be found at its exact path
+        dictionary.TryGetValue("/org/example", out var handler, out var pathNode);
+        Assert.Equal(regularHandler, handler);
+
+        // Child paths should not find the regular handler
+        dictionary.TryGetValue("/org/example/child", out handler, out pathNode);
+        Assert.Null(handler);
+    }
+
+    [Fact]
+    public void TreeHandlerSearchContinuesPastNonTreeHandler()
+    {
+        var dictionary = new PathNodeDictionary();
+        var regularHandler = new MethodHandler("/org");
+        var treeHandler = new TreeMethodHandler("/org/example");
+        dictionary.AddMethodHandlers([regularHandler, treeHandler]);
+
+        dictionary.TryGetValue("/org/example/child", out var handler, out var pathNode);
+        Assert.Equal(treeHandler, handler);
+
+        dictionary.TryGetValue("/org", out handler, out pathNode);
+        Assert.Equal(regularHandler, handler);
+    }
+
     private void AssertChildNames(string[] expectedChildNames, PathNode node)
     {
         var methodContext = new MethodContext(null!, null!, default);
-        node.CopyChildNamesTo(methodContext);
-        if (methodContext.IntrospectChildNameList == null)
-        {
-            Assert.Empty(expectedChildNames);
-        }
-        else
-        {
-            Assert.Equal(expectedChildNames.ToHashSet(), methodContext.IntrospectChildNameList.ToHashSet());
-        }
+        node.SetIntrospectChildNames(methodContext);
+        Assert.NotNull(methodContext.IntrospectChildNames);
+        Assert.Equal(expectedChildNames.ToHashSet(), methodContext.IntrospectChildNames.ToHashSet());
     }
 }

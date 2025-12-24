@@ -13,19 +13,27 @@ public sealed class MethodContext : IDisposable
         IsPropertiesInterface = 1 << 4,
         DisposesAsynchronously = 1 << 5,
         CanDispose = 1 << 6, // Disallows Dispose when using IMethodHandler.
+        NoReplyExpected = 1 << 7,
     }
 
     private Flags _flags;
+    private readonly Connection _connection;
+    private readonly Message _request;
+    private readonly CancellationToken _requestAborted;
 
     internal MethodContext(Connection connection, Message request, CancellationToken requestAborted)
     {
-        Connection = connection;
-        Request = request;
-        RequestAborted = requestAborted;
+        _connection = connection;
+        _request = request;
+        _requestAborted = requestAborted;
         _flags |= Flags.CanDispose;
         if (request is not null) // Tests pass in a null request...
         {
             _flags |= GetDBusInterfaceFlags(request.Interface);
+            if ((request.MessageFlags & MessageFlags.NoReplyExpected) != 0)
+            {
+                _flags |= Flags.NoReplyExpected;
+            }
         }
     }
 
@@ -49,19 +57,49 @@ public sealed class MethodContext : IDisposable
         return Flags.None;
     }
 
-    public Message Request { get; }
-    public Connection Connection { get; }
-    public CancellationToken RequestAborted { get; }
+    public Message Request
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _request;
+        }
+    }
+
+    public Connection Connection
+    {
+        get
+        {
+            // Don't throw when Disposed for accessing the connection.
+            return _connection;
+        }
+    }
+
+    public CancellationToken RequestAborted
+    {
+        get
+        {
+            ThrowIfDisposed();
+            return _requestAborted;
+        }
+    }
+
+    private bool IsDisposed => (_flags & Flags.IsDisposed) != 0;
 
     public bool ReplySent => (_flags & Flags.ReplySent) != 0;
 
-    public bool NoReplyExpected => (Request.MessageFlags & MessageFlags.NoReplyExpected) != 0;
+    public bool NoReplyExpected => (_flags & Flags.NoReplyExpected) != 0;
 
     public bool DisposesAsynchronously
     {
-        get => (_flags & Flags.DisposesAsynchronously) != 0;
+        get
+        {
+            ThrowIfDisposed();
+            return (_flags & Flags.DisposesAsynchronously) != 0;
+        }
         set
         {
+            ThrowIfDisposed();
             ThrowIfNotCanDispose();
             bool currentValue = (_flags & Flags.DisposesAsynchronously) != 0;
             if (currentValue && !value)
@@ -112,12 +150,14 @@ public sealed class MethodContext : IDisposable
 
     public void Reply(MessageBuffer message)
     {
-        ThrowIfDisposed();
-
-        if (ReplySent || NoReplyExpected)
+        if ((_flags & (Flags.IsDisposed | Flags.ReplySent | Flags.NoReplyExpected)) != 0)
         {
             message.ReturnToPool();
-            if (ReplySent)
+            if (IsDisposed)
+            {
+                throw new ObjectDisposedException(typeof(MethodContext).FullName);
+            }
+            else if (ReplySent)
             {
                 throw new InvalidOperationException("A reply has already been sent.");
             }
@@ -202,7 +242,7 @@ public sealed class MethodContext : IDisposable
             ThrowIfNotCanDispose();
         }
 
-        if ((_flags & Flags.IsDisposed) == 0)
+        if (!IsDisposed)
         {
             if (!ReplySent && !NoReplyExpected)
             {
@@ -224,7 +264,7 @@ public sealed class MethodContext : IDisposable
 
     private void ThrowIfDisposed()
     {
-        if ((_flags & Flags.IsDisposed) != 0)
+        if (IsDisposed)
         {
             throw new ObjectDisposedException(typeof(MethodContext).FullName);
         }

@@ -433,6 +433,7 @@ class DBusConnection : IDisposable
                         {
                             if (!methodContext.DisposesAsynchronously)
                             {
+                                methodContext.CanDispose = false; // Ensure the context is no longer disposable by the user.
                                 methodContext.Dispose(force: true);
                             }
                         }

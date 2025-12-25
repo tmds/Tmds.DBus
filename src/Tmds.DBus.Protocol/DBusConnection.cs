@@ -325,7 +325,7 @@ class DBusConnection : IDisposable
             {
                 bool returnMessageToPool = true;
                 MessageHandler pendingCall = default;
-                IMethodHandler? methodHandler = null;
+                IPathMethodHandler? methodHandler = null;
                 Action<Exception?, DisposableMessage>? monitor = null;
                 bool isMethodCall = message.MessageType == MessageType.MethodCall;
                 MethodContext? methodContext = null;
@@ -362,21 +362,18 @@ class DBusConnection : IDisposable
 
                         if (isMethodCall)
                         {
-                            methodContext = new MethodContext(_parentConnection, message, _abortedCts.Token); // TODO: pool.
+                            // This is a small object. We don't pool it to avoid re-use issues.
+                            methodContext = new MethodContext(_parentConnection, message, _abortedCts.Token);
 
                             if (message.PathIsSet)
                             {
-                                if (_pathNodes.TryGetValue(message.PathAsString!, out PathNode? node))
+                                _pathNodes.TryGetValue(message.PathAsString, out methodHandler, out PathNode? node);
+                                // Track the child name list for nodes that don't have handlers to reply below
+                                // or for nodes that don't handle child paths to include them when they call ReplyIntrospectXml.
+                                // Handlers that handle child paths are expected to provide the child names when calling ReplyIntrospectXml.
+                                if (node is not null && methodHandler?.HandlesChildPaths != true && methodContext.IsDBusIntrospectRequest)
                                 {
-                                    methodHandler = node.MethodHandler;
-
-                                    bool isDBusIntrospect = message.Member.SequenceEqual("Introspect"u8) &&
-                                                            message.Interface.SequenceEqual("org.freedesktop.DBus.Introspectable"u8);
-                                    methodContext.IsDBusIntrospectRequest = isDBusIntrospect;
-                                    if (isDBusIntrospect)
-                                    {
-                                        node.CopyChildNamesTo(methodContext);
-                                    }
+                                    node.SetIntrospectChildNames(methodContext);
                                 }
                             }
                         }
@@ -412,31 +409,37 @@ class DBusConnection : IDisposable
 
                     if (isMethodCall)
                     {
+                        returnMessageToPool = false; // methodContext.Dispose will do this.
                         Debug.Assert(methodContext is not null);
-                        if (methodHandler is not null)
-                        {
-// Suppress methodContext nullability warnings.
+                        // Suppress methodContext nullability warnings.
 #if NETSTANDARD2_0
-#pragma warning disable CS8604
+#pragma warning disable CS8602
 #endif
-                            bool runHandlerSynchronously = methodHandler.RunMethodHandlerSynchronously(message);
-                            if (runHandlerSynchronously)
+                        try
+                        {
+                            if (methodContext.IsPeerInterface)
+                            {
+                                HandlePeerInterface(methodContext);
+                            }
+                            else if (methodHandler is not null)
                             {
                                 await methodHandler.HandleMethodAsync(methodContext).ConfigureAwait(false);
-                                HandleNoReplySent(methodContext);
                             }
-                            else
+                            else if (methodContext.IntrospectChildNames is not null)
                             {
-                                returnMessageToPool = false;
-                                RunMethodHandler(methodHandler, methodContext);
+                                methodContext.ReplyIntrospectXml(interfaceXmls: []);
                             }
                         }
-                        else
+                        finally
                         {
-                            HandleNoReplySent(methodContext);
+                            if (!methodContext.DisposesAsynchronously)
+                            {
+                                methodContext.CanDispose = false; // Ensure the context is no longer disposable by the user.
+                                methodContext.Dispose(force: true);
+                            }
                         }
 #if NETSTANDARD2_0
-#pragma warning restore CS8604
+#pragma warning restore CS8602
 #endif
                     }
                 }
@@ -453,53 +456,19 @@ class DBusConnection : IDisposable
         }
     }
 
-    private void HandleNoReplySent(MethodContext context)
+    private void HandlePeerInterface(MethodContext context)
     {
-        if (context.ReplySent || context.NoReplyExpected)
-        {
-            return;
-        }
-
-        if (context.IsDBusIntrospectRequest)
-        {
-            context.ReplyIntrospectXml(interfaceXmls: []);
-            return;
-        }
-
         var request = context.Request;
-
-        if (request.Interface.SequenceEqual("org.freedesktop.DBus.Peer"u8))
+        if (request.Member.SequenceEqual("Ping"u8))
         {
-            if (request.Member.SequenceEqual("Ping"u8))
-            {
-                using var writer = context.CreateReplyWriter(null);
-                context.Reply(writer.CreateMessage());
-                return;
-            }
-            else if (request.Member.SequenceEqual("GetMachineId"u8))
-            {
-                using var writer = context.CreateReplyWriter("s");
-                writer.WriteString(_machineId);
-                context.Reply(writer.CreateMessage());
-                return;
-            }
+            using var writer = context.CreateReplyWriter(null);
+            context.Reply(writer.CreateMessage());
         }
-
-        context.ReplyError("org.freedesktop.DBus.Error.UnknownMethod",
-                           $"Method \"{request.MemberAsString}\" with signature \"{request.SignatureAsString}\" on interface \"{request.InterfaceAsString}\" doesn't exist");
-    }
-
-    private async void RunMethodHandler(IMethodHandler methodHandler, MethodContext context)
-    {
-        try
+        else if (request.Member.SequenceEqual("GetMachineId"u8))
         {
-            await methodHandler.HandleMethodAsync(context).ConfigureAwait(false);
-            HandleNoReplySent(context);
-            context.Request.ReturnToPool();
-        }
-        catch (Exception ex)
-        {
-            _parentConnection.Disconnect(ex, this);
+            using var writer = context.CreateReplyWriter("s");
+            writer.WriteString(_machineId);
+            context.Reply(writer.CreateMessage());
         }
     }
 

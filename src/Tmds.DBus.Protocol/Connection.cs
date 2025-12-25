@@ -1,5 +1,7 @@
 namespace Tmds.DBus.Protocol;
 
+#pragma warning disable CS0618 // IMethodHandler is obsolete.
+
 public delegate T MessageValueReader<T>(Message message, object? state);
 
 public partial class Connection : IDisposable
@@ -263,9 +265,15 @@ public partial class Connection : IDisposable
     }
 
     public void AddMethodHandler(IMethodHandler methodHandler)
-        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler), methodHandler);
+        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler.AsPathMethodHandler()), methodHandler);
 
     public void AddMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers)
+        => UpdateMethodHandlers((dictionary, handlers) => dictionary.AddMethodHandlers(handlers.Select(h => h.AsPathMethodHandler()).ToList()), methodHandlers);
+
+    public void AddMethodHandler(IPathMethodHandler methodHandler)
+        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler), methodHandler);
+
+    public void AddMethodHandlers(IReadOnlyList<IPathMethodHandler> methodHandlers)
         => UpdateMethodHandlers((dictionary, handlers) => dictionary.AddMethodHandlers(handlers), methodHandlers);
 
     public void RemoveMethodHandler(string path)

@@ -273,17 +273,6 @@ namespace Tmds.DBus.Protocol.Tests
                     """
                     <!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN" "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
                     <node>
-                    <interface name="org.freedesktop.DBus.Introspectable">
-                      <method name="Introspect">
-                        <arg type="s" name="xml_data" direction="out"/>
-                      </method>
-                    </interface>
-                    <interface name="org.freedesktop.DBus.Peer">
-                      <method name="Ping"/>
-                      <method name="GetMachineId">
-                        <arg type="s" name="machine_uuid" direction="out"/>
-                      </method>
-                    </interface>
                     </node>
 
                     """
@@ -317,9 +306,16 @@ namespace Tmds.DBus.Protocol.Tests
 
             public ValueTask HandleMethodAsync(MethodContext context)
             {
-                if (context.IsDBusIntrospectRequest && _interfaceXml is not null)
+                if (context.IsDBusIntrospectRequest)
                 {
-                    context.ReplyIntrospectXml([ Encoding.UTF8.GetBytes(_interfaceXml) ]);
+                    if (_interfaceXml is not null)
+                    {
+                        context.ReplyIntrospectXml([ Encoding.UTF8.GetBytes(_interfaceXml) ]);
+                    }
+                    else
+                    {
+                        context.ReplyIntrospectXml([ ]);
+                    }
                 }
 
                 return default;

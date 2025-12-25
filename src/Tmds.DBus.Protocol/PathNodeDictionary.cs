@@ -6,7 +6,7 @@ sealed class PathNode
     // a string if there is a single child name
     // a List<string> List<string>.Count child names
     private object? _childNames;
-    public IMethodHandler? MethodHandler;
+    public IPathMethodHandler? MethodHandler;
     public PathNode? Parent { get; set; }
 
     public int ChildNameCount =>
@@ -53,23 +53,21 @@ sealed class PathNode
         }
     }
 
-    public void CopyChildNamesTo(MethodContext methodContext)
+    public void SetIntrospectChildNames(MethodContext methodContext)
     {
-        Debug.Assert(methodContext.IntrospectChildNameList is null || methodContext.IntrospectChildNameList.Count == 0);
+        Debug.Assert(methodContext.IntrospectChildNames is null);
 
         if (_childNames is null)
         {
-            return;
+            methodContext.IntrospectChildNames = null;
         }
-
-        methodContext.IntrospectChildNameList ??= new();
-        if (_childNames is string s)
+        else if (_childNames is string s)
         {
-            methodContext.IntrospectChildNameList.Add(s);
+            methodContext.IntrospectChildNames = new[] { s };
         }
         else
         {
-            methodContext.IntrospectChildNameList.AddRange((List<string>)_childNames);
+            methodContext.IntrospectChildNames = ((List<string>)_childNames).ToArray();
         }
     }
 }
@@ -78,8 +76,80 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
 {
     private readonly Dictionary<string, PathNode> _dictionary = new();
 
-    public bool TryGetValue(string path, [NotNullWhen(true)]out PathNode? pathNode)
-        => _dictionary.TryGetValue(path, out pathNode);
+    public void TryGetValue(string? path, out IPathMethodHandler? handler, out PathNode? pathNode)
+    {
+        if (path is null)
+        {
+            handler = null;
+            pathNode = null;
+            return;
+        }
+
+        if (_dictionary.TryGetValue(path, out pathNode))
+        {
+            handler = pathNode.MethodHandler;
+            if (handler is not null)
+            {
+                return;
+            }
+        }
+
+        handler = FindTreeHandler(path);
+    }
+
+    private IPathMethodHandler? FindTreeHandler(string path)
+    {
+        if (!IsValidPath(path))
+        {
+            return null;
+        }
+
+        if (TryFindTreeHandler("/".AsSpan(), out IPathMethodHandler? handler))
+        {
+            return handler;
+        }
+
+        ReadOnlySpan<char> pathSpan = path.AsSpan();
+        int pos = 1;
+        while (true)
+        {
+            int nextSlash = pathSpan.Slice(pos).IndexOf('/');
+            if (nextSlash == -1)
+            {
+                break;
+            }
+            pos += nextSlash;
+            ReadOnlySpan<char> ancestorPath = pathSpan.Slice(0, pos);
+            if (TryFindTreeHandler(ancestorPath, out handler))
+            {
+                return handler;
+            }
+
+            pos++;
+        }
+
+        return null;
+
+        bool TryFindTreeHandler(ReadOnlySpan<char> path, out IPathMethodHandler? handler)
+        {
+            handler = null;
+#if NET9_0_OR_GREATER
+            var lookup = _dictionary.GetAlternateLookup<ReadOnlySpan<char>>();
+            if (!lookup.TryGetValue(path, out PathNode? node))
+#else
+            if (!_dictionary.TryGetValue(path.ToString(), out PathNode? node))
+#endif
+            {
+                return true; // Dead end, there's no handler.
+            }
+            if (node.MethodHandler is null || node.MethodHandler.HandlesChildPaths == false)
+            {
+                return false;
+            }
+            handler = node.MethodHandler;
+            return true;
+        }
+    }
 
     // For tests:
     public PathNode this[string path]
@@ -87,7 +157,7 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
     public int Count
         => _dictionary.Count;
 
-    public void AddMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers)
+    public void AddMethodHandlers(IReadOnlyList<IPathMethodHandler> methodHandlers)
     {
         if (methodHandlers is null)
         {
@@ -99,7 +169,7 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
         {
             for (int i = 0; i < methodHandlers.Count; i++)
             {
-                IMethodHandler methodHandler = methodHandlers[i] ?? throw new ArgumentNullException("methodHandler");
+                IPathMethodHandler methodHandler = methodHandlers[i] ?? throw new ArgumentNullException("methodHandler");
 
                 AddMethodHandler(methodHandler);
 
@@ -115,20 +185,20 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
     }
 
 
-    private PathNode GetOrCreateNode(string path)
+    private (PathNode, bool exists) GetOrCreateNode(string path)
     {
 #if NET6_0_OR_GREATER
         ref PathNode? node = ref CollectionsMarshal.GetValueRefOrAddDefault(_dictionary, path, out bool exists);
         if (exists)
         {
-            return node!;
+            return (node!, true);
         }
         PathNode newNode = new PathNode();
         node = newNode;
 #else
         if (_dictionary.TryGetValue(path, out PathNode? node))
         {
-            return node;
+            return (node, true);
         }
         PathNode newNode = new PathNode();
         _dictionary.Add(path, newNode);
@@ -136,12 +206,12 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
         string? parentPath = GetParentPath(path);
         if (parentPath is not null)
         {
-            PathNode parent = GetOrCreateNode(parentPath);
+            (PathNode parent, _) = GetOrCreateNode(parentPath);
             newNode.Parent = parent;
             parent.AddChildName(GetChildName(path));
         }
 
-        return newNode;
+        return (newNode, false);
     }
 
     private static string? GetParentPath(string path)
@@ -166,7 +236,7 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
         return path.Substring(index + 1);
     }
 
-    private void RemoveMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers, int count)
+    private void RemoveMethodHandlers(IReadOnlyList<IPathMethodHandler> methodHandlers, int count)
     {
         // We start by (optimistically) removing all nodes (assuming they form a tree that is pruned).
         // If there are nodes that are still needed to serve as parent nodes, we'll add them back at the end.
@@ -248,23 +318,40 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
         }
     }
 
-    public void AddMethodHandler(IMethodHandler methodHandler)
+    private bool IsValidPath(string path)
+    {
+        return path.Length > 0 && path[0] == '/' && path.IndexOf("//", StringComparison.Ordinal) == -1;
+    }
+
+    public void AddMethodHandler(IPathMethodHandler methodHandler)
     {
         string path = methodHandler.Path ?? throw new ArgumentNullException(nameof(methodHandler.Path));
 
         // Validate the path starts with '/' and has no empty sections.
         // GetParentPath relies on this.
-        if (path[0] != '/' || path.IndexOf("//", StringComparison.Ordinal) != -1)
+        if (!IsValidPath(path))
         {
             throw new FormatException($"The path '{path}' is not valid.");
         }
 
-        PathNode node = GetOrCreateNode(path);
+        IPathMethodHandler? ancestorTreeHandler = FindTreeHandler(path);
+        if (ancestorTreeHandler is not null)
+        {
+            throw new InvalidOperationException($"A method handler is already registered which handles '{path}' as a child path.");
+        }
+
+        (PathNode node, bool exists) = GetOrCreateNode(path);
 
         if (node.MethodHandler is not null)
         {
             throw new InvalidOperationException($"A method handler is already registered for the path '{path}'.");
         }
+
+        if (methodHandler.HandlesChildPaths && exists)
+        {
+            throw new InvalidOperationException($"A method handler is already registered for a child path of '{path}'.");
+        }
+
         node.MethodHandler = methodHandler;
     }
 

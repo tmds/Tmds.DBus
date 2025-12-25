@@ -94,12 +94,12 @@ public sealed class MethodContext : IDisposable
     {
         get
         {
-            ThrowIfDisposed();
+            // Don't throw for IsDisposed because the async dispose may have happened before this property is read.
             return (_flags & Flags.DisposesAsynchronously) != 0;
         }
         set
         {
-            ThrowIfDisposed();
+            // Don't throw for IsDisposed because the async dispose may have happened before this property is set.
             ThrowIfNotCanDispose();
             bool currentValue = (_flags & Flags.DisposesAsynchronously) != 0;
             if (currentValue && !value)

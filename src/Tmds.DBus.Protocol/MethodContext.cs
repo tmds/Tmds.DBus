@@ -149,6 +149,9 @@ public sealed class MethodContext : IDisposable
     }
 
     public void Reply(MessageBuffer message)
+        => Reply(message, throwIfAlreadySent: true);
+
+    private void Reply(MessageBuffer message, bool throwIfAlreadySent)
     {
         if ((_flags & (Flags.IsDisposed | Flags.ReplySent | Flags.NoReplyExpected)) != 0)
         {
@@ -157,10 +160,11 @@ public sealed class MethodContext : IDisposable
             {
                 throw new ObjectDisposedException(typeof(MethodContext).FullName);
             }
-            else if (ReplySent)
+            else if (ReplySent && throwIfAlreadySent)
             {
                 throw new InvalidOperationException("A reply has already been sent.");
             }
+            return;
         }
 
         _flags |= Flags.ReplySent;
@@ -170,14 +174,6 @@ public sealed class MethodContext : IDisposable
     public void ReplyError(string? errorName = null,
                            string? errorMsg = null)
     {
-        ThrowIfDisposed();
-
-        // Avoid throwing on an error path when a reply was already sent.
-        if (ReplySent)
-        {
-            return;
-        }
-
         using var writer = Connection.GetMessageWriter();
         writer.WriteError(
             replySerial: Request.Serial,
@@ -186,8 +182,8 @@ public sealed class MethodContext : IDisposable
             errorMsg: errorMsg
         );
 
-        _flags |= Flags.ReplySent;
-        Connection.TrySendMessage(writer.CreateMessage());
+        // Avoid throwing on an error path when a reply was already sent.
+        Reply(writer.CreateMessage(), throwIfAlreadySent: false);
     }
 
     public void ReplyUnknownMethodError()

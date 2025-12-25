@@ -368,8 +368,9 @@ class DBusConnection : IDisposable
                             if (message.PathIsSet)
                             {
                                 _pathNodes.TryGetValue(message.PathAsString, out methodHandler, out PathNode? node);
-                                // Track the child name list so we can reply in MethodContext.Dispose.
-                                // HandlesChildPaths handlers need to handle the introspect request themselves.
+                                // Track the child name list for nodes that don't have handlers to reply below
+                                // or for nodes that don't handle child paths to include them when they call ReplyIntrospectXml.
+                                // Handlers that handle child paths are expected to provide the child names when calling ReplyIntrospectXml.
                                 if (node is not null && methodHandler?.HandlesChildPaths != true && methodContext.IsDBusIntrospectRequest)
                                 {
                                     node.SetIntrospectChildNames(methodContext);

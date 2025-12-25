@@ -159,7 +159,7 @@ public sealed class MethodContext : IDisposable
             }
             else if (ReplySent)
             {
-                return;
+                throw new InvalidOperationException("A reply has already been sent.");
             }
         }
 
@@ -172,6 +172,12 @@ public sealed class MethodContext : IDisposable
     {
         ThrowIfDisposed();
 
+        // Avoid throwing on an error path when a reply was already sent.
+        if (ReplySent)
+        {
+            return;
+        }
+
         using var writer = Connection.GetMessageWriter();
         writer.WriteError(
             replySerial: Request.Serial,
@@ -179,7 +185,9 @@ public sealed class MethodContext : IDisposable
             errorName: errorName,
             errorMsg: errorMsg
         );
-        Reply(writer.CreateMessage());
+
+        _flags |= Flags.ReplySent;
+        Connection.TrySendMessage(writer.CreateMessage());
     }
 
     public void ReplyUnknownMethodError()

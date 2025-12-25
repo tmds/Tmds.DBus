@@ -410,32 +410,31 @@ class DBusConnection : IDisposable
                     {
                         returnMessageToPool = false; // methodContext.Dispose will do this.
                         Debug.Assert(methodContext is not null);
-// Suppress methodContext nullability warnings.
+                        // Suppress methodContext nullability warnings.
 #if NETSTANDARD2_0
 #pragma warning disable CS8602
 #endif
-                        if (methodContext.IsPeerInterface)
+                        try
                         {
-                            HandlePeerInterface(methodContext);
-                        }
-                        else if (methodHandler is not null)
-                        {
-                            // methodHandler will dispose methodContext.
-                            try
+                            if (methodContext.IsPeerInterface)
+                            {
+                                HandlePeerInterface(methodContext);
+                            }
+                            else if (methodHandler is not null)
                             {
                                 await methodHandler.HandleMethodAsync(methodContext).ConfigureAwait(false);
                             }
-                            finally
+                            else if (methodContext.IntrospectChildNames is not null)
                             {
-                                if (!methodContext.DisposesAsynchronously)
-                                {
-                                    methodContext.Dispose(force: true);
-                                }
+                                methodContext.ReplyIntrospectXml(interfaceXmls: []);
                             }
                         }
-                        else
+                        finally
                         {
-                            methodContext.Dispose(force: true);
+                            if (!methodContext.DisposesAsynchronously)
+                            {
+                                methodContext.Dispose(force: true);
+                            }
                         }
 #if NETSTANDARD2_0
 #pragma warning restore CS8602
@@ -457,20 +456,17 @@ class DBusConnection : IDisposable
 
     private void HandlePeerInterface(MethodContext context)
     {
-        using (context)
+        var request = context.Request;
+        if (request.Member.SequenceEqual("Ping"u8))
         {
-            var request = context.Request;
-            if (request.Member.SequenceEqual("Ping"u8))
-            {
-                using var writer = context.CreateReplyWriter(null);
-                context.Reply(writer.CreateMessage());
-            }
-            else if (request.Member.SequenceEqual("GetMachineId"u8))
-            {
-                using var writer = context.CreateReplyWriter("s");
-                writer.WriteString(_machineId);
-                context.Reply(writer.CreateMessage());
-            }
+            using var writer = context.CreateReplyWriter(null);
+            context.Reply(writer.CreateMessage());
+        }
+        else if (request.Member.SequenceEqual("GetMachineId"u8))
+        {
+            using var writer = context.CreateReplyWriter("s");
+            writer.WriteString(_machineId);
+            context.Reply(writer.CreateMessage());
         }
     }
 

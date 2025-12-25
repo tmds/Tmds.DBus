@@ -521,7 +521,13 @@ public class PathNodeDictionaryTests
     {
         var methodContext = new MethodContext(null!, null!, default);
         node.SetIntrospectChildNames(methodContext);
-        Assert.NotNull(methodContext.IntrospectChildNames);
-        Assert.Equal(expectedChildNames.ToHashSet(), methodContext.IntrospectChildNames.ToHashSet());
+        if (methodContext.IntrospectChildNames == null)
+        {
+            Assert.Empty(expectedChildNames);
+        }
+        else
+        {
+            Assert.Equal(expectedChildNames.ToHashSet(), methodContext.IntrospectChildNames.ToHashSet());
+        }
     }
 }

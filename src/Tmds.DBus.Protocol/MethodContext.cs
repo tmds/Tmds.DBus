@@ -159,7 +159,7 @@ public sealed class MethodContext : IDisposable
             }
             else if (ReplySent)
             {
-                throw new InvalidOperationException("A reply has already been sent.");
+                return;
             }
         }
 
@@ -207,8 +207,8 @@ public sealed class MethodContext : IDisposable
         // Add the Peer and Introspectable interfaces.
         // Tools like D-Feet will list the paths separately as soon as there is an interface.
         // We add the base interfaces only for the paths that we want to show up.
-        // Those are paths that have other interfaces, paths that are leaves.
-        bool includeBaseInterfaces = !interfaceXmls.IsEmpty || IntrospectChildNames is null || IntrospectChildNames.Length == 0;
+        // Those are paths that have other interfaces.
+        bool includeBaseInterfaces = !interfaceXmls.IsEmpty;
         ReadOnlySpan<ReadOnlyMemory<byte>> baseInterfaceXmls = includeBaseInterfaces ? [ IntrospectionXml.DBusIntrospectable, IntrospectionXml.DBusPeer ] : [ ];
 
         // Add the child names.
@@ -246,14 +246,7 @@ public sealed class MethodContext : IDisposable
         {
             if (!ReplySent && !NoReplyExpected)
             {
-                if (IsDBusIntrospectRequest && IntrospectChildNames is not null)
-                {
-                    ReplyIntrospectXml(interfaceXmls: []);
-                }
-                else
-                {
-                    ReplyUnknownMethodError();
-                }
+                ReplyUnknownMethodError();
             }
 
             Request.ReturnToPool();

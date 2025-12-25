@@ -88,10 +88,11 @@ class AddProxy
     }
 }
 
-class AddImplementation : IMethodHandler
+class AddImplementation : IPathMethodHandler
 {
     private const string Interface = "org.example.Adder";
     public string Path => "/org/example/Adder";
+    public bool HandlesChildPaths => false;
 
     private static ReadOnlyMemory<byte> InterfaceXml { get; } =
         """
@@ -104,8 +105,6 @@ class AddImplementation : IMethodHandler
         </interface>
 
         """u8.ToArray();
-
-    public bool RunMethodHandlerSynchronously(Message message) => true;
 
     public ValueTask HandleMethodAsync(MethodContext context)
     {
@@ -134,11 +133,34 @@ class AddImplementation : IMethodHandler
 
     private ValueTask Add(MethodContext context, int i, int j)
     {
+        // The handling may be done as part of this method as shown here.
+        // Or it may run asynchronous to the method, as shown in the commented out code.
+
         int sum = i + j;
-
         ReplyToAdd(context, sum);
-
         return default;
+
+        // For async handling, set DisposesAsynchronously and dispose the context when async handling is complete.
+        //  _ = Task.Run(async () =>
+        // {
+        //     using (context)
+        //     {
+        //         try
+        //         {
+        //             int sum = i + j;
+        //             await Task.Delay(100);
+        //             ReplyToAdd(context, sum);
+        //         }
+        //         catch (Exception ex)
+        //         {
+        //             // Handle the exception, for example by disconnecting or replying with an error.
+        //             // context.Disconnect(ex);
+        //             // context.ReplyError(...)
+        //         }
+        //     }
+        // });
+        // context.DisposesAsynchronously = true;
+        // return default;
     }
 
     private void ReplyToAdd(MethodContext context, int sum)

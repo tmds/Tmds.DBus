@@ -59,7 +59,7 @@ sealed class PathNode
 
         if (_childNames is null)
         {
-            methodContext.IntrospectChildNames = Array.Empty<string>();
+            methodContext.IntrospectChildNames = null;
         }
         else if (_childNames is string s)
         {

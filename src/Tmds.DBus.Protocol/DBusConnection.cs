@@ -115,9 +115,6 @@ class DBusConnection : IDisposable
     private ConnectionState _state;
     private Exception? _disconnectReason;
     private string? _localName;
-    private Message? _currentMessage;
-    private Observer? _currentObserver;
-    private SynchronizationContext? _currentSynchronizationContext;
     private TaskCompletionSource<Exception?>? _disconnectedTcs;
     private CancellationTokenSource _abortedCts;
     private bool _isMonitor;
@@ -323,11 +320,9 @@ class DBusConnection : IDisposable
         {
             try
             {
-                bool returnMessageToPool = true;
                 MessageHandler pendingCall = default;
                 IPathMethodHandler? methodHandler = null;
                 Action<Exception?, DisposableMessage>? monitor = null;
-                bool isMethodCall = message.MessageType == MessageType.MethodCall;
                 MethodContext? methodContext = null;
 
                 lock (_gate)
@@ -360,7 +355,7 @@ class DBusConnection : IDisposable
                             }
                         }
 
-                        if (isMethodCall)
+                        if (message.MessageType == MessageType.MethodCall)
                         {
                             // This is a small object. We don't pool it to avoid re-use issues.
                             methodContext = new MethodContext(_parentConnection, message, _abortedCts.Token);
@@ -386,7 +381,6 @@ class DBusConnection : IDisposable
                     {
                         if (_monitorHandler is not null)
                         {
-                            returnMessageToPool = false;
                             monitor(null, new DisposableMessage(message));
                         }
                     }
@@ -407,10 +401,8 @@ class DBusConnection : IDisposable
                         pendingCall.Invoke(null, message);
                     }
 
-                    if (isMethodCall)
+                    if (methodContext is not null)
                     {
-                        returnMessageToPool = false; // methodContext.Dispose will do this.
-                        Debug.Assert(methodContext is not null);
                         // Suppress methodContext nullability warnings.
 #if NETSTANDARD2_0
 #pragma warning disable CS8602
@@ -442,11 +434,8 @@ class DBusConnection : IDisposable
 #pragma warning restore CS8602
 #endif
                     }
-                }
 
-                if (returnMessageToPool)
-                {
-                    message.ReturnToPool();
+                    message.DecrementRef();
                 }
             }
             catch (Exception ex)
@@ -470,34 +459,6 @@ class DBusConnection : IDisposable
             writer.WriteString(_machineId);
             context.Reply(writer.CreateMessage());
         }
-    }
-
-    private void EmitOnSynchronizationContextHelper(Observer observer, SynchronizationContext synchronizationContext, Message message)
-    {
-        _currentMessage = message;
-        _currentObserver = observer;
-        _currentSynchronizationContext = synchronizationContext;
-
-#pragma warning disable VSTHRD001 // Await JoinableTaskFactory.SwitchToMainThreadAsync() to switch to the UI thread instead of APIs that can deadlock or require specifying a priority.
-        // note: Send blocks the current thread until the SynchronizationContext ran the delegate.
-        synchronizationContext.Send(static o =>
-        {
-            SynchronizationContext? previousContext = SynchronizationContext.Current;
-            try
-            {
-                DBusConnection conn = (DBusConnection)o!;
-                SynchronizationContext.SetSynchronizationContext(conn._currentSynchronizationContext);
-                conn._currentObserver!.InvokeHandler(conn._currentMessage!);
-            }
-            finally
-            {
-                SynchronizationContext.SetSynchronizationContext(previousContext);
-            }
-        }, this);
-
-        _currentMessage = null;
-        _currentObserver = null;
-        _currentSynchronizationContext = null;
     }
 
     public void UpdateMethodHandlers<T>(Action<IMethodHandlerDictionary, T> update, T state)
@@ -763,27 +724,7 @@ class DBusConnection : IDisposable
         }
     }
 
-    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
-    {
-        MessageHandlerDelegate4 fn = static (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
-        {
-            var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
-            if (exception is not null)
-            {
-                valueHandlerState(exception, default(T)!, rs, hs);
-            }
-            else
-            {
-                var valueReaderState = (MessageValueReader<T>)reader!;
-                T value = valueReaderState(message, rs);
-                valueHandlerState(null, value, rs, hs);
-            }
-        };
-
-        return AddMatchAsync(synchronizationContext, rule, new(fn, valueReader, valueHandler, readerState, handlerState), flags);
-    }
-
-    private async ValueTask<IDisposable> AddMatchAsync(SynchronizationContext? synchronizationContext, MatchRule rule, MessageHandler4 handler, ObserverFlags flags)
+    public async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
     {
         MatchRuleData data = rule.Data;
         MatchMaker? matchMaker;
@@ -815,7 +756,7 @@ class DBusConnection : IDisposable
                 _matchMakers.Add(ruleString, matchMaker);
             }
 
-            observer = new Observer(synchronizationContext, matchMaker, handler, flags);
+            observer = Observer.Create(synchronizationContext, matchMaker, valueReader, valueHandler, readerState, handlerState, flags);
             matchMaker.Observers.Add(observer);
 
             subscribe = observer.Subscribes;
@@ -888,6 +829,7 @@ class DBusConnection : IDisposable
         private readonly SynchronizationContext? _synchronizationContext;
         private readonly MatchMaker _matchMaker;
         private readonly MessageHandler4 _messageHandler;
+        private readonly SendOrPostCallback _scMessageCallback;
         private readonly ObserverFlags _flags;
         private bool _disposed;
 
@@ -895,12 +837,34 @@ class DBusConnection : IDisposable
         public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionDispose) != 0;
         public bool EmitOnObserverDispose => (_flags & ObserverFlags.EmitOnObserverDispose) != 0;
 
-        public Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, ObserverFlags flags)
+        private Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, ObserverFlags flags)
         {
             _synchronizationContext = synchronizationContext;
             _matchMaker = matchMaker;
             _messageHandler = messageHandler;
             _flags = flags;
+            _scMessageCallback ??= EmitMessageOnSynchronizationContext;
+        }
+
+        public static Observer Create<T>(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
+        {
+            MessageHandlerDelegate4 fn = static (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
+            {
+                var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
+                if (exception is not null)
+                {
+                    valueHandlerState(exception, default(T)!, rs, hs);
+                }
+                else
+                {
+                    var valueReaderState = (MessageValueReader<T>)reader!;
+                    T value = valueReaderState(message, rs);
+                    valueHandlerState(null, value, rs, hs);
+                }
+            };
+
+            MessageHandler4 handler = new(fn, valueReader, valueHandler, readerState, handlerState);
+            return new Observer(synchronizationContext, matchMaker, handler, flags);
         }
 
         public void Dispose() =>
@@ -930,13 +894,54 @@ class DBusConnection : IDisposable
 
         public void Emit(Message message)
         {
+            if (Subscribes && !_matchMaker.HasSubscribed)
+            {
+                return;
+            }
+
             if (_synchronizationContext is null)
             {
-                InvokeHandler(message);
+                lock (_gate)
+                {
+                    if (_disposed)
+                    {
+                        return;
+                    }
+
+                    _messageHandler.Invoke(null, message);
+                }
             }
             else
             {
-                _matchMaker.Connection.EmitOnSynchronizationContextHelper(this, _synchronizationContext, message);
+                if (_disposed)
+                {
+                    return;
+                }
+                message.IncrementRef();
+                _synchronizationContext!.Post(_scMessageCallback, message);
+            }
+        }
+
+        private void EmitMessageOnSynchronizationContext(object? state)
+        {
+            var message = (Message)state!;
+            SynchronizationContext? previousContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
+                lock (_gate)
+                {
+                    if (_disposed)
+                    {
+                        return;
+                    }
+                    _messageHandler.Invoke(null, message);
+                }
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(previousContext);
+                message.DecrementRef();
             }
         }
 
@@ -949,20 +954,21 @@ class DBusConnection : IDisposable
             }
             else
             {
-                _synchronizationContext.Send(
-                    delegate
-                    {
-                        SynchronizationContext? previousContext = SynchronizationContext.Current;
-                        try
-                        {
-                            SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                            _messageHandler.Invoke(exception, null!);
-                        }
-                        finally
-                        {
-                            SynchronizationContext.SetSynchronizationContext(previousContext);
-                        }
-                    }, null);
+                _synchronizationContext.Post(EmitExceptionOnSynchronizationContext, exception);
+            }
+        }
+
+        private void EmitExceptionOnSynchronizationContext(object? state)
+        {
+            SynchronizationContext? previousContext = SynchronizationContext.Current;
+            try
+            {
+                SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
+                _messageHandler.Invoke((Exception)state!, null!);
+            }
+            finally
+            {
+                SynchronizationContext.SetSynchronizationContext(previousContext);
             }
         }
 
@@ -1331,7 +1337,20 @@ class DBusConnection : IDisposable
                     }
                     else
                     {
-                        registration.SynchronizationContext.Post(_ => action(serviceName, registration.ActionState), null);
+                        registration.SynchronizationContext.Post(
+                            delegate
+                            {
+                                SynchronizationContext? previousContext = SynchronizationContext.Current;
+                                try
+                                {
+                                    SynchronizationContext.SetSynchronizationContext(registration.SynchronizationContext);
+                                    action(serviceName, registration.ActionState);
+                                }
+                                finally
+                                {
+                                    SynchronizationContext.SetSynchronizationContext(previousContext);
+                                }
+                            }, null);
                     }
                 }
             }

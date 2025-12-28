@@ -34,6 +34,7 @@ public sealed class MethodContext : IDisposable
             {
                 _flags |= Flags.NoReplyExpected;
             }
+            request.IncrementRef();
         }
     }
 
@@ -253,7 +254,7 @@ public sealed class MethodContext : IDisposable
                 ReplyUnknownMethodError();
             }
 
-            Request.ReturnToPool();
+            Request.DecrementRef();
 
             _flags |= Flags.IsDisposed;
         }

@@ -9,6 +9,7 @@ public sealed class Message
 
     private UnixFdCollection? _handles;
     private ReadOnlySequence<byte> _body;
+    private int _refCount = 1;
 
     public bool IsBigEndian { get; private set; }
     public uint Serial { get; private set; }
@@ -92,8 +93,25 @@ public sealed class Message
         ClearHeaders();
     }
 
+    internal void IncrementRef()
+    {
+        Debug.Assert(_refCount > 0);
+        Interlocked.Increment(ref _refCount);
+    }
+
+    internal void DecrementRef()
+    {
+        Debug.Assert(_refCount > 0);
+        if (Interlocked.Decrement(ref _refCount) == 0)
+        {
+            _refCount = 1;
+            ReturnToPool();
+        }
+    }
+
     internal void ReturnToPool()
     {
+        Debug.Assert(_refCount == 1);
         _data.Reset();
         ClearHeaders();
         _handles?.Dispose();

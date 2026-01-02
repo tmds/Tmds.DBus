@@ -1,5 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Represents a received D-Bus message.
+/// </summary>
 public sealed class Message
 {
     private const int HeaderFieldsLengthOffset = 12;
@@ -11,12 +14,30 @@ public sealed class Message
     private ReadOnlySequence<byte> _body;
     private int _refCount = 1;
 
+    /// <summary>
+    /// Returns whether the message uses big-endian byte order.
+    /// </summary>
     public bool IsBigEndian { get; private set; }
+    /// <summary>
+    /// Gets the serial number of the message.
+    /// </summary>
     public uint Serial { get; private set; }
+    /// <summary>
+    /// Gets the message flags.
+    /// </summary>
     public MessageFlags MessageFlags { get; private set; }
+    /// <summary>
+    /// Gets the message type.
+    /// </summary>
     public MessageType MessageType { get; private set; }
 
+    /// <summary>
+    /// Gets the serial number of the message this is a reply to.
+    /// </summary>
     public uint? ReplySerial { get; private set; }
+    /// <summary>
+    /// Gets the number of Unix file descriptors associated with the message.
+    /// </summary>
     public int UnixFdCount { get; private set; }
 
     private HeaderBuffer _path;
@@ -27,28 +48,91 @@ public sealed class Message
     private HeaderBuffer _sender;
     private HeaderBuffer _signature;
 
+    /// <summary>
+    /// Gets the object path as a string.
+    /// </summary>
     public string? PathAsString => _path.ToString();
+    /// <summary>
+    /// Gets the interface name as a string.
+    /// </summary>
     public string? InterfaceAsString => _interface.ToString();
+    /// <summary>
+    /// Gets the member name as a string.
+    /// </summary>
     public string? MemberAsString => _member.ToString();
+    /// <summary>
+    /// Gets the error name as a string.
+    /// </summary>
     public string? ErrorNameAsString => _errorName.ToString();
+    /// <summary>
+    /// Gets the destination bus name as a string.
+    /// </summary>
     public string? DestinationAsString => _destination.ToString();
+    /// <summary>
+    /// Gets the sender bus name as a string.
+    /// </summary>
     public string? SenderAsString => _sender.ToString();
+    /// <summary>
+    /// Gets the signature as a string.
+    /// </summary>
     public string? SignatureAsString => _signature.ToString();
 
+    /// <summary>
+    /// Gets the object path as a byte span.
+    /// </summary>
     public ReadOnlySpan<byte> Path => _path.Span;
+    /// <summary>
+    /// Gets the interface name as a byte span.
+    /// </summary>
     public ReadOnlySpan<byte> Interface => _interface.Span;
+    /// <summary>
+    /// Gets the member name as a byte span.
+    /// </summary>
     public ReadOnlySpan<byte> Member => _member.Span;
+    /// <summary>
+    /// Gets the error name as a byte span.
+    /// </summary>
     public ReadOnlySpan<byte> ErrorName => _errorName.Span;
+    /// <summary>
+    /// Gets the destination bus name as a byte span.
+    /// </summary>
     public ReadOnlySpan<byte> Destination => _destination.Span;
+    /// <summary>
+    /// Gets the sender bus name as a byte span.
+    /// </summary>
     public ReadOnlySpan<byte> Sender => _sender.Span;
+    /// <summary>
+    /// Gets the signature as a byte span.
+    /// </summary>
     public ReadOnlySpan<byte> Signature => _signature.Span;
 
+    /// <summary>
+    /// Gets a value indicating whether the Path header field is present.
+    /// </summary>
     public bool PathIsSet => _path.IsSet;
+    /// <summary>
+    /// Gets a value indicating whether the Interface header field is present.
+    /// </summary>
     public bool InterfaceIsSet => _interface.IsSet;
+    /// <summary>
+    /// Gets a value indicating whether the Member header field is present.
+    /// </summary>
     public bool MemberIsSet => _member.IsSet;
+    /// <summary>
+    /// Gets a value indicating whether the ErrorName header field is present.
+    /// </summary>
     public bool ErrorNameIsSet => _errorName.IsSet;
+    /// <summary>
+    /// Gets a value indicating whether the Destination header field is present.
+    /// </summary>
     public bool DestinationIsSet => _destination.IsSet;
+    /// <summary>
+    /// Gets a value indicating whether the Sender header field is present.
+    /// </summary>
     public bool SenderIsSet => _sender.IsSet;
+    /// <summary>
+    /// Gets a value indicating whether the Signature header field is present.
+    /// </summary>
     public bool SignatureIsSet => _signature.IsSet;
 
     struct HeaderBuffer
@@ -84,6 +168,9 @@ public sealed class Message
         public bool IsSet => _length != -1;
     }
 
+    /// <summary>
+    /// Gets a <see cref="Reader"/> for reading the message body.
+    /// </summary>
     public Reader GetBodyReader() => new Reader(IsBigEndian, _body, _handles, UnixFdCount);
 
     internal Message(MessagePool messagePool, Sequence<byte> sequence)

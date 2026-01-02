@@ -6,6 +6,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>13</LangVersion>
     <IsAotCompatible Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net7.0'))">true</IsAotCompatible>
+
+    <!-- Generate XML documentation file -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Treat missing XML documentation as errors -->
+    <WarningsAsErrors>CS1591</WarningsAsErrors>
   </PropertyGroup>
 
   <PropertyGroup>

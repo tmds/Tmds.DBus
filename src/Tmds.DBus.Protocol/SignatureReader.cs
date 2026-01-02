@@ -2,17 +2,33 @@
 
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Reader for D-Bus signatures.
+/// </summary>
 public ref struct SignatureReader
 {
     private ReadOnlySpan<byte> _signature;
 
+    /// <summary>
+    /// Gets the remaining signature bytes.
+    /// </summary>
     public ReadOnlySpan<byte> Signature => _signature;
 
+    /// <summary>
+    /// Initializes a new instance of the SignatureReader.
+    /// </summary>
+    /// <param name="signature">The signature bytes to read.</param>
     public SignatureReader(ReadOnlySpan<byte> signature)
     {
         _signature = signature;
     }
 
+    /// <summary>
+    /// Tries to read the next type from the signature.
+    /// </summary>
+    /// <param name="type">The D-Bus type that was read.</param>
+    /// <param name="innerSignature">For container types, the inner signature.</param>
+    /// <returns>True if a type was read; otherwise, false.</returns>
     public bool TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature)
     {
         innerSignature = default;

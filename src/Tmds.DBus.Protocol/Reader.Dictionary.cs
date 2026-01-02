@@ -2,10 +2,16 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
+    /// <summary>
+    /// Reads the start of a dictionary and returns a position for detecting the end.
+    /// </summary>
     public ArrayEnd ReadDictionaryStart()
         => ReadArrayStart(ProtocolConstants.StructAlignment);
 
-    // Read method for the common 'a{sv}' type.
+    /// <summary>
+    /// Reads a dictionary with <see cref="string"/> keys and <see cref="VariantValue"/> values.
+    /// </summary>
+    /// <remarks>This is a helper method for reading the common 'a{sv}' D-Bus type.</remarks>
     [UnconditionalSuppressMessage("ReflectionAnalysis", "IL2026")] // It's safe to call ReadDictionary with these types.
     public Dictionary<string, VariantValue> ReadDictionaryOfStringToVariantValue()
         => ReadDictionary<string, VariantValue>();

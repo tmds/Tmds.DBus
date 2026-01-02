@@ -2,20 +2,43 @@ using System.Collections;
 
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Strongly-typed <see cref="IList{T}"/> that can be converted to a <see cref="VariantValueType.Array"/> <see cref="VariantValue"/>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The array becomes read-only after conversion.
+/// </para>
+/// <para>
+/// Supported element types: <see cref="byte"/>, <see cref="bool"/>, <see cref="short"/>, <see cref="ushort"/>, <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>, <see cref="ObjectPath"/>, <see cref="Signature"/>, <see cref="SafeHandle"/>, <see cref="VariantValue"/>, <see cref="Array{T}"/>, <see cref="Dict{TKey, TValue}"/>, and <c>Struct</c> types.
+/// </para>
+/// </remarks>
+/// <typeparam name="T">The type of elements in the array.</typeparam>
 public sealed class Array<T> : IDBusWritable, IList<T>, IVariantValueConvertable
     where T : notnull
 {
     private readonly List<T> _values;
     private bool _isReadOnly;
 
+    /// <summary>
+    /// Initializes a new instance of the Array class.
+    /// </summary>
     public Array() :
         this(new List<T>())
     { }
 
+    /// <summary>
+    /// Initializes a new instance of the Array class with the specified capacity.
+    /// </summary>
+    /// <param name="capacity">The initial capacity.</param>
     public Array(int capacity) :
         this(new List<T>(capacity))
     { }
 
+    /// <summary>
+    /// Initializes a new instance of the Array class from a collection.
+    /// </summary>
+    /// <param name="collection">The collection to copy elements from.</param>
     public Array(IEnumerable<T> collection) :
         this(new List<T>(collection))
     { }
@@ -26,23 +49,27 @@ public sealed class Array<T> : IDBusWritable, IList<T>, IVariantValueConvertable
         _values = values;
     }
 
+    /// <inheritdoc/>
     public void Add(T item)
     {
         ThrowIfReadOnly();
         _values.Add(item);
     }
 
+    /// <inheritdoc/>
     public void Clear()
     {
         ThrowIfReadOnly();
         _values.Clear();
     }
 
+    /// <inheritdoc/>
     public int Count => _values.Count;
 
     bool ICollection<T>.IsReadOnly
         => _isReadOnly;
 
+    /// <inheritdoc/>
     public T this[int index]
     {
         get => _values[index];
@@ -59,33 +86,43 @@ public sealed class Array<T> : IDBusWritable, IList<T>, IVariantValueConvertable
     IEnumerator IEnumerable.GetEnumerator()
         => _values.GetEnumerator();
 
+    /// <inheritdoc/>
     public int IndexOf(T item)
         => _values.IndexOf(item);
 
+    /// <inheritdoc/>
     public void Insert(int index, T item)
     {
         ThrowIfReadOnly();
         _values.Insert(index, item);
     }
 
+    /// <inheritdoc/>
     public void RemoveAt(int index)
     {
         ThrowIfReadOnly();
         _values.RemoveAt(index);
     }
 
+    /// <inheritdoc/>
     public bool Contains(T item)
         => _values.Contains(item);
 
+    /// <inheritdoc/>
     public void CopyTo(T[] array, int arrayIndex)
         => _values.CopyTo(array, arrayIndex);
 
+    /// <inheritdoc/>
     public bool Remove(T item)
     {
         ThrowIfReadOnly();
         return _values.Remove(item);
     }
 
+    /// <summary>
+    /// Implicitly converts an Array to a VariantValue.
+    /// </summary>
+    /// <param name="value">The array to convert.</param>
     public static implicit operator VariantValue(Array<T> value)
         => value.AsVariantValue();
 
@@ -101,6 +138,7 @@ public sealed class Array<T> : IDBusWritable, IList<T>, IVariantValueConvertable
     {
         throw new InvalidOperationException($"Can not modify {nameof(Array)} after calling {nameof(AsVariantValue)}.");
     }
+    /// <inheritdoc/>
     public VariantValue AsVariantValue()
     {
         _isReadOnly = true;

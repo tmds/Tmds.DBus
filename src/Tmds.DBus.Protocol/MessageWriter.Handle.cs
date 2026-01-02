@@ -2,6 +2,10 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct MessageWriter
 {
+    /// <summary>
+    /// Writes a file descriptor handle.
+    /// </summary>
+    /// <param name="value">The handle to write.</param>
     public void WriteHandle(SafeHandle value)
     {
         int idx = HandleCount;
@@ -9,6 +13,10 @@ public ref partial struct MessageWriter
         WriteInt32(idx);
     }
 
+    /// <summary>
+    /// Writes a variant-wrapped file descriptor handle.
+    /// </summary>
+    /// <param name="value">The handle to write.</param>
     public void WriteVariantHandle(SafeHandle value)
     {
         WriteSignature(Signature.UnixFd);

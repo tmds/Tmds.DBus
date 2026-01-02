@@ -2,6 +2,11 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
+    /// <summary>
+    /// Reads a Unix file descriptor handle.
+    /// </summary>
+    /// <typeparam name="T">The SafeHandle type to read.</typeparam>
+    /// <returns>The handle, or null if unavailable.</returns>
     public T? ReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : SafeHandle, new()
         => ReadHandleGeneric<T>();
 
@@ -19,7 +24,10 @@ public ref partial struct Reader
         return default(T);
     }
 
-    // note: The handle is still owned (i.e. Disposed) by the Message.
+    /// <summary>
+    /// Reads a Unix file descriptor handle as a raw IntPtr.
+    /// </summary>
+    /// <remarks>The handle is still owned (i.e. Disposed) by the <see cref="Message"/>.</remarks>
     public IntPtr ReadHandleRaw()
     {
         int idx = (int)ReadUInt32();

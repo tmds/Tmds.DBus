@@ -2,6 +2,10 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
+    /// <summary>
+    /// Reads a variant value.
+    /// </summary>
+    /// <returns>The variant value.</returns>
     public VariantValue ReadVariantValue()
         => ReadVariantValue(nesting: 0);
 

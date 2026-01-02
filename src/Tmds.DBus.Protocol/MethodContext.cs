@@ -1,5 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Represents a D-Bus method call that is being handled.
+/// </summary>
 public sealed class MethodContext : IDisposable
 {
     [Flags]
@@ -58,6 +61,9 @@ public sealed class MethodContext : IDisposable
         return Flags.None;
     }
 
+    /// <summary>
+    /// Gets the request message.
+    /// </summary>
     public Message Request
     {
         get
@@ -67,6 +73,9 @@ public sealed class MethodContext : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets the D-Bus connection associated with this method call.
+    /// </summary>
     public Connection Connection
     {
         get
@@ -76,6 +85,9 @@ public sealed class MethodContext : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets a cancellation token that is cancelled when the request is aborted.
+    /// </summary>
     public CancellationToken RequestAborted
     {
         get
@@ -87,10 +99,22 @@ public sealed class MethodContext : IDisposable
 
     private bool IsDisposed => (_flags & Flags.IsDisposed) != 0;
 
+    /// <summary>
+    /// Gets a value indicating whether a reply has been sent.
+    /// </summary>
     public bool ReplySent => (_flags & Flags.ReplySent) != 0;
 
+    /// <summary>
+    /// Gets a value indicating whether no reply is expected for this method call.
+    /// </summary>
     public bool NoReplyExpected => (_flags & Flags.NoReplyExpected) != 0;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the method will be handled and disposed asynchronously.
+    /// </summary>
+    /// <remarks>
+    /// When this is set to <c>true</c>, the context must be disposed.
+    /// </remarks>
     public bool DisposesAsynchronously
     {
         get
@@ -128,14 +152,25 @@ public sealed class MethodContext : IDisposable
 
     internal bool IsPeerInterface => (_flags & Flags.IsPeerInterface) != 0;
 
+    /// <summary>
+    /// Gets a value indicating whether this is a request to the org.freedesktop.DBus.Properties interface.
+    /// </summary>
     public bool IsPropertiesInterfaceRequest => (_flags & Flags.IsPropertiesInterface) != 0;
 
+    /// <summary>
+    /// Gets a value indicating whether this is an Introspect request to the org.freedesktop.DBus.Introspectable interface.
+    /// </summary>
     public bool IsDBusIntrospectRequest =>
         (_flags & Flags.IsIntrospectableInterface) != 0 &&
         Request.Member.SequenceEqual("Introspect"u8);
 
     internal string[]? IntrospectChildNames { get; set; }
 
+    /// <summary>
+    /// Creates a MessageWriter for writing the method reply.
+    /// </summary>
+    /// <param name="signature">The signature of the reply body, or null if empty.</param>
+    /// <returns>A MessageWriter for writing the reply.</returns>
     public MessageWriter CreateReplyWriter(string? signature)
     {
         ThrowIfDisposed();
@@ -149,6 +184,10 @@ public sealed class MethodContext : IDisposable
         return writer;
     }
 
+    /// <summary>
+    /// Sends a reply message.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
     public void Reply(MessageBuffer message)
         => Reply(message, throwIfAlreadySent: true);
 
@@ -172,6 +211,11 @@ public sealed class MethodContext : IDisposable
         Connection.TrySendMessage(message);
     }
 
+    /// <summary>
+    /// Sends an error reply.
+    /// </summary>
+    /// <param name="errorName">The error name, or null to use a default.</param>
+    /// <param name="errorMsg">The error message, or null if none.</param>
     public void ReplyError(string? errorName = null,
                            string? errorMsg = null)
     {
@@ -187,12 +231,19 @@ public sealed class MethodContext : IDisposable
         Reply(writer.CreateMessage(), throwIfAlreadySent: false);
     }
 
+    /// <summary>
+    /// Sends an "Unknown Method" error reply.
+    /// </summary>
     public void ReplyUnknownMethodError()
     {
         ReplyError("org.freedesktop.DBus.Error.UnknownMethod",
                    $"Method \"{Request.MemberAsString}\" with signature \"{Request.SignatureAsString}\" on interface \"{Request.InterfaceAsString}\" doesn't exist");
     }
 
+    /// <summary>
+    /// Sends an introspection XML reply.
+    /// </summary>
+    /// <param name="interfaceXmls">The interface XML fragments to include in the introspection.</param>
     public void ReplyIntrospectXml(ReadOnlySpan<ReadOnlyMemory<byte>> interfaceXmls)
     {
         ThrowIfDisposed();
@@ -230,6 +281,10 @@ public sealed class MethodContext : IDisposable
         Reply(writer.CreateMessage());
     }
 
+    /// <summary>
+    /// Disconnects the D-Bus connection with the specified exception.
+    /// </summary>
+    /// <param name="exception">The exception indicating the reason for disconnection.</param>
     public void Disconnect(Exception exception)
     {
         ThrowIfDisposed();
@@ -237,6 +292,9 @@ public sealed class MethodContext : IDisposable
         Connection.Disconnect(exception);
     }
 
+    /// <summary>
+    /// Disposes the method context and sends a default reply if needed.
+    /// </summary>
     public void Dispose()
         => Dispose(force: false);
 

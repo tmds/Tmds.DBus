@@ -2,6 +2,9 @@
 
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Provides methods for reading a D-Bus message.
+/// </summary>
 public ref partial struct Reader
 {
     private readonly bool _isBigEndian;
@@ -24,6 +27,9 @@ public ref partial struct Reader
         _handleCount = handleCount;
     }
 
+    /// <summary>
+    /// Aligns the reader to a struct boundary.
+    /// </summary>
     public void AlignStruct()
         => AlignReader(ProtocolConstants.StructAlignment);
 
@@ -36,6 +42,10 @@ public ref partial struct Reader
         }
     }
 
+    /// <summary>
+    /// Reads the start of an array and returns a position for detecting the end.
+    /// </summary>
+    /// <param name="elementType">The type of array elements.</param>
     public ArrayEnd ReadArrayStart(DBusType elementType)
         => ReadArrayStart(ProtocolConstants.GetTypeAlignment(elementType));
 
@@ -47,6 +57,11 @@ public ref partial struct Reader
         return new ArrayEnd(alignment, endOfArray);
     }
 
+    /// <summary>
+    /// Checks if there are more elements to read in the array.
+    /// </summary>
+    /// <param name="iterator">The <see cref="ArrayEnd"/> iterator returned by <see cref="ReadArrayStart(DBusType)"/>.</param>
+    /// <returns><see langword="true"/> if there are more elements to read; otherwise, <see langword="false"/>.</returns>
     public bool HasNext(ArrayEnd iterator)
     {
         int consumed = (int)_reader.Consumed;
@@ -63,6 +78,10 @@ public ref partial struct Reader
         return true;
     }
 
+    /// <summary>
+    /// Skips to the end of the array.
+    /// </summary>
+    /// <param name="end">The <see cref="ArrayEnd"/> iterator returned by <see cref="ReadArrayStart(DBusType)"/>.</param>
     public void SkipTo(ArrayEnd end)
     {
         int advance = end.EndOfArray - (int)_reader.Consumed;
@@ -70,6 +89,9 @@ public ref partial struct Reader
     }
 }
 
+/// <summary>
+/// Represents the end position of an array being read.
+/// </summary>
 public ref struct ArrayEnd
 {
     internal readonly int Alignment;

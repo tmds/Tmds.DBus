@@ -1,7 +1,13 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Provides standard D-Bus introspection XML for common interfaces.
+/// </summary>
 public static class IntrospectionXml
 {
+    /// <summary>
+    /// Gets the introspection XML for the org.freedesktop.DBus.Properties interface.
+    /// </summary>
     public static ReadOnlyMemory<byte> DBusProperties { get; } =
         """
         <interface name="org.freedesktop.DBus.Properties">
@@ -28,6 +34,9 @@ public static class IntrospectionXml
 
         """u8.ToArray();
 
+    /// <summary>
+    /// Gets the introspection XML for the org.freedesktop.DBus.Introspectable interface.
+    /// </summary>
     public static ReadOnlyMemory<byte> DBusIntrospectable { get; } =
         """
         <interface name="org.freedesktop.DBus.Introspectable">
@@ -38,6 +47,9 @@ public static class IntrospectionXml
 
         """u8.ToArray();
 
+    /// <summary>
+    /// Gets the introspection XML for the org.freedesktop.DBus.Peer interface.
+    /// </summary>
     public static ReadOnlyMemory<byte> DBusPeer { get; } =
         """
         <interface name="org.freedesktop.DBus.Peer">

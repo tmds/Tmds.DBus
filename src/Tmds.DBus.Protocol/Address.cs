@@ -2,6 +2,9 @@ using System.IO.MemoryMappedFiles;
 
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Provides D-Bus addresses for the system and session bus.
+/// </summary>
 public static class Address
 {
     private const string LibX11 = "libX11.so.6";
@@ -11,6 +14,9 @@ public static class Address
     private static bool _sessionAddressResolved = false;
     private static string? _sessionAddress = null;
 
+    /// <summary>
+    /// Gets the D-Bus system bus address.
+    /// </summary>
     public static string? System
     {
         get
@@ -32,6 +38,9 @@ public static class Address
         }
     }
 
+    /// <summary>
+    /// Gets the D-Bus session bus address.
+    /// </summary>
     public static string? Session
     {
         get

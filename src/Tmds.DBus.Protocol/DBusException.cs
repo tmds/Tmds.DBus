@@ -1,7 +1,15 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Exception representing a D-Bus error reply to a method call.
+/// </summary>
 public class DBusException : Exception
 {
+    /// <summary>
+    /// Initializes a new instance of the DBusException class.
+    /// </summary>
+    /// <param name="errorName">The error name.</param>
+    /// <param name="errorMessage">The error message.</param>
     public DBusException(string errorName, string errorMessage) :
         base($"{errorName}: {errorMessage}")
     {
@@ -9,7 +17,13 @@ public class DBusException : Exception
         ErrorMessage = errorMessage;
     }
 
+    /// <summary>
+    /// Gets the error name.
+    /// </summary>
     public string ErrorName { get; }
 
+    /// <summary>
+    /// Gets the error message.
+    /// </summary>
     public string ErrorMessage { get; }
 }

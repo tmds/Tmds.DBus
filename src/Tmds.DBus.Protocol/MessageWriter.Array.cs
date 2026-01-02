@@ -2,120 +2,276 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct MessageWriter
 {
+    /// <summary>
+    /// Writes an array of byte values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(byte[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of byte values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<byte> value)
         => WriteArrayOfNumeric(value);
 
+    /// <summary>
+    /// Writes an array of byte values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<byte> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of signed 16-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(short[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of signed 16-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<short> value)
         => WriteArrayOfNumeric(value);
 
+    /// <summary>
+    /// Writes an array of signed 16-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<short> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of unsigned 16-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ushort[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of unsigned 16-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<ushort> value)
         => WriteArrayOfNumeric(value);
 
+    /// <summary>
+    /// Writes an array of unsigned 16-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<ushort> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of signed 32-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(int[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of signed 32-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<int> value)
         => WriteArrayOfNumeric(value);
 
+    /// <summary>
+    /// Writes an array of signed 32-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<int> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of unsigned 32-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(uint[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of unsigned 32-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<uint> value)
         => WriteArrayOfNumeric(value);
 
+    /// <summary>
+    /// Writes an array of unsigned 32-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<uint> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of signed 64-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(long[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of signed 64-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<long> value)
         => WriteArrayOfNumeric(value);
 
+    /// <summary>
+    /// Writes an array of signed 64-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<long> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of unsigned 64-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ulong[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of unsigned 64-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<ulong> value)
         => WriteArrayOfNumeric(value);
 
+    /// <summary>
+    /// Writes an array of unsigned 64-bit integer values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<ulong> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of double values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(double[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of double values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<double> value)
         => WriteArrayOfNumeric(value);
 
+    /// <summary>
+    /// Writes an array of double values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<double> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of string values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(string[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of string values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<string> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of string values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<string> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of signature values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(Signature[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of signature values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<Signature> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of signature values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<Signature> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of object path values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ObjectPath[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of object path values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<ObjectPath> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of object path values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<ObjectPath> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of variant values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(VariantValue[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of variant values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<VariantValue> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of variant values.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<VariantValue> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of Unix file descriptor handles.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(SafeHandle[] value)
         => WriteArray(value.AsSpan());
 
+    /// <summary>
+    /// Writes an array of Unix file descriptor handles.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(ReadOnlySpan<SafeHandle> value)
         => WriteArrayOfT(value);
 
+    /// <summary>
+    /// Writes an array of Unix file descriptor handles.
+    /// </summary>
+    /// <param name="value">The array.</param>
     public void WriteArray(IEnumerable<SafeHandle> value)
         => WriteArrayOfT(value);
 

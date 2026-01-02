@@ -1,5 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Represents a buffer containing a serialized D-Bus message.
+/// </summary>
 public sealed class MessageBuffer
 {
     private readonly MessageBufferPool _messagePool;

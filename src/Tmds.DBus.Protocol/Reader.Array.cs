@@ -2,45 +2,88 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct Reader
 {
+    /// <summary>
+    /// Reads an array of bytes.
+    /// </summary>
     public byte[] ReadArrayOfByte()
         => ReadArrayOfNumeric<byte>();
 
+    /// <summary>
+    /// Reads an array of booleans.
+    /// </summary>
     public bool[] ReadArrayOfBool()
         => ReadArrayOfT<bool>();
 
+    /// <summary>
+    /// Reads an array of signed 16-bit integers.
+    /// </summary>
     public short[] ReadArrayOfInt16()
         => ReadArrayOfNumeric<short>();
 
+    /// <summary>
+    /// Reads an array of unsigned 16-bit integers.
+    /// </summary>
     public ushort[] ReadArrayOfUInt16()
         => ReadArrayOfNumeric<ushort>();
 
+    /// <summary>
+    /// Reads an array of signed 32-bit integers.
+    /// </summary>
     public int[] ReadArrayOfInt32()
         => ReadArrayOfNumeric<int>();
 
+    /// <summary>
+    /// Reads an array of unsigned 32-bit integers.
+    /// </summary>
     public uint[] ReadArrayOfUInt32()
         => ReadArrayOfNumeric<uint>();
 
+    /// <summary>
+    /// Reads an array of signed 64-bit integers.
+    /// </summary>
     public long[] ReadArrayOfInt64()
         => ReadArrayOfNumeric<long>();
 
+    /// <summary>
+    /// Reads an array of unsigned 64-bit integers.
+    /// </summary>
     public ulong[] ReadArrayOfUInt64()
         => ReadArrayOfNumeric<ulong>();
 
+    /// <summary>
+    /// Reads an array of double values.
+    /// </summary>
     public double[] ReadArrayOfDouble()
         => ReadArrayOfNumeric<double>();
 
+    /// <summary>
+    /// Reads an array of strings.
+    /// </summary>
     public string[] ReadArrayOfString()
         => ReadArrayOfT<string>();
 
+    /// <summary>
+    /// Reads an array of object paths.
+    /// </summary>
     public ObjectPath[] ReadArrayOfObjectPath()
         => ReadArrayOfT<ObjectPath>();
 
+    /// <summary>
+    /// Reads an array of signatures.
+    /// </summary>
     public Signature[] ReadArrayOfSignature()
         => ReadArrayOfT<Signature>();
 
+    /// <summary>
+    /// Reads an array of variant values.
+    /// </summary>
     public VariantValue[] ReadArrayOfVariantValue()
         => ReadArrayOfT<VariantValue>();
 
+    /// <summary>
+    /// Reads an array of Unix file descriptor handles.
+    /// </summary>
+    /// <typeparam name="T">The SafeHandle type to read.</typeparam>
     public T[] ReadArrayOfHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : SafeHandle, new()
         => ReadArrayOfT<T>();
 

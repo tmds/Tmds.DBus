@@ -26,6 +26,11 @@ public ref partial struct MessageWriter
 
         """u8;
 
+    /// <summary>
+    /// Writes D-Bus introspection XML for the specified interfaces and child node names.
+    /// </summary>
+    /// <param name="interfaceXmls">The interface XML fragments to include.</param>
+    /// <param name="childNames">The names of child nodes.</param>
     public void WriteIntrospectionXml(scoped ReadOnlySpan<ReadOnlyMemory<byte>> interfaceXmls, IEnumerable<string> childNames)
         => WriteIntrospectionXml(interfaceXmls, baseInterfaceXmls: default, childNames: default,
             childNamesEnumerable: childNames ?? throw new ArgumentNullException(nameof(childNames)));

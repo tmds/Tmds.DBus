@@ -2,16 +2,31 @@ using System.Collections;
 
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Strongly-typed <see cref="IDictionary{TKey, TValue}"/> that can be converted to a <see cref="VariantValueType.Dictionary"/> <see cref="VariantValue"/>.
+/// </summary>
+/// <remarks>
+/// Supported types for keys and values: <see cref="byte"/>, <see cref="bool"/>, <see cref="short"/>, <see cref="ushort"/>, <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>, <see cref="ObjectPath"/>, <see cref="Signature"/>, <see cref="SafeHandle"/>, <see cref="VariantValue"/>, <see cref="Array{T}"/>, <see cref="Dict{TKey, TValue}"/>, and <c>Struct</c> types.
+/// </remarks>
+/// <typeparam name="TKey">The type of keys in the dictionary.</typeparam>
+/// <typeparam name="TValue">The type of values in the dictionary.</typeparam>
 public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue>, IVariantValueConvertable
     where TKey : notnull
     where TValue : notnull
 {
     private readonly Dictionary<TKey, TValue> _dict;
 
+    /// <summary>
+    /// Initializes a new instance of the Dict class.
+    /// </summary>
     public Dict() :
         this(new Dictionary<TKey, TValue>())
     { }
 
+    /// <summary>
+    /// Initializes a new instance of the Dict class from an existing dictionary.
+    /// </summary>
+    /// <param name="dictionary">The dictionary to copy elements from.</param>
     public Dict(IDictionary<TKey, TValue> dictionary) :
         this(new Dictionary<TKey, TValue>(dictionary))
     { }
@@ -31,23 +46,29 @@ public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue
 
     ICollection<TValue> IDictionary<TKey, TValue>.Values => _dict.Values;
 
+    /// <inheritdoc/>
     public int Count => _dict.Count;
 
+    /// <inheritdoc/>
     public TValue this[TKey key]
     {
         get => _dict[key];
         set => _dict[key] = value;
     }
 
+    /// <inheritdoc/>
     public void Add(TKey key, TValue value)
         => _dict.Add(key, value);
 
+    /// <inheritdoc/>
     public bool ContainsKey(TKey key)
         => _dict.ContainsKey(key);
 
+    /// <inheritdoc/>
     public bool Remove(TKey key)
         => _dict.Remove(key);
 
+    /// <inheritdoc/>
     public bool TryGetValue(TKey key,
 #if NET
                             [MaybeNullWhen(false)]
@@ -55,6 +76,7 @@ public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue
                             out TValue value)
         => _dict.TryGetValue(key, out value);
 
+    /// <inheritdoc/>
     public void Clear()
         => _dict.Clear();
 
@@ -78,9 +100,14 @@ public sealed class Dict<TKey, TValue> : IDBusWritable, IDictionary<TKey, TValue
     IEnumerator IEnumerable.GetEnumerator()
         => _dict.GetEnumerator();
 
+    /// <summary>
+    /// Implicitly converts a Dict to a VariantValue.
+    /// </summary>
+    /// <param name="value">The dictionary to convert.</param>
     public static implicit operator VariantValue(Dict<TKey, TValue> value)
         => value.AsVariantValue();
 
+    /// <inheritdoc/>
     public VariantValue AsVariantValue()
     {
         Span<byte> buffer = stackalloc byte[ProtocolConstants.MaxSignatureLength];

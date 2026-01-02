@@ -342,7 +342,7 @@ namespace System.Buffers
         /// </summary>
         /// <remarks>
         /// This API is used to copy a fixed amount of data out of the sequence if possible. It does not advance
-        /// the reader. To look ahead for a specific stream of data <see cref="IsNext(ReadOnlySpan{T}, bool)"/> can be used.
+        /// the reader. To look ahead for a specific stream of data IsNext can be used.
         /// </remarks>
         /// <param name="destination">Destination span to copy to.</param>
         /// <returns>True if there is enough data to completely fill the <paramref name="destination"/> span.</returns>

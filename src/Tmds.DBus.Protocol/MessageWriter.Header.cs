@@ -2,6 +2,15 @@ namespace Tmds.DBus.Protocol;
 
 public ref partial struct MessageWriter
 {
+    /// <summary>
+    /// Writes a method call message header.
+    /// </summary>
+    /// <param name="destination">The destination bus name.</param>
+    /// <param name="path">The object path.</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="member">The method name.</param>
+    /// <param name="signature">The method signature.</param>
+    /// <param name="flags">Message flags.</param>
     public void WriteMethodCallHeader(
         string? destination = null,
         string? path = null,
@@ -55,6 +64,12 @@ public ref partial struct MessageWriter
         WriteHeaderEnd(start);
     }
 
+    /// <summary>
+    /// Writes a method return message header.
+    /// </summary>
+    /// <param name="replySerial">The serial number of the method call being replied to.</param>
+    /// <param name="destination">The destination.</param>
+    /// <param name="signature">The body signature.</param>
     public void WriteMethodReturnHeader(
         uint replySerial,
         ReadOnlySpan<byte> destination = default,
@@ -86,6 +101,13 @@ public ref partial struct MessageWriter
         WriteHeaderEnd(start);
     }
 
+    /// <summary>
+    /// Writes an error message header and optional error message.
+    /// </summary>
+    /// <param name="replySerial">The serial number of the method call being replied to.</param>
+    /// <param name="destination">The destination name.</param>
+    /// <param name="errorName">The error name.</param>
+    /// <param name="errorMsg">The error message.</param>
     public void WriteError(
         uint replySerial,
         ReadOnlySpan<byte> destination = default,
@@ -131,6 +153,14 @@ public ref partial struct MessageWriter
         }
     }
 
+    /// <summary>
+    /// Writes a signal message header.
+    /// </summary>
+    /// <param name="destination">The destination name.</param>
+    /// <param name="path">The object path.</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="member">The signal name.</param>
+    /// <param name="signature">The body signature.</param>
     public void WriteSignalHeader(
         string? destination = null,
         string? path = null,

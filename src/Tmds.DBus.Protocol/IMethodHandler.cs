@@ -2,16 +2,31 @@ namespace Tmds.DBus.Protocol;
 
 #pragma warning disable CS0618 // IMethodHandler is obsolete.
 
+/// <summary>
+/// Handles D-Bus method calls for a specific object path. (obsolete)
+/// </summary>
+/// <remarks>Use <see cref="IPathMethodHandler"/> instead.</remarks>
 [Obsolete($"Use '{nameof(IPathMethodHandler)}' instead.")]
 public interface IMethodHandler
 {
-    // Path that is handled by this method handler.
+    /// <summary>
+    /// Object path handled by this method handler.
+    /// </summary>
     string Path { get; }
 
-    // The message argument is only valid during the call. It must not be stored to extend its lifetime.
+    /// <summary>
+    /// Handles a method call.
+    /// </summary>
+    /// <param name="context">The method context containing the request information and methods to reply.</param>
+    /// <remarks>
+    /// No additional messages are read from the connection until this method completes when <see cref="RunMethodHandlerSynchronously"/> returns <see langword="true"/>.
+    /// </remarks>
     ValueTask HandleMethodAsync(MethodContext context);
 
-    // Controls whether to wait for the handler method to finish executing before reading more messages.
+    /// <summary>
+    /// Determines whether to wait for the handler method to finish executing before reading more messages.
+    /// </summary>
+    /// <param name="message">Message being handled.</param>
     bool RunMethodHandlerSynchronously(Message message);
 }
 

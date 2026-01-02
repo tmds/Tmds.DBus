@@ -1,5 +1,8 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Provides methods for writing a D-Bus message.
+/// </summary>
 public ref partial struct MessageWriter
 {
     private const int LengthOffset = 4;
@@ -17,6 +20,10 @@ public ref partial struct MessageWriter
     private int _offset;
     private int _buffered;
 
+    /// <summary>
+    /// Creates a buffer that holds the serialized message.
+    /// </summary>
+    /// <returns>The created message buffer.</returns>
     public MessageBuffer CreateMessage()
     {
         Flush();
@@ -66,6 +73,11 @@ public ref partial struct MessageWriter
         _firstSpan = _span = _data.GetSpan(sizeHint: 0);
     }
 
+    /// <summary>
+    /// Writes the start of an array.
+    /// </summary>
+    /// <param name="elementType">The type of array elements.</param>
+    /// <returns>An <see cref="ArrayStart"/> token to pass to WriteArrayEnd.</returns>
     public ArrayStart WriteArrayStart(DBusType elementType)
         => WriteArrayStart(ProtocolConstants.GetTypeAlignment(elementType));
 
@@ -81,11 +93,18 @@ public ref partial struct MessageWriter
         return new ArrayStart(lengthSpan, _offset);
     }
 
+    /// <summary>
+    /// Writes the end of an array.
+    /// </summary>
+    /// <param name="start">The ArrayStart token returned by WriteArrayStart.</param>
     public void WriteArrayEnd(ArrayStart start)
     {
         start.WriteLength(_offset);
     }
 
+    /// <summary>
+    /// Writes the start of a structure.
+    /// </summary>
     public void WriteStructureStart()
     {
         WritePadding(ProtocolConstants.StructAlignment);
@@ -147,6 +166,9 @@ public ref partial struct MessageWriter
         }
     }
 
+    /// <summary>
+    /// Disposes the message writer and releases associated resources.
+    /// </summary>
     public void Dispose()
     {
         _message?.ReturnToPool();
@@ -167,6 +189,9 @@ public ref partial struct MessageWriter
     internal UnixFdCollection? Handles => _handles;
 }
 
+/// <summary>
+/// Represents the start of an array being written.
+/// </summary>
 public ref struct ArrayStart
 {
     private Span<byte> _span;

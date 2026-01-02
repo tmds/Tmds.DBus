@@ -1,5 +1,60 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Represents a D-Bus variant value for reading or writing.
+/// </summary>
+/// <remarks>
+/// <para><b>Constructing a VariantValue for writing with <see cref="MessageWriter.WriteVariant(VariantValue)"/>:</b></para>
+/// <para>
+/// The following types support implicit conversion to <see cref="VariantValue"/>: <see cref="byte"/>, <see cref="bool"/>, <see cref="short"/>, <see cref="ushort"/>,
+/// <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>,
+/// <see cref="Protocol.ObjectPath"/>, <see cref="Protocol.Signature"/>.
+/// These conversions may also be performed explicitly using the corresponding static methods: <see cref="Byte(byte)"/>, <see cref="Bool(bool)"/>, <see cref="Int16(short)"/>, <see cref="UInt16(ushort)"/>,
+/// <see cref="Int32(int)"/>, <see cref="UInt32(uint)"/>, <see cref="Int64(long)"/>, <see cref="UInt64(ulong)"/>, <see cref="Double(double)"/>, <see cref="String(string)"/>,
+/// <see cref="ObjectPath(Protocol.ObjectPath)"/>, <see cref="Signature(Protocol.Signature)"/>.
+/// </para>
+/// <para>
+/// Array, struct, and dictionary values can be strongly-typed using the <see cref="Array{T}"/>, <see cref="Struct{T}"/> (and generic variants),
+/// and <see cref="Dict{TKey, TValue}"/> classes. These classes implicitly convert to <see cref="VariantValue"/>.
+/// </para>
+/// <para>
+/// For arrays, static <c>Array</c> methods (and related overloads) allow creating a <see cref="VariantValue"/> directly from array or <see cref="List{T}"/> instances of
+/// <see cref="byte"/>, <see cref="short"/>, <see cref="ushort"/>, <see cref="int"/>, <see cref="uint"/>,
+/// <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>, <see cref="Protocol.ObjectPath"/>,
+/// <see cref="bool"/>, <see cref="Protocol.Signature"/>, <see cref="SafeHandle"/>, and <see cref="VariantValue"/>.
+/// </para>
+/// <para>
+/// For structs, static <c>Struct</c> methods (and related overloads) allow creating a <see cref="VariantValue"/> directly from <see cref="VariantValue"/> instances for its fields.
+/// </para>
+/// <para>
+/// To wrap a value in a variant container, use <see cref="Variant(VariantValue)"/>. For Unix file descriptors, use <see cref="UnixFd(SafeHandle)"/>.
+/// </para>
+/// <para><b>Interpreting a VariantValue read with <see cref="Reader.ReadVariantValue()"/>:</b></para>
+/// <para>
+/// <see cref="Type"/> returns the value type.
+/// For <see cref="VariantValueType.Array"/>, use <see cref="ItemType"/> to determine the array element type.
+/// For <see cref="VariantValueType.Dictionary"/>, use <see cref="KeyType"/> and <see cref="ValueType"/> to determine the dictionary key and value types.
+/// <see cref="Count"/> returns the number of items for <see cref="VariantValueType.Array"/>, <see cref="VariantValueType.Struct"/>, or <see cref="VariantValueType.Dictionary"/> types.
+/// </para>
+/// <para>
+/// Use typed getters to retrieve values: <see cref="GetByte"/>, <see cref="GetBool"/>, <see cref="GetInt16"/>, <see cref="GetUInt16"/>,
+/// <see cref="GetInt32"/>, <see cref="GetUInt32"/>, <see cref="GetInt64"/>, <see cref="GetUInt64"/>, <see cref="GetDouble"/>,
+/// <see cref="GetString"/>, <see cref="GetObjectPath"/>, <see cref="GetSignature()"/>.
+/// </para>
+/// <para>
+/// For structs, use <see cref="GetItem"/> to access individual elements by index.
+/// </para>
+/// <para>
+/// For arrays, use <see cref="GetItem"/> to access individual elements by index, or <see cref="GetArray{T}"/> to obtain a <c>T[]</c> array.
+/// </para>
+/// <para>
+/// For dictionaries, use <see cref="GetDictionaryEntry"/> to access individual entries by index, or <see cref="GetDictionary{TKey, TValue}"/> to obtain a <see cref="Dictionary{TKey, TValue}"/>.
+/// </para>
+/// <para>
+/// To unwrap a variant container, use <see cref="GetVariantValue"/>.
+/// For Unix file descriptors, use <see cref="ReadHandle{T}"/>.
+/// </para>
+/// </remarks>
 public readonly struct VariantValue : IEquatable<VariantValue>
 {
     private readonly object? _o;
@@ -100,6 +155,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return signature.ToArray();
     }
 
+    /// <summary>
+    /// Gets the type of the value.
+    /// </summary>
     public VariantValueType Type
         => DetermineType();
 
@@ -309,6 +367,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         _o = fdCollection;
     }
 
+    /// <summary>
+    /// Unwraps the value for a <see cref="VariantValueType.Variant"/> type.
+    /// </summary>
     public VariantValue GetVariantValue()
     {
         EnsureTypeIs(VariantValueType.Variant);
@@ -322,6 +383,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
     }
 
+    /// <summary>
+    /// Gets the byte value for a <see cref="VariantValueType.Byte"/> type.
+    /// </summary>
     public byte GetByte()
     {
         EnsureTypeIs(VariantValueType.Byte);
@@ -334,6 +398,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return (byte)(_l & StripMetadataMask);
     }
 
+    /// <summary>
+    /// Gets the boolean value for a <see cref="VariantValueType.Bool"/> type.
+    /// </summary>
     public bool GetBool()
     {
         EnsureTypeIs(VariantValueType.Bool);
@@ -346,6 +413,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return (_l & StripMetadataMask) != 0;
     }
 
+    /// <summary>
+    /// Gets the signed 16-bit integer value for a <see cref="VariantValueType.Int16"/> type.
+    /// </summary>
     public short GetInt16()
     {
         EnsureTypeIs(VariantValueType.Int16);
@@ -358,6 +428,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return (short)(_l & StripMetadataMask);
     }
 
+    /// <summary>
+    /// Gets the unsigned 16-bit integer value for a <see cref="VariantValueType.UInt16"/> type.
+    /// </summary>
     public ushort GetUInt16()
     {
         EnsureTypeIs(VariantValueType.UInt16);
@@ -370,6 +443,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return (ushort)(_l & StripMetadataMask);
     }
 
+    /// <summary>
+    /// Gets the signed 32-bit integer value for a <see cref="VariantValueType.Int32"/> type.
+    /// </summary>
     public int GetInt32()
     {
         EnsureTypeIs(VariantValueType.Int32);
@@ -382,6 +458,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return (int)(_l & StripMetadataMask);
     }
 
+    /// <summary>
+    /// Gets the unsigned 32-bit integer value for a <see cref="VariantValueType.UInt32"/> type.
+    /// </summary>
     public uint GetUInt32()
     {
         EnsureTypeIs(VariantValueType.UInt32);
@@ -394,6 +473,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return (uint)(_l & StripMetadataMask);
     }
 
+    /// <summary>
+    /// Gets the signed 64-bit integer value for a <see cref="VariantValueType.Int64"/> type.
+    /// </summary>
     public long GetInt64()
     {
         EnsureTypeIs(VariantValueType.Int64);
@@ -406,6 +488,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return _l;
     }
 
+    /// <summary>
+    /// Gets the unsigned 64-bit integer value for a <see cref="VariantValueType.UInt64"/> type.
+    /// </summary>
     public ulong GetUInt64()
     {
         EnsureTypeIs(VariantValueType.UInt64);
@@ -418,6 +503,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return (ulong)(_l);
     }
 
+    /// <summary>
+    /// Gets the string value for a <see cref="VariantValueType.String"/> type.
+    /// </summary>
     public string GetString()
     {
         EnsureTypeIs(VariantValueType.String);
@@ -433,12 +521,18 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     private ObjectPath UnsafeGetObjectPath()
         => new ObjectPath(UnsafeGetString());
 
+    /// <summary>
+    /// Gets the object path value for a <see cref="VariantValueType.ObjectPath"/> type.
+    /// </summary>
     public ObjectPath GetObjectPath()
     {
         EnsureTypeIs(VariantValueType.ObjectPath);
         return UnsafeGetObjectPath();
     }
 
+    /// <summary>
+    /// Gets the object path as a string for a <see cref="VariantValueType.ObjectPath"/> type.
+    /// </summary>
     public string GetObjectPathAsString()
     {
         EnsureTypeIs(VariantValueType.ObjectPath);
@@ -451,12 +545,18 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return new Signature((_o as byte[])!);
     }
 
+    /// <summary>
+    /// Gets the signature value for a <see cref="VariantValueType.Signature"/> type.
+    /// </summary>
     public Signature GetSignature()
     {
         EnsureTypeIs(VariantValueType.Signature);
         return UnsafeGetSignature();
     }
 
+    /// <summary>
+    /// Gets the double value for a <see cref="VariantValueType.Double"/> type.
+    /// </summary>
     public double GetDouble()
     {
         EnsureTypeIs(VariantValueType.Double);
@@ -535,6 +635,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return default!;
     }
 
+    /// <summary>
+    /// Gets the dictionary value for a <see cref="VariantValueType.Dictionary"/> type.
+    /// </summary>
+    /// <typeparam name="TKey">The type of dictionary keys. Allowed types: <see cref="byte"/>, <see cref="bool"/>, <see cref="short"/>, <see cref="ushort"/>, <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>, <see cref="ObjectPath"/>, <see cref="Signature"/>, <see cref="VariantValue"/>, or types derived from <see cref="SafeHandle"/>.</typeparam>
+    /// <typeparam name="TValue">The type of dictionary values. Allowed types: <see cref="byte"/>, <see cref="bool"/>, <see cref="short"/>, <see cref="ushort"/>, <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>, <see cref="ObjectPath"/>, <see cref="Signature"/>, <see cref="VariantValue"/>, or types derived from <see cref="SafeHandle"/>.</typeparam>
     public Dictionary<TKey, TValue> GetDictionary
         <
             [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]TKey,
@@ -580,6 +685,13 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
     }
 
+    /// <summary>
+    /// Gets the array value for a <see cref="VariantValueType.Array"/> type.
+    /// </summary>
+    /// <typeparam name="T">The type of array elements. Allowed types: <see cref="byte"/>, <see cref="bool"/>, <see cref="short"/>, <see cref="ushort"/>, <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>, <see cref="ObjectPath"/>, <see cref="Signature"/>, <see cref="VariantValue"/>, or types derived from <see cref="SafeHandle"/>.</typeparam>
+    /// <remarks>
+    /// For <see cref="byte"/>, <see cref="short"/>, <see cref="ushort"/>, <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>, and <see cref="ObjectPath"/>, the underlying array may be returned directly. Mutating the returned array affects the instance.
+    /// </remarks>
     public T[] GetArray<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
         where T : notnull
     {
@@ -689,6 +801,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
     }
 
+    /// <summary>
+    /// Reads a Unix file descriptor handle for a <see cref="VariantValueType.UnixFd"/> type.
+    /// </summary>
+    /// <typeparam name="T">The <see cref="SafeHandle"/> type to read.</typeparam>
     public T? ReadHandle<
 #if NET6_0_OR_GREATER
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -713,7 +829,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
 
     private int UnsafeCount => (int)_l;
 
-    // Use for Array, Struct and Dictionary.
+    /// <summary>
+    /// Gets the number of elements in a <see cref="VariantValueType.Array"/>, <see cref="VariantValueType.Struct"/>, or <see cref="VariantValueType.Dictionary"/> type.
+    /// </summary>
+    /// <returns>The element count, or -1 when not a countable type.</returns>
     public int Count
     {
         get
@@ -726,7 +845,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
     }
 
-    // Valid for Array, Struct.
+    /// <summary>
+    /// Gets an item at the specified index for a <see cref="VariantValueType.Array"/> or <see cref="VariantValueType.Struct"/> type.
+    /// </summary>
+    /// <param name="i">The zero-based index of the item.</param>
     public VariantValue GetItem(int i)
     {
         VariantValueType type = Type;
@@ -768,7 +890,10 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return values![i];
     }
 
-    // Valid for Dictionary.
+    /// <summary>
+    /// Gets a dictionary entry at the specified index for a <see cref="VariantValueType.Dictionary"/> type.
+    /// </summary>
+    /// <param name="i">The zero-based index of the entry.</param>
     public KeyValuePair<VariantValue, VariantValue> GetDictionaryEntry(int i)
     {
         EnsureTypeIs(VariantValueType.Dictionary);
@@ -786,48 +911,122 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return values![i];
     }
 
-    // implicit conversion to VariantValue for basic D-Bus types (except Unix_FD).
+    /// <summary>
+    /// Implicitly converts a byte value to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(byte value)
         => Byte(value);
+    /// <summary>
+    /// Implicitly converts a boolean value to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(bool value)
         => Bool(value);
+    /// <summary>
+    /// Implicitly converts a signed 16-bit integer to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(short value)
         => Int16(value);
+    /// <summary>
+    /// Implicitly converts an unsigned 16-bit integer to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(ushort value)
         => UInt16(value);
+    /// <summary>
+    /// Implicitly converts a signed 32-bit integer to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(int value)
         => Int32(value);
+    /// <summary>
+    /// Implicitly converts an unsigned 32-bit integer to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(uint value)
         => UInt32(value);
+    /// <summary>
+    /// Implicitly converts a signed 64-bit integer to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(long value)
         => Int64(value);
+    /// <summary>
+    /// Implicitly converts an unsigned 64-bit integer to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(ulong value)
         => UInt64(value);
+    /// <summary>
+    /// Implicitly converts a double to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(double value)
         => Double(value);
+    /// <summary>
+    /// Implicitly converts a string to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(string value)
         => String(value);
+    /// <summary>
+    /// Implicitly converts an <see cref="Protocol.ObjectPath"/> to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(ObjectPath value)
         => ObjectPath(value);
+    /// <summary>
+    /// Implicitly converts a <see cref="Protocol.Signature"/> to a <see cref="VariantValue"/>.
+    /// </summary>
     public static implicit operator VariantValue(Signature value)
         => Signature(value);
 
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a byte value.
+    /// </summary>
     public static VariantValue Byte(byte value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a boolean value.
+    /// </summary>
     public static VariantValue Bool(bool value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a signed 16-bit integer.
+    /// </summary>
     public static VariantValue Int16(short value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from an unsigned 16-bit integer.
+    /// </summary>
     public static VariantValue UInt16(ushort value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a signed 32-bit integer.
+    /// </summary>
     public static VariantValue Int32(int value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from an unsigned 32-bit integer.
+    /// </summary>
     public static VariantValue UInt32(uint value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a signed 64-bit integer.
+    /// </summary>
     public static VariantValue Int64(long value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from an unsigned 64-bit integer.
+    /// </summary>
     public static VariantValue UInt64(ulong value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a double.
+    /// </summary>
     public static VariantValue Double(double value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from an <see cref="Protocol.ObjectPath"/>.
+    /// </summary>
     public static VariantValue ObjectPath(ObjectPath value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a <see cref="Protocol.Signature"/>.
+    /// </summary>
     public static VariantValue Signature(Signature value) => new VariantValue(value, nesting: 0);
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a string.
+    /// </summary>
     public static VariantValue String(string value)
     {
         ThrowIfNull(value, nameof(value));
         return new VariantValue(value, nesting: 0);
     }
+    /// <summary>
+    /// Creates a <see cref="VariantValue"/> from a Unix file descriptor handle.
+    /// </summary>
     public static VariantValue UnixFd(SafeHandle handle)
     {
         ThrowIfNull(handle, nameof(handle));
@@ -835,6 +1034,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         fds.AddHandle(handle);
         return new VariantValue(fds, index: 0);
     }
+    /// <summary>
+    /// Wraps a <see cref="VariantValue"/> in a variant container.
+    /// </summary>
     public static VariantValue Variant(VariantValue value)
     {
         value.ThrowIfInvalid();
@@ -850,117 +1052,261 @@ public readonly struct VariantValue : IEquatable<VariantValue>
             return new VariantValue(UpdateNesting(l, +1), o);
         }
     }
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 1 field.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1)
         => StructCore(new[] { item1 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 2 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2)
         => StructCore(new[] { item1, item2 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 3 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3)
         => StructCore(new[] { item1, item2, item3 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 4 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4)
         => StructCore(new[] { item1, item2, item3, item4 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 5 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5)
         => StructCore(new[] { item1, item2, item3, item4, item5 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 6 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6)
         => StructCore(new[] { item1, item2, item3, item4, item5, item6 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 7 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6, VariantValue item7)
         => StructCore(new[] { item1, item2, item3, item4, item5, item6, item7 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 8 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6, VariantValue item7, VariantValue item8)
         => StructCore(new[] { item1, item2, item3, item4, item5, item6, item7, item8 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 9 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6, VariantValue item7, VariantValue item8, VariantValue item9)
         => StructCore(new[] { item1, item2, item3, item4, item5, item6, item7, item8, item9 }, nesting: 0);
+    /// <summary>
+    /// Creates a struct <see cref="VariantValue"/> with 10 fields.
+    /// </summary>
     public static VariantValue Struct(VariantValue item1, VariantValue item2, VariantValue item3, VariantValue item4, VariantValue item5, VariantValue item6, VariantValue item7, VariantValue item8, VariantValue item9, VariantValue item10)
         => StructCore(new[] { item1, item2, item3, item4, item5, item6, item7, item8, item9, item10 }, nesting: 0);
 
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a byte array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(byte[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of bytes.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<byte> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a signed 16-bit integer array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(short[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of signed 16-bit integers.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<short> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from an unsigned 16-bit integer array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(ushort[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of unsigned 16-bit integers.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<ushort> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a signed 32-bit integer array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(int[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of signed 32-bit integers.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<int> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from an unsigned 32-bit integer array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(uint[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of unsigned 32-bit integers.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<uint> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a signed 64-bit integer array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(long[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of signed 64-bit integers.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<long> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from an unsigned 64-bit integer array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(ulong[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of unsigned 64-bit integers.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<ulong> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a double array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(double[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of doubles.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<double> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from an <see cref="ObjectPath"/> array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(ObjectPath[] items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of <see cref="ObjectPath"/> values.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<ObjectPath> items)
     {
         ThrowIfNull(items, nameof(items));
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a string array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(string[] items)
     {
         ThrowIfNull(items, nameof(items));
@@ -970,6 +1316,12 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of strings.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<string> items)
     {
         ThrowIfNull(items, nameof(items));
@@ -979,6 +1331,12 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a <see cref="VariantValue"/> array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue ArrayOfVariant(VariantValue[] items)
     {
         ThrowIfNull(items, nameof(items));
@@ -988,6 +1346,12 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of <see cref="VariantValue"/> values.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue ArrayOfVariant(List<VariantValue> items)
     {
         ThrowIfNull(items, nameof(items));
@@ -997,8 +1361,20 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(items, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of Unix file descriptor handles.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<SafeHandle> items)
         => Array(items.ToArray());
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a Unix file descriptor handle array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(SafeHandle[] items)
     {
         ThrowIfNull(items, nameof(items));
@@ -1016,8 +1392,20 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(VariantValueType.UnixFd, itemSignature: null, values, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of <see cref="Protocol.Signature"/> values.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<Signature> items)
         => Array(items.ToArray());
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a <see cref="Protocol.Signature"/> array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(Signature[] items)
     {
         ThrowIfNull(items, nameof(items));
@@ -1028,8 +1416,20 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
         return new VariantValue(VariantValueType.Signature, itemSignature: null, values, nesting: 0);
     }
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a list of boolean values.
+    /// </summary>
+    /// <remarks>
+    /// The list should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(List<bool> items)
         => Array(items.ToArray());
+    /// <summary>
+    /// Creates an array <see cref="VariantValue"/> from a boolean array.
+    /// </summary>
+    /// <remarks>
+    /// The array should not be mutated after creation because it may be stored directly in the VariantValue without copying.
+    /// </remarks>
     public static VariantValue Array(bool[] items)
     {
         ThrowIfNull(items, nameof(items));
@@ -1468,12 +1868,24 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return length != 0;
     }
 
+    /// <summary>
+    /// Gets the type of array items for a <see cref="VariantValueType.Array"/> type.
+    /// </summary>
+    /// <returns>The item type, or <see cref="VariantValueType.Invalid"/> if this is not an array.</returns>
     public VariantValueType ItemType
         => DetermineInnerType(VariantValueType.Array, ArrayItemTypeShift);
 
+    /// <summary>
+    /// Gets the type of dictionary keys for a <see cref="VariantValueType.Dictionary"/> type.
+    /// </summary>
+    /// <returns>The key type, or <see cref="VariantValueType.Invalid"/> if this is not a dictionary.</returns>
     public VariantValueType KeyType
         => DetermineInnerType(VariantValueType.Dictionary, DictionaryKeyTypeShift);
 
+    /// <summary>
+    /// Gets the type of dictionary values for a <see cref="VariantValueType.Dictionary"/> type.
+    /// </summary>
+    /// <returns>The value type, or <see cref="VariantValueType.Invalid"/> if this is not a dictionary.</returns>
     public VariantValueType ValueType
         => DetermineInnerType(VariantValueType.Dictionary, DictionaryValueTypeShift);
 
@@ -1581,9 +1993,16 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         throw new InvalidOperationException($"Type {from} can not be retrieved as {string.Join("/", to)}.");
     }
 
+    /// <summary>
+    /// Returns a string representation of this variant value.
+    /// </summary>
     public override string ToString()
         => ToString(includeTypeSuffix: true);
 
+    /// <summary>
+    /// Returns a string representation of this variant value.
+    /// </summary>
+    /// <param name="includeTypeSuffix">Whether to include type information in the string.</param>
     public string ToString(bool includeTypeSuffix)
     {
         // This is implemented so something user-friendly shows in the debugger.
@@ -1650,12 +2069,21 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         };
     }
 
+    /// <summary>
+    /// Determines whether two <see cref="VariantValue"/> instances are equal.
+    /// </summary>
     public static bool operator==(VariantValue lhs, VariantValue rhs)
         => lhs.Equals(rhs);
 
+    /// <summary>
+    /// Determines whether two <see cref="VariantValue"/> instances are not equal.
+    /// </summary>
     public static bool operator!=(VariantValue lhs, VariantValue rhs)
         => !lhs.Equals(rhs);
 
+    /// <summary>
+    /// Determines whether this instance and a specified object are equal.
+    /// </summary>
     public override bool Equals(object? obj)
     {
         if (obj is not null && obj.GetType() == typeof(VariantValue))
@@ -1665,6 +2093,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         return false;
     }
 
+    /// <summary>
+    /// Returns the hash code for this instance.
+    /// </summary>
     public override int GetHashCode()
     {
 #if NETSTANDARD2_0
@@ -1674,6 +2105,9 @@ public readonly struct VariantValue : IEquatable<VariantValue>
 #endif
     }
 
+    /// <summary>
+    /// Determines whether this instance and another <see cref="VariantValue"/> are equal.
+    /// </summary>
     public bool Equals(VariantValue other)
     {
         if (_l != other._l)
@@ -1777,6 +2211,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 {
                     throw new InvalidOperationException("Handle already read");
                 }
+                writer.WriteHandle(handle);
                 break;
             case VariantValueType.Array:
                 WriteArrayTo(ref writer);

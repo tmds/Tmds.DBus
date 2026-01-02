@@ -1,22 +1,40 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Provides factory methods for creating <c>Struct&lt;T1, ..., Tn&gt;</c> classes that can be converted to a <see cref="VariantValueType.Struct"/> <see cref="VariantValue"/>.
+/// </summary>
+/// <remarks>
+/// Supported field types: <see cref="byte"/>, <see cref="bool"/>, <see cref="short"/>, <see cref="ushort"/>, <see cref="int"/>, <see cref="uint"/>, <see cref="long"/>, <see cref="ulong"/>, <see cref="double"/>, <see cref="string"/>, <see cref="ObjectPath"/>, <see cref="Signature"/>, <see cref="SafeHandle"/>, <see cref="VariantValue"/>, <see cref="Array{T}"/>, <see cref="Dict{TKey, TValue}"/>, and <c>Struct</c> types.
+/// </remarks>
 public static class Struct
 {
+    /// <summary>
+    /// Creates a D-Bus struct with one field.
+    /// </summary>
     public static Struct<T1> Create<T1>(T1 item1)
         where T1 : notnull
             => new Struct<T1>(item1);
 
+    /// <summary>
+    /// Creates a D-Bus struct with two fields.
+    /// </summary>
     public static Struct<T1, T2> Create<T1,T2>(T1 item1, T2 item2)
         where T1 : notnull
         where T2 : notnull
             => new Struct<T1, T2>(item1, item2);
 
+    /// <summary>
+    /// Creates a D-Bus struct with three fields.
+    /// </summary>
     public static Struct<T1, T2, T3> Create<T1,T2,T3>(T1 item1, T2 item2, T3 item3)
         where T1 : notnull
         where T2 : notnull
         where T3 : notnull
             => new Struct<T1, T2, T3>(item1, item2, item3);
 
+    /// <summary>
+    /// Creates a D-Bus struct with four fields.
+    /// </summary>
     public static Struct<T1, T2, T3, T4> Create<T1,T2,T3,T4>(T1 item1, T2 item2, T3 item3, T4 item4)
         where T1 : notnull
         where T2 : notnull
@@ -24,6 +42,9 @@ public static class Struct
         where T4 : notnull
             => new Struct<T1, T2, T3, T4>(item1, item2, item3, item4);
 
+    /// <summary>
+    /// Creates a D-Bus struct with five fields.
+    /// </summary>
     public static Struct<T1, T2, T3, T4, T5> Create<T1,T2,T3,T4,T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
         where T1 : notnull
         where T2 : notnull
@@ -32,6 +53,9 @@ public static class Struct
         where T5 : notnull
             => new Struct<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
 
+    /// <summary>
+    /// Creates a D-Bus struct with six fields.
+    /// </summary>
     public static Struct<T1, T2, T3, T4, T5, T6> Create<T1,T2,T3,T4,T5,T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
         where T1 : notnull
         where T2 : notnull
@@ -41,6 +65,9 @@ public static class Struct
         where T6 : notnull
             => new Struct<T1, T2, T3, T4, T5, T6>(item1, item2, item3, item4, item5, item6);
 
+    /// <summary>
+    /// Creates a D-Bus struct with seven fields.
+    /// </summary>
     public static Struct<T1, T2, T3, T4, T5, T6, T7> Create<T1,T2,T3,T4,T5,T6,T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
         where T1 : notnull
         where T2 : notnull
@@ -51,6 +78,9 @@ public static class Struct
         where T7 : notnull
             => new Struct<T1, T2, T3, T4, T5, T6, T7>(item1, item2, item3, item4, item5, item6, item7);
 
+    /// <summary>
+    /// Creates a D-Bus struct with eight fields.
+    /// </summary>
     public static Struct<T1, T2, T3, T4, T5, T6, T7, T8> Create<T1,T2,T3,T4,T5,T6,T7,T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
         where T1 : notnull
         where T2 : notnull
@@ -62,6 +92,9 @@ public static class Struct
         where T8 : notnull
             => new Struct<T1, T2, T3, T4, T5, T6, T7, T8>(item1, item2, item3, item4, item5, item6, item7, item8);
 
+    /// <summary>
+    /// Creates a D-Bus struct with nine fields.
+    /// </summary>
     public static Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9> Create<T1,T2,T3,T4,T5,T6,T7,T8,T9>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9)
         where T1 : notnull
         where T2 : notnull
@@ -74,6 +107,9 @@ public static class Struct
         where T9 : notnull
             => new Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9>(item1, item2, item3, item4, item5, item6, item7, item8, item9);
 
+    /// <summary>
+    /// Creates a D-Bus struct with ten fields.
+    /// </summary>
     public static Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> Create<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, T10 item10)
         where T1 : notnull
         where T2 : notnull
@@ -88,6 +124,11 @@ public static class Struct
             => new Struct<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(item1, item2, item3, item4, item5, item6, item7, item8, item9, item10);
 }
 
+#pragma warning disable CS1591 // don't require public docs for each Struct<T, ...>
+
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
 {
@@ -119,6 +160,9 @@ public sealed class Struct<T1> : IDBusWritable, IVariantValueConvertable
     }
 }
 
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
@@ -153,6 +197,9 @@ public sealed class Struct<T1,T2> : IDBusWritable, IVariantValueConvertable
         );
     }
 }
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2,T3> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
@@ -191,6 +238,9 @@ public sealed class Struct<T1,T2,T3> : IDBusWritable, IVariantValueConvertable
         );
     }
 }
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2,T3,T4> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
@@ -233,6 +283,9 @@ public sealed class Struct<T1,T2,T3,T4> : IDBusWritable, IVariantValueConvertabl
         );
     }
 }
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2,T3,T4,T5> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
@@ -279,6 +332,9 @@ public sealed class Struct<T1,T2,T3,T4,T5> : IDBusWritable, IVariantValueConvert
         );
     }
 }
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2,T3,T4,T5,T6> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
@@ -329,6 +385,9 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6> : IDBusWritable, IVariantValueConv
         );
     }
 }
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2,T3,T4,T5,T6,T7> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
@@ -383,6 +442,9 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7> : IDBusWritable, IVariantValueC
         );
     }
 }
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
@@ -441,6 +503,9 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8> : IDBusWritable, IVariantVal
         );
     }
 }
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull
@@ -503,6 +568,9 @@ public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9> : IDBusWritable, IVariant
         );
     }
 }
+/// <summary>
+/// See <see cref="Struct"/>.
+/// </summary>
 public sealed class Struct<T1,T2,T3,T4,T5,T6,T7,T8,T9,T10> : IDBusWritable, IVariantValueConvertable
     where T1  : notnull
     where T2  : notnull

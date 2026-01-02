@@ -1,5 +1,11 @@
 namespace Tmds.DBus.Protocol;
 
+/// <summary>
+/// Represents a D-Bus type signature.
+/// </summary>
+/// <remarks>
+/// No validation is performed on the signature value.
+/// </remarks>
 public readonly struct Signature
 {
     private readonly byte[]? _value;
@@ -22,12 +28,29 @@ public readonly struct Signature
 
     internal byte[] Data => _value ?? Array.Empty<byte>();
 
+    /// <summary>
+    /// Initializes a new instance of the Signature struct.
+    /// </summary>
+    /// <param name="value">The signature bytes.</param>
+    /// <remarks>
+    /// No validation is performed on the signature value.
+    /// </remarks>
     public Signature(ReadOnlySpan<byte> value)
         => _value = value.ToArray();
 
+    /// <summary>
+    /// Returns the string representation of the signature.
+    /// </summary>
     public override string ToString()
         => Encoding.UTF8.GetString(Data);
 
+    /// <summary>
+    /// Implicitly converts a byte span to a Signature.
+    /// </summary>
+    /// <param name="value">The byte span to convert.</param>
+    /// <remarks>
+    /// No validation is performed on the signature value.
+    /// </remarks>
     public static implicit operator Signature(ReadOnlySpan<byte> value)
         => new Signature(value);
 }

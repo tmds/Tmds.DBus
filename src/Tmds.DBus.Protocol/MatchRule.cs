@@ -99,22 +99,58 @@ struct MatchRuleData
     }
 }
 
+/// <summary>
+/// Represents a D-Bus match rule for filtering messages.
+/// </summary>
 public sealed class MatchRule
 {
     private MatchRuleData _data;
 
     internal MatchRuleData Data => _data;
 
+    /// <summary>
+    /// Gets or sets the message type to match.
+    /// </summary>
     public MessageType? Type { get => _data.MessageType; set => _data.MessageType = value; }
+    /// <summary>
+    /// Gets or sets the sender name to match.
+    /// </summary>
     public string? Sender { get => _data.Sender; set => _data.Sender = value; }
+    /// <summary>
+    /// Gets or sets the interface name to match.
+    /// </summary>
     public string? Interface { get => _data.Interface; set => _data.Interface = value; }
+    /// <summary>
+    /// Gets or sets the member (method or signal) name to match.
+    /// </summary>
     public string? Member { get => _data.Member; set => _data.Member = value; }
+    /// <summary>
+    /// Gets or sets the object path to match.
+    /// </summary>
     public string? Path { get => _data.Path; set => _data.Path = value; }
+    /// <summary>
+    /// Gets or sets the object path namespace to match.
+    /// </summary>
     public string? PathNamespace { get => _data.PathNamespace; set => _data.PathNamespace = value; }
+    /// <summary>
+    /// Gets or sets the destination name to match.
+    /// </summary>
     public string? Destination { get => _data.Destination; set => _data.Destination = value; }
+    /// <summary>
+    /// Gets or sets the first argument to match as a string.
+    /// </summary>
     public string? Arg0 { get => _data.Arg0; set => _data.Arg0 = value; }
+    /// <summary>
+    /// Gets or sets the first argument to match as an object path.
+    /// </summary>
     public string? Arg0Path { get => _data.Arg0Path; set => _data.Arg0Path = value; }
+    /// <summary>
+    /// Gets or sets the first argument to match as a path namespace.
+    /// </summary>
     public string? Arg0Namespace { get => _data.Arg0Namespace; set => _data.Arg0Namespace = value; }
 
+    /// <summary>
+    /// Returns the string representation of the match rule.
+    /// </summary>
     public override string ToString() => _data.GetRuleString();
 }

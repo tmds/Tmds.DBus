@@ -805,6 +805,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     /// Reads a Unix file descriptor handle for a <see cref="VariantValueType.UnixFd"/> type.
     /// </summary>
     /// <typeparam name="T">The <see cref="SafeHandle"/> type to read.</typeparam>
+    /// <returns>The handle, or <see langword="null"/> if <typeparamref name="T"/> is <see cref="SkipSafeHandle"/> or if file descriptor passing is not supported.</returns>
+    /// <remarks>
+    /// A handle can only be read once.
+    /// To skip reading a handle, call <c>ReadHandle&lt;SkipSafeHandle&gt;()</c>, which will return <see langword="null"/> without consuming the underlying handle.
+    /// </remarks>
     public T? ReadHandle<
 #if NET6_0_OR_GREATER
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -2209,7 +2214,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 SafeHandle? handle = UnsafeReadHandle<Microsoft.Win32.SafeHandles.SafeFileHandle>();
                 if (handle is null)
                 {
-                    throw new InvalidOperationException("Handle already read");
+                    throw new NotSupportedException("Handle not available.");
                 }
                 writer.WriteHandle(handle);
                 break;

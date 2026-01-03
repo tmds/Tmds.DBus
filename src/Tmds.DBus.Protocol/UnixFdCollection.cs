@@ -111,6 +111,10 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
             if (_rawHandles is not null)
             {
                 (IntPtr rawHandle, bool CanRead) = _rawHandles[index];
+                if (typeof(T) == typeof(SkipSafeHandle))
+                {
+                    return default;
+                }
                 if (!CanRead)
                 {
                     ThrowHandleAlreadyRead();
@@ -128,6 +132,10 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
             {
                 Debug.Assert(_handles is not null);
                 (SafeHandle? handle, bool CanRead) = _handles![index];
+                if (typeof(T) == typeof(SkipSafeHandle))
+                {
+                    return default;
+                }
                 if (!CanRead)
                 {
                     ThrowHandleAlreadyRead();

@@ -770,6 +770,39 @@ public class VariantValueTests
         Assert.Equal(-1, vv.Count);
     }
 
+    [Fact]
+    public void UnixFd_SkipSafeHandle_ReturnsNull()
+    {
+        byte handleIndex = 0;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(expected);
+
+        var vv = new VariantValue(fds, handleIndex);
+        var skipped = vv.ReadHandle<SkipSafeHandle>();
+
+        Assert.Null(skipped);
+    }
+
+    [Fact]
+    public void UnixFd_AfterSkip_CanStillReadHandle()
+    {
+        byte handleIndex = 0;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(expected);
+
+        var vv1 = new VariantValue(fds, handleIndex);
+        var vv2 = new VariantValue(fds, handleIndex);
+
+        var skipped = vv1.ReadHandle<SkipSafeHandle>();
+        Assert.Null(skipped);
+
+        using var handle = vv2.ReadHandle<SafeFileHandle>();
+        Assert.NotNull(handle);
+        Assert.Equal(expected, handle.DangerousGetHandle());
+    }
+
     private static VariantValue Nest(VariantValue vv, byte nesting)
     {
         for (int i = 0; i < nesting; i++)

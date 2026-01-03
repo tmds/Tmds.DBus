@@ -146,6 +146,78 @@ public class ReaderTests
         Assert.Equal(expected, handle);
     }
 
+    [Fact]
+    public void ReadHandle_SkipSafeHandle_ReturnsNull()
+    {
+        byte handleIndex = 0;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(expected);
+        byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex };
+
+        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
+        var skipped = reader.ReadHandle<SkipSafeHandle>();
+
+        Assert.Null(skipped);
+    }
+
+    [Fact]
+    public void ReadHandle_AfterSkip_CanStillReadHandle()
+    {
+        byte handleIndex = 0;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(expected);
+        byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex, 0, 0, 0, handleIndex };
+
+        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
+
+        var skipped = reader.ReadHandle<SkipSafeHandle>();
+        Assert.Null(skipped);
+
+        using var handle = reader.ReadHandle<SafeFileHandle>();
+        Assert.NotNull(handle);
+        Assert.Equal(expected, handle.DangerousGetHandle());
+    }
+
+    [Fact]
+    public void ReadHandleRaw_AfterSkip_CanStillReadHandle()
+    {
+        byte handleIndex = 0;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(expected);
+        byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex, 0, 0, 0, handleIndex };
+
+        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
+
+        var skipped = reader.ReadHandle<SkipSafeHandle>();
+        Assert.Null(skipped);
+
+        IntPtr handle = reader.ReadHandleRaw();
+        Assert.Equal(expected, handle);
+    }
+
+    [Fact]
+    public void ReadHandle_WithNullHandles_ReturnsNull()
+    {
+        byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
+        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
+
+        using var handle = reader.ReadHandle<SafeFileHandle>();
+        Assert.Null(handle);
+    }
+
+    [Fact]
+    public void ReadHandleRaw_WithNullHandles_ReturnsInvalidHandle()
+    {
+        byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
+        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
+
+        IntPtr handle = reader.ReadHandleRaw();
+        Assert.Equal(new IntPtr(-1), handle);
+    }
+
     public bool Equals(VariantValue lhs, VariantValue other)
     {
         if (lhs.GetDBusSignature() != other.GetDBusSignature())

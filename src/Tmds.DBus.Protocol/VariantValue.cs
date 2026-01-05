@@ -804,13 +804,11 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     /// <summary>
     /// Reads a Unix file descriptor handle for a <see cref="VariantValueType.UnixFd"/> type.
     /// </summary>
-    /// <typeparam name="T">The <see cref="SafeHandle"/> type to read.</typeparam>
-    /// <returns>The handle, or <see langword="null"/> if <typeparamref name="T"/> is <see cref="SkipSafeHandle"/> or if file descriptor passing is not supported.</returns>
+    /// <typeparam name="T">The <see cref="SafeHandle"/> type to read. If <typeparamref name="T"/> is <see cref="SkipSafeHandle"/>, the method returns a disposed <see cref="SkipSafeHandle"/> instance without consuming the underlying handle.</typeparam></typeparam>
     /// <remarks>
     /// A handle can only be read once.
-    /// To skip reading a handle, call <c>ReadHandle&lt;SkipSafeHandle&gt;()</c>, which will return <see langword="null"/> without consuming the underlying handle.
     /// </remarks>
-    public T? ReadHandle<
+    public T ReadHandle<
 #if NET6_0_OR_GREATER
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 #endif
@@ -821,12 +819,12 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private T? UnsafeReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
+    private T UnsafeReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>()
     {
         var handles = (UnixFdCollection?)_o;
         if (handles is null)
         {
-            return default;
+            UnixFdCollection.ThrowNoHandles();
         }
         int index = (int)_l;
         return handles.ReadHandleGeneric<T>(index);

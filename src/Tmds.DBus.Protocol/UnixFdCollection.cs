@@ -5,6 +5,7 @@ namespace Tmds.DBus.Protocol;
 sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
 {
     private IntPtr InvalidRawHandle => new IntPtr(-1);
+    private static SkipSafeHandle? _skipSafeHandle;
 
     private readonly List<(SafeHandle? Handle, bool CanRead)>? _handles;
     private readonly List<(IntPtr RawHandle, bool CanRead)>? _rawHandles;
@@ -96,11 +97,11 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         throw new ObjectDisposedException(typeof(UnixFdCollection).FullName);
     }
 
-    public T? ReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>(int index) where T : SafeHandle, new()
+    public T ReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>(int index) where T : SafeHandle, new()
         => ReadHandleGeneric<T>(index);
 
     // The caller of this method owns the handle and is responsible for Disposing it.
-    internal T? ReadHandleGeneric<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>(int index)
+    internal T ReadHandleGeneric<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>(int index)
     {
         lock (SyncObject)
         {
@@ -113,7 +114,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 (IntPtr rawHandle, bool CanRead) = _rawHandles[index];
                 if (typeof(T) == typeof(SkipSafeHandle))
                 {
-                    return default;
+                    return ReturnSkipSafeHandle<T>();
                 }
                 if (!CanRead)
                 {
@@ -123,10 +124,10 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 SafeHandle handle = (Activator.CreateInstance<T>() as SafeHandle)!;
                 Marshal.InitHandle(handle, rawHandle);
     #else
-                SafeHandle? handle = (SafeHandle?)Activator.CreateInstance(typeof(T), new object[] { rawHandle, true });
+                SafeHandle handle = (SafeHandle)Activator.CreateInstance(typeof(T), new object[] { rawHandle, true });
     #endif
                 _rawHandles[index] = (InvalidRawHandle, false);
-                return (T?)(object?)handle;
+                return (T)(object)handle!;
             }
             else
             {
@@ -134,7 +135,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 (SafeHandle? handle, bool CanRead) = _handles![index];
                 if (typeof(T) == typeof(SkipSafeHandle))
                 {
-                    return default;
+                    return ReturnSkipSafeHandle<T>();
                 }
                 if (!CanRead)
                 {
@@ -147,6 +148,16 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 _handles[index] = (null, false);
                 return (T)(object)handle;
             }
+        }
+
+        static THandle ReturnSkipSafeHandle<THandle>()
+        {
+            if (_skipSafeHandle is null)
+            {
+                _skipSafeHandle = new SkipSafeHandle();
+                _skipSafeHandle.Dispose();
+            }
+            return (THandle)(object)_skipSafeHandle;
         }
     }
 
@@ -299,5 +310,11 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
             }
             _handles!.RemoveRange(0, count);
         }
+    }
+
+    [DoesNotReturn]
+    internal static void ThrowNoHandles()
+    {
+        throw new InvalidOperationException("Message has no handles.");
     }
 }

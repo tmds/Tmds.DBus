@@ -4,8 +4,8 @@ namespace Tmds.DBus.Protocol;
 /// A SafeHandle that can be used to skip reading a Unix file descriptor handle.
 /// </summary>
 /// <remarks>
-/// When this type is used with handle reading methods, the handle will not be read
-/// and <see langword="null"/> will be returned instead. This allows skipping handles without consuming them.
+/// When this type is used with handle reading methods, the handle will not be read and a <see cref="SkipSafeHandle"/>
+/// instance will be returned instead. This allows skipping handles without consuming them.
 /// </remarks>
 public sealed class SkipSafeHandle : SafeHandle
 {

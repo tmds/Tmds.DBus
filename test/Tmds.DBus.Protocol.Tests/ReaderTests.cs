@@ -147,7 +147,7 @@ public class ReaderTests
     }
 
     [Fact]
-    public void ReadHandle_SkipSafeHandle_ReturnsNull()
+    public void ReadHandle_SkipSafeHandle()
     {
         byte handleIndex = 0;
         IntPtr expected = new IntPtr(-3);
@@ -156,9 +156,9 @@ public class ReaderTests
         byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex };
 
         Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
-        var skipped = reader.ReadHandle<SkipSafeHandle>();
+        using var skipped = reader.ReadHandle<SkipSafeHandle>();
 
-        Assert.Null(skipped);
+        Assert.IsType<SkipSafeHandle>(skipped);
     }
 
     [Fact]
@@ -172,8 +172,8 @@ public class ReaderTests
 
         Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
 
-        var skipped = reader.ReadHandle<SkipSafeHandle>();
-        Assert.Null(skipped);
+        using var skipped = reader.ReadHandle<SkipSafeHandle>();
+        Assert.IsType<SkipSafeHandle>(skipped);
 
         using var handle = reader.ReadHandle<SafeFileHandle>();
         Assert.NotNull(handle);
@@ -191,31 +191,33 @@ public class ReaderTests
 
         Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
 
-        var skipped = reader.ReadHandle<SkipSafeHandle>();
-        Assert.Null(skipped);
+        using var skipped = reader.ReadHandle<SkipSafeHandle>();
+        Assert.IsType<SkipSafeHandle>(skipped);
 
         IntPtr handle = reader.ReadHandleRaw();
         Assert.Equal(expected, handle);
     }
 
     [Fact]
-    public void ReadHandle_WithNullHandles_ReturnsNull()
+    public void ReadHandle_WithNoHandles_Throws()
     {
         byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
-        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
-
-        using var handle = reader.ReadHandle<SafeFileHandle>();
-        Assert.Null(handle);
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
+            reader.ReadHandle<SafeFileHandle>();
+        });
     }
 
     [Fact]
-    public void ReadHandleRaw_WithNullHandles_ReturnsInvalidHandle()
+    public void ReadHandleRaw_WithNoHandles_Throws()
     {
         byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
-        Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
-
-        IntPtr handle = reader.ReadHandleRaw();
-        Assert.Equal(new IntPtr(-1), handle);
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
+            reader.ReadHandleRaw();
+        });
     }
 
     public bool Equals(VariantValue lhs, VariantValue other)

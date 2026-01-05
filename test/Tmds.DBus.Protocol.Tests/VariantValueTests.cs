@@ -771,7 +771,7 @@ public class VariantValueTests
     }
 
     [Fact]
-    public void UnixFd_SkipSafeHandle_ReturnsNull()
+    public void UnixFd_SkipSafeHandle()
     {
         byte handleIndex = 0;
         IntPtr expected = new IntPtr(-3);
@@ -779,9 +779,9 @@ public class VariantValueTests
         fds.AddHandle(expected);
 
         var vv = new VariantValue(fds, handleIndex);
-        var skipped = vv.ReadHandle<SkipSafeHandle>();
+        using var skipped = vv.ReadHandle<SkipSafeHandle>();
 
-        Assert.Null(skipped);
+        Assert.IsType<SkipSafeHandle>(skipped);
     }
 
     [Fact]
@@ -795,8 +795,8 @@ public class VariantValueTests
         var vv1 = new VariantValue(fds, handleIndex);
         var vv2 = new VariantValue(fds, handleIndex);
 
-        var skipped = vv1.ReadHandle<SkipSafeHandle>();
-        Assert.Null(skipped);
+        using var skipped = vv1.ReadHandle<SkipSafeHandle>();
+        Assert.IsType<SkipSafeHandle>(skipped);
 
         using var handle = vv2.ReadHandle<SafeFileHandle>();
         Assert.NotNull(handle);

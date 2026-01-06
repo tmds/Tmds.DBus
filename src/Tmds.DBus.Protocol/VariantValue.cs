@@ -804,7 +804,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     /// <summary>
     /// Reads a Unix file descriptor handle for a <see cref="VariantValueType.UnixFd"/> type.
     /// </summary>
-    /// <typeparam name="T">The <see cref="SafeHandle"/> type to read. If <typeparamref name="T"/> is <see cref="SkipSafeHandle"/>, the method returns a disposed <see cref="SkipSafeHandle"/> instance without consuming the underlying handle.</typeparam></typeparam>
+    /// <typeparam name="T">The <see cref="SafeHandle"/> type to read. If <typeparamref name="T"/> is <see cref="SkipSafeHandle"/>, the method returns a disposed <see cref="SkipSafeHandle"/> instance without consuming the underlying handle.</typeparam>
     /// <remarks>
     /// A handle can only be read once.
     /// </remarks>

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using McMaster.Extensions.CommandLineUtils;
-using Microsoft.CodeAnalysis;
 using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool

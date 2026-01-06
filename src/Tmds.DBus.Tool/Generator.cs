@@ -3,14 +3,18 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Editing;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Simplification;
 
 namespace Tmds.DBus.Tool
 {
+    enum Accessibility
+    {
+        NotApplicable,
+        Public,
+        Internal,
+        Private,
+        Protected
+    }
+
     class GeneratorSettings
     {
         public string Namespace { get; set; } = "DBus";
@@ -20,19 +24,9 @@ namespace Tmds.DBus.Tool
 
     class Generator : IGenerator
     {
-        private readonly AdhocWorkspace _workspace;
-        private readonly SyntaxGenerator _generator;
-        private readonly SyntaxNode _iDBusObject;
-        private readonly string _dBusInterfaceAttribute;
-        private readonly SyntaxNode _dictionaryAttribute;
-        private readonly SyntaxNode _task;
-        private readonly SyntaxNode _objectPath;
-        private readonly SyntaxNode _signature;
-        private readonly SyntaxNode _closeSafeHandle;
-        private readonly SyntaxNode _action;
-        private readonly SyntaxNode _taskOfIDisposable;
-        private readonly SyntaxNode _actionOfException;
         private readonly GeneratorSettings _settings;
+        private readonly StringBuilder _sb = new();
+        private int _indentation = 0;
 
         public Generator() : this(new GeneratorSettings())
         {}
@@ -40,41 +34,59 @@ namespace Tmds.DBus.Tool
         public Generator(GeneratorSettings settings)
         {
             _settings = settings;
-            _workspace = new AdhocWorkspace();
-            _generator = SyntaxGenerator.GetGenerator(_workspace, LanguageNames.CSharp);
-            _iDBusObject = _generator.IdentifierName("IDBusObject");
-            _dBusInterfaceAttribute = "DBusInterface";
-            _dictionaryAttribute = _generator.Attribute(_generator.IdentifierName("Dictionary"));
-            _task = _generator.IdentifierName("Task");
-            _action = _generator.IdentifierName("Action");
-            _objectPath = _generator.IdentifierName("ObjectPath");
-            _signature = _generator.IdentifierName("Signature");
-            _closeSafeHandle = _generator.IdentifierName("CloseSafeHandle");
-            _taskOfIDisposable = _generator.GenericName("Task", _generator.IdentifierName("IDisposable"));
-            _actionOfException = _generator.GenericName("Action", _generator.IdentifierName("Exception"));
         }
 
-        private SyntaxNode[] ImportNamespaceDeclarations()
+        private void StartBlock()
         {
-            return new[] {
-                _generator.NamespaceImportDeclaration("System"),
-                _generator.NamespaceImportDeclaration(_generator.DottedName("System.Collections.Generic")),
-                _generator.NamespaceImportDeclaration(_generator.DottedName("System.Runtime.CompilerServices")),
-                _generator.NamespaceImportDeclaration(_generator.DottedName("System.Threading.Tasks")),
-                _generator.NamespaceImportDeclaration(_generator.DottedName("Tmds.DBus")),
-            };
+            AppendLine("{");
+            _indentation++;
+        }
+
+        private void EndBlock()
+        {
+            _indentation--;
+            AppendLine("}");
+        }
+
+        private void AppendLine(string line)
+        {
+            if (line.Length == 0)
+            {
+                _sb.AppendLine();
+                return;
+            }
+            _sb.Append(' ', _indentation * 4);
+            _sb.AppendLine(line);
         }
 
         public bool TryGenerate(IEnumerable<InterfaceDescription> interfaceDescriptions, out string sourceCode)
         {
-            var importDeclarations = ImportNamespaceDeclarations();
-            var namespaceDeclarations = new List<SyntaxNode>();
-            var internalsVisibleTo = _generator.Attribute("InternalsVisibleTo", _generator.DottedName("Tmds.DBus.Connection.DynamicAssemblyName"));
+            _sb.Clear();
+
+            // Generate using directives
+            AppendLine("using System;");
+            AppendLine("using System.Collections.Generic;");
+            AppendLine("using System.Runtime.CompilerServices;");
+            AppendLine("using System.Threading.Tasks;");
+            AppendLine("using Tmds.DBus;");
+            AppendLine("");
+
+            // Generate assembly attributes
+            if (!_settings.NoInternalsVisibleTo)
+            {
+                AppendLine("[assembly: InternalsVisibleTo(Tmds.DBus.Connection.DynamicAssemblyName)]");
+                AppendLine("");
+            }
+
+            // Generate namespace
+            AppendLine($"namespace {_settings.Namespace}");
+            StartBlock();
+
             foreach (var interfaceDescription in interfaceDescriptions)
             {
                 try
                 {
-                    namespaceDeclarations.AddRange(DBusInterfaceDeclaration(interfaceDescription.Name, interfaceDescription.InterfaceXml));
+                    DBusInterfaceDeclaration(interfaceDescription.Name, interfaceDescription.InterfaceXml);
                 }
                 catch (Exception ex)
                 {
@@ -87,23 +99,22 @@ namespace Tmds.DBus.Tool
                     return false;
                 }
             }
-            var namespaceDeclaration = _generator.NamespaceDeclaration(_generator.DottedName(_settings.Namespace), namespaceDeclarations);
-            var compilationUnit = _generator.CompilationUnit(importDeclarations.Concat(new[] { namespaceDeclaration }));
-            if (!_settings.NoInternalsVisibleTo)
-            {
-                compilationUnit = _generator.AddAttributes(compilationUnit, internalsVisibleTo);
-            }
-            sourceCode = compilationUnit.NormalizeWhitespace().ToFullString();
+
+            EndBlock();
+
+            sourceCode = _sb.ToString();
             return true;
         }
 
-        private IEnumerable<SyntaxNode> DBusInterfaceDeclaration(string name, XElement interfaceXml)
+        private void DBusInterfaceDeclaration(string name, XElement interfaceXml)
         {
-            yield return InterfaceDeclaration(name, interfaceXml);
+            InterfaceDeclaration(name, interfaceXml);
             if (Properties(interfaceXml).Any())
             {
-                yield return PropertiesClassDeclaration(name, ReadableProperties(interfaceXml));
-                yield return PropertiesExtensionMethodClassDeclaration(name, interfaceXml);
+                AppendLine("");
+                PropertiesClassDeclaration(name, ReadableProperties(interfaceXml));
+                AppendLine("");
+                PropertiesExtensionMethodClassDeclaration(name, interfaceXml);
             }
         }
 
@@ -116,186 +127,184 @@ namespace Tmds.DBus.Tool
         private IEnumerable<XElement> WritableProperties(XElement interfaceXml)
             => Properties(interfaceXml).Where(p => p.Attribute("access").Value.EndsWith("write", StringComparison.Ordinal));
 
-        private SyntaxNode InterfaceDeclaration(string name, XElement interfaceXml)
+        private void InterfaceDeclaration(string name, XElement interfaceXml)
         {
             string fullName = interfaceXml.Attribute("name").Value;
 
-            var methodDeclarations = interfaceXml.Elements("method").Select(MethodDeclaration);
-            var signalDeclarations = interfaceXml.Elements("signal").Select(SignalDeclaration);
-            var propertiesDeclarations = Properties(interfaceXml).Any() ? PropertiesDeclaration(name) : Array.Empty<SyntaxNode>();
+            var accessibility = GetAccessibilityModifier(_settings.TypesAccessModifier);
 
-            var dbusInterfaceAttribute = _generator.Attribute(_dBusInterfaceAttribute, _generator.LiteralExpression(fullName));
-            var interfaceDeclaration = _generator.InterfaceDeclaration($"I{name}", null, _settings.TypesAccessModifier,
-                interfaceTypes: new[] { _iDBusObject },
-                members: methodDeclarations.Concat(signalDeclarations).Concat(propertiesDeclarations));
+            AppendLine($"[DBusInterface(\"{fullName}\")]");
+            AppendLine($"{accessibility}interface I{name} : IDBusObject");
+            StartBlock();
 
-            return _generator.AddAttributes(interfaceDeclaration, dbusInterfaceAttribute);
+            bool firstMember = true;
+            foreach (var method in interfaceXml.Elements("method"))
+            {
+                if (!firstMember) AppendLine("");
+                MethodDeclaration(method);
+                firstMember = false;
+            }
+
+            foreach (var signal in interfaceXml.Elements("signal"))
+            {
+                if (!firstMember) AppendLine("");
+                SignalDeclaration(signal);
+                firstMember = false;
+            }
+
+            if (Properties(interfaceXml).Any())
+            {
+                if (!firstMember) AppendLine("");
+                PropertiesDeclaration(name);
+            }
+
+            EndBlock();
         }
 
-        private SyntaxNode PropertiesClassDeclaration(string name, IEnumerable<XElement> propertyXmls)
+        private void PropertiesClassDeclaration(string name, IEnumerable<XElement> propertyXmls)
         {
-            var propertyDeclarations = propertyXmls.Select(PropertyToDeclarations);
-            var propClass = _generator.ClassDeclaration($"{name}Properties", null, _settings.TypesAccessModifier, DeclarationModifiers.None, null, null, propertyDeclarations.SelectMany(d => d));
-            return _generator.AddAttributes(propClass, _dictionaryAttribute);
+            var accessibility = GetAccessibilityModifier(_settings.TypesAccessModifier);
+
+            AppendLine("[Dictionary]");
+            AppendLine($"{accessibility}class {name}Properties");
+            StartBlock();
+
+            foreach (var propertyXml in propertyXmls)
+            {
+                PropertyToDeclarations(propertyXml);
+            }
+
+            EndBlock();
         }
 
-        private SyntaxNode PropertiesExtensionMethodClassDeclaration(string name, XElement interfaceXml)
+        private void PropertiesExtensionMethodClassDeclaration(string name, XElement interfaceXml)
         {
-            List<SyntaxNode> methods = new List<SyntaxNode>();
+            var accessibility = GetAccessibilityModifier(_settings.TypesAccessModifier);
             var interfaceName = $"I{name}";
+
+            AppendLine($"{accessibility}static class {name}Extensions");
+            StartBlock();
+
+            bool firstMethod = true;
             foreach (var propertyXml in ReadableProperties(interfaceXml))
             {
-                methods.Add(PropertyToGet(interfaceName, propertyXml));
+                if (!firstMethod) AppendLine("");
+                PropertyToGet(interfaceName, propertyXml);
+                firstMethod = false;
             }
+
             foreach (var propertyXml in WritableProperties(interfaceXml))
             {
-                methods.Add(PropertyToSet(interfaceName, propertyXml));
+                if (!firstMethod) AppendLine("");
+                PropertyToSet(interfaceName, propertyXml);
+                firstMethod = false;
             }
-            return _generator.ClassDeclaration($"{name}Extensions", null, _settings.TypesAccessModifier, DeclarationModifiers.Static, null, null, methods);
+
+            EndBlock();
         }
 
-        private SyntaxNode PropertyToGet(string interfaceName, XElement propertyXml)
+        private void PropertyToGet(string interfaceName, XElement propertyXml)
         {
             string name = propertyXml.Attribute("name").Value;
             string dbusType = propertyXml.Attribute("type").Value;
-            var returnType = (TypeSyntax)ParseType(dbusType);
-            return SyntaxFactory.MethodDeclaration(
-                attributeLists: default(SyntaxList<AttributeListSyntax>),
-                modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)),
-                returnType: SyntaxFactory.GenericName(SyntaxFactory.Identifier("Task"), SyntaxFactory.TypeArgumentList(SyntaxFactory.SingletonSeparatedList(returnType))),
-                explicitInterfaceSpecifier: default(ExplicitInterfaceSpecifierSyntax),
-                identifier: ToIdentifierToken($"Get{Prettify(name)}Async"),
-                typeParameterList: null,
-                parameterList: SyntaxFactory.ParameterList(
-                    SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Parameter(
-                        attributeLists: default(SyntaxList<AttributeListSyntax>),
-                        modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.ThisKeyword)),
-                        type: SyntaxFactory.IdentifierName(interfaceName),
-                        identifier: SyntaxFactory.Identifier("o"),
-                        @default: null))),
-                constraintClauses: default(SyntaxList<TypeParameterConstraintClauseSyntax>),
-                body: null,
-                expressionBody: SyntaxFactory.ArrowExpressionClause(
-                    SyntaxFactory.InvocationExpression(
-                        expression: SyntaxFactory.MemberAccessExpression(
-                            kind: SyntaxKind.SimpleMemberAccessExpression,
-                            expression: SyntaxFactory.IdentifierName("o"),
-                            name: SyntaxFactory.GenericName(SyntaxFactory.Identifier("GetAsync")).WithTypeArgumentList(SyntaxFactory.TypeArgumentList(SyntaxFactory.SingletonSeparatedList(returnType)))),
-                        argumentList: SyntaxFactory.ArgumentList(SyntaxFactory.SingletonSeparatedList(SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(name))))))
-                ),
-                semicolonToken: SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+            var returnType = ParseType(dbusType);
+            var prettyName = Prettify(name);
+
+            AppendLine($"public static Task<{returnType}> Get{prettyName}Async(this {interfaceName} o) => o.GetAsync<{returnType}>(\"{name}\");");
         }
 
-        private SyntaxNode PropertyToSet(string interfaceName, XElement propertyXml)
+        private void PropertyToSet(string interfaceName, XElement propertyXml)
         {
             string name = propertyXml.Attribute("name").Value;
             string dbusType = propertyXml.Attribute("type").Value;
-            var returnType = (TypeSyntax)ParseType(dbusType);
-            return SyntaxFactory.MethodDeclaration(
-                attributeLists: default(SyntaxList<AttributeListSyntax>),
-                modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.PublicKeyword), SyntaxFactory.Token(SyntaxKind.StaticKeyword)),
-                returnType: SyntaxFactory.IdentifierName("Task"),
-                explicitInterfaceSpecifier: default(ExplicitInterfaceSpecifierSyntax),
-                identifier: ToIdentifierToken($"Set{Prettify(name)}Async"),
-                typeParameterList: null,
-                parameterList: SyntaxFactory.ParameterList(
-                    SyntaxFactory.SeparatedList<ParameterSyntax>(new[] {
-                        SyntaxFactory.Parameter(
-                            attributeLists: default(SyntaxList<AttributeListSyntax>),
-                            modifiers: SyntaxFactory.TokenList(SyntaxFactory.Token(SyntaxKind.ThisKeyword)),
-                            type: SyntaxFactory.IdentifierName(interfaceName),
-                            identifier: SyntaxFactory.Identifier("o"),
-                            @default: null),
-                    SyntaxFactory.Parameter(
-                            attributeLists: default(SyntaxList<AttributeListSyntax>),
-                            modifiers: default(SyntaxTokenList),
-                            type: returnType,
-                            identifier: SyntaxFactory.Identifier("val"),
-                            @default: null),
-                            })),
-                constraintClauses: default(SyntaxList<TypeParameterConstraintClauseSyntax>),
-                body: null,
-                expressionBody: SyntaxFactory.ArrowExpressionClause(
-                    SyntaxFactory.InvocationExpression(
-                        expression: SyntaxFactory.MemberAccessExpression(
-                            kind: SyntaxKind.SimpleMemberAccessExpression,
-                            expression: SyntaxFactory.IdentifierName("o"),
-                            name: SyntaxFactory.IdentifierName("SetAsync")),
-                        argumentList: SyntaxFactory.ArgumentList(SyntaxFactory.SeparatedList(new [] {
-                            SyntaxFactory.Argument(SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(name))),
-                            SyntaxFactory.Argument(SyntaxFactory.IdentifierName("val")) })))
-                ),
-                semicolonToken: SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+            var returnType = ParseType(dbusType);
+            var prettyName = Prettify(name);
+
+            AppendLine($"public static Task Set{prettyName}Async(this {interfaceName} o, {returnType} val) => o.SetAsync(\"{name}\", val);");
         }
 
-        private SyntaxNode[] PropertyToDeclarations(XElement propertyXml)
+        private void PropertyToDeclarations(XElement propertyXml)
         {
             string name = propertyXml.Attribute("name").Value;
             var fieldName = $"_{name.Replace('-', '_')}";
             string dbusType = propertyXml.Attribute("type").Value;
-            SyntaxNode type = ParseType(dbusType);
-            var field = _generator.FieldDeclaration(fieldName, type, Accessibility.Private, DeclarationModifiers.None, _generator.DefaultExpression(type));
-            var property = _generator.PropertyDeclaration(Prettify(name), type, Accessibility.Public,
-                getAccessorStatements: new SyntaxNode[] { _generator.ReturnStatement(_generator.IdentifierName(fieldName)) },
-                setAccessorStatements:new SyntaxNode[]  { _generator.AssignmentStatement(_generator.IdentifierName(fieldName), _generator.IdentifierName("value"))});
-            return new [] { field, property };
+            string type = ParseType(dbusType);
+
+            AppendLine($"private {type} {fieldName} = default({type});");
+            AppendLine($"public {type} {Prettify(name)}");
+            StartBlock();
+            AppendLine($"get {{ return {fieldName}; }}");
+            AppendLine($"set {{ {fieldName} = value; }}");
+            EndBlock();
         }
 
-        private SyntaxNode[] PropertiesDeclaration(string name)
+        private void PropertiesDeclaration(string name)
         {
-             return new [] {
-                 _generator.MethodDeclaration("GetAsync",
-                    new[] { _generator.ParameterDeclaration("prop", _generator.TypeExpression(SpecialType.System_String)) },
-                    new[] { "T" }, _generator.GenericName("Task", _generator.IdentifierName("T"))),
-                 _generator.MethodDeclaration("GetAllAsync",
-                    null,
-                    null, _generator.GenericName("Task", _generator.IdentifierName($"{name}Properties"))),
-                 _generator.MethodDeclaration("SetAsync",
-                    new[] { _generator.ParameterDeclaration("prop", _generator.TypeExpression(SpecialType.System_String)), _generator.ParameterDeclaration("val", _generator.TypeExpression(SpecialType.System_Object)) },
-                    null, _task),
-                 _generator.MethodDeclaration("WatchPropertiesAsync",
-                    new[] { _generator.ParameterDeclaration("handler", _generator.GenericName("Action", _generator.IdentifierName("PropertyChanges"))) },
-                    null, _taskOfIDisposable),
-             };
+            AppendLine($"Task<T> GetAsync<T>(string prop);");
+            AppendLine($"Task<{name}Properties> GetAllAsync();");
+            AppendLine($"Task SetAsync(string prop, object val);");
+            AppendLine($"Task<IDisposable> WatchPropertiesAsync(Action<PropertyChanges> handler);");
         }
 
-        private SyntaxNode SignalDeclaration(XElement signalXml)
+        private void SignalDeclaration(XElement signalXml)
         {
             string name = signalXml.Attribute("name").Value;
-            var args = signalXml.Elements("arg");
-            var inArgType = args.Count() == 0 ? _action : _generator.GenericName("Action", MultyArgsToType(args));
-            var inParameters = new[] { _generator.ParameterDeclaration("handler", inArgType), _generator.ParameterDeclaration("onError", _actionOfException, _generator.NullLiteralExpression()) };
-            var methodDeclaration = _generator.MethodDeclaration($"Watch{name}Async", inParameters, null, _taskOfIDisposable);
-            return methodDeclaration;
+            var args = signalXml.Elements("arg").ToList();
+
+            if (args.Count == 0)
+            {
+                AppendLine($"Task<IDisposable> Watch{name}Async(Action handler, Action<Exception> onError = null);");
+            }
+            else
+            {
+                var argTypes = MultyArgsToType(args);
+                AppendLine($"Task<IDisposable> Watch{name}Async(Action<{argTypes}> handler, Action<Exception> onError = null);");
+            }
         }
 
-        private SyntaxNode MethodDeclaration(XElement methodXml)
+        private void MethodDeclaration(XElement methodXml)
         {
             string name = methodXml.Attribute("name").Value;
-            var inArgs = methodXml.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in");
-            var outArgs = methodXml.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out");
-            var returnType = outArgs.Count() == 0 ? _task :
-                             _generator.GenericName("Task", new[] { MultyArgsToType(outArgs) });
+            var inArgs = methodXml.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").ToList();
+            var outArgs = methodXml.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").ToList();
 
-            var methodDeclaration = _generator.MethodDeclaration($"{name}Async", inArgs.Select(InArgToParameter), null, returnType);
-            return methodDeclaration;
-        }
-
-        private SyntaxNode MultyArgsToType(IEnumerable<XElement> outArgs)
-        {
-            var dbusType = string.Join(string.Empty, outArgs.Select(arg => arg.Attribute("type").Value));
-            var elementNames = outArgs.Select(element => Prettify((string)element.Attribute("name"), startWithUpper: false)).ToList();
-            if (outArgs.Count() > 1)
+            string returnType;
+            if (outArgs.Count == 0)
             {
-                dbusType = $"({dbusType})";
+                returnType = "Task";
             }
-            return ParseType(dbusType, elementNames);
+            else
+            {
+                var outType = MultyArgsToType(outArgs);
+                returnType = $"Task<{outType}>";
+            }
+
+            var parameters = string.Join(", ", inArgs.Select((arg, idx) => InArgToParameter(arg, idx)));
+            AppendLine($"{returnType} {name}Async({parameters});");
         }
 
-        private SyntaxNode ParseType(string dbusType, List<string> elementNames = null)
+        private string MultyArgsToType(List<XElement> args)
+        {
+            if (args.Count == 0)
+                return "";
+
+            if (args.Count == 1)
+                return ParseType(args[0].Attribute("type").Value);
+
+            var elementTypes = args.Select(arg =>
+            {
+                var type = ParseType(arg.Attribute("type").Value);
+                var argName = Prettify((string)arg.Attribute("name"), startWithUpper: false);
+                return argName != null ? $"{type} {argName}" : type;
+            });
+
+            return $"({string.Join(", ", elementTypes)})";
+        }
+
+        private string ParseType(string dbusType)
         {
             int index = 0;
-            var type = ParseType(dbusType, ref index, elementNames);
+            var type = ParseType(dbusType, ref index, null);
             if (index != dbusType.Length)
             {
                 throw new InvalidOperationException($"Unable to parse dbus type: {dbusType}");
@@ -303,25 +312,25 @@ namespace Tmds.DBus.Tool
             return type;
         }
 
-        private SyntaxNode ParseType(string dbusType, ref int index, List<string> elementNames = null)
+        private string ParseType(string dbusType, ref int index, List<string> elementNames = null)
         {
             char c;
             switch (c = dbusType[index++])
             {
-                case 'y': return _generator.TypeExpression(SpecialType.System_Byte);
-                case 'b': return _generator.TypeExpression(SpecialType.System_Boolean);
-                case 'n': return _generator.TypeExpression(SpecialType.System_Int16);
-                case 'q': return _generator.TypeExpression(SpecialType.System_UInt16);
-                case 'i': return _generator.TypeExpression(SpecialType.System_Int32);
-                case 'h': return _closeSafeHandle;
-                case 'u': return _generator.TypeExpression(SpecialType.System_UInt32);
-                case 'x': return _generator.TypeExpression(SpecialType.System_Int64);
-                case 't': return _generator.TypeExpression(SpecialType.System_UInt64);
-                case 'd': return _generator.TypeExpression(SpecialType.System_Double);
-                case 's': return _generator.TypeExpression(SpecialType.System_String);
-                case 'o': return _objectPath;
-                case 'g': return _signature;
-                case 'f': return _generator.TypeExpression(SpecialType.System_Single);
+                case 'y': return "byte";
+                case 'b': return "bool";
+                case 'n': return "short";
+                case 'q': return "ushort";
+                case 'i': return "int";
+                case 'h': return "CloseSafeHandle";
+                case 'u': return "uint";
+                case 'x': return "long";
+                case 't': return "ulong";
+                case 'd': return "double";
+                case 's': return "string";
+                case 'o': return "ObjectPath";
+                case 'g': return "Signature";
+                case 'f': return "float";
                 case 'a': // array
                     if (dbusType[index] == '{')
                     {
@@ -333,38 +342,40 @@ namespace Tmds.DBus.Tool
                         {
                             throw new InvalidOperationException($"Unable to parse dbus type: {dbusType}");
                         }
-                        return _generator.GenericName("IDictionary", new[] { keyType, valueType } );
+                        return $"IDictionary<{keyType}, {valueType}>";
                     }
                     else
                     {
                         var arrayType = ParseType(dbusType, ref index);
-                        return _generator.ArrayTypeExpression(arrayType);
+                        return $"{arrayType}[]";
                     }
                 case '(': // struct
-                    var elements = new List<TupleElementSyntax>();
-                    var memberTypes = new List<SyntaxNode>();
-                    SyntaxNode type = null;
+                    var elements = new List<string>();
+                    string type;
                     int idx = 0;
-                    do
+                    while ((type = ParseType(dbusType, ref index)) != null)
                     {
-                        type = ParseType(dbusType, ref index);
-                        if (type != null)
+                        var name = elementNames != null && idx < elementNames.Count ? elementNames[idx] : null;
+                        idx++;
+                        if (name != null)
                         {
-                            memberTypes.Add(type);
-                            var name = elementNames != null && idx < elementNames.Count ? elementNames[idx] : null;
-                            idx++;
-                            elements.Add(SyntaxFactory.TupleElement((TypeSyntax)type, name != null ? ToIdentifierToken(Prettify(name, startWithUpper: false)) : default(SyntaxToken)));
+                            elements.Add($"{type} {Prettify(name, startWithUpper: false)}");
                         }
-                    } while (type != null);
-                    if (memberTypes.Count < 2)
+                        else
+                        {
+                            elements.Add(type);
+                        }
+                    }
+
+                    if (elements.Count < 2)
                     {
-                        return _generator.GenericName("ValueTuple", memberTypes);
+                        return $"ValueTuple<{string.Join(", ", elements)}>";
                     }
                     else
                     {
-                        return SyntaxFactory.TupleType(SyntaxFactory.SeparatedList(elements));
+                        return $"({string.Join(", ", elements)})";
                     }
-                case 'v': return _generator.TypeExpression(SpecialType.System_Object);
+                case 'v': return "object";
                 case ')':
                 case '}':
                     return null;
@@ -373,48 +384,63 @@ namespace Tmds.DBus.Tool
             }
         }
 
-        private SyntaxNode InArgToParameter(XElement argXml, int idx)
+        private string InArgToParameter(XElement argXml, int index)
         {
             var type = ParseType(argXml.Attribute("type").Value);
             var name = Prettify((string)argXml.Attribute("name"));
-            return _generator.ParameterDeclaration(name ?? $"arg{idx}", type);
+            return name != null ? $"{type} {name}" : $"{type} arg{index}";
         }
 
-       private static string EscapeIdentifier(string identifier)
-       {
-            var nullIndex = identifier.IndexOf('\0');
-            if (nullIndex >= 0)
-            {
-                identifier = identifier.Substring(0, nullIndex);
-            }
-
-            var needsEscaping = SyntaxFacts.GetKeywordKind(identifier) != SyntaxKind.None;
-
-            return needsEscaping ? "@" + identifier : identifier;
-        }
-
-        private static SyntaxToken ToIdentifierToken(string identifier)
+        private static string GetAccessibilityModifier(Accessibility accessibility)
         {
-            var escaped = EscapeIdentifier(identifier);
-
-            if (escaped.Length == 0 || escaped[0] != '@')
+            return accessibility switch
             {
-                return SyntaxFactory.Identifier(escaped);
+                Accessibility.Public => "public ",
+                Accessibility.Internal => "internal ",
+                Accessibility.Private => "private ",
+                Accessibility.Protected => "protected ",
+                Accessibility.NotApplicable => "",
+                _ => ""
+            };
+        }
+
+        private static string EscapeIdentifier(string identifier)
+        {
+            if (identifier == null)
+                return null;
+
+            // Check if it's a C# keyword that needs escaping
+            if (identifier == "interface" || identifier == "event" || identifier == "delegate" ||
+                identifier == "abstract" || identifier == "as" || identifier == "base" ||
+                identifier == "bool" || identifier == "break" || identifier == "byte" ||
+                identifier == "case" || identifier == "catch" || identifier == "char" ||
+                identifier == "checked" || identifier == "class" || identifier == "const" ||
+                identifier == "continue" || identifier == "decimal" || identifier == "default" ||
+                identifier == "do" || identifier == "double" || identifier == "else" ||
+                identifier == "enum" || identifier == "explicit" || identifier == "extern" ||
+                identifier == "false" || identifier == "finally" || identifier == "fixed" ||
+                identifier == "float" || identifier == "for" || identifier == "foreach" ||
+                identifier == "goto" || identifier == "if" || identifier == "implicit" ||
+                identifier == "in" || identifier == "int" || identifier == "is" ||
+                identifier == "lock" || identifier == "long" || identifier == "namespace" ||
+                identifier == "new" || identifier == "null" || identifier == "object" ||
+                identifier == "operator" || identifier == "out" || identifier == "override" ||
+                identifier == "params" || identifier == "private" || identifier == "protected" ||
+                identifier == "public" || identifier == "readonly" || identifier == "ref" ||
+                identifier == "return" || identifier == "sbyte" || identifier == "sealed" ||
+                identifier == "short" || identifier == "sizeof" || identifier == "stackalloc" ||
+                identifier == "static" || identifier == "string" || identifier == "struct" ||
+                identifier == "switch" || identifier == "this" || identifier == "throw" ||
+                identifier == "true" || identifier == "try" || identifier == "typeof" ||
+                identifier == "uint" || identifier == "ulong" || identifier == "unchecked" ||
+                identifier == "unsafe" || identifier == "ushort" || identifier == "using" ||
+                identifier == "virtual" || identifier == "void" || identifier == "volatile" ||
+                identifier == "while")
+            {
+                return "@" + identifier;
             }
 
-            var unescaped = identifier.StartsWith("@", StringComparison.Ordinal)
-                ? identifier.Substring(1)
-                : identifier;
-
-            var token = SyntaxFactory.Identifier(
-                default(SyntaxTriviaList), SyntaxKind.None, "@" + unescaped, unescaped, default(SyntaxTriviaList));
-
-            if (!identifier.StartsWith("@", StringComparison.Ordinal))
-            {
-                token = token.WithAdditionalAnnotations(Simplifier.Annotation);
-            }
-
-            return token;
+            return identifier;
         }
 
         public static string Prettify(string name, bool startWithUpper = true)
@@ -437,7 +463,7 @@ namespace Tmds.DBus.Tool
                 upper = false;
                 first = false;
             }
-            return sb.ToString();
+            return EscapeIdentifier(sb.ToString());
         }
     }
 }

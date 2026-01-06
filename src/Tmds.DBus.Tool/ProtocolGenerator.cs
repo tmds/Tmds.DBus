@@ -4,7 +4,6 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
-using Microsoft.CodeAnalysis;
 using Tmds.DBus.Protocol;
 using Microsoft.Win32.SafeHandles;
 

@@ -202,7 +202,7 @@ public class ReaderTests
     public void ReadHandle_WithNoHandles_Throws()
     {
         byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<IndexOutOfRangeException>(() =>
         {
             Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
             reader.ReadHandle<SafeFileHandle>();
@@ -213,7 +213,7 @@ public class ReaderTests
     public void ReadHandleRaw_WithNoHandles_Throws()
     {
         byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
-        Assert.Throws<InvalidOperationException>(() =>
+        Assert.Throws<IndexOutOfRangeException>(() =>
         {
             Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
             reader.ReadHandleRaw();

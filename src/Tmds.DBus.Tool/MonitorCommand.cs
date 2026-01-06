@@ -1,32 +1,30 @@
 using System;
+using System.CommandLine;
 using System.Text;
 using System.Threading.Tasks;
-using McMaster.Extensions.CommandLineUtils;
 using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool;
 
 class MonitorCommand : Command
 {
-    CommandOption _busOption;
-
-    public MonitorCommand(CommandLineApplication parent) :
-        base("monitor", parent)
-    { }
-
-    public override void Configure()
+    public MonitorCommand() : base("monitor")
     {
-        _busOption = AddBusOption();
+        Description = "Monitor DBus messages";
+
+        Option<string> busOption = CommandHelpers.CreateBusOption();
+        Add(busOption);
+
+        this.SetAction((parseResult) =>
+        {
+            string bus = parseResult.GetValue(busOption)!;
+            string address = CommandHelpers.ParseBusAddress(bus);
+            MonitorBusAsync(address).Wait();
+            return 0;
+        });
     }
 
-    public override bool Execute()
-    {
-        var address = ParseBusAddress(_busOption);
-        MonitorBusAsync(address).Wait();
-        return true;
-    }
-
-    private async Task MonitorBusAsync(string address)
+    private static async Task MonitorBusAsync(string address)
     {
         StringBuilder sb = new StringBuilder();
 
@@ -45,7 +43,7 @@ class MonitorCommand : Command
 
     static void Print(StringBuilder sb)
     {
-        foreach (var chunk in sb.GetChunks())
+        foreach (ReadOnlyMemory<char> chunk in sb.GetChunks())
         {
             Console.Write(chunk);
         }

@@ -1,60 +1,63 @@
-using McMaster.Extensions.CommandLineUtils;
+using System.CommandLine;
 using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool
 {
-    abstract class Command
+    static class CommandHelpers
     {
-        protected CommandLineApplication Configuration { get; private set; }
-        protected Command(string name, CommandLineApplication parent)
+        internal static Option<string?> CreateServiceOption()
         {
-            parent.Command(name, configuration =>
-            {
-                Configuration = configuration;
-                configuration.HelpOption(Command.HelpTemplate);
-                Configure();
-                configuration.OnExecute(() => Execute() ? 0 : 1);
-            });
+            Option<string?> option = new Option<string?>("--service");
+            option.Description = "DBus service";
+            return option;
         }
 
-        public const string HelpTemplate = "-h|--help";
-        public string Name { get; protected set; }
-        public abstract void Configure();
-        public abstract bool Execute();
-
-        internal CommandOption AddServiceOption()
-            => Configuration.Option("--service", "DBus service", CommandOptionType.SingleValue);
-
-        internal CommandOption AddBusOption()
-            => Configuration.Option("--bus", "Address of bus. 'session'/'system'/<address> (default: session)", CommandOptionType.SingleValue);
-
-        internal CommandOption AddPathOption()
-            => Configuration.Option("--path", "DBus object path (default: /)", CommandOptionType.SingleValue);
-
-        internal CommandOption AddNoRecurseOption()
-            => Configuration.Option("--no-recurse", "Don't visit child nodes of path", CommandOptionType.NoValue);
-
-        internal CommandArgument AddFilesArgument()
-            => Configuration.Argument("files", "Interface xml files", true);
-
-        internal string ParseBusAddress(CommandOption addressOption)
+        internal static Option<string> CreateBusOption()
         {
-            if (addressOption.HasValue())
+            Option<string> option = new Option<string>("--bus");
+            option.Description = "Address of bus. 'session'/'system'/<address>";
+            option.DefaultValueFactory = _ => "session";
+            return option;
+        }
+
+        internal static Option<string> CreatePathOption()
+        {
+            Option<string> option = new Option<string>("--path");
+            option.Description = "DBus object path";
+            option.DefaultValueFactory = _ => "/";
+            return option;
+        }
+
+        internal static Option<bool> CreateNoRecurseOption()
+        {
+            Option<bool> option = new Option<bool>("--no-recurse");
+            option.Description = "Don't visit child nodes of path";
+            option.DefaultValueFactory = _ => false;
+            return option;
+        }
+
+        internal static Argument<string[]?> CreateFilesArgument()
+        {
+            Argument<string[]?> argument = new Argument<string[]?>("files");
+            argument.Description = "Interface xml files";
+            argument.Arity = ArgumentArity.ZeroOrMore;
+            return argument;
+        }
+
+        internal static string ParseBusAddress(string addressOption)
+        {
+            if (addressOption == "system")
             {
-                if (addressOption.Value() == "system")
-                {
-                    return Address.System;
-                }
-                else if (addressOption.Value() == "session")
-                {
-                    return Address.Session;
-                }
-                else
-                {
-                    return addressOption.Value();
-                }
+                return Address.System;
             }
-            return Address.Session;
+            else if (addressOption == "session")
+            {
+                return Address.Session;
+            }
+            else
+            {
+                return addressOption;
+            }
         }
     }
 }

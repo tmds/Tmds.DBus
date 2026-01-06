@@ -315,6 +315,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
     [DoesNotReturn]
     internal static void ThrowNoHandles()
     {
-        throw new InvalidOperationException("Message has no handles.");
+        // Throw the same exception as when we try to get a handle out of the range of handles.
+        throw new IndexOutOfRangeException("Message has no handles.");
     }
 }

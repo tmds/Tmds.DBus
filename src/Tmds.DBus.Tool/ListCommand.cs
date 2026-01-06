@@ -1,84 +1,90 @@
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using McMaster.Extensions.CommandLineUtils;
 using Tmds.DBus.Protocol;
 
 namespace Tmds.DBus.Tool
 {
     class ListCommand : Command
     {
-        CommandOption _serviceOption;
-        CommandOption _busOption;
-        CommandOption _pathOption;
-        CommandOption _norecurseOption;
-        CommandArgument _typeArgument;
-        CommandArgument _files;
-
-        public ListCommand(CommandLineApplication parent) :
-            base("list", parent)
-        {}
-
-        public override void Configure()
+        public ListCommand() : base("list")
         {
-            _serviceOption = AddServiceOption();
-            _busOption = AddBusOption();
-            _pathOption = AddPathOption();
-            _norecurseOption = AddNoRecurseOption();
-            _typeArgument = Configuration.Argument("type", "Type to list. 'objects'/'interfaces'/services'/'activatable-services'");
-            _files = AddFilesArgument();
-        }
+            Description = "List DBus objects, interfaces, or services";
 
-        public override bool Execute()
-        {
-            var address = ParseBusAddress(_busOption);
-            if (_typeArgument.Value == null)
+            Option<string?> serviceOption = CommandHelpers.CreateServiceOption();
+            Option<string> busOption = CommandHelpers.CreateBusOption();
+            Option<string> pathOption = CommandHelpers.CreatePathOption();
+            Option<bool> norecurseOption = CommandHelpers.CreateNoRecurseOption();
+            Argument<string> typeArgument = new Argument<string>("type");
+            typeArgument.Description = "Type to list. 'objects'/'interfaces'/services'/'activatable-services'";
+            Argument<string[]?> filesArgument = CommandHelpers.CreateFilesArgument();
+
+            Add(serviceOption);
+            Add(busOption);
+            Add(pathOption);
+            Add(norecurseOption);
+            Add(typeArgument);
+            Add(filesArgument);
+
+            this.SetAction((parseResult) =>
             {
-                throw new ArgumentNullException("Type argument is required.", "type");
-            }
-            if (_typeArgument.Value == "services")
-            {
-                ListServicesAsync(address).Wait();
-            }
-            else if (_typeArgument.Value == "activatable-services")
-            {
-                ListActivatableServicesAsync(address).Wait();
-            }
-            else if (_typeArgument.Value == "objects")
-            {
-                if (!_serviceOption.HasValue())
+                string? service = parseResult.GetValue(serviceOption);
+                string bus = parseResult.GetValue(busOption)!;
+                string path = parseResult.GetValue(pathOption)!;
+                bool noRecurse = parseResult.GetValue(norecurseOption);
+                string? type = parseResult.GetValue(typeArgument);
+                string[]? files = parseResult.GetValue(filesArgument);
+
+                string address = CommandHelpers.ParseBusAddress(bus);
+                if (type == null)
                 {
-                    throw new ArgumentException("Service option must be specified for listing objects.", "service");
+                    Console.Error.WriteLine("Type argument is required.");
+                    return 1;
                 }
-                string service = _serviceOption.Value();
-                bool recurse = !_norecurseOption.HasValue();
-                string path = _pathOption.HasValue() ? _pathOption.Value() : "/";
-                ListObjectsAsync(address, service, path, recurse).Wait();
-            }
-            else if (_typeArgument.Value == "interfaces")
-            {
-                if (!_serviceOption.HasValue() && _files.Values == null)
+                if (type == "services")
                 {
-                    throw new ArgumentException("Service option or files argument must be specified for listing interfaces.", "service");
+                    ListServicesAsync(address).Wait();
                 }
-                string service = _serviceOption.Value();
-                bool recurse = !_norecurseOption.HasValue();
-                string path = _pathOption.HasValue() ? _pathOption.Value() : "/";
-                ListInterfacesAsync(address, service, path, recurse, _files.Values).Wait();
-            }
-            else
-            {
-                throw new ArgumentException("Unknown type", "type");
-            }
-            return true;
+                else if (type == "activatable-services")
+                {
+                    ListActivatableServicesAsync(address).Wait();
+                }
+                else if (type == "objects")
+                {
+                    if (string.IsNullOrEmpty(service))
+                    {
+                        Console.Error.WriteLine("Service option must be specified for listing objects.");
+                        return 1;
+                    }
+                    bool recurse = !noRecurse;
+                    ListObjectsAsync(address, service, path, recurse).Wait();
+                }
+                else if (type == "interfaces")
+                {
+                    if (string.IsNullOrEmpty(service) && (files == null || files.Length == 0))
+                    {
+                        Console.Error.WriteLine("Service option or files argument must be specified for listing interfaces.");
+                        return 1;
+                    }
+                    bool recurse = !noRecurse;
+                    ListInterfacesAsync(address, service, path, recurse, files).Wait();
+                }
+                else
+                {
+                    Console.Error.WriteLine($"Unknown type: {type}");
+                    return 1;
+                }
+                return 0;
+            });
         }
 
         class DBusObject
         {
-            public string Path { get; set; }
-            public List<string> Interfaces { get; set; }
+            public required string Path { get; init; }
+            public required List<string> Interfaces { get; init; }
         }
 
         class ObjectsVisitor
@@ -93,12 +99,12 @@ namespace Tmds.DBus.Tool
 
             public bool Visit(string path, XElement nodeXml)
             {
-                var interfaces = nodeXml.Elements("interface")
+                IEnumerable<string> interfaces = nodeXml.Elements("interface")
                     .Select(i => i.Attribute("name").Value)
                     .Where(i => !s_skipInterfaces.Contains(i));
                 if (interfaces.Any())
                 {
-                    var o = new DBusObject()
+                    DBusObject o = new DBusObject()
                     {
                         Path = path,
                         Interfaces = interfaces.OrderBy(s => s).ToList()
@@ -109,15 +115,15 @@ namespace Tmds.DBus.Tool
             }
         }
 
-        private async Task ListObjectsAsync(string address, string service, string path, bool recurse)
+        private static async Task ListObjectsAsync(string address, string service, string path, bool recurse)
         {
-            var visitor = new ObjectsVisitor();
-            using (var connection = new Connection(address))
+            ObjectsVisitor visitor = new ObjectsVisitor();
+            using (Connection connection = new Connection(address))
             {
                 await connection.ConnectAsync();
                 await NodeVisitor.VisitAsync(connection, service, path, recurse, visitor.Visit);
             }
-            foreach (var o in visitor.Objects.OrderBy(o => o.Path))
+            foreach (DBusObject o in visitor.Objects.OrderBy(o => o.Path))
             {
                 Console.WriteLine($"{o.Path} : {string.Join(" ", o.Interfaces)}");
             }
@@ -135,10 +141,10 @@ namespace Tmds.DBus.Tool
 
             public bool Visit(string path, XElement nodeXml)
             {
-                var interfaces = nodeXml.Elements("interface")
+                IEnumerable<string> interfaces = nodeXml.Elements("interface")
                     .Select(i => i.Attribute("name").Value)
                     .Where(i => !s_skipInterfaces.Contains(i));
-                foreach (var interf in interfaces)
+                foreach (string interf in interfaces)
                 {
                     Interfaces.Add(interf);
                 }
@@ -146,12 +152,12 @@ namespace Tmds.DBus.Tool
             }
         }
 
-        private async Task ListInterfacesAsync(string address, string service, string path, bool recurse, IReadOnlyList<string> files)
+        private static async Task ListInterfacesAsync(string address, string service, string path, bool recurse, string[]? files)
         {
-            var visitor = new InterfacesVisitor();
+            InterfacesVisitor visitor = new InterfacesVisitor();
             if (service != null)
             {
-                using (var connection = new Connection(address))
+                using (Connection connection = new Connection(address))
                 {
                     await connection.ConnectAsync();
                     await NodeVisitor.VisitAsync(connection, service, path, recurse, visitor.Visit);
@@ -159,25 +165,25 @@ namespace Tmds.DBus.Tool
             }
             if (files != null)
             {
-                foreach (var file in files)
+                foreach (string file in files)
                 {
                     await NodeVisitor.VisitAsync(file, visitor.Visit);
                 }
             }
-            foreach (var interf in visitor.Interfaces.OrderBy(i => i))
+            foreach (string interf in visitor.Interfaces.OrderBy(i => i))
             {
                 Console.WriteLine(interf);
             }
         }
 
-        public async Task ListServicesAsync(string address)
+        public static async Task ListServicesAsync(string address)
         {
-            using (var connection = new Connection(address))
+            using (Connection connection = new Connection(address))
             {
                 await connection.ConnectAsync();
-                var services = await connection.ListServicesAsync();
+                string[] services = await connection.ListServicesAsync();
                 Array.Sort(services);
-                foreach (var service in services)
+                foreach (string service in services)
                 {
                     if (!service.StartsWith(":", StringComparison.Ordinal))
                     {
@@ -187,14 +193,14 @@ namespace Tmds.DBus.Tool
             }
         }
 
-        public async Task ListActivatableServicesAsync(string address)
+        public static async Task ListActivatableServicesAsync(string address)
         {
-            using (var connection = new Connection(address))
+            using (Connection connection = new Connection(address))
             {
                 await connection.ConnectAsync();
-                var services = await connection.ListActivatableServicesAsync();
+                string[] services = await connection.ListActivatableServicesAsync();
                 Array.Sort(services);
-                foreach (var service in services)
+                foreach (string service in services)
                 {
                     Console.WriteLine(service);
                 }

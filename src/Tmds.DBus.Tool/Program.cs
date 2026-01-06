@@ -1,4 +1,4 @@
-﻿using McMaster.Extensions.CommandLineUtils;
+using System.CommandLine;
 
 namespace Tmds.DBus.Tool
 {
@@ -6,14 +6,14 @@ namespace Tmds.DBus.Tool
     {
         public static int Main(string[] args)
         {
-            var commandLineApp = new CommandLineApplication();
-            commandLineApp.Name = "dotnet-dbus";
-            commandLineApp.HelpOption(Command.HelpTemplate);
-            new CodeGenCommand(commandLineApp);
-            new ListCommand(commandLineApp);
-            new MonitorCommand(commandLineApp);
-            commandLineApp.OnExecute(() => { commandLineApp.ShowHelp(); return 0; });
-            return commandLineApp.Execute(args);
+            RootCommand rootCommand = new RootCommand();
+            rootCommand.Description = "dotnet-dbus";
+
+            rootCommand.Add(new CodeGenCommand());
+            rootCommand.Add(new ListCommand());
+            rootCommand.Add(new MonitorCommand());
+
+            return rootCommand.Parse(args).Invoke();
         }
     }
 }

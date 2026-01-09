@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Tmds.DBus.Protocol;
@@ -218,20 +219,24 @@ namespace Tmds.DBus.Tool
             }
             List<InterfaceDescription> descriptions = visitor.Descriptions;
 
+            string generatorDescription = GetGeneratorDescription();
+
             IGenerator generator = codeGenArguments.ProtocolApi
                 ? (IGenerator)new ProtocolGenerator(
                     new ProtocolGeneratorSettings
                     {
                         Namespace = codeGenArguments.Namespace,
                         TypesAccessModifier = codeGenArguments.TypesAccessModifier,
-                        ServiceName = codeGenArguments.ServiceName
+                        ServiceName = codeGenArguments.ServiceName,
+                        GeneratorDescription = generatorDescription
                     })
                 : new Generator(
                     new GeneratorSettings
                     {
                         Namespace = codeGenArguments.Namespace,
                         NoInternalsVisibleTo = codeGenArguments.NoInternalsVisibleTo,
-                        TypesAccessModifier = codeGenArguments.TypesAccessModifier
+                        TypesAccessModifier = codeGenArguments.TypesAccessModifier,
+                        GeneratorDescription = generatorDescription
                     });
 
             if (!generator.TryGenerate(descriptions, out string? code))
@@ -249,6 +254,27 @@ namespace Tmds.DBus.Tool
                 Console.WriteLine(code);
             }
             return true;
+        }
+
+        private static string GetGeneratorDescription()
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+
+            string toolVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
+            // strip the metadata (commit sha)
+            int plusIndex = toolVersion.IndexOf('+');
+            if (plusIndex >= 0)
+            {
+                toolVersion = toolVersion.Substring(0, plusIndex);
+            }
+
+            string[] args = Environment.GetCommandLineArgs();
+            int codegenIndex = Array.FindIndex(args, arg => arg.Equals("codegen", StringComparison.OrdinalIgnoreCase));
+            string commandLineArgs = codegenIndex == -1
+                ? "codegen"
+                : string.Join(" ", args.Skip(codegenIndex).Select(arg => arg.Contains(' ') ? $"'{arg}'" : arg));
+
+            return $"Tmds.DBus.Tool v{toolVersion} with arguments: {commandLineArgs}";
         }
 
         class CodeGenArguments

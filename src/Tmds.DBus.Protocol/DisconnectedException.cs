@@ -6,7 +6,8 @@ namespace Tmds.DBus.Protocol;
 /// <remarks>
 /// The <see cref="Exception.InnerException"/> indicates the reason for the disconnect.
 /// </remarks>
-public class DisconnectedException : Exception
+[Obsolete("Use DBusConnectionClosedException instead.")]
+public class DisconnectedException : DBusConnectionClosedException
 {
     internal DisconnectedException(Exception innerException) : base(innerException.Message, innerException)
     { }

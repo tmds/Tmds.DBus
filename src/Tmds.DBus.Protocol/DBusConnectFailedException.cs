@@ -3,21 +3,20 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Exception thrown when a D-Bus connection cannot be established.
 /// </summary>
-[Obsolete("Use DBusConnectFailedException instead.")]
-public class ConnectException : DBusConnectFailedException
+public class DBusConnectFailedException : DBusConnectionException
 {
     /// <summary>
-    /// Initializes a new instance of the ConnectException class.
+    /// Initializes a new instance of the DBusConnectFailedException class.
     /// </summary>
     /// <param name="message">The error message.</param>
-    public ConnectException(string message) : base(message)
+    public DBusConnectFailedException(string message) : base(message)
     { }
 
     /// <summary>
-    /// Initializes a new instance of the ConnectException class.
+    /// Initializes a new instance of the DBusConnectFailedException class.
     /// </summary>
     /// <param name="message">The error message.</param>
     /// <param name="innerException">The inner exception that caused this exception.</param>
-    public ConnectException(string message, Exception innerException) : base(message, innerException)
+    public DBusConnectFailedException(string message, Exception innerException) : base(message, innerException)
     { }
 }

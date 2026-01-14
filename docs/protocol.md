@@ -36,7 +36,7 @@ class Program
 
     private async static Task<string> StartAddServiceAsync()
     {
-        var connection = new Connection(Address.Session!);
+        var connection = new Connection(DBusAddress.Session!);
 
         await connection.ConnectAsync();
 

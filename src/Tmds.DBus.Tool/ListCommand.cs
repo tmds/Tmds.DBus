@@ -118,7 +118,7 @@ namespace Tmds.DBus.Tool
         private static async Task ListObjectsAsync(string address, string service, string path, bool recurse)
         {
             ObjectsVisitor visitor = new ObjectsVisitor();
-            using (Connection connection = new Connection(address))
+            using (DBusConnection connection = new DBusConnection(address))
             {
                 await connection.ConnectAsync();
                 await NodeVisitor.VisitAsync(connection, service, path, recurse, visitor.Visit);
@@ -157,7 +157,7 @@ namespace Tmds.DBus.Tool
             InterfacesVisitor visitor = new InterfacesVisitor();
             if (service != null)
             {
-                using (Connection connection = new Connection(address))
+                using (DBusConnection connection = new DBusConnection(address))
                 {
                     await connection.ConnectAsync();
                     await NodeVisitor.VisitAsync(connection, service, path, recurse, visitor.Visit);
@@ -178,7 +178,7 @@ namespace Tmds.DBus.Tool
 
         public static async Task ListServicesAsync(string address)
         {
-            using (Connection connection = new Connection(address))
+            using (DBusConnection connection = new DBusConnection(address))
             {
                 await connection.ConnectAsync();
                 string[] services = await connection.ListServicesAsync();
@@ -195,7 +195,7 @@ namespace Tmds.DBus.Tool
 
         public static async Task ListActivatableServicesAsync(string address)
         {
-            using (Connection connection = new Connection(address))
+            using (DBusConnection connection = new DBusConnection(address))
             {
                 await connection.ConnectAsync();
                 string[] services = await connection.ListActivatableServicesAsync();

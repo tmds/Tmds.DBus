@@ -9,12 +9,12 @@ namespace Tmds.DBus.Protocol.Tests
 {
     class PairedConnection
     {
-        public static (Connection, Connection) CreatePair()
+        public static (DBusConnection, DBusConnection) CreatePair()
         {
             var streams = PairedMessageStream.CreatePair();
-            var conn1 = new Connection("conn1-address");
+            var conn1 = new DBusConnection("conn1-address");
             conn1.Connect(streams.Item1);
-            var conn2 = new Connection("conn2-address");
+            var conn2 = new DBusConnection("conn2-address");
             conn2.Connect(streams.Item2);
             return (conn1, conn2);
         }

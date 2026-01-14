@@ -10,7 +10,7 @@ if (systemBusAddress is null)
     return 1;
 }
 
-Connection connection = new Connection(DBusAddress.System!);
+DBusConnection connection = new DBusConnection(DBusAddress.System!);
 await connection.ConnectAsync();
 Console.WriteLine("Connected to system bus.");
 

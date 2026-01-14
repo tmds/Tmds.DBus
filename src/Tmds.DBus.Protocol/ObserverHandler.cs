@@ -12,7 +12,7 @@ public static class ObserverHandler
     /// <returns><see langword="true"/> if the exception indicates the observer was disposed; otherwise, <see langword="false"/>.</returns>
     /// <remarks>This exception is emitted when <see cref="ObserverFlags.EmitOnObserverDispose"/> or <see cref="ObserverFlags.EmitOnDispose"/> is set.</remarks>
     public static bool IsObserverDisposed(Exception exception)
-        => object.ReferenceEquals(exception, DBusConnection.ObserverDisposedException);
+        => object.ReferenceEquals(exception, InnerConnection.ObserverDisposedException);
 
     /// <summary>
     /// Checks if the exception indicates the connection was disposed.
@@ -21,9 +21,9 @@ public static class ObserverHandler
     /// <returns><see langword="true"/> if the exception indicates the connection was disposed; otherwise, <see langword="false"/>.</returns>
     /// <remarks>This exception is emitted when <see cref="ObserverFlags.EmitOnConnectionDispose"/> or <see cref="ObserverFlags.EmitOnDispose"/> is set.</remarks>
     public static bool IsConnectionDisposed(Exception exception)
-        // note: Connection.DisposedException is only ever used as an InnerException of DisconnectedException,
+        // note: DBusConnection.DisposedException is only ever used as an InnerException of DisconnectedException,
         //       so we directly check for that.
-        => object.ReferenceEquals(exception?.InnerException, Connection.DisposedException);
+        => object.ReferenceEquals(exception?.InnerException, DBusConnection.DisposedException);
 
     /// <summary>
     /// Checks if the exception indicates either the observer or connection was disposed.

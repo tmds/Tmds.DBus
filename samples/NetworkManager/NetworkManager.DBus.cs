@@ -3006,9 +3006,9 @@ namespace NetworkManager.DBus
     }
     partial class NetworkManagerService
     {
-        public Tmds.DBus.Protocol.Connection Connection { get; }
+        public Tmds.DBus.Protocol.DBusConnection Connection { get; }
         public string Destination { get; }
-        public NetworkManagerService(Tmds.DBus.Protocol.Connection connection, string destination)
+        public NetworkManagerService(Tmds.DBus.Protocol.DBusConnection connection, string destination)
             => (Connection, Destination) = (connection, destination);
         public ObjectManager CreateObjectManager(ObjectPath path) => new ObjectManager(this, path);
         public NetworkManager CreateNetworkManager(ObjectPath path) => new NetworkManager(this, path);
@@ -3032,7 +3032,7 @@ namespace NetworkManager.DBus
     {
         public NetworkManagerService Service { get; }
         public ObjectPath Path { get; }
-        protected Tmds.DBus.Protocol.Connection Connection => Service.Connection;
+        protected Tmds.DBus.Protocol.DBusConnection Connection => Service.Connection;
         protected NetworkManagerObject(NetworkManagerService service, ObjectPath path)
             => (Service, Path) = (service, path);
         protected MessageBuffer CreateGetPropertyMessage(string @interface, string property)

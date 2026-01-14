@@ -127,9 +127,9 @@ namespace Tmds.DBus.Tool
         {
             AppendLine($"partial class {_serviceClassName}");
             StartBlock();
-            AppendLine("public Tmds.DBus.Protocol.Connection Connection { get; }");
+            AppendLine("public Tmds.DBus.Protocol.DBusConnection Connection { get; }");
             AppendLine("public string Destination { get; }");
-            AppendLine($"public {_serviceClassName}(Tmds.DBus.Protocol.Connection connection, string destination)");
+            AppendLine($"public {_serviceClassName}(Tmds.DBus.Protocol.DBusConnection connection, string destination)");
             AppendLine("    => (Connection, Destination) = (connection, destination);");
             foreach (var interf in interfaceDescriptions)
             {
@@ -145,7 +145,7 @@ namespace Tmds.DBus.Tool
             StartBlock();
             AppendLine($"public {_serviceClassName} Service {{ get; }}");
             AppendLine("public ObjectPath Path { get; }");
-            AppendLine("protected Tmds.DBus.Protocol.Connection Connection => Service.Connection;");
+            AppendLine("protected Tmds.DBus.Protocol.DBusConnection Connection => Service.Connection;");
             AppendLine($"protected {_objectName}({_serviceClassName} service, ObjectPath path)");
             AppendLine("    => (Service, Path) = (service, path);");
 

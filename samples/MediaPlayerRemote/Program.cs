@@ -8,7 +8,7 @@ using Mpris.DBus;
 Console.WriteLine("MediaPlayerRemote Sample");
 
 // Connect to the session bus.
-using var connection = new Connection(Address.Session!);
+using var connection = new Connection(DBusAddress.Session!);
 await connection.ConnectAsync();
 
 // Find all players.

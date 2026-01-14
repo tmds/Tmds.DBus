@@ -48,11 +48,11 @@ namespace Tmds.DBus.Tool
         {
             if (addressOption == "system")
             {
-                return Address.System;
+                return DBusAddress.System;
             }
             else if (addressOption == "session")
             {
-                return Address.Session;
+                return DBusAddress.Session;
             }
             else
             {

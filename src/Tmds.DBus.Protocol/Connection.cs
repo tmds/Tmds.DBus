@@ -23,12 +23,12 @@ public partial class Connection : IDisposable
     /// <summary>
     /// Gets a shared connection to the system bus.
     /// </summary>
-    public static Connection System => s_systemConnection ?? CreateConnection(ref s_systemConnection, Address.System);
+    public static Connection System => s_systemConnection ?? CreateConnection(ref s_systemConnection, DBusAddress.System);
 
     /// <summary>
     /// Gets a shared connection to the session bus.
     /// </summary>
-    public static Connection Session => s_sessionConnection ?? CreateConnection(ref s_sessionConnection, Address.Session);
+    public static Connection Session => s_sessionConnection ?? CreateConnection(ref s_sessionConnection, DBusAddress.Session);
 
     /// <summary>
     /// Gets the unique name assigned to this connection by the bus.

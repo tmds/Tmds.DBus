@@ -125,14 +125,14 @@ using Connection = Tmds.DBus.Protocol.Connection;
 using NetworkManager.DBus;
 using Tmds.DBus.Protocol;
 
-string? systemBusAddress = Address.System;
+string? systemBusAddress = DBusAddress.System;
 if (systemBusAddress is null)
 {
     Console.Write("Can not determine system bus address");
     return 1;
 }
 
-Connection connection = new Connection(Address.System!);
+Connection connection = new Connection(DBusAddress.System!);
 await connection.ConnectAsync();
 Console.WriteLine("Connected to system bus.");
 

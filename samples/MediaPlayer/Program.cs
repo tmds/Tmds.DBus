@@ -1,7 +1,7 @@
 ﻿using Tmds.DBus.Protocol;
 using Tmds.DBus.SourceGenerator;
 
-var connection = new Connection(Address.Session!);
+var connection = new Connection(DBusAddress.Session!);
 await connection.ConnectAsync();
 
 var mediaPlayer = new DBusMediaPlayer(connection);

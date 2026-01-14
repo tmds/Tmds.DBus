@@ -875,9 +875,9 @@ namespace Mpris.DBus
     }
     partial class MprisService
     {
-        public Tmds.DBus.Protocol.Connection Connection { get; }
+        public Tmds.DBus.Protocol.DBusConnection Connection { get; }
         public string Destination { get; }
-        public MprisService(Tmds.DBus.Protocol.Connection connection, string destination)
+        public MprisService(Tmds.DBus.Protocol.DBusConnection connection, string destination)
             => (Connection, Destination) = (connection, destination);
         public Player CreatePlayer(ObjectPath path) => new Player(this, path);
         public Playlists CreatePlaylists(ObjectPath path) => new Playlists(this, path);
@@ -888,7 +888,7 @@ namespace Mpris.DBus
     {
         public MprisService Service { get; }
         public ObjectPath Path { get; }
-        protected Tmds.DBus.Protocol.Connection Connection => Service.Connection;
+        protected Tmds.DBus.Protocol.DBusConnection Connection => Service.Connection;
         protected MprisObject(MprisService service, ObjectPath path)
             => (Service, Path) = (service, path);
         protected MessageBuffer CreateGetPropertyMessage(string @interface, string property)

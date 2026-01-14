@@ -3,63 +3,51 @@ namespace Tmds.DBus.Protocol;
 #pragma warning disable CS0618 // IMethodHandler is obsolete.
 
 /// <summary>
-/// Delegate for reading a value from a D-Bus message.
-/// </summary>
-/// <typeparam name="T">The type of value that is read.</typeparam>
-/// <param name="message">The message to read from.</param>
-/// <param name="state">Optional state object.</param>
-/// <returns>The value read from the message.</returns>
-public delegate T MessageValueReader<T>(Message message, object? state);
-
-/// <summary>
 /// Represents a client connection to a D-Bus message bus or peer.
 /// </summary>
-public partial class Connection : IDisposable
+[Obsolete("Use DBusConnection instead.")]
+public class Connection : IDisposable
 {
-    internal static readonly Exception DisposedException = new ObjectDisposedException(typeof(Connection).FullName);
-    private static Connection? s_systemConnection;
-    private static Connection? s_sessionConnection;
+    private readonly DBusConnection _connection;
 
     /// <summary>
     /// Gets a shared connection to the system bus.
     /// </summary>
-    public static Connection System => s_systemConnection ?? CreateConnection(ref s_systemConnection, DBusAddress.System);
+    public static Connection System => DBusConnection.System.AsConnection();
 
     /// <summary>
     /// Gets a shared connection to the session bus.
     /// </summary>
-    public static Connection Session => s_sessionConnection ?? CreateConnection(ref s_sessionConnection, DBusAddress.Session);
+    public static Connection Session => DBusConnection.Session.AsConnection();
+
+    /// <summary>
+    /// The D-Bus daemon object path.
+    /// </summary>
+    public const string DBusObjectPath = DBusConnection.DBusObjectPath;
+
+    /// <summary>
+    /// The D-Bus daemon service name.
+    /// </summary>
+    public const string DBusServiceName = DBusConnection.DBusServiceName;
+
+    /// <summary>
+    /// The D-Bus daemon interface name.
+    /// </summary>
+    public const string DBusInterface = DBusConnection.DBusInterface;
 
     /// <summary>
     /// Gets the unique name assigned to this connection by the bus.
     /// </summary>
-    public string? UniqueName => GetConnection().UniqueName;
-
-    enum ConnectionState
-    {
-        Created,
-        Connecting,
-        Connected,
-        Disconnected
-    }
-
-    private readonly Lock _gate = new();
-    private readonly ClientConnectionOptions _connectionOptions;
-    private DBusConnection? _connection;
-    private CancellationTokenSource? _connectCts;
-    private Task<DBusConnection>? _connectingTask;
-    private ClientSetupResult? _setupResult;
-    private ConnectionState _state;
-    private bool _disposed;
-    private int _nextSerial;
+    public string? UniqueName => _connection.UniqueName;
 
     /// <summary>
     /// Initializes a new instance of the Connection class.
     /// </summary>
     /// <param name="address">The D-Bus address to connect to.</param>
-    public Connection(string address) :
-        this(new ClientConnectionOptions(address))
-    { }
+    public Connection(string address)
+    {
+        _connection = new DBusConnection(address);
+    }
 
     /// <summary>
     /// Initializes a new instance of the Connection class.
@@ -67,203 +55,62 @@ public partial class Connection : IDisposable
     /// <param name="connectionOptions">The connection options.</param>
     public Connection(ConnectionOptions connectionOptions)
     {
-        if (connectionOptions == null)
-            throw new ArgumentNullException(nameof(connectionOptions));
-
-        _connectionOptions = (ClientConnectionOptions)connectionOptions;
+        _connection = new DBusConnection(new ConnectionOptionsWrapper((ClientConnectionOptions)connectionOptions));
     }
 
-    // For tests.
-    internal void Connect(IMessageStream stream)
+    internal Connection(DBusConnection connection)
     {
-        _connection = new DBusConnection(this, DBusEnvironment.MachineId);
-        _connection.Connect(stream);
-        _state = ConnectionState.Connected;
+        _connection = connection;
+    }
+
+    private sealed class ConnectionOptionsWrapper : DBusConnectionOptions
+    {
+        private readonly ClientConnectionOptions _options;
+
+        public ConnectionOptionsWrapper(ClientConnectionOptions options)
+        {
+            _options = options;
+            AutoConnect = options.AutoConnect;
+            IsShared = options.IsShared;
+        }
+
+        protected internal override async ValueTask<SetupResult> SetupAsync(CancellationToken cancellationToken)
+        {
+            ClientSetupResult clientResult = await _options.SetupAsync(cancellationToken).ConfigureAwait(false);
+            return new SetupResult(clientResult.ConnectionAddress)
+            {
+                TeardownToken = clientResult.TeardownToken,
+                UserId = clientResult.UserId,
+                MachineId = clientResult.MachineId,
+                SupportsFdPassing = clientResult.SupportsFdPassing,
+                ConnectionStream = clientResult.ConnectionStream
+            };
+        }
+
+        protected internal override void Teardown(object? token)
+        {
+            _options.Teardown(token);
+        }
     }
 
     /// <summary>
     /// Establishes the connection.
     /// </summary>
-    public async ValueTask ConnectAsync()
-    {
-        await ConnectCoreAsync(explicitConnect: true).ConfigureAwait(false);
-    }
-
-    private ValueTask<DBusConnection> ConnectCoreAsync(bool explicitConnect = false)
-    {
-        lock (_gate)
-        {
-            ThrowHelper.ThrowIfDisposed(_disposed, this);
-
-            ConnectionState state = _state;
-
-            if (state == ConnectionState.Connected)
-            {
-                return new ValueTask<DBusConnection>(_connection!);
-            }
-
-            if (!_connectionOptions.AutoConnect)
-            {
-                DBusConnection? connection = _connection;
-                if (!explicitConnect && _state == ConnectionState.Disconnected && connection is not null)
-                {
-                    throw new DisconnectedException(connection.DisconnectReason);
-                }
-
-                if (!explicitConnect || _state != ConnectionState.Created)
-                {
-                    throw new InvalidOperationException("Can only connect once using an explicit call.");
-                }
-            }
-
-            if (state == ConnectionState.Connecting)
-            {
-                return new ValueTask<DBusConnection>(_connectingTask!);
-            }
-
-            _state = ConnectionState.Connecting;
-            _connectingTask = DoConnectAsync();
-
-            return new ValueTask<DBusConnection>(_connectingTask);
-        }
-    }
-
-    private async Task<DBusConnection> DoConnectAsync()
-    {
-        Debug.Assert(_gate.IsHeldByCurrentThread);
-
-        DBusConnection? connection = null;
-        try
-        {
-            _connectCts = new();
-            _setupResult = await _connectionOptions.SetupAsync(_connectCts.Token).ConfigureAwait(false);
-            connection = _connection = new DBusConnection(this, _setupResult.MachineId ?? DBusEnvironment.MachineId);
-
-            if (_setupResult.ConnectionStream is Stream stream)
-            {
-                await connection.ConnectAsync(stream, _setupResult.UserId, _connectCts.Token).ConfigureAwait(false);
-            }
-            else
-            {
-                await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token).ConfigureAwait(false);
-            }
-
-            lock (_gate)
-            {
-                ThrowHelper.ThrowIfDisposed(_disposed, this);
-
-                if (_connection == connection && _state == ConnectionState.Connecting)
-                {
-                    _connectingTask = null;
-                    _connectCts = null;
-                    _state = ConnectionState.Connected;
-                }
-                else
-                {
-                    throw new DisconnectedException(connection.DisconnectReason);
-                }
-            }
-
-            return connection;
-        }
-        catch (Exception exception)
-        {
-            Disconnect(exception, connection);
-
-            // Prefer throwing ObjectDisposedException.
-            ThrowHelper.ThrowIfDisposed(_disposed, this);
-
-            // Throw DisconnectedException or ConnectException.
-            if (exception is DisconnectedException || exception is ConnectException)
-            {
-                throw;
-            }
-            else
-            {
-                throw new ConnectException(exception.Message, exception);
-            }
-        }
-    }
+    public ValueTask ConnectAsync()
+        => _connection.ConnectAsync();
 
     /// <summary>
     /// Disposes the connection and releases all resources.
     /// </summary>
     public void Dispose()
-    {
-        lock (_gate)
-        {
-            if (_disposed)
-            {
-                return;
-            }
-            _disposed = true;
-        }
-
-        Disconnect(DisposedException);
-    }
-
-    internal void Disconnect(Exception disconnectReason, DBusConnection? trigger = null)
-    {
-        DBusConnection? connection;
-        ClientSetupResult? setupResult;
-        CancellationTokenSource? connectCts;
-        lock (_gate)
-        {
-            if (trigger is not null && trigger != _connection)
-            {
-                // Already disconnected from this stream.
-                return;
-            }
-
-            ConnectionState state = _state;
-            if (state == ConnectionState.Disconnected)
-            {
-                return;
-            }
-
-            _state = ConnectionState.Disconnected;
-
-            connection = _connection;
-            setupResult = _setupResult;
-            connectCts = _connectCts;
-
-            _connectingTask = null;
-            _setupResult = null;
-            _connectCts = null;
-
-            if (connection is not null)
-            {
-                connection.DisconnectReason = disconnectReason;
-            }
-        }
-
-        connectCts?.Cancel();
-        connection?.Dispose();
-        if (setupResult != null)
-        {
-            _connectionOptions.Teardown(setupResult.TeardownToken);
-        }
-    }
+        => _connection.Dispose();
 
     /// <summary>
     /// Calls a D-Bus method asynchronously without returning a response value.
     /// </summary>
     /// <param name="message">The method call message.</param>
-    public async Task CallMethodAsync(MessageBuffer message)
-    {
-        DBusConnection connection;
-        try
-        {
-            RefHandles(message);
-            connection = await ConnectCoreAsync().ConfigureAwait(false);
-        }
-        catch
-        {
-            message.ReturnToPool();
-            throw;
-        }
-        await connection.CallMethodAsync(message).ConfigureAwait(false);
-    }
+    public Task CallMethodAsync(MessageBuffer message)
+        => _connection.CallMethodAsync(message);
 
     /// <summary>
     /// Calls a D-Bus method asynchronously and returns a response value.
@@ -273,30 +120,8 @@ public partial class Connection : IDisposable
     /// <param name="reader">The delegate to read the return value from the reply.</param>
     /// <param name="readerState">Optional state passed to the reader delegate.</param>
     /// <returns>Value read from the reply.</returns>
-    public async Task<T> CallMethodAsync<T>(MessageBuffer message, MessageValueReader<T> reader, object? readerState = null)
-    {
-        DBusConnection connection;
-        try
-        {
-            RefHandles(message);
-            connection = await ConnectCoreAsync().ConfigureAwait(false);
-        }
-        catch
-        {
-            message.ReturnToPool();
-            throw;
-        }
-        return await connection.CallMethodAsync(message, reader, readerState).ConfigureAwait(false);
-    }
-
-    private void RefHandles(MessageBuffer message)
-    {
-        // Take a reference on any handles we might be sending.
-        // This ensures the handles are valid or that we throw an exception at this point.
-        // It also enables a user to to dispose the handles as soon as Connection method returns
-        // (without having to await it).
-        message.RefHandles();
-    }
+    public Task<T> CallMethodAsync<T>(MessageBuffer message, MessageValueReader<T> reader, object? readerState = null)
+        => _connection.CallMethodAsync(message, reader, readerState);
 
     /// <summary>
     /// Adds an observer to receive D-Bus messages matching the specified criteria.
@@ -311,7 +136,7 @@ public partial class Connection : IDisposable
     /// <param name="emitOnCapturedContext">Whether to invoke the handler on the captured synchronization context.</param>
     /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, ObserverFlags flags, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true)
-        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, flags);
+        => _connection.AddMatchAsync(rule, reader, handler, flags, readerState, handlerState, emitOnCapturedContext);
 
     /// <summary>
     /// Adds an observer to receive D-Bus messages matching the specified criteria.
@@ -326,7 +151,7 @@ public partial class Connection : IDisposable
     /// <param name="flags">Observer behavior flags.</param>
     /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, bool emitOnCapturedContext, ObserverFlags flags)
-        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext ? SynchronizationContext.Current : null, flags);
+        => _connection.AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, flags);
 
     /// <summary>
     /// Adds an observer to receive D-Bus messages matching the specified criteria.
@@ -340,80 +165,57 @@ public partial class Connection : IDisposable
     /// <param name="synchronizationContext">The synchronization context to invoke the handler on.</param>
     /// <param name="flags">Observer behavior flags.</param>
     /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
-    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, ObserverFlags flags)
-    {
-        DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
-        return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, flags).ConfigureAwait(false);
-    }
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, SynchronizationContext? synchronizationContext, ObserverFlags flags)
+        => _connection.AddMatchAsync(rule, reader, handler, readerState, handlerState, synchronizationContext, flags);
 
     /// <summary>
     /// Adds an <see cref="IMethodHandler"/> to handle incoming method calls.
     /// </summary>
     /// <param name="methodHandler">The method handler to add.</param>
     public void AddMethodHandler(IMethodHandler methodHandler)
-        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler.AsPathMethodHandler()), methodHandler);
+        => _connection.AddMethodHandler(methodHandler);
 
     /// <summary>
     /// Adds multiple <see cref="IMethodHandler"/> instances to handle incoming method calls.
     /// </summary>
     /// <param name="methodHandlers">The method handlers to add.</param>
     public void AddMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers)
-        => UpdateMethodHandlers((dictionary, handlers) => dictionary.AddMethodHandlers(handlers.Select(h => h.AsPathMethodHandler()).ToList()), methodHandlers);
+        => _connection.AddMethodHandlers(methodHandlers);
 
     /// <summary>
     /// Adds an <see cref="IPathMethodHandler"/> to handle incoming method calls.
     /// </summary>
     /// <param name="methodHandler">The method handler to add.</param>
     public void AddMethodHandler(IPathMethodHandler methodHandler)
-        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler), methodHandler);
+        => _connection.AddMethodHandler(methodHandler);
 
     /// <summary>
     /// Adds multiple <see cref="IPathMethodHandler"/> instances to handle incoming method calls.
     /// </summary>
     /// <param name="methodHandlers">The method handlers to add.</param>
     public void AddMethodHandlers(IReadOnlyList<IPathMethodHandler> methodHandlers)
-        => UpdateMethodHandlers((dictionary, handlers) => dictionary.AddMethodHandlers(handlers), methodHandlers);
+        => _connection.AddMethodHandlers(methodHandlers);
 
     /// <summary>
     /// Removes a method handler for the specified path.
     /// </summary>
     /// <param name="path">The object path of the handler to remove.</param>
     public void RemoveMethodHandler(string path)
-        => UpdateMethodHandlers((dictionary, path) => dictionary.RemoveMethodHandler(path), path);
+        => _connection.RemoveMethodHandler(path);
 
     /// <summary>
     /// Removes multiple method handlers for the specified paths.
     /// </summary>
     /// <param name="paths">The object paths of the handlers to remove.</param>
     public void RemoveMethodHandlers(IEnumerable<string> paths)
-        => UpdateMethodHandlers((dictionary, paths) => dictionary.RemoveMethodHandlers(paths), paths);
-        
-    private void UpdateMethodHandlers<T>(Action<IMethodHandlerDictionary, T> update, T state)
-        => GetConnection().UpdateMethodHandlers(update, state);
-
-    private static Connection CreateConnection(ref Connection? field, string? address)
-    {
-        address = address ?? "unix:";
-        var connection = Volatile.Read(ref field);
-        if (connection is not null)
-        {
-            return connection;
-        }
-        var newConnection = new Connection(new ClientConnectionOptions(address) { AutoConnect = true, IsShared = true });
-        connection = Interlocked.CompareExchange(ref field, newConnection, null);
-        if (connection != null)
-        {
-            newConnection.Dispose();
-            return connection;
-        }
-        return newConnection;
-    }
+        => _connection.RemoveMethodHandlers(paths);
 
     /// <summary>
     /// Gets a message writer for creating D-Bus messages.
     /// </summary>
     /// <returns>A new MessageWriter instance.</returns>
-    public MessageWriter GetMessageWriter() => new MessageWriter(MessageBufferPool.Shared, GetNextSerial());
+    public MessageWriter GetMessageWriter()
+        => _connection.GetMessageWriter();
 
     /// <summary>
     /// Sends a D-Bus message.
@@ -421,67 +223,110 @@ public partial class Connection : IDisposable
     /// <param name="message">The message to send.</param>
     /// <returns><see langword="true"/> if the message was sent; <see langword="false"/> if not connected.</returns>
     public bool TrySendMessage(MessageBuffer message)
-    {
-        bool messageSent = false;
-        try
-        {
-            DBusConnection? connection = GetConnection(ifConnected: true);
-            if (connection is not null)
-            {
-                RefHandles(message);
-                connection.SendMessage(message);
-                messageSent = true;
-            }
-            return messageSent;
-        }
-        finally
-        {
-            if (!messageSent)
-            {
-                message.ReturnToPool();
-            }
-        }
-    }
+        => _connection.TrySendMessage(message);
 
     /// <summary>
     /// Returns a task that completes when the connection has disconnected.
     /// </summary>
     /// <returns><see cref="Exception"/> with the disconnect reason, or <see langword="null"/> if disposed normally.</returns>
     public Task<Exception?> DisconnectedAsync()
-    {
-        DBusConnection connection = GetConnection();
-        return connection.DisconnectedAsync();
-    }
+        => _connection.DisconnectedAsync();
 
-    private DBusConnection GetConnection() => GetConnection(ifConnected: false)!;
+    /// <summary>
+    /// Lists all currently registered service names on the bus.
+    /// </summary>
+    /// <returns>A Task containing an array of service names.</returns>
+    public Task<string[]> ListServicesAsync()
+        => _connection.ListServicesAsync();
 
-    private DBusConnection? GetConnection(bool ifConnected)
-    {
-        lock (_gate)
-        {
-            ThrowHelper.ThrowIfDisposed(_disposed, this);
+    /// <summary>
+    /// Gets all service names that can be activated on the bus.
+    /// </summary>
+    public Task<string[]> ListActivatableServicesAsync()
+        => _connection.ListActivatableServicesAsync();
 
-            if (_connectionOptions.AutoConnect)
-            {
-                throw new InvalidOperationException("Method cannot be used on autoconnect connections.");
-            }
+    /// <summary>
+    /// Becomes a monitor that receives all messages on the bus.
+    /// </summary>
+    /// <param name="handler">The handler invoked for each message received.</param>
+    /// <param name="rules">Optional match rules to filter which messages to receive.</param>
+    public Task BecomeMonitorAsync(Action<Exception?, DisposableMessage> handler, IEnumerable<MatchRule>? rules = null)
+        => _connection.BecomeMonitorAsync(handler, rules);
 
-            ConnectionState state = _state;
+    /// <summary>
+    /// Monitors a D-Bus bus and returns an <see cref="IAsyncEnumerable{T}"/> for the observed messages.
+    /// </summary>
+    /// <param name="address">The D-Bus address to connect to.</param>
+    /// <param name="rules">Optional match rules to filter which messages to receive.</param>
+    /// <param name="ct">Cancellation token to stop monitoring.</param>
+    public static IAsyncEnumerable<DisposableMessage> MonitorBusAsync(string address, IEnumerable<MatchRule>? rules = null, CancellationToken ct = default)
+        => DBusConnection.MonitorBusAsync(address, rules, ct);
 
-            if (state == ConnectionState.Created ||
-                state == ConnectionState.Connecting)
-            {
-                throw new InvalidOperationException("Connect before using this method.");
-            }
+    /// <summary>
+    /// Requests ownership of a name.
+    /// </summary>
+    /// <param name="name">The name to request.</param>
+    /// <param name="options">Options for requesting the name.</param>
+    public Task RequestNameAsync(string name, RequestNameOptions options)
+        => _connection.RequestNameAsync(name, options);
 
-            if (ifConnected && state != ConnectionState.Connected)
-            {
-                return null;
-            }
+    /// <summary>
+    /// Requests ownership of a name with callback for name loss notification.
+    /// </summary>
+    /// <param name="name">The name to request.</param>
+    /// <param name="options">Options for requesting the name.</param>
+    /// <param name="onLost">Callback invoked when the name is lost to another connection.</param>
+    /// <param name="actionState">State object passed to the callback.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the callback on the captured synchronization context.</param>
+    public Task RequestNameAsync(string name, RequestNameOptions options = RequestNameOptions.Default, Action<string, object?>? onLost = null, object? actionState = null, bool emitOnCapturedContext = true)
+        => _connection.RequestNameAsync(name, options, onLost, actionState, emitOnCapturedContext);
 
-            return _connection;
-        }
-    }
+    /// <summary>
+    /// Tries to request ownership of a name.
+    /// </summary>
+    /// <param name="name">The name to request.</param>
+    /// <param name="options">Options for requesting the name.</param>
+    /// <returns><see langword="true"/> if the name was acquired; <see langword="false"/> if already owned by another bus user.</returns>
+    public Task<bool> TryRequestNameAsync(string name, RequestNameOptions options)
+        => _connection.TryRequestNameAsync(name, options);
 
-    internal uint GetNextSerial() => (uint)Interlocked.Increment(ref _nextSerial);
+    /// <summary>
+    /// Tries to request ownership of a name with callback for name loss notification.
+    /// </summary>
+    /// <param name="name">The name to request.</param>
+    /// <param name="options">Options for requesting the name.</param>
+    /// <param name="onLost">Callback invoked when the name is lost to another connection.</param>
+    /// <param name="actionState">State object passed to the callback.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the callback on the captured synchronization context.</param>
+    /// <returns><see langword="true"/> if the name was acquired; <see langword="false"/> if already owned by another connection.</returns>
+    public Task<bool> TryRequestNameAsync(string name, RequestNameOptions options = RequestNameOptions.Default, Action<string, object?>? onLost = null, object? actionState = null, bool emitOnCapturedContext = true)
+        => _connection.TryRequestNameAsync(name, options, onLost, actionState, emitOnCapturedContext);
+
+    /// <summary>
+    /// Enqueues for ownership of a name.
+    /// </summary>
+    /// <param name="name">The name to request.</param>
+    /// <param name="options">Options for requesting the name.</param>
+    public Task QueueNameRequestAsync(string name, RequestNameOptions options)
+        => _connection.QueueNameRequestAsync(name, options);
+
+    /// <summary>
+    /// Enqueues for ownership of a name with callbacks for acquisition and loss notifications.
+    /// </summary>
+    /// <param name="name">The well-known name to request.</param>
+    /// <param name="options">Options for requesting the name.</param>
+    /// <param name="onAcquired">Callback invoked when the name is acquired.</param>
+    /// <param name="onLost">Callback invoked when the name is lost to another bus user.</param>
+    /// <param name="actionState">State object passed to the callbacks.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke callbacks on the captured synchronization context.</param>
+    public Task QueueNameRequestAsync(string name, RequestNameOptions options = RequestNameOptions.Default, Action<string, object?>? onAcquired = null, Action<string, object?>? onLost = null, object? actionState = null, bool emitOnCapturedContext = true)
+        => _connection.QueueNameRequestAsync(name, options, onAcquired, onLost, actionState, emitOnCapturedContext);
+
+    /// <summary>
+    /// Releases ownership of a name.
+    /// </summary>
+    /// <param name="serviceName">The well-known name to release.</param>
+    /// <returns>A Task containing <see langword="true"/> if the name was released/dequeued; <see langword="false"/> if the name was not requested by this connection.</returns>
+    public Task<bool> ReleaseNameAsync(string serviceName)
+        => _connection.ReleaseNameAsync(serviceName);
 }

@@ -3,6 +3,7 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Configuration options for a D-Bus client connection.
 /// </summary>
+[Obsolete("Use DBusConnectionOptions instead.")]
 public class ClientConnectionOptions : ConnectionOptions
 {
     private string _address;

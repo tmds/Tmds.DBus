@@ -1,7 +1,7 @@
 ﻿using Tmds.DBus.Protocol;
 using Tmds.DBus.SourceGenerator;
 
-var connection = new Connection(DBusAddress.Session!);
+var connection = new DBusConnection(DBusAddress.Session!);
 await connection.ConnectAsync();
 
 var mediaPlayer = new DBusMediaPlayer(connection);
@@ -16,7 +16,7 @@ class DBusMediaPlayer
     private const string ObjectPath = "/org/mpris/MediaPlayer2";
     private const string ServiceNamePrefix = "org.mpris.MediaPlayer2";
 
-    private readonly Connection _connection;
+    private readonly DBusConnection _connection;
     private readonly PathHandler _pathHandler;
     private readonly MediaPlayerHandler _mediaPlayerHandler;
     private readonly MediaPlayerPlayerHandler _playerHandler;
@@ -282,7 +282,7 @@ class DBusMediaPlayer
         }
     }
 
-    public DBusMediaPlayer(Connection connection)
+    public DBusMediaPlayer(DBusConnection connection)
     {
         _connection = connection;
         _pathHandler = new PathHandler(ObjectPath);
@@ -410,7 +410,7 @@ class DBusMediaPlayer
     {
         private readonly DBusMediaPlayer _player = player;
 
-        public override Connection Connection => _player._connection;
+        public override Connection Connection => _player._connection.AsConnection();
 
         public override bool Fullscreen
         {
@@ -435,7 +435,7 @@ class DBusMediaPlayer
     {
         private readonly DBusMediaPlayer _player = player;
 
-        public override Connection Connection => _player._connection;
+        public override Connection Connection => _player._connection.AsConnection();
 
         public override string? LoopStatus
         {

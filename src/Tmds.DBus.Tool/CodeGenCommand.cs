@@ -204,7 +204,7 @@ namespace Tmds.DBus.Tool
             Visitor visitor = new Visitor(codeGenArguments);
             if (codeGenArguments.Service != null)
             {
-                using (Connection connection = new Connection(codeGenArguments.Address))
+                using (DBusConnection connection = new DBusConnection(codeGenArguments.Address))
                 {
                     await connection.ConnectAsync();
                     await NodeVisitor.VisitAsync(connection, codeGenArguments.Service, codeGenArguments.Path, codeGenArguments.Recurse, visitor.VisitNode);

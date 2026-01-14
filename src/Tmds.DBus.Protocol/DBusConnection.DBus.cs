@@ -2,20 +2,20 @@ using System.Threading.Channels;
 
 namespace Tmds.DBus.Protocol;
 
-public partial class Connection
+public partial class DBusConnection
 {
     /// <summary>
     /// The D-Bus daemon object path.
     /// </summary>
-    public const string DBusObjectPath = "/org/freedesktop/DBus";
+    internal const string DBusObjectPath = "/org/freedesktop/DBus";
     /// <summary>
     /// The D-Bus daemon service name.
     /// </summary>
-    public const string DBusServiceName = "org.freedesktop.DBus";
+    internal const string DBusServiceName = "org.freedesktop.DBus";
     /// <summary>
     /// The D-Bus daemon interface name.
     /// </summary>
-    public const string DBusInterface = "org.freedesktop.DBus";
+    internal const string DBusInterface = "org.freedesktop.DBus";
 
     /// <summary>
     /// Lists all currently registered service names on the bus.
@@ -66,7 +66,7 @@ public partial class Connection
             throw new InvalidOperationException("Cannot become monitor on a shared connection.");
         }
 
-        DBusConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
+        InnerConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
         await connection.BecomeMonitorAsync(handler, rules).ConfigureAwait(false);
     }
 
@@ -89,12 +89,12 @@ public partial class Connection
             }
         );
 
-        using var connection = new Connection(address);
+        using var connection = new DBusConnection(address);
         using CancellationTokenRegistration ctr =
 #if NETCOREAPP3_1_OR_GREATER
-                ct.UnsafeRegister(c => ((Connection)c!).Dispose(), connection);
+                ct.UnsafeRegister(c => ((DBusConnection)c!).Dispose(), connection);
 #else
-                ct.Register(c => ((Connection)c!).Dispose(), connection);
+                ct.Register(c => ((DBusConnection)c!).Dispose(), connection);
 #endif
         try
         {
@@ -183,7 +183,7 @@ public partial class Connection
     /// <returns><see langword="true"/> if the name was acquired; <see langword="false"/> if already owned by another connection.</returns>
     public async Task<bool> TryRequestNameAsync(string name, RequestNameOptions options = RequestNameOptions.Default, Action<string, object?>? onLost = null, object? actionState = null, bool emitOnCapturedContext = true)
     {
-        DBusConnection connection = GetConnection();
+        InnerConnection connection = GetConnection();
         ThrowIfOnLostSetWhenReplacementNotAllowed(onLost, options);
 
         const RequestNameOptions DoNotQueue = (RequestNameOptions)4;
@@ -222,7 +222,7 @@ public partial class Connection
     /// <param name="emitOnCapturedContext">Whether to invoke callbacks on the captured synchronization context.</param>
     public async Task QueueNameRequestAsync(string name, RequestNameOptions options = RequestNameOptions.Default, Action<string, object?>? onAcquired = null, Action<string, object?>? onLost = null, object? actionState = null, bool emitOnCapturedContext = true)
     {
-        DBusConnection connection = GetConnection();
+        InnerConnection connection = GetConnection();
         ThrowIfOnLostSetWhenReplacementNotAllowed(onLost, options);
 
         RequestNameReply reply = await connection.RequestNameAsync(name, options, onAcquired, onLost, actionState, emitOnCapturedContext).ConfigureAwait(false);
@@ -247,7 +247,7 @@ public partial class Connection
     /// <returns>A Task containing <see langword="true"/> if the name was released/dequeued; <see langword="false"/> if the name was not requested by this connection.</returns>
     public async Task<bool> ReleaseNameAsync(string serviceName)
     {
-        DBusConnection connection = GetConnection();
+        InnerConnection connection = GetConnection();
         ReleaseNameReply reply = await connection.ReleaseNameAsync(serviceName).ConfigureAwait(false);
         return reply == ReleaseNameReply.ReplyReleased;
     }

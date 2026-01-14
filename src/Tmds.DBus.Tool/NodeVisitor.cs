@@ -13,12 +13,12 @@ namespace Tmds.DBus.Tool
             return GetInterfacesFromIntrospection(null, null, null, xml, false, visit);
         }
 
-        public static Task VisitAsync(Connection connection, string service, string objectPath, bool recurse, Func<string, XElement, bool> visit)
+        public static Task VisitAsync(DBusConnection connection, string service, string objectPath, bool recurse, Func<string, XElement, bool> visit)
         {
             return VisitAsyncInternal(connection, service, objectPath, recurse, visit);
         }
 
-        private static async Task<bool> VisitAsyncInternal(Connection connection, string service, string objectPath, bool recurse, Func<string, XElement, bool> visit)
+        private static async Task<bool> VisitAsyncInternal(DBusConnection connection, string service, string objectPath, bool recurse, Func<string, XElement, bool> visit)
         {
             var xml = await connection.CallMethodAsync(CreateMessage(objectPath), (Message m, object s) => m.GetBodyReader().ReadString(), null);
             var nodeXml = XDocument.Parse(xml).Root;
@@ -36,7 +36,7 @@ namespace Tmds.DBus.Tool
             }
         }
 
-        private static async Task<bool> GetInterfacesFromIntrospection(Connection connection, string service, string objectPath, XElement nodeXml, bool recurse, Func<string, XElement, bool> visit)
+        private static async Task<bool> GetInterfacesFromIntrospection(DBusConnection connection, string service, string objectPath, XElement nodeXml, bool recurse, Func<string, XElement, bool> visit)
         {
             if (!visit(objectPath, nodeXml))
             {

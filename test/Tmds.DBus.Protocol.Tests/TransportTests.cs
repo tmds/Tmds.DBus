@@ -25,7 +25,7 @@ namespace Tmds.DBus.Protocol.Tests
             using (var dbusDaemon = new DBusDaemon())
             {
                 await dbusDaemon.StartAsync(protocol);
-                var connection = new Connection(dbusDaemon.Address!);
+                var connection = new DBusConnection(dbusDaemon.Address!);
                 await connection.ConnectAsync();
 
                 Assert.StartsWith(":", connection.UniqueName);
@@ -48,10 +48,10 @@ namespace Tmds.DBus.Protocol.Tests
                 path = path.Substring(0, path.IndexOf(',')); // strip ',guid=...'
                 await socket.ConnectAsync(new UnixDomainSocketEndPoint(path));
 
-                var connection = new Connection(new MyConnectionOptions
+                var connection = new DBusConnection(new MyConnectionOptions
                 {
                     ConnectFunction = () => ValueTask.FromResult(
-                        new ClientSetupResult()
+                        new DBusConnectionOptions.SetupResult()
                         {
                             TeardownToken = token,
                             ConnectionStream = new NetworkStream(socket, ownsSocket: true)
@@ -80,7 +80,7 @@ namespace Tmds.DBus.Protocol.Tests
                 string address = "unix:path=/does/not/exist;"
                                  + dbusDaemon.Address;
 
-                var connection = new Connection(address);
+                var connection = new DBusConnection(address);
                 await connection.ConnectAsync();
 
                 Assert.StartsWith(":", connection.UniqueName);
@@ -96,11 +96,11 @@ namespace Tmds.DBus.Protocol.Tests
             {
                 await dbusDaemon.StartAsync();
 
-                using var conn2 = new Connection(dbusDaemon.Address!); ;
+                using var conn2 = new DBusConnection(dbusDaemon.Address!); ;
                 await conn2.ConnectAsync();
                 conn2.AddMethodHandler(new SafeHandleOperations());
 
-                using var conn1 = new Connection(new ClientConnectionOptions(dbusDaemon.Address!) { AutoConnect = true });
+                using var conn1 = new DBusConnection(new DBusConnectionOptions(dbusDaemon.Address!) { AutoConnect = true });
 
                 var wrappedHandle = new WrappedHandle(File.OpenHandle(Path.GetTempFileName()));
                 // This is the first call on a closed AutoConnect method, it will first need to connect.
@@ -185,12 +185,12 @@ namespace Tmds.DBus.Protocol.Tests
             }
         }
 
-        private class MyConnectionOptions : ClientConnectionOptions
+        private class MyConnectionOptions : DBusConnectionOptions
         {
-            public required Func<ValueTask<ClientSetupResult>> ConnectFunction { get; set; }
+            public required Func<ValueTask<SetupResult>> ConnectFunction { get; set; }
             public required Action<object?> DisposeAction { get; set; }
 
-            protected internal override ValueTask<ClientSetupResult> SetupAsync(CancellationToken cancellationToken)
+            protected internal override ValueTask<SetupResult> SetupAsync(CancellationToken cancellationToken)
                 => ConnectFunction();
 
             protected internal override void Teardown(object? token)

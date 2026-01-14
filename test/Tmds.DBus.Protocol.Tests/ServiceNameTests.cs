@@ -16,7 +16,7 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
 
             await conn1.RequestNameAsync(serviceName, RequestNameOptions.None);
@@ -36,11 +36,11 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
             await conn1.RequestNameAsync(serviceName, RequestNameOptions.None);
 
-            var conn2 = new Connection(address!);
+            var conn2 = new DBusConnection(address!);
             await conn2.ConnectAsync();
             await Assert.ThrowsAsync<DBusException>(() => conn2.RequestNameAsync(serviceName, RequestNameOptions.None));
         }
@@ -56,7 +56,7 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
             await conn1.RequestNameAsync(serviceName, RequestNameOptions.None);
             await Assert.ThrowsAsync<InvalidOperationException>(() => conn1.RequestNameAsync(serviceName, RequestNameOptions.None));
@@ -73,11 +73,11 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
             await conn1.RequestNameAsync(serviceName, RequestNameOptions.AllowReplacement);
 
-            var conn2 = new Connection(address!);
+            var conn2 = new DBusConnection(address!);
             await conn2.ConnectAsync();
             await conn2.RequestNameAsync(serviceName, RequestNameOptions.ReplaceExisting);
         }
@@ -93,13 +93,13 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
 
             var lostTcs = new TaskCompletionSource<bool>();
             await conn1.RequestNameAsync(serviceName, RequestNameOptions.AllowReplacement, onLost: (name, _) => lostTcs.SetResult(true));
 
-            var conn2 = new Connection(address!);
+            var conn2 = new DBusConnection(address!);
             await conn2.ConnectAsync();
             await conn2.RequestNameAsync(serviceName, RequestNameOptions.ReplaceExisting);
 
@@ -121,7 +121,7 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
 
             var conn1AcquiredTcs = new TaskCompletionSource<bool>();
@@ -137,7 +137,7 @@ public class ServiceNameTests
             Assert.Equal(conn1AcquiredTcs.Task, completedTask);
             Assert.True(await conn1AcquiredTcs.Task);
 
-            var conn2 = new Connection(address!);
+            var conn2 = new DBusConnection(address!);
             await conn2.ConnectAsync();
 
             var conn2AcquiredTcs = new TaskCompletionSource<bool>();
@@ -173,7 +173,7 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
 
             bool released = await conn1.ReleaseNameAsync(serviceName);
@@ -191,13 +191,13 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
 
             // Register with default options (ReplaceExisting | AllowReplacement)
             await conn1.RequestNameAsync(serviceName);
 
-            var conn2 = new Connection(address!);
+            var conn2 = new DBusConnection(address!);
             await conn2.ConnectAsync();
 
             // Should be able to replace since default options include AllowReplacement
@@ -218,7 +218,7 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
 
             // Should throw when trying to set onLost without AllowReplacement
@@ -237,7 +237,7 @@ public class ServiceNameTests
             await dbusDaemon.StartAsync();
             var address = dbusDaemon.Address;
 
-            var conn1 = new Connection(address!);
+            var conn1 = new DBusConnection(address!);
             await conn1.ConnectAsync();
 
             // Should throw when trying to set onLost without AllowReplacement

@@ -30,9 +30,9 @@ namespace Tmds.DBus.Protocol.Tests
         public async Task DisconnectedException()
         {
             var streams = PairedMessageStream.CreatePair();
-            using var conn1 = new Connection("conn1-address");
+            using var conn1 = new DBusConnection("conn1-address");
             conn1.Connect(streams.Item1);
-            using var conn2 = new Connection("conn2-address");
+            using var conn2 = new DBusConnection("conn2-address");
             conn2.Connect(streams.Item2);
 
             // Close the stream at one end.
@@ -119,7 +119,7 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.IsType<DisconnectedException>(ex.Item1);
             Assert.Equal(expectedSynchronizationContext, ex.Item2);
 
-            static void SendHelloWorld(Connection connection)
+            static void SendHelloWorld(DBusConnection connection)
             {
                 using var writer = connection.GetMessageWriter();
 
@@ -146,7 +146,7 @@ namespace Tmds.DBus.Protocol.Tests
         [Theory]
         public async Task UnreachableAddressAsync(string address)
         {
-            using (var connection = new Connection(address))
+            using (var connection = new DBusConnection(address))
             {
                 await Assert.ThrowsAsync<ConnectException>(() => connection.ConnectAsync().AsTask());
             }
@@ -334,10 +334,10 @@ namespace Tmds.DBus.Protocol.Tests
 
         class HelloWorld
         {
-            protected Connection Connection { get; }
+            protected DBusConnection Connection { get; }
             public string Peer { get; }
 
-            public HelloWorld(Connection connection, string peer)
+            public HelloWorld(DBusConnection connection, string peer)
                 => (Connection, Peer) = (connection, peer);
 
             public ValueTask<IDisposable> WatchHelloWorldAsync(Action<Exception?, string> handler, bool emitOnCapturedContext = true)
@@ -381,10 +381,10 @@ namespace Tmds.DBus.Protocol.Tests
 
         class StringOperationsProxy
         {
-            private readonly Connection _connection;
+            private readonly DBusConnection _connection;
             private readonly string _peer;
 
-            public StringOperationsProxy(Connection connection, string peer)
+            public StringOperationsProxy(DBusConnection connection, string peer)
             {
                 _connection = connection;
                 _peer = peer;

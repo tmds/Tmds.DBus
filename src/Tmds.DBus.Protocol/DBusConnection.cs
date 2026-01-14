@@ -1,45 +1,39 @@
-using System.Net;
-using System.Net.Sockets;
-using System.Threading.Tasks.Sources;
-
-#pragma warning disable VSTHRD100 // Avoid "async void" methods
-
 namespace Tmds.DBus.Protocol;
 
-class DBusConnection : IDisposable
+#pragma warning disable CS0618 // IMethodHandler is obsolete.
+
+/// <summary>
+/// Delegate for reading a value from a D-Bus message.
+/// </summary>
+/// <typeparam name="T">The type of value that is read.</typeparam>
+/// <param name="message">The message to read from.</param>
+/// <param name="state">Optional state object.</param>
+/// <returns>The value read from the message.</returns>
+public delegate T MessageValueReader<T>(Message message, object? state);
+
+/// <summary>
+/// Represents a client connection to a D-Bus message bus or peer.
+/// </summary>
+public sealed partial class DBusConnection : IDisposable
 {
-    private delegate void MessageReceivedHandler(Exception? exception, Message message, object? state);
+    internal static readonly Exception DisposedException = new ObjectDisposedException(typeof(DBusConnection).FullName);
+    private static DBusConnection? s_systemConnection;
+    private static DBusConnection? s_sessionConnection;
 
-    sealed class MyValueTaskSource<T> : IValueTaskSource<T>, IValueTaskSource
-    {
-        private ManualResetValueTaskSourceCore<T> _core;
-        private volatile bool _continuationSet;
+    /// <summary>
+    /// Gets a shared connection to the system bus.
+    /// </summary>
+    public static DBusConnection System => s_systemConnection ?? CreateConnection(ref s_systemConnection, DBusAddress.System);
 
-        public void SetResult(T result)
-        {
-            // Ensure we complete the Task from the read loop.
-            SpinWait wait = new();
-            while (!_continuationSet)
-            {
-                wait.SpinOnce();
-            }
-            _core.SetResult(result);
-        }
+    /// <summary>
+    /// Gets a shared connection to the session bus.
+    /// </summary>
+    public static DBusConnection Session => s_sessionConnection ?? CreateConnection(ref s_sessionConnection, DBusAddress.Session);
 
-        public void SetException(Exception exception) => _core.SetException(exception);
-
-        public ValueTaskSourceStatus GetStatus(short token) => _core.GetStatus(token);
-
-        public void OnCompleted(Action<object?> continuation, object? state, short token, ValueTaskSourceOnCompletedFlags flags)
-        {
-            _core.OnCompleted(continuation, state, token, flags);
-            _continuationSet = true;
-        }
-
-        T IValueTaskSource<T>.GetResult(short token) => _core.GetResult(token);
-
-        void IValueTaskSource.GetResult(short token) => _core.GetResult(token);
-    }
+    /// <summary>
+    /// Gets the unique name assigned to this connection by the bus.
+    /// </summary>
+    public string? UniqueName => GetConnection().UniqueName;
 
     enum ConnectionState
     {
@@ -49,513 +43,397 @@ class DBusConnection : IDisposable
         Disconnected
     }
 
-    delegate void MessageHandlerDelegate(Exception? exception, Message message, object? state1, object? state2, object? state3);
-
-    readonly struct MessageHandler
-    {
-        public MessageHandler(MessageHandlerDelegate handler, object? state1 = null, object? state2 = null, object? state3 = null)
-        {
-            _delegate = handler;
-            _state1 = state1;
-            _state2 = state2;
-            _state3 = state3;
-        }
-
-        public void Invoke(Exception? exception, Message message)
-        {
-            _delegate(exception, message, _state1, _state2, _state3);
-        }
-
-        public bool HasValue => _delegate is not null;
-
-        private readonly MessageHandlerDelegate _delegate;
-        private readonly object? _state1;
-        private readonly object? _state2;
-        private readonly object? _state3;
-    }
-
-    delegate void MessageHandlerDelegate4(Exception? exception, Message message, object? state1, object? state2, object? state3, object? state4);
-
-    readonly struct MessageHandler4
-    {
-        public MessageHandler4(MessageHandlerDelegate4 handler, object? state1 = null, object? state2 = null, object? state3 = null, object? state4 = null)
-        {
-            _delegate = handler;
-            _state1 = state1;
-            _state2 = state2;
-            _state3 = state3;
-            _state4 = state4;
-        }
-
-        public void Invoke(Exception? exception, Message message)
-        {
-            _delegate(exception, message, _state1, _state2, _state3, _state4);
-        }
-
-        public bool HasValue => _delegate is not null;
-
-        private readonly MessageHandlerDelegate4 _delegate;
-        private readonly object? _state1;
-        private readonly object? _state2;
-        private readonly object? _state3;
-        private readonly object? _state4;
-    }
-
     private readonly Lock _gate = new();
-    private readonly Connection _parentConnection;
-    private readonly Dictionary<uint, MessageHandler> _pendingCalls;
-    private readonly CancellationTokenSource _connectCts;
-    private readonly Dictionary<string, MatchMaker> _matchMakers;
-    private readonly List<Observer> _matchedObservers;
-    private readonly PathNodeDictionary _pathNodes;
-    private readonly string _machineId;
-    private Dictionary<string, ServiceNameRegistration?>? _serviceNameRegistrations;
-
-    private IMessageStream? _messageStream;
+    private readonly DBusConnectionOptions _connectionOptions;
+    private InnerConnection? _connection;
+    private CancellationTokenSource? _connectCts;
+    private Task<InnerConnection>? _connectingTask;
+    private DBusConnectionOptions.SetupResult? _setupResult;
     private ConnectionState _state;
-    private Exception? _disconnectReason;
-    private string? _localName;
-    private TaskCompletionSource<Exception?>? _disconnectedTcs;
-    private CancellationTokenSource _abortedCts;
-    private bool _isMonitor;
-    private Action<Exception?, DisposableMessage>? _monitorHandler;
+    private bool _disposed;
+    private int _nextSerial;
+    private Connection? _asConnection;
 
-    public string? UniqueName => _localName;
+    /// <summary>
+    /// Initializes a new instance of the DBusConnection class.
+    /// </summary>
+    /// <param name="address">The D-Bus address to connect to.</param>
+    public DBusConnection(string address) :
+        this(new DBusConnectionOptions(address))
+    { }
 
-    public Exception DisconnectReason
+    /// <summary>
+    /// Initializes a new instance of the DBusConnection class.
+    /// </summary>
+    /// <param name="connectionOptions">The connection options.</param>
+    public DBusConnection(DBusConnectionOptions connectionOptions)
     {
-        get => _disconnectReason ?? new ObjectDisposedException(GetType().FullName);
-        set => Interlocked.CompareExchange(ref _disconnectReason, value, null);
-    }
+        if (connectionOptions == null)
+            throw new ArgumentNullException(nameof(connectionOptions));
 
-    public bool RemoteIsBus => _localName is not null;
-
-    public DBusConnection(Connection parent, string machineId)
-    {
-        _parentConnection = parent;
-        _connectCts = new();
-        _pendingCalls = new();
-        _matchMakers = new();
-        _matchedObservers = new();
-        _pathNodes = new();
-        _machineId = machineId;
-        _abortedCts = new();
+        _connectionOptions = connectionOptions;
     }
 
     // For tests.
     internal void Connect(IMessageStream stream)
     {
-        _messageStream = stream;
-
-        stream.ReceiveMessages(
-                    static (Exception? exception, Message message, DBusConnection connection) =>
-                        connection.HandleMessages(exception, message), this);
-
+        _connection = new InnerConnection(this, DBusEnvironment.MachineId);
+        _connection.Connect(stream);
         _state = ConnectionState.Connected;
     }
 
-    public async ValueTask ConnectAsync(string address, string? userId, bool supportsFdPassing, CancellationToken cancellationToken)
+    /// <summary>
+    /// Establishes the connection.
+    /// </summary>
+    public async ValueTask ConnectAsync()
     {
-        _state = ConnectionState.Connecting;
-        Exception? firstException = null;
-
-        AddressParser.AddressEntry addr = default;
-        while (AddressParser.TryGetNextEntry(address, ref addr))
-        {
-            Socket? socket = null;
-            EndPoint? endpoint = null;
-            Guid guid = default;
-
-            if (AddressParser.IsType(addr, "unix"))
-            {
-                AddressParser.ParseUnixProperties(addr, out string path, out guid);
-                socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-                endpoint = new UnixDomainSocketEndPoint(path);
-            }
-            else if (AddressParser.IsType(addr, "tcp"))
-            {
-                AddressParser.ParseTcpProperties(addr, out string host, out int? port, out guid);
-                if (!port.HasValue)
-                {
-                    throw new ArgumentException("port");
-                }
-                socket = new Socket(SocketType.Stream, ProtocolType.Tcp);
-                endpoint = new DnsEndPoint(host, port.Value);
-            }
-
-            if (socket is null)
-            {
-                continue;
-            }
-
-            try
-            {
-                await socket.ConnectAsync(endpoint!, cancellationToken).ConfigureAwait(false);
-
-                MessageStream stream;
-                lock (_gate)
-                {
-                    if (_state != ConnectionState.Connecting)
-                    {
-                        throw new DisconnectedException(DisconnectReason);
-                    }
-                    _messageStream = stream = new MessageStream(socket);
-                }
-
-                await stream.DoClientAuthAsync(guid, userId, supportsFdPassing).ConfigureAwait(false);
-
-                stream.ReceiveMessages(
-                    static (Exception? exception, Message message, DBusConnection connection) =>
-                        connection.HandleMessages(exception, message), this);
-
-                lock (_gate)
-                {
-                    if (_state != ConnectionState.Connecting)
-                    {
-                        throw new DisconnectedException(DisconnectReason);
-                    }
-                    _state = ConnectionState.Connected;
-                }
-
-                _localName = await GetLocalNameAsync().ConfigureAwait(false);
-
-                return;
-            }
-            catch (Exception exception)
-            {
-                socket.Dispose();
-                firstException ??= exception;
-            }
-        }
-
-        if (firstException is not null)
-        {
-            throw firstException;
-        }
-
-        throw new ArgumentException("No addresses were found", nameof(address));
+        await ConnectCoreAsync(explicitConnect: true).ConfigureAwait(false);
     }
 
-    public async ValueTask ConnectAsync(Stream stream, string? userId, CancellationToken cancellationToken)
+    private ValueTask<InnerConnection> ConnectCoreAsync(bool explicitConnect = false)
     {
-        _state = ConnectionState.Connecting;
+        lock (_gate)
+        {
+            ThrowHelper.ThrowIfDisposed(_disposed, this);
 
+            ConnectionState state = _state;
+
+            if (state == ConnectionState.Connected)
+            {
+                return new ValueTask<InnerConnection>(_connection!);
+            }
+
+            if (!_connectionOptions.AutoConnect)
+            {
+                InnerConnection? connection = _connection;
+                if (!explicitConnect && _state == ConnectionState.Disconnected && connection is not null)
+                {
+                    throw new DisconnectedException(connection.DisconnectReason);
+                }
+
+                if (!explicitConnect || _state != ConnectionState.Created)
+                {
+                    throw new InvalidOperationException("Can only connect once using an explicit call.");
+                }
+            }
+
+            if (state == ConnectionState.Connecting)
+            {
+                return new ValueTask<InnerConnection>(_connectingTask!);
+            }
+
+            _state = ConnectionState.Connecting;
+            _connectingTask = DoConnectAsync();
+
+            return new ValueTask<InnerConnection>(_connectingTask);
+        }
+    }
+
+    private async Task<InnerConnection> DoConnectAsync()
+    {
+        Debug.Assert(_gate.IsHeldByCurrentThread);
+
+        InnerConnection? connection = null;
         try
         {
-            MessageStream messageStream = new MessageStream(stream);
-            _messageStream = messageStream;
+            _connectCts = new();
+            _setupResult = await _connectionOptions.SetupAsync(_connectCts.Token).ConfigureAwait(false);
+            connection = _connection = new InnerConnection(this, _setupResult.MachineId ?? DBusEnvironment.MachineId);
 
-            await messageStream.DoClientAuthAsync(default(Guid), userId, supportsFdPassing: false).ConfigureAwait(false);
-
-            messageStream.ReceiveMessages(
-                static (Exception? exception, Message message, DBusConnection connection) =>
-                    connection.HandleMessages(exception, message), this);
+            if (_setupResult.ConnectionStream is Stream stream)
+            {
+                await connection.ConnectAsync(stream, _setupResult.UserId, _connectCts.Token).ConfigureAwait(false);
+            }
+            else
+            {
+                await connection.ConnectAsync(_setupResult.ConnectionAddress, _setupResult.UserId, _setupResult.SupportsFdPassing, _connectCts.Token).ConfigureAwait(false);
+            }
 
             lock (_gate)
             {
-                if (_state != ConnectionState.Connecting)
+                ThrowHelper.ThrowIfDisposed(_disposed, this);
+
+                if (_connection == connection && _state == ConnectionState.Connecting)
                 {
-                    throw new DisconnectedException(DisconnectReason);
-                }
-                _state = ConnectionState.Connected;
-            }
-
-            _localName = await GetLocalNameAsync().ConfigureAwait(false);
-        }
-        catch
-        {
-            stream.Dispose();
-
-            throw;
-        }
-    }
-
-    private async Task<string?> GetLocalNameAsync()
-    {
-        MyValueTaskSource<string?> vts = new();
-
-        await CallMethodAsync(
-            message: CreateHelloMessage(),
-            static (Exception? exception, Message message, object? state) =>
-            {
-                var vtsState = (MyValueTaskSource<string?>)state!;
-
-                if (exception is not null)
-                {
-                    vtsState.SetException(exception);
-                }
-                else if (message.MessageType == MessageType.MethodReturn)
-                {
-                    vtsState.SetResult(message.GetBodyReader().ReadString());
+                    _connectingTask = null;
+                    _connectCts = null;
+                    _state = ConnectionState.Connected;
                 }
                 else
                 {
-                    vtsState.SetResult(null);
-                }
-            }, vts).ConfigureAwait(false);
-
-        return await new ValueTask<string?>(vts, token: 0).ConfigureAwait(false);
-
-        MessageBuffer CreateHelloMessage()
-        {
-            using var writer = GetMessageWriter();
-
-            writer.WriteMethodCallHeader(
-                destination: "org.freedesktop.DBus",
-                path: "/org/freedesktop/DBus",
-                @interface: "org.freedesktop.DBus",
-                member: "Hello");
-
-            return writer.CreateMessage();
-        }
-    }
-
-    private async void HandleMessages(Exception? exception, Message message)
-    {
-        if (exception is not null)
-        {
-            _parentConnection.Disconnect(exception, this);
-        }
-        else
-        {
-            try
-            {
-                MessageHandler pendingCall = default;
-                IPathMethodHandler? methodHandler = null;
-                Action<Exception?, DisposableMessage>? monitor = null;
-                MethodContext? methodContext = null;
-
-                lock (_gate)
-                {
-                    if (_state == ConnectionState.Disconnected)
-                    {
-                        return;
-                    }
-
-                    monitor = _monitorHandler;
-
-                    if (monitor is null)
-                    {
-                        if (message.MessageType == MessageType.Signal &&
-                            message.Interface.SequenceEqual("org.freedesktop.DBus"u8))
-                        {
-                            HandleDBusInterfaceSignal(message);
-                        }
-
-                        if (message.ReplySerial.HasValue)
-                        {
-                            _pendingCalls.Remove(message.ReplySerial.Value, out pendingCall);
-                        }
-
-                        foreach (var matchMaker in _matchMakers.Values)
-                        {
-                            if (matchMaker.Matches(message))
-                            {
-                                _matchedObservers.AddRange(matchMaker.Observers);
-                            }
-                        }
-
-                        if (message.MessageType == MessageType.MethodCall)
-                        {
-                            // This is a small object. We don't pool it to avoid re-use issues.
-                            methodContext = new MethodContext(_parentConnection, message, _abortedCts.Token);
-
-                            if (message.PathIsSet)
-                            {
-                                _pathNodes.TryGetValue(message.PathAsString, out methodHandler, out PathNode? node);
-                                // Track the child name list for nodes that don't have handlers to reply below
-                                // or for nodes that don't handle child paths to include them when they call ReplyIntrospectXml.
-                                // Handlers that handle child paths are expected to provide the child names when calling ReplyIntrospectXml.
-                                if (node is not null && methodHandler?.HandlesChildPaths != true && methodContext.IsDBusIntrospectRequest)
-                                {
-                                    node.SetIntrospectChildNames(methodContext);
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (monitor is not null)
-                {
-                    lock (monitor)
-                    {
-                        if (_monitorHandler is not null)
-                        {
-                            monitor(null, new DisposableMessage(message));
-                        }
-                    }
-                }
-                else
-                {
-                    if (_matchedObservers.Count != 0)
-                    {
-                        foreach (var observer in _matchedObservers)
-                        {
-                            observer.Emit(message);
-                        }
-                        _matchedObservers.Clear();
-                    }
-
-                    if (pendingCall.HasValue)
-                    {
-                        pendingCall.Invoke(null, message);
-                    }
-
-                    if (methodContext is not null)
-                    {
-                        // Suppress methodContext nullability warnings.
-#if NETSTANDARD2_0
-#pragma warning disable CS8602
-#endif
-                        try
-                        {
-                            if (methodContext.IsPeerInterface)
-                            {
-                                HandlePeerInterface(methodContext);
-                            }
-                            else if (methodHandler is not null)
-                            {
-                                await methodHandler.HandleMethodAsync(methodContext).ConfigureAwait(false);
-                            }
-                            else if (methodContext.IntrospectChildNames is not null)
-                            {
-                                methodContext.ReplyIntrospectXml(interfaceXmls: []);
-                            }
-                        }
-                        finally
-                        {
-                            if (!methodContext.DisposesAsynchronously)
-                            {
-                                methodContext.CanDispose = false; // Ensure the context is no longer disposable by the user.
-                                methodContext.Dispose(force: true);
-                            }
-                        }
-#if NETSTANDARD2_0
-#pragma warning restore CS8602
-#endif
-                    }
-
-                    message.DecrementRef();
+                    throw new DisconnectedException(connection.DisconnectReason);
                 }
             }
-            catch (Exception ex)
+
+            return connection;
+        }
+        catch (Exception exception)
+        {
+            Disconnect(exception, connection);
+
+            // Prefer throwing ObjectDisposedException.
+            ThrowHelper.ThrowIfDisposed(_disposed, this);
+
+            // Throw DisconnectedException or ConnectException.
+            if (exception is DisconnectedException || exception is ConnectException)
             {
-                _parentConnection.Disconnect(ex, this);
+                throw;
+            }
+            else
+            {
+                throw new ConnectException(exception.Message, exception);
             }
         }
     }
 
-    private void HandlePeerInterface(MethodContext context)
-    {
-        var request = context.Request;
-        if (request.Member.SequenceEqual("Ping"u8))
-        {
-            using var writer = context.CreateReplyWriter(null);
-            context.Reply(writer.CreateMessage());
-        }
-        else if (request.Member.SequenceEqual("GetMachineId"u8))
-        {
-            using var writer = context.CreateReplyWriter("s");
-            writer.WriteString(_machineId);
-            context.Reply(writer.CreateMessage());
-        }
-    }
-
-    public void UpdateMethodHandlers<T>(Action<IMethodHandlerDictionary, T> update, T state)
-    {
-        lock (_gate)
-        {
-            update(_pathNodes, state);
-        }
-    }
-
+    /// <summary>
+    /// Disposes the connection and releases all resources.
+    /// </summary>
     public void Dispose()
     {
-        Action<Exception?, DisposableMessage>? monitor = null;
-
         lock (_gate)
         {
-            if (_state == ConnectionState.Disconnected)
+            if (_disposed)
             {
                 return;
             }
-            _state = ConnectionState.Disconnected;
-            monitor = _monitorHandler;
-            _serviceNameRegistrations = null;
+            _disposed = true;
         }
 
-        Exception disconnectReason = DisconnectReason;
-
-        _messageStream?.Close(disconnectReason);
-
-        _abortedCts.Cancel();
-
-        if (_pendingCalls is not null)
-        {
-            foreach (var pendingCall in _pendingCalls.Values)
-            {
-                pendingCall.Invoke(new DisconnectedException(disconnectReason), null!);
-            }
-            _pendingCalls.Clear();
-        }
-
-        foreach (var matchMaker in _matchMakers.Values)
-        {
-            foreach (var observer in matchMaker.Observers)
-            {
-                bool emitException = !object.ReferenceEquals(disconnectReason, Connection.DisposedException) ||
-                                     observer.EmitOnConnectionDispose;
-                Exception? exception = emitException ? new DisconnectedException(disconnectReason) : null;
-                observer.Dispose(exception, removeObserver: false);
-            }
-        }
-        _matchMakers.Clear();
-
-        if (monitor is not null)
-        {
-            lock (monitor)
-            {
-                _monitorHandler = null;
-                monitor(new DisconnectedException(disconnectReason), new DisposableMessage(null));
-            }
-        }
-
-        _disconnectedTcs?.SetResult(GetWaitForDisconnectException());
+        Disconnect(DisposedException);
     }
 
-    private ValueTask CallMethodAsync(MessageBuffer message, MessageReceivedHandler returnHandler, object? state)
+    internal void Disconnect(Exception disconnectReason, InnerConnection? trigger = null)
     {
-        MessageHandlerDelegate fn = static (Exception? exception, Message message, object? state1, object? state2, object? state3) =>
+        InnerConnection? connection;
+        DBusConnectionOptions.SetupResult? setupResult;
+        CancellationTokenSource? connectCts;
+        lock (_gate)
         {
-            ((MessageReceivedHandler)state1!)(exception, message, state2);
-        };
-        MessageHandler handler = new(fn, returnHandler, state);
+            if (trigger is not null && trigger != _connection)
+            {
+                // Already disconnected from this stream.
+                return;
+            }
 
-        return CallMethodAsync(message, handler);
+            ConnectionState state = _state;
+            if (state == ConnectionState.Disconnected)
+            {
+                return;
+            }
+
+            _state = ConnectionState.Disconnected;
+
+            connection = _connection;
+            setupResult = _setupResult;
+            connectCts = _connectCts;
+
+            _connectingTask = null;
+            _setupResult = null;
+            _connectCts = null;
+
+            if (connection is not null)
+            {
+                connection.DisconnectReason = disconnectReason;
+            }
+        }
+
+        connectCts?.Cancel();
+        connection?.Dispose();
+        if (setupResult != null)
+        {
+            _connectionOptions.Teardown(setupResult.TeardownToken);
+        }
     }
 
-    private async ValueTask CallMethodAsync(MessageBuffer message, MessageHandler handler)
+    /// <summary>
+    /// Calls a D-Bus method asynchronously without returning a response value.
+    /// </summary>
+    /// <param name="message">The method call message.</param>
+    public async Task CallMethodAsync(MessageBuffer message)
+    {
+        InnerConnection connection;
+        try
+        {
+            RefHandles(message);
+            connection = await ConnectCoreAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            message.ReturnToPool();
+            throw;
+        }
+        await connection.CallMethodAsync(message).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Calls a D-Bus method asynchronously and returns a response value.
+    /// </summary>
+    /// <typeparam name="T">The type of the return value.</typeparam>
+    /// <param name="message">The method call message.</param>
+    /// <param name="reader">The delegate to read the return value from the reply.</param>
+    /// <param name="readerState">Optional state passed to the reader delegate.</param>
+    /// <returns>Value read from the reply.</returns>
+    public async Task<T> CallMethodAsync<T>(MessageBuffer message, MessageValueReader<T> reader, object? readerState = null)
+    {
+        InnerConnection connection;
+        try
+        {
+            RefHandles(message);
+            connection = await ConnectCoreAsync().ConfigureAwait(false);
+        }
+        catch
+        {
+            message.ReturnToPool();
+            throw;
+        }
+        return await connection.CallMethodAsync(message, reader, readerState).ConfigureAwait(false);
+    }
+
+    private void RefHandles(MessageBuffer message)
+    {
+        // Take a reference on any handles we might be sending.
+        // This ensures the handles are valid or that we throw an exception at this point.
+        // It also enables a user to to dispose the handles as soon as Connection method returns
+        // (without having to await it).
+        message.RefHandles();
+    }
+
+    /// <summary>
+    /// Adds an observer to receive D-Bus messages matching the specified criteria.
+    /// </summary>
+    /// <typeparam name="T">The type of value read from matched messages.</typeparam>
+    /// <param name="rule">The match rule defining which messages to receive.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for each matched message.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="readerState">Optional state passed to the reader delegate.</param>
+    /// <param name="handlerState">Optional state passed to the handler delegate.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the captured synchronization context.</param>
+    /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, ObserverFlags flags, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true)
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, flags);
+
+    /// <summary>
+    /// Adds an observer to receive D-Bus messages matching the specified criteria.
+    /// </summary>
+    /// <typeparam name="T">The type of value read from matched messages.</typeparam>
+    /// <param name="rule">The match rule defining which messages to receive.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for each matched message.</param>
+    /// <param name="readerState">Optional state passed to the reader delegate.</param>
+    /// <param name="handlerState">Optional state passed to the handler delegate.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the captured synchronization context.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, bool emitOnCapturedContext, ObserverFlags flags)
+        => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext ? SynchronizationContext.Current : null, flags);
+
+    /// <summary>
+    /// Adds an observer to receive D-Bus messages matching the specified criteria.
+    /// </summary>
+    /// <typeparam name="T">The type of value read from matched messages.</typeparam>
+    /// <param name="rule">The match rule defining which messages to receive.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for each matched message.</param>
+    /// <param name="readerState">Optional state passed to the reader delegate.</param>
+    /// <param name="handlerState">Optional state passed to the handler delegate.</param>
+    /// <param name="synchronizationContext">The synchronization context to invoke the handler on.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
+    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, ObserverFlags flags)
+    {
+        InnerConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
+        return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, flags).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Adds an <see cref="IMethodHandler"/> to handle incoming method calls.
+    /// </summary>
+    /// <param name="methodHandler">The method handler to add.</param>
+    public void AddMethodHandler(IMethodHandler methodHandler)
+        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler.AsPathMethodHandler()), methodHandler);
+
+    /// <summary>
+    /// Adds multiple <see cref="IMethodHandler"/> instances to handle incoming method calls.
+    /// </summary>
+    /// <param name="methodHandlers">The method handlers to add.</param>
+    public void AddMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers)
+        => UpdateMethodHandlers((dictionary, handlers) => dictionary.AddMethodHandlers(handlers.Select(h => h.AsPathMethodHandler()).ToList()), methodHandlers);
+
+    /// <summary>
+    /// Adds an <see cref="IPathMethodHandler"/> to handle incoming method calls.
+    /// </summary>
+    /// <param name="methodHandler">The method handler to add.</param>
+    public void AddMethodHandler(IPathMethodHandler methodHandler)
+        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler), methodHandler);
+
+    /// <summary>
+    /// Adds multiple <see cref="IPathMethodHandler"/> instances to handle incoming method calls.
+    /// </summary>
+    /// <param name="methodHandlers">The method handlers to add.</param>
+    public void AddMethodHandlers(IReadOnlyList<IPathMethodHandler> methodHandlers)
+        => UpdateMethodHandlers((dictionary, handlers) => dictionary.AddMethodHandlers(handlers), methodHandlers);
+
+    /// <summary>
+    /// Removes a method handler for the specified path.
+    /// </summary>
+    /// <param name="path">The object path of the handler to remove.</param>
+    public void RemoveMethodHandler(string path)
+        => UpdateMethodHandlers((dictionary, path) => dictionary.RemoveMethodHandler(path), path);
+
+    /// <summary>
+    /// Removes multiple method handlers for the specified paths.
+    /// </summary>
+    /// <param name="paths">The object paths of the handlers to remove.</param>
+    public void RemoveMethodHandlers(IEnumerable<string> paths)
+        => UpdateMethodHandlers((dictionary, paths) => dictionary.RemoveMethodHandlers(paths), paths);
+        
+    private void UpdateMethodHandlers<T>(Action<IMethodHandlerDictionary, T> update, T state)
+        => GetConnection().UpdateMethodHandlers(update, state);
+
+    private static DBusConnection CreateConnection(ref DBusConnection? field, string? address)
+    {
+        address = address ?? "unix:";
+        var connection = Volatile.Read(ref field);
+        if (connection is not null)
+        {
+            return connection;
+        }
+        var newConnection = new DBusConnection(new DBusConnectionOptions(address) { AutoConnect = true, IsShared = true });
+        connection = Interlocked.CompareExchange(ref field, newConnection, null);
+        if (connection != null)
+        {
+            newConnection.Dispose();
+            return connection;
+        }
+        return newConnection;
+    }
+
+    /// <summary>
+    /// Gets a message writer for creating D-Bus messages.
+    /// </summary>
+    /// <returns>A new MessageWriter instance.</returns>
+    public MessageWriter GetMessageWriter() => new MessageWriter(MessageBufferPool.Shared, GetNextSerial());
+
+    /// <summary>
+    /// Sends a D-Bus message.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <returns><see langword="true"/> if the message was sent; <see langword="false"/> if not connected.</returns>
+    public bool TrySendMessage(MessageBuffer message)
     {
         bool messageSent = false;
         try
         {
-            lock (_gate)
+            InnerConnection? connection = GetConnection(ifConnected: true);
+            if (connection is not null)
             {
-                if (_state != ConnectionState.Connected)
-                {
-                    throw new DisconnectedException(DisconnectReason!);
-                }
-                if (_isMonitor)
-                {
-                    throw new InvalidOperationException("Cannot send messages on monitor connection.");
-                }
-                if ((message.MessageFlags & MessageFlags.NoReplyExpected) == 0)
-                {
-                    _pendingCalls.Add(message.Serial, handler);
-                }
+                RefHandles(message);
+                connection.SendMessage(message);
+                messageSent = true;
             }
-
-            messageSent = await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false);
+            return messageSent;
         }
         finally
         {
@@ -566,891 +444,51 @@ class DBusConnection : IDisposable
         }
     }
 
-    public async Task<T> CallMethodAsync<T>(MessageBuffer message, MessageValueReader<T> valueReader, object? state = null)
-    {
-        MessageHandlerDelegate fn = static (Exception? exception, Message message, object? state1, object? state2, object? state3) =>
-        {
-            var valueReaderState = (MessageValueReader<T>)state1!;
-            var vtsState = (MyValueTaskSource<T>)state2!;
-
-            if (exception is not null)
-            {
-                vtsState.SetException(exception);
-            }
-            else if (message.MessageType == MessageType.MethodReturn)
-            {
-                try
-                {
-                    vtsState.SetResult(valueReaderState(message, state3));
-                }
-                catch (Exception ex)
-                {
-                    vtsState.SetException(ex);
-                }
-            }
-            else if (message.MessageType == MessageType.Error)
-            {
-                vtsState.SetException(CreateDBusExceptionForErrorMessage(message));
-            }
-            else
-            {
-                vtsState.SetException(new ProtocolException($"Unexpected reply type: {message.MessageType}."));
-            }
-        };
-
-        MyValueTaskSource<T> vts = new();
-        MessageHandler handler = new(fn, valueReader, vts, state);
-
-        await CallMethodAsync(message, handler).ConfigureAwait(false);
-
-        return await new ValueTask<T>(vts, 0).ConfigureAwait(false);
-    }
-
-    public async Task CallMethodAsync(MessageBuffer message)
-    {
-        MyValueTaskSource<object?> vts = new();
-
-        await CallMethodAsync(message,
-            static (Exception? exception, Message message, object? state) => CompleteCallValueTaskSource(exception, message, state), vts).ConfigureAwait(false);
-
-        await new ValueTask(vts, 0).ConfigureAwait(false);
-    }
-
-    private static void CompleteCallValueTaskSource(Exception? exception, Message message, object? vts)
-    {
-        var vtsState = (MyValueTaskSource<object?>)vts!;
-
-        if (exception is not null)
-        {
-            vtsState.SetException(exception);
-        }
-        else if (message.MessageType == MessageType.MethodReturn)
-        {
-            vtsState.SetResult(null);
-        }
-        else if (message.MessageType == MessageType.Error)
-        {
-            vtsState.SetException(CreateDBusExceptionForErrorMessage(message));
-        }
-        else
-        {
-            vtsState.SetException(new ProtocolException($"Unexpected reply type: {message.MessageType}."));
-        }
-    }
-
-    private static DBusException CreateDBusExceptionForErrorMessage(Message message)
-    {
-        string errorName = message.ErrorNameAsString ?? "<<No ErrorName>>.";
-        string errMessage = errorName;
-        if (message.SignatureIsSet && message.Signature.Length > 0 && (DBusType)message.Signature[0] == DBusType.String)
-        {
-            errMessage = message.GetBodyReader().ReadString();
-        }
-        return new DBusException(errorName, errMessage);
-    }
-
-    public async Task BecomeMonitorAsync(Action<Exception?, DisposableMessage> handler, IEnumerable<MatchRule>? rules)
-    {
-        Task reply;
-
-        lock (_gate)
-        {
-            if (_state != ConnectionState.Connected)
-            {
-                throw new DisconnectedException(DisconnectReason!);
-            }
-            if (!RemoteIsBus)
-            {
-                throw new InvalidOperationException("The remote is not a bus.");
-            }
-            if (_matchMakers.Count != 0)
-            {
-                throw new InvalidOperationException("The connection has observers.");
-            }
-            if (_pendingCalls.Count != 0)
-            {
-                throw new InvalidOperationException("The connection has pending method calls.");
-            }
-            if (_serviceNameRegistrations?.Count > 0)
-            {
-                throw new InvalidOperationException("The connection has service name registrations.");
-            }
-
-            HashSet<string>? ruleStrings = null;
-            if (rules is not null)
-            {
-                ruleStrings = new();
-                foreach (var rule in rules)
-                {
-                    ruleStrings.Add(rule.ToString());
-                }
-            }
-
-            reply = CallMethodAsync(CreateMessage(ruleStrings));
-            _isMonitor = true;
-        }
-
-        try
-        {
-            await reply.ConfigureAwait(false);
-            lock (_gate)
-            {
-                _messageStream!.BecomeMonitor();
-                _monitorHandler = handler;
-            }
-        }
-        catch
-        {
-            lock (_gate)
-            {
-                _isMonitor = false;
-            }
-
-            throw;
-        }
-
-        MessageBuffer CreateMessage(IEnumerable<string>? rules)
-        {
-            using var writer = GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Connection.DBusServiceName,
-                path: Connection.DBusObjectPath,
-                @interface: "org.freedesktop.DBus.Monitoring",
-                signature: "asu",
-                member: "BecomeMonitor");
-            writer.WriteArray(rules ?? Array.Empty<string>());
-            writer.WriteUInt32(0);
-            return writer.CreateMessage();
-        }
-    }
-
-    public async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
-    {
-        MatchRuleData data = rule.Data;
-        MatchMaker? matchMaker;
-        string ruleString;
-        Observer observer;
-        MessageBuffer? addMatchMessage = null;
-        bool subscribe;
-
-        lock (_gate)
-        {
-            if (_state != ConnectionState.Connected)
-            {
-                throw new DisconnectedException(DisconnectReason!);
-            }
-            if (!RemoteIsBus)
-            {
-                flags |= ObserverFlags.NoSubscribe;
-            }
-            if (_isMonitor)
-            {
-                throw new InvalidOperationException("Cannot add subscriptions on a monitor connection.");
-            }
-
-            ruleString = data.GetRuleString();
-
-            if (!_matchMakers.TryGetValue(ruleString, out matchMaker))
-            {
-                matchMaker = new MatchMaker(this, ruleString, data);
-                _matchMakers.Add(ruleString, matchMaker);
-            }
-
-            observer = Observer.Create(synchronizationContext, matchMaker, valueReader, valueHandler, readerState, handlerState, flags);
-            matchMaker.Observers.Add(observer);
-
-            subscribe = observer.Subscribes;
-            bool sendMessage = subscribe && matchMaker.AddMatchTcs is null;
-            if (sendMessage)
-            {
-                addMatchMessage = CreateAddMatchMessage(matchMaker.RuleString);
-                matchMaker.AddMatchTcs = new();
-
-                MessageHandlerDelegate fn = static (Exception? exception, Message message, object? state1, object? state2, object? state3) =>
-                {
-                    var mm = (MatchMaker)state1!;
-                    if (message.MessageType == MessageType.MethodReturn)
-                    {
-                        mm.HasSubscribed = true;
-                    }
-                    CompleteCallValueTaskSource(exception, message, mm.AddMatchTcs!);
-                };
-
-                _pendingCalls.Add(addMatchMessage.Serial, new(fn, matchMaker));
-            }
-        }
-
-        if (subscribe)
-        {
-            if (addMatchMessage is not null)
-            {
-                if (!await _messageStream!.TrySendMessageAsync(addMatchMessage).ConfigureAwait(false))
-                {
-                    addMatchMessage.ReturnToPool();
-                }
-            }
-
-            try
-            {
-                await matchMaker.AddMatchTask!.ConfigureAwait(false);
-            }
-            catch
-            {
-                observer.Dispose(exception: null);
-
-                throw;
-            }
-        }
-
-        return observer;
-
-        MessageBuffer CreateAddMatchMessage(string ruleString)
-        {
-            using var writer = GetMessageWriter();
-
-            writer.WriteMethodCallHeader(
-                destination: "org.freedesktop.DBus",
-                path: "/org/freedesktop/DBus",
-                @interface: "org.freedesktop.DBus",
-                member: "AddMatch",
-                signature: "s");
-
-            writer.WriteString(ruleString);
-
-            return writer.CreateMessage();
-        }
-    }
-
-    internal static readonly ObjectDisposedException ObserverDisposedException = new ObjectDisposedException(typeof(Observer).FullName);
-
-    sealed class Observer : IDisposable
-    {
-        private readonly Lock _gate = new();
-        private readonly SynchronizationContext? _synchronizationContext;
-        private readonly MatchMaker _matchMaker;
-        private readonly MessageHandler4 _messageHandler;
-        private readonly SendOrPostCallback _scMessageCallback;
-        private readonly ObserverFlags _flags;
-        private bool _disposed;
-
-        public bool Subscribes => (_flags & ObserverFlags.NoSubscribe) == 0;
-        public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionDispose) != 0;
-        public bool EmitOnObserverDispose => (_flags & ObserverFlags.EmitOnObserverDispose) != 0;
-
-        private Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, ObserverFlags flags)
-        {
-            _synchronizationContext = synchronizationContext;
-            _matchMaker = matchMaker;
-            _messageHandler = messageHandler;
-            _flags = flags;
-            _scMessageCallback ??= EmitMessageOnSynchronizationContext;
-        }
-
-        public static Observer Create<T>(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
-        {
-            MessageHandlerDelegate4 fn = static (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
-            {
-                var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
-                if (exception is not null)
-                {
-                    valueHandlerState(exception, default(T)!, rs, hs);
-                }
-                else
-                {
-                    var valueReaderState = (MessageValueReader<T>)reader!;
-                    T value = valueReaderState(message, rs);
-                    valueHandlerState(null, value, rs, hs);
-                }
-            };
-
-            MessageHandler4 handler = new(fn, valueReader, valueHandler, readerState, handlerState);
-            return new Observer(synchronizationContext, matchMaker, handler, flags);
-        }
-
-        public void Dispose() =>
-            Dispose(EmitOnObserverDispose ? ObserverDisposedException : null);
-
-        public void Dispose(Exception? exception, bool removeObserver = true)
-        {
-            lock (_gate)
-            {
-                if (_disposed)
-                {
-                    return;
-                }
-                _disposed = true;
-            }
-
-            if (exception is not null)
-            {
-                Emit(exception);
-            }
-
-            if (removeObserver)
-            {
-                _matchMaker.Connection.RemoveObserver(_matchMaker, this);
-            }
-        }
-
-        public void Emit(Message message)
-        {
-            if (Subscribes && !_matchMaker.HasSubscribed)
-            {
-                return;
-            }
-
-            if (_synchronizationContext is null)
-            {
-                lock (_gate)
-                {
-                    if (_disposed)
-                    {
-                        return;
-                    }
-
-                    _messageHandler.Invoke(null, message);
-                }
-            }
-            else
-            {
-                if (_disposed)
-                {
-                    return;
-                }
-                message.IncrementRef();
-                _synchronizationContext!.Post(_scMessageCallback, message);
-            }
-        }
-
-        private void EmitMessageOnSynchronizationContext(object? state)
-        {
-            var message = (Message)state!;
-            SynchronizationContext? previousContext = SynchronizationContext.Current;
-            try
-            {
-                SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                lock (_gate)
-                {
-                    if (_disposed)
-                    {
-                        return;
-                    }
-                    _messageHandler.Invoke(null, message);
-                }
-            }
-            finally
-            {
-                SynchronizationContext.SetSynchronizationContext(previousContext);
-                message.DecrementRef();
-            }
-        }
-
-        private void Emit(Exception exception)
-        {
-            if (_synchronizationContext is null ||
-                SynchronizationContext.Current == _synchronizationContext)
-            {
-                _messageHandler.Invoke(exception, null!);
-            }
-            else
-            {
-                _synchronizationContext.Post(EmitExceptionOnSynchronizationContext, exception);
-            }
-        }
-
-        private void EmitExceptionOnSynchronizationContext(object? state)
-        {
-            SynchronizationContext? previousContext = SynchronizationContext.Current;
-            try
-            {
-                SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                _messageHandler.Invoke((Exception)state!, null!);
-            }
-            finally
-            {
-                SynchronizationContext.SetSynchronizationContext(previousContext);
-            }
-        }
-
-        internal void InvokeHandler(Message message)
-        {
-            if (Subscribes && !_matchMaker.HasSubscribed)
-            {
-                return;
-            }
-
-            lock (_gate)
-            {
-                if (_disposed)
-                {
-                    return;
-                }
-
-                _messageHandler.Invoke(null, message);
-            }
-        }
-    }
-
-    private async void RemoveObserver(MatchMaker matchMaker, Observer observer)
-    {
-        string ruleString = matchMaker.RuleString;
-        bool sendMessage = false;
-
-        lock (_gate)
-        {
-            if (_state == ConnectionState.Disconnected)
-            {
-                return;
-            }
-
-            if (_matchMakers.TryGetValue(ruleString, out _))
-            {
-                matchMaker.Observers.Remove(observer);
-                sendMessage = matchMaker.AddMatchTcs is not null && matchMaker.HasSubscribers;
-                if (sendMessage)
-                {
-                    _matchMakers.Remove(ruleString);
-                }
-            }
-        }
-
-        if (sendMessage)
-        {
-            var message = CreateRemoveMatchMessage();
-            if (!await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false))
-            {
-                message.ReturnToPool();
-            }
-        }
-
-        MessageBuffer CreateRemoveMatchMessage()
-        {
-            using var writer = GetMessageWriter();
-
-            writer.WriteMethodCallHeader(
-                destination: "org.freedesktop.DBus",
-                path: "/org/freedesktop/DBus",
-                @interface: "org.freedesktop.DBus",
-                member: "RemoveMatch",
-                signature: "s",
-                flags: MessageFlags.NoReplyExpected);
-
-            writer.WriteString(ruleString);
-
-            return writer.CreateMessage();
-        }
-    }
-
-    sealed class MatchMaker
-    {
-        private readonly MessageType? _type;
-        private readonly byte[]? _sender;
-        private readonly byte[]? _interface;
-        private readonly byte[]? _member;
-        private readonly byte[]? _path;
-        private readonly byte[]? _pathNamespace;
-        private readonly byte[]? _destination;
-        private readonly byte[]? _arg0;
-        private readonly byte[]? _arg0Path;
-        private readonly byte[]? _arg0Namespace;
-        private readonly string _rule;
-
-        private MyValueTaskSource<object?>? _vts;
-
-        public List<Observer> Observers { get; } = new();
-
-        public MyValueTaskSource<object?>? AddMatchTcs
-        {
-            get => _vts;
-            set
-            {
-                _vts = value;
-                if (value != null)
-                {
-                    AddMatchTask = new ValueTask<object?>(value, token: 0).AsTask();
-                }
-            }
-        }
-
-        public Task<object?>? AddMatchTask { get; private set; }
-
-        public bool HasSubscribed { get; set; }
-
-        public DBusConnection Connection { get; }
-
-        public MatchMaker(DBusConnection connection, string rule, in MatchRuleData data)
-        {
-            Connection = connection;
-            _rule = rule;
-
-            _type = data.MessageType;
-
-            if (data.Sender is not null && data.Sender.StartsWith(":"))
-            {
-                _sender = Encoding.UTF8.GetBytes(data.Sender);
-            }
-            if (data.Interface is not null)
-            {
-                _interface = Encoding.UTF8.GetBytes(data.Interface);
-            }
-            if (data.Member is not null)
-            {
-                _member = Encoding.UTF8.GetBytes(data.Member);
-            }
-            if (data.Path is not null)
-            {
-                _path = Encoding.UTF8.GetBytes(data.Path);
-            }
-            if (data.PathNamespace is not null)
-            {
-                _pathNamespace = Encoding.UTF8.GetBytes(data.PathNamespace);
-            }
-            if (data.Destination is not null)
-            {
-                _destination = Encoding.UTF8.GetBytes(data.Destination);
-            }
-            if (data.Arg0 is not null)
-            {
-                _arg0 = Encoding.UTF8.GetBytes(data.Arg0);
-            }
-            if (data.Arg0Path is not null)
-            {
-                _arg0Path = Encoding.UTF8.GetBytes(data.Arg0Path);
-            }
-            if (data.Arg0Namespace is not null)
-            {
-                _arg0Namespace = Encoding.UTF8.GetBytes(data.Arg0Namespace);
-            }
-        }
-
-        public string RuleString => _rule;
-
-        public bool HasSubscribers
-        {
-            get
-            {
-                if (Observers.Count == 0)
-                {
-                    return false;
-                }
-                foreach (var observer in Observers)
-                {
-                    if (observer.Subscribes)
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-        }
-
-        public override string ToString() => _rule;
-
-        internal bool Matches(Message message)
-        {
-            if (_type.HasValue && _type != message.MessageType)
-            {
-                return false;
-            }
-
-            if (_sender is not null && !IsEqual(_sender, message.Sender))
-            {
-                return false;
-            }
-
-            if (_interface is not null && !IsEqual(_interface, message.Interface))
-            {
-                return false;
-            }
-
-            if (_member is not null && !IsEqual(_member, message.Member))
-            {
-                return false;
-            }
-
-            if (_path is not null && !IsEqual(_path, message.Path))
-            {
-                return false;
-            }
-
-            if (_destination is not null && !IsEqual(_destination, message.Destination))
-            {
-                return false;
-            }
-
-            if (_pathNamespace is not null && (!message.PathIsSet || !IsEqualOrChildOfPath(message.Path, _pathNamespace)))
-            {
-                return false;
-            }
-
-            if (_arg0Namespace is not null ||
-                _arg0 is not null ||
-                _arg0Path is not null)
-            {
-                if (message.Signature.Length == 0)
-                {
-                    return false;
-                }
-
-                DBusType arg0Type = (DBusType)message.Signature![0];
-
-                if (arg0Type != DBusType.String &&
-                    arg0Type != DBusType.ObjectPath)
-                {
-                    return false;
-                }
-
-                ReadOnlySpan<byte> arg0 = message.GetBodyReader().ReadStringAsSpan();
-
-                if (_arg0Path is not null && !IsEqualParentOrChildOfPath(arg0, _arg0Path))
-                {
-                    return false;
-                }
-
-                if (arg0Type != DBusType.String)
-                {
-                    return false;
-                }
-
-                if (_arg0 is not null && !IsEqual(_arg0, arg0))
-                {
-                    return false;
-                }
-
-                if (_arg0Namespace is not null && !IsEqualOrChildOfName(arg0, _arg0Namespace))
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private static bool IsEqualOrChildOfName(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
-        {
-            return lhs.StartsWith(rhs) && (lhs.Length == rhs.Length || lhs[rhs.Length] == '.');
-        }
-
-        private static bool IsEqualOrChildOfPath(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
-        {
-            return lhs.StartsWith(rhs) && (lhs.Length == rhs.Length || lhs[rhs.Length] == '/');
-        }
-
-        private static bool IsEqualParentOrChildOfPath(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
-        {
-            if (rhs.Length < lhs.Length)
-            {
-                return rhs[rhs.Length - 1] == '/' && lhs.StartsWith(rhs);
-            }
-            else if (lhs.Length < rhs.Length)
-            {
-                return lhs[lhs.Length - 1] == '/' && rhs.StartsWith(lhs);
-            }
-            else
-            {
-                return IsEqual(lhs, rhs);
-            }
-        }
-
-        private static bool IsEqual(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
-        {
-            return lhs.SequenceEqual(rhs);
-        }
-    }
-
-    public MessageWriter GetMessageWriter() => _parentConnection.GetMessageWriter();
-
-    public async void SendMessage(MessageBuffer message)
-    {
-        bool messageSent = await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false);
-        if (!messageSent)
-        {
-            message.ReturnToPool();
-        }
-    }
-
+    /// <summary>
+    /// Returns a task that completes when the connection has disconnected.
+    /// </summary>
+    /// <returns><see cref="Exception"/> with the disconnect reason, or <see langword="null"/> if disposed normally.</returns>
     public Task<Exception?> DisconnectedAsync()
     {
+        InnerConnection connection = GetConnection();
+        return connection.DisconnectedAsync();
+    }
+
+    private InnerConnection GetConnection() => GetConnection(ifConnected: false)!;
+
+    private InnerConnection? GetConnection(bool ifConnected)
+    {
         lock (_gate)
         {
-            if (_disconnectedTcs is null)
+            ThrowHelper.ThrowIfDisposed(_disposed, this);
+
+            if (_connectionOptions.AutoConnect)
             {
-                if (_state == ConnectionState.Disconnected)
-                {
-                    return Task.FromResult(GetWaitForDisconnectException());
-                }
-                else
-                {
-                    _disconnectedTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                }
+                throw new InvalidOperationException("Method cannot be used on autoconnect connections.");
             }
-            return _disconnectedTcs.Task;
+
+            ConnectionState state = _state;
+
+            if (state == ConnectionState.Created ||
+                state == ConnectionState.Connecting)
+            {
+                throw new InvalidOperationException("Connect before using this method.");
+            }
+
+            if (ifConnected && state != ConnectionState.Connected)
+            {
+                return null;
+            }
+
+            return _connection;
         }
     }
 
-    private Exception? GetWaitForDisconnectException()
-        => _disconnectReason is ObjectDisposedException ? null : _disconnectReason;
+    internal uint GetNextSerial() => (uint)Interlocked.Increment(ref _nextSerial);
 
-    private void SendErrorReplyMessage(Message methodCall, string errorName, string errorMsg)
-    {
-        SendMessage(CreateErrorMessage(methodCall, errorName, errorMsg));
-
-        MessageBuffer CreateErrorMessage(Message methodCall, string errorName, string errorMsg)
-        {
-            using var writer = GetMessageWriter();
-
-            writer.WriteError(
-                replySerial: methodCall.Serial,
-                destination: methodCall.Sender,
-                errorName: errorName,
-                errorMsg: errorMsg);
-
-            return writer.CreateMessage();
-        }
-    }
-
-    private void HandleDBusInterfaceSignal(Message message)
-    {
-        Debug.Assert(message.MessageType == MessageType.Signal);
-        Debug.Assert(message.Interface.SequenceEqual("org.freedesktop.DBus"u8));
-
-        bool acquiredNotLost = message.Member.SequenceEqual("NameAcquired"u8);
-        string? serviceName = null;
-
-        if (acquiredNotLost || message.Member.SequenceEqual("NameLost"u8))
-        {
-            var reader = message.GetBodyReader();
-            serviceName = reader.ReadString();
-            ServiceNameRegistration? registration = null;
-            lock (_gate)
-            {
-                _serviceNameRegistrations?.TryGetValue(serviceName, out registration);
-            }
-            if (registration is not null)
-            {
-                Action<string, object?>? action = acquiredNotLost ? registration.OnAcquired : registration.OnLost;
-                if (action is not null)
-                {
-                    if (registration.SynchronizationContext is null)
-                    {
-                        action(serviceName, registration.ActionState);
-                    }
-                    else
-                    {
-                        registration.SynchronizationContext.Post(
-                            delegate
-                            {
-                                SynchronizationContext? previousContext = SynchronizationContext.Current;
-                                try
-                                {
-                                    SynchronizationContext.SetSynchronizationContext(registration.SynchronizationContext);
-                                    action(serviceName, registration.ActionState);
-                                }
-                                finally
-                                {
-                                    SynchronizationContext.SetSynchronizationContext(previousContext);
-                                }
-                            }, null);
-                    }
-                }
-            }
-        }
-    }
-
-    internal async Task<RequestNameReply> RequestNameAsync(string serviceName, RequestNameOptions flags, Action<string, object?>? onAcquired, Action<string, object?>? onLost, object? actionState, bool emitOnCapturedContext)
-    {
-        Task<uint> reply;
-        lock (_gate)
-        {
-            _serviceNameRegistrations ??= new();
-
-            bool hasAction = onAcquired is not null || onLost is not null;
-            ServiceNameRegistration? registration = hasAction
-                ? new ServiceNameRegistration
-                {
-                    OnAcquired = onAcquired,
-                    OnLost = onLost,
-                    ActionState = actionState,
-                    SynchronizationContext = emitOnCapturedContext ? SynchronizationContext.Current : null
-                }
-                : null;
-#if NETSTANDARD2_0
-            if (_serviceNameRegistrations.ContainsKey(serviceName))
-            {
-                throw new InvalidOperationException("The name is already registered");
-            }
-            _serviceNameRegistrations.Add(serviceName, registration);
-#else
-            if (!_serviceNameRegistrations.TryAdd(serviceName, registration))
-            {
-                throw new InvalidOperationException("The name is already registered");
-            }
-#endif
-            reply = CallMethodAsync(CreateRequestNameMessage(serviceName, (uint)flags), (Message m, object? s) => m.GetBodyReader().ReadUInt32());
-        }
-
-        try
-        {
-            return (RequestNameReply)await reply.ConfigureAwait(false);
-        }
-        catch
-        {
-            lock (_gate)
-            {
-                _serviceNameRegistrations.Remove(serviceName);
-            }
-
-            throw;
-        }
-
-        MessageBuffer CreateRequestNameMessage(string name, uint requestFlags)
-        {
-            var writer = _parentConnection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: "org.freedesktop.DBus",
-                path: "/org/freedesktop/DBus",
-                @interface: "org.freedesktop.DBus",
-                signature: "su",
-                member: "RequestName");
-            writer.WriteString(name);
-            writer.WriteUInt32(requestFlags);
-            return writer.CreateMessage();
-        }
-    }
-
-    internal async Task<ReleaseNameReply> ReleaseNameAsync(string serviceName)
-    {
-        var reply = (ReleaseNameReply)await CallMethodAsync(CreateReleaseNameMessage(serviceName), (Message m, object? s) => m.GetBodyReader().ReadUInt32()).ConfigureAwait(false);
-
-        if (reply == ReleaseNameReply.ReplyReleased)
-        {
-            lock (_gate)
-            {
-                _serviceNameRegistrations?.Remove(serviceName);
-            }
-        }
-
-        return reply;
-
-        MessageBuffer CreateReleaseNameMessage(string name)
-        {
-            var writer = _parentConnection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: "org.freedesktop.DBus",
-                path: "/org/freedesktop/DBus",
-                @interface: "org.freedesktop.DBus",
-                signature: "s",
-                member: "ReleaseName");
-            writer.WriteString(name);
-            return writer.CreateMessage();
-        }
-    }
-
-    internal sealed class ServiceNameRegistration
-    {
-        public Action<string, object?>? OnAcquired;
-        public Action<string, object?>? OnLost;
-        public object? ActionState;
-        public SynchronizationContext? SynchronizationContext;
-    }
+    /// <summary>
+    /// Returns a Connection instance wrapping this DBusConnection.
+    /// </summary>
+    /// <returns>A Connection instance.</returns>
+    public Connection AsConnection() => _asConnection ??= new Connection(this);
 }

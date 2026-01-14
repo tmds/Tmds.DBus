@@ -20,11 +20,11 @@ public sealed class MethodContext : IDisposable
     }
 
     private Flags _flags;
-    private readonly Connection _connection;
+    private readonly DBusConnection _connection;
     private readonly Message _request;
     private readonly CancellationToken _requestAborted;
 
-    internal MethodContext(Connection connection, Message request, CancellationToken requestAborted)
+    internal MethodContext(DBusConnection connection, Message request, CancellationToken requestAborted)
     {
         _connection = connection;
         _request = request;
@@ -76,7 +76,21 @@ public sealed class MethodContext : IDisposable
     /// <summary>
     /// Gets the D-Bus connection associated with this method call.
     /// </summary>
+    // TODO: When Connection is removed, make this return DBusConnection and mark DBusConnection property as [EditorBrowsable(EditorBrowsableState.Never)].
+    [Obsolete("Use DBusConnection instead.")]
     public Connection Connection
+    {
+        get
+        {
+            // Don't throw when Disposed for accessing the connection.
+            return _connection.AsConnection();
+        }
+    }
+
+    /// <summary>
+    /// Gets the D-Bus connection associated with this method call.
+    /// </summary>
+    public DBusConnection DBusConnection
     {
         get
         {
@@ -289,7 +303,7 @@ public sealed class MethodContext : IDisposable
     {
         ThrowIfDisposed();
 
-        Connection.Disconnect(exception);
+        DBusConnection.Disconnect(exception);
     }
 
     /// <summary>

@@ -24,8 +24,8 @@ namespace Tmds.DBus.Protocol.Tests
             disposable.Dispose();
 
             Exception ex = await tcs.Task;
-            Assert.True(ActionException.IsObserverDisposed(ex));
-            Assert.True(ActionException.IsDisposed(ex));
+            Assert.True(ObserverHandler.IsObserverDisposed(ex));
+            Assert.True(ObserverHandler.IsDisposed(ex));
         }
 
         [Fact]
@@ -46,8 +46,8 @@ namespace Tmds.DBus.Protocol.Tests
             conn1.Dispose();
 
             Exception ex = await tcs.Task;
-            Assert.True(ActionException.IsConnectionDisposed(ex));
-            Assert.True(ActionException.IsDisposed(ex));
+            Assert.True(ObserverHandler.IsConnectionDisposed(ex));
+            Assert.True(ObserverHandler.IsDisposed(ex));
         }
 
         [Theory]

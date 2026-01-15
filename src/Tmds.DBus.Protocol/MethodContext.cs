@@ -233,7 +233,7 @@ public sealed class MethodContext : IDisposable
     public void ReplyError(string? errorName = null,
                            string? errorMsg = null)
     {
-        using var writer = Connection.GetMessageWriter();
+        using var writer = DBusConnection.GetMessageWriter();
         writer.WriteError(
             replySerial: Request.Serial,
             destination: Request.Sender,

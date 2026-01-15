@@ -1,4 +1,3 @@
-using Connection = Tmds.DBus.Protocol.Connection;
 using NetworkManager.DBus;
 using Tmds.DBus.Protocol;
 using System;
@@ -14,7 +13,7 @@ DBusConnection connection = new DBusConnection(DBusAddress.System!);
 await connection.ConnectAsync();
 Console.WriteLine("Connected to system bus.");
 
-var service = new NetworkManagerService(connection, "org.freedesktop.NetworkManager");
+var service = new DBusService(connection, "org.freedesktop.NetworkManager");
 var networkManager = service.CreateNetworkManager("/org/freedesktop/NetworkManager");
 
 foreach (var devicePath in await networkManager.GetDevicesAsync())

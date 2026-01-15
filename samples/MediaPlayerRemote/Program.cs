@@ -8,7 +8,7 @@ using Mpris.DBus;
 Console.WriteLine("MediaPlayerRemote Sample");
 
 // Connect to the session bus.
-using var connection = new Connection(DBusAddress.Session!);
+using var connection = new DBusConnection(DBusAddress.Session!);
 await connection.ConnectAsync();
 
 // Find all players.
@@ -31,7 +31,7 @@ foreach (var p in availablePlayers)
 string firstPlayer = availablePlayers.First();
 Console.WriteLine($"Using: {firstPlayer}");
 
-var mpris = new MprisService(connection,firstPlayer);
+var mpris = new DBusService(connection, firstPlayer);
 
 Player player = new Player(mpris);
 foreach (var track in await player.GetTracksAsync())
@@ -74,13 +74,13 @@ async Task<ConsoleKey> ReadConsoleKeyAsync()
 
 class Player
 {
-    private readonly MprisService _service;
+    private readonly DBusService _mprisService;
     private readonly Mpris.DBus.Player _player;
 
-    public Player(MprisService service)
+    public Player(DBusService mprisService)
     {
-        _service = service;
-        _player = service.CreatePlayer("/org/mpris/MediaPlayer2");
+        _mprisService = mprisService;
+        _player = mprisService.CreatePlayer("/org/mpris/MediaPlayer2");
     }
 
     public async Task<IDisposable> WatchTitleAsync(Action<string> action, bool emitOnCapturedContext = false)
@@ -145,7 +145,7 @@ class Player
     {
         try
         {
-            var trackList = _service.CreateTrackList("/org/mpris/MediaPlayer2");
+            var trackList = _mprisService.CreateTrackList("/org/mpris/MediaPlayer2");
             Console.WriteLine("Tracks:");
             var trackIds = await trackList.GetTracksAsync();
             var trackMetadatas = await trackList.GetTracksMetadataAsync(trackIds);
@@ -156,7 +156,7 @@ class Player
             }
             return titles.ToArray();
         }
-        catch (DBusException)
+        catch (DBusMethodException)
         {
             // Listing tracks not supported by player.
             return Array.Empty<string>();

@@ -44,7 +44,7 @@ public readonly struct ObjectPath
     /// <summary>
     /// Implicitly converts an ObjectPath to a string.
     /// </summary>
-    public static implicit operator string(ObjectPath value) => value._value;
+    public static implicit operator string(ObjectPath value) => value.ToString();
 
     /// <summary>
     /// Implicitly converts a string to an ObjectPath.

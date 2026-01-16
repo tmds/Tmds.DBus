@@ -76,44 +76,41 @@ This generates a `NetworkManager.DBus.cs` file in the local folder.
 When we try to compile the code using `dotnet build`, the compiler will give us some errors:
 
 ```
-NetworkManager.DBus.cs(871,35): error CS0111: Type 'NetworkManager' already defines a member called 'GetDevicesAsync' with the same parameter types [/tmp/netmon/netmon.csproj]
-NetworkManager.DBus.cs(873,35): error CS0111: Type 'NetworkManager' already defines a member called 'GetAllDevicesAsync' with the same parameter types [/tmp/netmon/netmon.csproj]
-NetworkManager.DBus.cs(3723,35): error CS0111: Type 'Wireless' already defines a member called 'GetAccessPointsAsync' with the same parameter types [/tmp/netmon/netmon.csproj]
+NetworkManager.DBus.cs(749,35): error CS0111: Type 'NetworkManager' already defines a member called 'GetDevicesAsync' with the same parameter types
+NetworkManager.DBus.cs(751,35): error CS0111: Type 'NetworkManager' already defines a member called 'GetAllDevicesAsync' with the same parameter types
+NetworkManager.DBus.cs(3411,35): error CS0111: Type 'Wireless' already defines a member called 'GetAccessPointsAsync' with the same parameter types
 ```
 
-These errors occur because the D-Bus interfaces declare D-Bus methods named `GetXyz` and D-Bus properties which are named `Xyz`. The resulting C# methods that are generated have the same name which causes these errors. Because these methods are two ways to get the same information, we'll fix the problem by commenting out the `GetDevicesAsync`/`GetAllDevicesAsync`/`GetAccessPointsAsync` C# methods that are implemented using properties.
+These errors occur because the D-Bus interfaces declare both D-Bus **methods** named `GetDevices`/`GetAllDevices`/`GetAccessPoints` **and** D-Bus **properties** named `Devices`/`AllDevices`/`AccessPoints`. The code generator creates C# methods for both, resulting in duplicate method names.
+
+Since both provide the same information (the method calls and property getters), we can resolve this by commenting out the property-based getters. The method-based versions are typically preferred as they're part of the D-Bus interface contract.
+
+To fix this, comment out the property-based getter methods in `NetworkManager.DBus.cs`:
 
 ```diff
-diff --git a/NetworkManager.DBus.cs b/NetworkManager.DBus.cs
-index fab04fd..eb57d16 100644
---- a/NetworkManager.DBus.cs
-+++ b/NetworkManager.DBus.cs
-@@ -868,10 +868,10 @@ namespace NetworkManager.DBus
+@@ -746,10 +746,10 @@ namespace NetworkManager.DBus
                  return writer.CreateMessage();
              }
          }
 -        public Task<ObjectPath[]> GetDevicesAsync()
--            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Devices"), (Message m, object? s) => ReadMessage_v_ao(m, (NetworkManagerObject)s!), this);
+-            => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "Devices"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
 -        public Task<ObjectPath[]> GetAllDevicesAsync()
--            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "AllDevices"), (Message m, object? s) => ReadMessage_v_ao(m, (NetworkManagerObject)s!), this);
+-            => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "AllDevices"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
 +        // public Task<ObjectPath[]> GetDevicesAsync()
-+        //     => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Devices"), (Message m, object? s) => ReadMessage_v_ao(m, (NetworkManagerObject)s!), this);
++        //     => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "Devices"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
 +        // public Task<ObjectPath[]> GetAllDevicesAsync()
-+        //     => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "AllDevices"), (Message m, object? s) => ReadMessage_v_ao(m, (NetworkManagerObject)s!), this);
++        //     => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "AllDevices"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
          public Task<ObjectPath[]> GetCheckpointsAsync()
-             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Checkpoints"), (Message m, object? s) => ReadMessage_v_ao(m, (NetworkManagerObject)s!), this);
-         public Task<bool> GetNetworkingEnabledAsync()
-@@ -3720,8 +3720,8 @@ namespace NetworkManager.DBus
-             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Mode"), (Message m, object? s) => ReadMessage_v_u(m, (NetworkManagerObject)s!), this);
+             => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "Checkpoints"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
+@@ -3408,8 +3408,8 @@ namespace NetworkManager.DBus
          public Task<uint> GetBitrateAsync()
-             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Bitrate"), (Message m, object? s) => ReadMessage_v_u(m, (NetworkManagerObject)s!), this);
+             => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "Bitrate"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
 -        public Task<ObjectPath[]> GetAccessPointsAsync()
--            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "AccessPoints"), (Message m, object? s) => ReadMessage_v_ao(m, (NetworkManagerObject)s!), this);
+-            => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "AccessPoints"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
 +        // public Task<ObjectPath[]> GetAccessPointsAsync()
-+        //     => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "AccessPoints"), (Message m, object? s) => ReadMessage_v_ao(m, (NetworkManagerObject)s!), this);
++        //     => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "AccessPoints"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
          public Task<ObjectPath> GetActiveAccessPointAsync()
-             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "ActiveAccessPoint"), (Message m, object? s) => ReadMessage_v_o(m, (NetworkManagerObject)s!), this);
-         public Task<uint> GetWirelessCapabilitiesAsync()
+             => Connection.CallMethodAsync(Connection.CreateGetPropertyMessage(Destination, Path, DBusInterfaceName, "ActiveAccessPoint"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
 ```
 
 When we run `dotnet build` again, the compiler errors are gone.
@@ -121,7 +118,6 @@ When we run `dotnet build` again, the compiler errors are gone.
 We update `Program.cs` to the following code which uses the `NetworkManager` service to monitor network devices for state changes.
 
 ```C#
-using Connection = Tmds.DBus.Protocol.Connection;
 using NetworkManager.DBus;
 using Tmds.DBus.Protocol;
 
@@ -132,11 +128,11 @@ if (systemBusAddress is null)
     return 1;
 }
 
-Connection connection = new Connection(DBusAddress.System!);
+DBusConnection connection = new DBusConnection(DBusAddress.System!);
 await connection.ConnectAsync();
 Console.WriteLine("Connected to system bus.");
 
-var service = new NetworkManagerService(connection, "org.freedesktop.NetworkManager");
+var service = new DBusService(connection, "org.freedesktop.NetworkManager");
 var networkManager = service.CreateNetworkManager("/org/freedesktop/NetworkManager");
 
 foreach (var devicePath in await networkManager.GetDevicesAsync())
@@ -199,45 +195,49 @@ enum DeviceState : uint
 }
 ```
 
-We'll add the enum to `NetworkManager.DBus.cs` and then update `WatchStateChangedAsync` so it uses `DeviceState` instead of `uint` for the state.
+The generated code uses `partial` classes, which allows us to extend them without modifying the generated file.
 
-```diff
-index eb57d16..663ed69 100644
---- a/NetworkManager.DBus.cs
-+++ b/NetworkManager.DBus.cs
-@@ -2573,8 +2573,8 @@ namespace NetworkManager.DBus
-                 return writer.CreateMessage();
-             }
-         }
--        public ValueTask<IDisposable> WatchStateChangedAsync(Action<Exception?, (uint NewState, uint OldState, uint Reason)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
--            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "StateChanged", (Message m, object? s) => ReadMessage_uuu(m, (NetworkManagerObject)s!), handler, emitOnCapturedContext, flags);
-+        public ValueTask<IDisposable> WatchStateChangedAsync(Action<Exception?, (DeviceState NewState, DeviceState OldState, uint Reason)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-+            => base.WatchSignalAsync(Service.Destination, __Interface, Path, "StateChanged", (Message m, object? s) => ((DeviceState, DeviceState, uint))ReadMessage_uuu(m, (NetworkManagerObject)s!), handler, emitOnCapturedContext, flags);
-         public Task SetUdiAsync(string value)
-         {
-             return this.Connection.CallMethodAsync(CreateMessage());
-@@ -5792,4 +5792,21 @@ namespace NetworkManager.DBus
-         public bool HasChanged(string property) => Array.IndexOf(Changed, property) != -1;
-         public bool IsInvalidated(string property) => Array.IndexOf(Invalidated, property) != -1;
-     }
-+
-+    enum DeviceState : uint
-+    {
-+        Unknown = 0,
-+        Unmanaged = 10,
-+        Unavailable = 20,
-+        Disconnected = 30,
-+        Prepare = 40,
-+        Config = 50,
-+        NeedAuth = 60,
-+        IpConfig = 70,
-+        IpCheck = 80,
-+        Secondaries = 90,
-+        Activated = 100,
-+        Deactivating = 110,
-+        Failed = 120
-+    }
- }
+```C#
+namespace NetworkManager.DBus
+{
+    enum DeviceState : uint
+    {
+        Unknown = 0,
+        Unmanaged = 10,
+        Unavailable = 20,
+        Disconnected = 30,
+        Prepare = 40,
+        Config = 50,
+        NeedAuth = 60,
+        IpConfig = 70,
+        IpCheck = 80,
+        Secondaries = 90,
+        Activated = 100,
+        Deactivating = 110,
+        Failed = 120
+    }
+
+    partial class Device
+    {
+        public ValueTask<IDisposable> WatchStateChangedAsync(Action<Exception?, (DeviceState NewState, DeviceState OldState, uint Reason)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchSignalAsync(
+                Destination,
+                Path,
+                DBusInterfaceName,
+                "StateChanged",
+                (Message m, object? s) =>
+                {
+                    var reader = m.GetBodyReader();
+                    return ((DeviceState)reader.ReadUInt32(), (DeviceState)reader.ReadUInt32(), reader.ReadUInt32());
+                },
+                handler,
+                this,
+                emitOnCapturedContext,
+                flags);
+        }
+    }
+}
 ```
 
 Now, we update `Program.cs` to use `DeviceState`:

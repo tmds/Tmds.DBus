@@ -189,7 +189,7 @@ public sealed class MethodContext : IDisposable
     {
         ThrowIfDisposed();
 
-        var writer = Connection.GetMessageWriter();
+        var writer = DBusConnection.GetMessageWriter();
         writer.WriteMethodReturnHeader(
             replySerial: Request.Serial,
             destination: Request.Sender,
@@ -222,7 +222,7 @@ public sealed class MethodContext : IDisposable
         }
 
         _flags |= Flags.ReplySent;
-        Connection.TrySendMessage(message);
+        DBusConnection.TrySendMessage(message);
     }
 
     /// <summary>
@@ -267,7 +267,7 @@ public sealed class MethodContext : IDisposable
             throw new InvalidOperationException($"Can not reply with introspection XML when {nameof(IsDBusIntrospectRequest)} is false.");
         }
 
-        using var writer = Connection.GetMessageWriter();
+        using var writer = DBusConnection.GetMessageWriter();
         writer.WriteMethodReturnHeader(
             replySerial: Request.Serial,
             destination: Request.Sender,

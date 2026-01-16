@@ -97,26 +97,10 @@ namespace Tmds.DBus.Tool
             AppendReaderClass();
             AppendMessageWriterExtensionsClass();
 
-            AppendPropertiesChangedClass();
-
             EndBlock();
 
             sourceCode = _sb.ToString();
             return true;
-        }
-
-        private void AppendPropertiesChangedClass()
-        {
-            AppendLine("sealed class PropertyChanges<TProperties>");
-            StartBlock();
-            AppendLine("public PropertyChanges(TProperties properties, string[] invalidated, string[] changed)");
-            AppendLine("	=> (Properties, Invalidated, Changed) = (properties, invalidated, changed);");
-            AppendLine("public TProperties Properties { get; }");
-            AppendLine("public string[] Invalidated { get; }");
-            AppendLine("public string[] Changed { get; }");
-            AppendLine("public bool HasChanged(string property) => Array.IndexOf(Changed, property) != -1;");
-            AppendLine("public bool IsInvalidated(string property) => Array.IndexOf(Invalidated, property) != -1;");
-            EndBlock();
         }
 
         private void AppendServiceClass(IEnumerable<InterfaceDescription> interfaceDescriptions)
@@ -169,7 +153,7 @@ namespace Tmds.DBus.Tool
             AppendLine("return writer.CreateMessage();");
             EndBlock();
 
-            AppendLine("protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, PropertyChanges<TProperties>> handler, bool emitOnCapturedContext, ObserverFlags flags)");
+            AppendLine("protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<TProperties> reader, Action<Exception?, TProperties> handler, bool emitOnCapturedContext, ObserverFlags flags)");
             StartBlock();
             AppendLine("var rule = new MatchRule");
             AppendLine("{");
@@ -181,7 +165,7 @@ namespace Tmds.DBus.Tool
             AppendLine("    Arg0 = @interface");
             AppendLine("};");
             AppendLine("return this.Connection.AddMatchAsync(rule, reader,");
-            AppendLine("                                        (Exception? ex, PropertyChanges<TProperties> changes, object? rs, object? hs) => ((Action<Exception?, PropertyChanges<TProperties>>)hs!).Invoke(ex, changes),");
+            AppendLine("                                        (Exception? ex, TProperties properties, object? rs, object? hs) => ((Action<Exception?, TProperties>)hs!).Invoke(ex, properties),");
             AppendLine("                                        this, handler, emitOnCapturedContext, flags);");
             EndBlock();
 
@@ -405,19 +389,115 @@ namespace Tmds.DBus.Tool
 
         private void AppendInterface(string name, XElement interfaceXml)
         {
-            var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument);
+            var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument).ToArray();
             var writableProperties = WritableProperties(interfaceXml).Select(ToArgument);
 
             string propertiesClassName = $"{name}Properties";
 
             if (readableProperties.Any())
             {
-                AppendLine($"record {propertiesClassName}");
+                // Validate property count
+                if (readableProperties.Length > 64)
+                {
+                    throw new NotSupportedException($"Interface '{name}' has {readableProperties.Length} readable properties, but the maximum supported is 64.");
+                }
+
+                AppendLine($"sealed class {propertiesClassName}");
+                StartBlock();
+
+                // Choose uint or ulong based on number of properties
+                string flagType = readableProperties.Length <= 32 ? "uint" : "ulong";
+                string one = readableProperties.Length <= 32 ? "1U" : "1UL";
+
+                // Generate const flag fields for property tracking
+                for (int i = 0; i < readableProperties.Length; i++)
+                {
+                    var property = readableProperties[i];
+                    AppendLine($"private const {flagType} {property.NameUpper}Flag = {one} << {i};");
+                }
+
+                // Generate PropertiesAllSet const
+                var allFlags = string.Join(" | ", readableProperties.Select(p => $"{p.NameUpper}Flag"));
+                AppendLine($"private const {flagType} PropertiesAllSet = {allFlags};");
+
+                // Generate flags fields
+                AppendLine($"private {flagType} __set;");
+                AppendLine($"private {flagType} __invalidated;");
+
+                // Generate EnsureSet helper method
+                AppendLine($"private void EnsureSet({flagType} flag)");
+                StartBlock();
+                AppendLine("if ((__set & flag) == 0)");
+                StartBlock();
+                AppendLine("throw new InvalidOperationException(\"Property has not been set.\");");
+                EndBlock();
+                EndBlock();
+
+                // Generate properties
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"private {property.DotnetReadType} {property.UnderscoreNameLower} = default!;");
+                    AppendLine($"public {property.DotnetReadType} {property.NameUpper}");
+                    StartBlock();
+                    AppendLine($"get {{ EnsureSet({property.NameUpper}Flag); return {property.UnderscoreNameLower}; }}");
+                    AppendLine($"set {{ {property.UnderscoreNameLower} = value; __set |= {property.NameUpper}Flag; }}");
+                    EndBlock();
+                }
+
+                // Generate IsSet method
+                AppendLine("public bool IsSet(string propertyName)");
+                StartBlock();
+                AppendLine("return propertyName switch");
                 StartBlock();
                 foreach (var property in readableProperties)
                 {
-                    AppendLine($"public {property.DotnetReadType} {property.NameUpper} {{ get; set; }} = default!;");
+                    AppendLine($"nameof({property.NameUpper}) => (__set & {property.NameUpper}Flag) != 0,");
                 }
+                AppendLine("_ => false");
+                _indentation--;
+                AppendLine("};");
+                EndBlock();
+
+                // Generate IsInvalidated method
+                AppendLine("public bool IsInvalidated(string propertyName)");
+                StartBlock();
+                AppendLine("return propertyName switch");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"nameof({property.NameUpper}) => (__invalidated & {property.NameUpper}Flag) != 0,");
+                }
+                AppendLine("_ => false");
+                _indentation--;
+                AppendLine("};");
+                EndBlock();
+
+                // Generate SetDBusInvalidated method
+                AppendLine("public void SetDBusInvalidated(string dbusPropertyName)");
+                StartBlock();
+                AppendLine("__invalidated |= dbusPropertyName switch");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"\"{property.Name}\" => {property.NameUpper}Flag,");
+                }
+                AppendLine("_ => 0");
+                _indentation--;
+                AppendLine("};");
+                EndBlock();
+
+                // Generate AreAllPropertiesSet method
+                AppendLine("public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
+
+                // Generate EnsureAllPropertiesSet method
+                AppendLine("public void EnsureAllPropertiesSet()");
+                StartBlock();
+                AppendLine("if (!AreAllPropertiesSet())");
+                StartBlock();
+                AppendLine("throw new ProtocolException($\"Not all properties have been set (0x{__set:x}).\");");
+                EndBlock();
+                EndBlock();
+
                 EndBlock();
             }
 
@@ -457,51 +537,36 @@ namespace Tmds.DBus.Tool
                 }
 
                 // GetPropertiesAsync
-                AppendLine($"public Task<{propertiesClassName}> GetPropertiesAsync()");
+                AppendLine($"public async Task<{propertiesClassName}> GetPropertiesAsync()");
                 StartBlock();
-                AppendLine($"return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this);");
+                AppendLine($"var props = await this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);");
+                AppendLine("props.EnsureAllPropertiesSet();");
+                AppendLine("return props;");
 
                 AppendLine($"static {propertiesClassName} ReadMessage(Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
-                AppendLine("return ReadProperties(ref reader);");
+                AppendLine($"return ReadProperties(ref reader);");
                 EndBlock(); // ReadMessage
 
                 EndBlock(); // method
 
                 // WatchPropertiesChangedAsync
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<{propertiesClassName}>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)");
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, {propertiesClassName}> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)");
                 StartBlock();
                 AppendLine($"return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m), handler, emitOnCapturedContext, flags);");
-                AppendLine($"static PropertyChanges<{propertiesClassName}> ReadMessage(Message message)");
+                AppendLine($"static {propertiesClassName} ReadMessage(Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
-                AppendLine("List<string> changed = new();");
-                AppendLine($"return new PropertyChanges<{propertiesClassName}>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());");
-                EndBlock();
-                AppendLine($"static string[] ReadInvalidated(ref Reader reader)");
-                StartBlock();
-                AppendLine("List<string>? invalidated = null;");
-                AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);");
-                AppendLine("while (reader.HasNext(arrayEnd))");
-                StartBlock();
-                AppendLine("invalidated ??= new();");
-                AppendLine("var property = reader.ReadString();");
-                AppendLine("switch (property)");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"case \"{property.Name}\": invalidated.Add(\"{property.NameUpper}\"); break;");
-                }
-                EndBlock();
-                EndBlock();
-                AppendLine("return invalidated?.ToArray() ?? Array.Empty<string>();");
+                AppendLine($"var props = ReadProperties(ref reader);");
+                AppendLine("ReadInvalidated(ref reader, props);");
+                AppendLine("return props;");
                 EndBlock();
                 EndBlock();
 
-                // ReadProperties
-                AppendLine($"private static {propertiesClassName} ReadProperties(ref Reader reader, List<string>? changedList = null)");
+                // ReadProperties - used by both GetPropertiesAsync and WatchPropertiesChangedAsync
+                AppendLine($"private static {propertiesClassName} ReadProperties(ref Reader reader)");
                 StartBlock();
                 AppendLine($"var props = new {propertiesClassName}();");
                 AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
@@ -518,7 +583,6 @@ namespace Tmds.DBus.Tool
                     _indentation++;
                     AppendLine($"reader.ReadSignature(\"{property.Signature}\"u8);");
                     AppendLine($"props.{property.NameUpper} = {CallReadArgumentType(property.Signature)};");
-                    AppendLine($"changedList?.Add(\"{property.NameUpper}\");");
                     AppendLine("break;");
                     _indentation--;
                 }
@@ -533,6 +597,16 @@ namespace Tmds.DBus.Tool
                 EndBlock(); // while
 
                 AppendLine("return props;");
+                EndBlock();
+
+                // ReadInvalidated - for WatchPropertiesChangedAsync (sets Invalidated flags)
+                AppendLine($"private static void ReadInvalidated(ref Reader reader, {propertiesClassName} props)");
+                StartBlock();
+                AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);");
+                AppendLine("while (reader.HasNext(arrayEnd))");
+                StartBlock();
+                AppendLine("props.SetDBusInvalidated(reader.ReadString());");
+                EndBlock();
                 EndBlock();
             }
 
@@ -1072,6 +1146,7 @@ namespace Tmds.DBus.Tool
             public string Name { get; }
             public string NameUpper => Prettify(Name, startWithUpper: true);
             public string NameLower => Prettify(Name, startWithUpper: false);
+            public string UnderscoreNameLower => "_" + NameLower.TrimStart('@');
             public string Signature { get; }
             public string DotnetReadType => GetDotnetReadType(Signature);
             public string DotnetWriteType => GetDotnetWriteType(Signature);

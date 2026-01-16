@@ -7,23 +7,483 @@ namespace Mpris.DBus
     using Tmds.DBus.Protocol;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    record PlayerProperties
+    sealed class MediaPlayer2Properties
     {
-        public string PlaybackStatus { get; set; } = default!;
-        public string LoopStatus { get; set; } = default!;
-        public double Rate { get; set; } = default!;
-        public bool Shuffle { get; set; } = default!;
-        public Dictionary<string, VariantValue> Metadata { get; set; } = default!;
-        public double Volume { get; set; } = default!;
-        public long Position { get; set; } = default!;
-        public double MinimumRate { get; set; } = default!;
-        public double MaximumRate { get; set; } = default!;
-        public bool CanGoNext { get; set; } = default!;
-        public bool CanGoPrevious { get; set; } = default!;
-        public bool CanPlay { get; set; } = default!;
-        public bool CanPause { get; set; } = default!;
-        public bool CanSeek { get; set; } = default!;
-        public bool CanControl { get; set; } = default!;
+        private const uint CanQuitFlag = 1U << 0;
+        private const uint FullscreenFlag = 1U << 1;
+        private const uint CanSetFullscreenFlag = 1U << 2;
+        private const uint CanRaiseFlag = 1U << 3;
+        private const uint HasTrackListFlag = 1U << 4;
+        private const uint IdentityFlag = 1U << 5;
+        private const uint DesktopEntryFlag = 1U << 6;
+        private const uint SupportedUriSchemesFlag = 1U << 7;
+        private const uint SupportedMimeTypesFlag = 1U << 8;
+        private const uint PropertiesAllSet = CanQuitFlag | FullscreenFlag | CanSetFullscreenFlag | CanRaiseFlag | HasTrackListFlag | IdentityFlag | DesktopEntryFlag | SupportedUriSchemesFlag | SupportedMimeTypesFlag;
+        private uint __set;
+        private uint __invalidated;
+        private void EnsureSet(uint flag)
+        {
+            if ((__set & flag) == 0)
+            {
+                throw new InvalidOperationException("Property has not been set.");
+            }
+        }
+        private bool _canQuit = default!;
+        public bool CanQuit
+        {
+            get { EnsureSet(CanQuitFlag); return _canQuit; }
+            set { _canQuit = value; __set |= CanQuitFlag; }
+        }
+        private bool _fullscreen = default!;
+        public bool Fullscreen
+        {
+            get { EnsureSet(FullscreenFlag); return _fullscreen; }
+            set { _fullscreen = value; __set |= FullscreenFlag; }
+        }
+        private bool _canSetFullscreen = default!;
+        public bool CanSetFullscreen
+        {
+            get { EnsureSet(CanSetFullscreenFlag); return _canSetFullscreen; }
+            set { _canSetFullscreen = value; __set |= CanSetFullscreenFlag; }
+        }
+        private bool _canRaise = default!;
+        public bool CanRaise
+        {
+            get { EnsureSet(CanRaiseFlag); return _canRaise; }
+            set { _canRaise = value; __set |= CanRaiseFlag; }
+        }
+        private bool _hasTrackList = default!;
+        public bool HasTrackList
+        {
+            get { EnsureSet(HasTrackListFlag); return _hasTrackList; }
+            set { _hasTrackList = value; __set |= HasTrackListFlag; }
+        }
+        private string _identity = default!;
+        public string Identity
+        {
+            get { EnsureSet(IdentityFlag); return _identity; }
+            set { _identity = value; __set |= IdentityFlag; }
+        }
+        private string _desktopEntry = default!;
+        public string DesktopEntry
+        {
+            get { EnsureSet(DesktopEntryFlag); return _desktopEntry; }
+            set { _desktopEntry = value; __set |= DesktopEntryFlag; }
+        }
+        private string[] _supportedUriSchemes = default!;
+        public string[] SupportedUriSchemes
+        {
+            get { EnsureSet(SupportedUriSchemesFlag); return _supportedUriSchemes; }
+            set { _supportedUriSchemes = value; __set |= SupportedUriSchemesFlag; }
+        }
+        private string[] _supportedMimeTypes = default!;
+        public string[] SupportedMimeTypes
+        {
+            get { EnsureSet(SupportedMimeTypesFlag); return _supportedMimeTypes; }
+            set { _supportedMimeTypes = value; __set |= SupportedMimeTypesFlag; }
+        }
+        public bool IsSet(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(CanQuit) => (__set & CanQuitFlag) != 0,
+                nameof(Fullscreen) => (__set & FullscreenFlag) != 0,
+                nameof(CanSetFullscreen) => (__set & CanSetFullscreenFlag) != 0,
+                nameof(CanRaise) => (__set & CanRaiseFlag) != 0,
+                nameof(HasTrackList) => (__set & HasTrackListFlag) != 0,
+                nameof(Identity) => (__set & IdentityFlag) != 0,
+                nameof(DesktopEntry) => (__set & DesktopEntryFlag) != 0,
+                nameof(SupportedUriSchemes) => (__set & SupportedUriSchemesFlag) != 0,
+                nameof(SupportedMimeTypes) => (__set & SupportedMimeTypesFlag) != 0,
+                _ => false
+            };
+        }
+        public bool IsInvalidated(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(CanQuit) => (__invalidated & CanQuitFlag) != 0,
+                nameof(Fullscreen) => (__invalidated & FullscreenFlag) != 0,
+                nameof(CanSetFullscreen) => (__invalidated & CanSetFullscreenFlag) != 0,
+                nameof(CanRaise) => (__invalidated & CanRaiseFlag) != 0,
+                nameof(HasTrackList) => (__invalidated & HasTrackListFlag) != 0,
+                nameof(Identity) => (__invalidated & IdentityFlag) != 0,
+                nameof(DesktopEntry) => (__invalidated & DesktopEntryFlag) != 0,
+                nameof(SupportedUriSchemes) => (__invalidated & SupportedUriSchemesFlag) != 0,
+                nameof(SupportedMimeTypes) => (__invalidated & SupportedMimeTypesFlag) != 0,
+                _ => false
+            };
+        }
+        public void SetDBusInvalidated(string dbusPropertyName)
+        {
+            __invalidated |= dbusPropertyName switch
+            {
+                "CanQuit" => CanQuitFlag,
+                "Fullscreen" => FullscreenFlag,
+                "CanSetFullscreen" => CanSetFullscreenFlag,
+                "CanRaise" => CanRaiseFlag,
+                "HasTrackList" => HasTrackListFlag,
+                "Identity" => IdentityFlag,
+                "DesktopEntry" => DesktopEntryFlag,
+                "SupportedUriSchemes" => SupportedUriSchemesFlag,
+                "SupportedMimeTypes" => SupportedMimeTypesFlag,
+                _ => 0
+            };
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
+    }
+    sealed class MediaPlayer2 : DBusObject
+    {
+        private const string __Interface = "org.mpris.MediaPlayer2";
+        public MediaPlayer2(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path) : base(connection, destination, path)
+        { }
+        public Task RaiseAsync()
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Destination,
+                    path: Path,
+                    @interface: __Interface,
+                    member: "Raise");
+                return writer.CreateMessage();
+            }
+        }
+        public Task QuitAsync()
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Destination,
+                    path: Path,
+                    @interface: __Interface,
+                    member: "Quit");
+                return writer.CreateMessage();
+            }
+        }
+        public Task SetFullscreenAsync(bool value)
+        {
+            return this.Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = this.Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(__Interface);
+                writer.WriteString("Fullscreen");
+                writer.WriteSignature("b");
+                writer.WriteBool(value);
+                return writer.CreateMessage();
+            }
+        }
+        public Task<bool> GetCanQuitAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanQuit"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public Task<bool> GetFullscreenAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Fullscreen"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public Task<bool> GetCanSetFullscreenAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSetFullscreen"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public Task<bool> GetCanRaiseAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanRaise"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public Task<bool> GetHasTrackListAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "HasTrackList"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public Task<string> GetIdentityAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Identity"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<string> GetDesktopEntryAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "DesktopEntry"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<string[]> GetSupportedUriSchemesAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedUriSchemes"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<string[]> GetSupportedMimeTypesAsync()
+            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedMimeTypes"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public async Task<MediaPlayer2Properties> GetPropertiesAsync()
+        {
+            var props = await this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
+            static MediaPlayer2Properties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return ReadProperties(ref reader);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, MediaPlayer2Properties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m), handler, emitOnCapturedContext, flags);
+            static MediaPlayer2Properties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                var props = ReadProperties(ref reader);
+                ReadInvalidated(ref reader, props);
+                return props;
+            }
+        }
+        private static MediaPlayer2Properties ReadProperties(ref Reader reader)
+        {
+            var props = new MediaPlayer2Properties();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "CanQuit":
+                        reader.ReadSignature("b"u8);
+                        props.CanQuit = reader.ReadBool();
+                        break;
+                    case "Fullscreen":
+                        reader.ReadSignature("b"u8);
+                        props.Fullscreen = reader.ReadBool();
+                        break;
+                    case "CanSetFullscreen":
+                        reader.ReadSignature("b"u8);
+                        props.CanSetFullscreen = reader.ReadBool();
+                        break;
+                    case "CanRaise":
+                        reader.ReadSignature("b"u8);
+                        props.CanRaise = reader.ReadBool();
+                        break;
+                    case "HasTrackList":
+                        reader.ReadSignature("b"u8);
+                        props.HasTrackList = reader.ReadBool();
+                        break;
+                    case "Identity":
+                        reader.ReadSignature("s"u8);
+                        props.Identity = reader.ReadString();
+                        break;
+                    case "DesktopEntry":
+                        reader.ReadSignature("s"u8);
+                        props.DesktopEntry = reader.ReadString();
+                        break;
+                    case "SupportedUriSchemes":
+                        reader.ReadSignature("as"u8);
+                        props.SupportedUriSchemes = reader.ReadArrayOfString();
+                        break;
+                    case "SupportedMimeTypes":
+                        reader.ReadSignature("as"u8);
+                        props.SupportedMimeTypes = reader.ReadArrayOfString();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            return props;
+        }
+        private static void ReadInvalidated(ref Reader reader, MediaPlayer2Properties props)
+        {
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
+            while (reader.HasNext(arrayEnd))
+            {
+                props.SetDBusInvalidated(reader.ReadString());
+            }
+        }
+    }
+    sealed class PlayerProperties
+    {
+        private const uint PlaybackStatusFlag = 1U << 0;
+        private const uint LoopStatusFlag = 1U << 1;
+        private const uint RateFlag = 1U << 2;
+        private const uint ShuffleFlag = 1U << 3;
+        private const uint MetadataFlag = 1U << 4;
+        private const uint VolumeFlag = 1U << 5;
+        private const uint PositionFlag = 1U << 6;
+        private const uint MinimumRateFlag = 1U << 7;
+        private const uint MaximumRateFlag = 1U << 8;
+        private const uint CanGoNextFlag = 1U << 9;
+        private const uint CanGoPreviousFlag = 1U << 10;
+        private const uint CanPlayFlag = 1U << 11;
+        private const uint CanPauseFlag = 1U << 12;
+        private const uint CanSeekFlag = 1U << 13;
+        private const uint CanControlFlag = 1U << 14;
+        private const uint PropertiesAllSet = PlaybackStatusFlag | LoopStatusFlag | RateFlag | ShuffleFlag | MetadataFlag | VolumeFlag | PositionFlag | MinimumRateFlag | MaximumRateFlag | CanGoNextFlag | CanGoPreviousFlag | CanPlayFlag | CanPauseFlag | CanSeekFlag | CanControlFlag;
+        private uint __set;
+        private uint __invalidated;
+        private void EnsureSet(uint flag)
+        {
+            if ((__set & flag) == 0)
+            {
+                throw new InvalidOperationException("Property has not been set.");
+            }
+        }
+        private string _playbackStatus = default!;
+        public string PlaybackStatus
+        {
+            get { EnsureSet(PlaybackStatusFlag); return _playbackStatus; }
+            set { _playbackStatus = value; __set |= PlaybackStatusFlag; }
+        }
+        private string _loopStatus = default!;
+        public string LoopStatus
+        {
+            get { EnsureSet(LoopStatusFlag); return _loopStatus; }
+            set { _loopStatus = value; __set |= LoopStatusFlag; }
+        }
+        private double _rate = default!;
+        public double Rate
+        {
+            get { EnsureSet(RateFlag); return _rate; }
+            set { _rate = value; __set |= RateFlag; }
+        }
+        private bool _shuffle = default!;
+        public bool Shuffle
+        {
+            get { EnsureSet(ShuffleFlag); return _shuffle; }
+            set { _shuffle = value; __set |= ShuffleFlag; }
+        }
+        private Dictionary<string, VariantValue> _metadata = default!;
+        public Dictionary<string, VariantValue> Metadata
+        {
+            get { EnsureSet(MetadataFlag); return _metadata; }
+            set { _metadata = value; __set |= MetadataFlag; }
+        }
+        private double _volume = default!;
+        public double Volume
+        {
+            get { EnsureSet(VolumeFlag); return _volume; }
+            set { _volume = value; __set |= VolumeFlag; }
+        }
+        private long _position = default!;
+        public long Position
+        {
+            get { EnsureSet(PositionFlag); return _position; }
+            set { _position = value; __set |= PositionFlag; }
+        }
+        private double _minimumRate = default!;
+        public double MinimumRate
+        {
+            get { EnsureSet(MinimumRateFlag); return _minimumRate; }
+            set { _minimumRate = value; __set |= MinimumRateFlag; }
+        }
+        private double _maximumRate = default!;
+        public double MaximumRate
+        {
+            get { EnsureSet(MaximumRateFlag); return _maximumRate; }
+            set { _maximumRate = value; __set |= MaximumRateFlag; }
+        }
+        private bool _canGoNext = default!;
+        public bool CanGoNext
+        {
+            get { EnsureSet(CanGoNextFlag); return _canGoNext; }
+            set { _canGoNext = value; __set |= CanGoNextFlag; }
+        }
+        private bool _canGoPrevious = default!;
+        public bool CanGoPrevious
+        {
+            get { EnsureSet(CanGoPreviousFlag); return _canGoPrevious; }
+            set { _canGoPrevious = value; __set |= CanGoPreviousFlag; }
+        }
+        private bool _canPlay = default!;
+        public bool CanPlay
+        {
+            get { EnsureSet(CanPlayFlag); return _canPlay; }
+            set { _canPlay = value; __set |= CanPlayFlag; }
+        }
+        private bool _canPause = default!;
+        public bool CanPause
+        {
+            get { EnsureSet(CanPauseFlag); return _canPause; }
+            set { _canPause = value; __set |= CanPauseFlag; }
+        }
+        private bool _canSeek = default!;
+        public bool CanSeek
+        {
+            get { EnsureSet(CanSeekFlag); return _canSeek; }
+            set { _canSeek = value; __set |= CanSeekFlag; }
+        }
+        private bool _canControl = default!;
+        public bool CanControl
+        {
+            get { EnsureSet(CanControlFlag); return _canControl; }
+            set { _canControl = value; __set |= CanControlFlag; }
+        }
+        public bool IsSet(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(PlaybackStatus) => (__set & PlaybackStatusFlag) != 0,
+                nameof(LoopStatus) => (__set & LoopStatusFlag) != 0,
+                nameof(Rate) => (__set & RateFlag) != 0,
+                nameof(Shuffle) => (__set & ShuffleFlag) != 0,
+                nameof(Metadata) => (__set & MetadataFlag) != 0,
+                nameof(Volume) => (__set & VolumeFlag) != 0,
+                nameof(Position) => (__set & PositionFlag) != 0,
+                nameof(MinimumRate) => (__set & MinimumRateFlag) != 0,
+                nameof(MaximumRate) => (__set & MaximumRateFlag) != 0,
+                nameof(CanGoNext) => (__set & CanGoNextFlag) != 0,
+                nameof(CanGoPrevious) => (__set & CanGoPreviousFlag) != 0,
+                nameof(CanPlay) => (__set & CanPlayFlag) != 0,
+                nameof(CanPause) => (__set & CanPauseFlag) != 0,
+                nameof(CanSeek) => (__set & CanSeekFlag) != 0,
+                nameof(CanControl) => (__set & CanControlFlag) != 0,
+                _ => false
+            };
+        }
+        public bool IsInvalidated(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(PlaybackStatus) => (__invalidated & PlaybackStatusFlag) != 0,
+                nameof(LoopStatus) => (__invalidated & LoopStatusFlag) != 0,
+                nameof(Rate) => (__invalidated & RateFlag) != 0,
+                nameof(Shuffle) => (__invalidated & ShuffleFlag) != 0,
+                nameof(Metadata) => (__invalidated & MetadataFlag) != 0,
+                nameof(Volume) => (__invalidated & VolumeFlag) != 0,
+                nameof(Position) => (__invalidated & PositionFlag) != 0,
+                nameof(MinimumRate) => (__invalidated & MinimumRateFlag) != 0,
+                nameof(MaximumRate) => (__invalidated & MaximumRateFlag) != 0,
+                nameof(CanGoNext) => (__invalidated & CanGoNextFlag) != 0,
+                nameof(CanGoPrevious) => (__invalidated & CanGoPreviousFlag) != 0,
+                nameof(CanPlay) => (__invalidated & CanPlayFlag) != 0,
+                nameof(CanPause) => (__invalidated & CanPauseFlag) != 0,
+                nameof(CanSeek) => (__invalidated & CanSeekFlag) != 0,
+                nameof(CanControl) => (__invalidated & CanControlFlag) != 0,
+                _ => false
+            };
+        }
+        public void SetDBusInvalidated(string dbusPropertyName)
+        {
+            __invalidated |= dbusPropertyName switch
+            {
+                "PlaybackStatus" => PlaybackStatusFlag,
+                "LoopStatus" => LoopStatusFlag,
+                "Rate" => RateFlag,
+                "Shuffle" => ShuffleFlag,
+                "Metadata" => MetadataFlag,
+                "Volume" => VolumeFlag,
+                "Position" => PositionFlag,
+                "MinimumRate" => MinimumRateFlag,
+                "MaximumRate" => MaximumRateFlag,
+                "CanGoNext" => CanGoNextFlag,
+                "CanGoPrevious" => CanGoPreviousFlag,
+                "CanPlay" => CanPlayFlag,
+                "CanPause" => CanPauseFlag,
+                "CanSeek" => CanSeekFlag,
+                "CanControl" => CanControlFlag,
+                _ => 0
+            };
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
     }
     sealed class Player : DBusObject
     {
@@ -271,56 +731,30 @@ namespace Mpris.DBus
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSeek"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
         public Task<bool> GetCanControlAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanControl"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<PlayerProperties> GetPropertiesAsync()
+        public async Task<PlayerProperties> GetPropertiesAsync()
         {
-            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this);
+            var props = await this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
             static PlayerProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 return ReadProperties(ref reader);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<PlayerProperties>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PlayerProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
         {
             return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m), handler, emitOnCapturedContext, flags);
-            static PropertyChanges<PlayerProperties> ReadMessage(Message message)
+            static PlayerProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new();
-                return new PropertyChanges<PlayerProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
-            }
-            static string[] ReadInvalidated(ref Reader reader)
-            {
-                List<string>? invalidated = null;
-                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-                while (reader.HasNext(arrayEnd))
-                {
-                    invalidated ??= new();
-                    var property = reader.ReadString();
-                    switch (property)
-                    {
-                        case "PlaybackStatus": invalidated.Add("PlaybackStatus"); break;
-                        case "LoopStatus": invalidated.Add("LoopStatus"); break;
-                        case "Rate": invalidated.Add("Rate"); break;
-                        case "Shuffle": invalidated.Add("Shuffle"); break;
-                        case "Metadata": invalidated.Add("Metadata"); break;
-                        case "Volume": invalidated.Add("Volume"); break;
-                        case "Position": invalidated.Add("Position"); break;
-                        case "MinimumRate": invalidated.Add("MinimumRate"); break;
-                        case "MaximumRate": invalidated.Add("MaximumRate"); break;
-                        case "CanGoNext": invalidated.Add("CanGoNext"); break;
-                        case "CanGoPrevious": invalidated.Add("CanGoPrevious"); break;
-                        case "CanPlay": invalidated.Add("CanPlay"); break;
-                        case "CanPause": invalidated.Add("CanPause"); break;
-                        case "CanSeek": invalidated.Add("CanSeek"); break;
-                        case "CanControl": invalidated.Add("CanControl"); break;
-                    }
-                }
-                return invalidated?.ToArray() ?? Array.Empty<string>();
+                var props = ReadProperties(ref reader);
+                ReadInvalidated(ref reader, props);
+                return props;
             }
         }
-        private static PlayerProperties ReadProperties(ref Reader reader, List<string>? changedList = null)
+        private static PlayerProperties ReadProperties(ref Reader reader)
         {
             var props = new PlayerProperties();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -332,77 +766,62 @@ namespace Mpris.DBus
                     case "PlaybackStatus":
                         reader.ReadSignature("s"u8);
                         props.PlaybackStatus = reader.ReadString();
-                        changedList?.Add("PlaybackStatus");
                         break;
                     case "LoopStatus":
                         reader.ReadSignature("s"u8);
                         props.LoopStatus = reader.ReadString();
-                        changedList?.Add("LoopStatus");
                         break;
                     case "Rate":
                         reader.ReadSignature("d"u8);
                         props.Rate = reader.ReadDouble();
-                        changedList?.Add("Rate");
                         break;
                     case "Shuffle":
                         reader.ReadSignature("b"u8);
                         props.Shuffle = reader.ReadBool();
-                        changedList?.Add("Shuffle");
                         break;
                     case "Metadata":
                         reader.ReadSignature("a{sv}"u8);
                         props.Metadata = reader.ReadDictionaryOfStringToVariantValue();
-                        changedList?.Add("Metadata");
                         break;
                     case "Volume":
                         reader.ReadSignature("d"u8);
                         props.Volume = reader.ReadDouble();
-                        changedList?.Add("Volume");
                         break;
                     case "Position":
                         reader.ReadSignature("x"u8);
                         props.Position = reader.ReadInt64();
-                        changedList?.Add("Position");
                         break;
                     case "MinimumRate":
                         reader.ReadSignature("d"u8);
                         props.MinimumRate = reader.ReadDouble();
-                        changedList?.Add("MinimumRate");
                         break;
                     case "MaximumRate":
                         reader.ReadSignature("d"u8);
                         props.MaximumRate = reader.ReadDouble();
-                        changedList?.Add("MaximumRate");
                         break;
                     case "CanGoNext":
                         reader.ReadSignature("b"u8);
                         props.CanGoNext = reader.ReadBool();
-                        changedList?.Add("CanGoNext");
                         break;
                     case "CanGoPrevious":
                         reader.ReadSignature("b"u8);
                         props.CanGoPrevious = reader.ReadBool();
-                        changedList?.Add("CanGoPrevious");
                         break;
                     case "CanPlay":
                         reader.ReadSignature("b"u8);
                         props.CanPlay = reader.ReadBool();
-                        changedList?.Add("CanPlay");
                         break;
                     case "CanPause":
                         reader.ReadSignature("b"u8);
                         props.CanPause = reader.ReadBool();
-                        changedList?.Add("CanPause");
                         break;
                     case "CanSeek":
                         reader.ReadSignature("b"u8);
                         props.CanSeek = reader.ReadBool();
-                        changedList?.Add("CanSeek");
                         break;
                     case "CanControl":
                         reader.ReadSignature("b"u8);
                         props.CanControl = reader.ReadBool();
-                        changedList?.Add("CanControl");
                         break;
                     default:
                         reader.ReadVariantValue();
@@ -411,12 +830,86 @@ namespace Mpris.DBus
             }
             return props;
         }
+        private static void ReadInvalidated(ref Reader reader, PlayerProperties props)
+        {
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
+            while (reader.HasNext(arrayEnd))
+            {
+                props.SetDBusInvalidated(reader.ReadString());
+            }
+        }
     }
-    record PlaylistsProperties
+    sealed class PlaylistsProperties
     {
-        public uint PlaylistCount { get; set; } = default!;
-        public string[] Orderings { get; set; } = default!;
-        public (bool, (ObjectPath, string, string)) ActivePlaylist { get; set; } = default!;
+        private const uint PlaylistCountFlag = 1U << 0;
+        private const uint OrderingsFlag = 1U << 1;
+        private const uint ActivePlaylistFlag = 1U << 2;
+        private const uint PropertiesAllSet = PlaylistCountFlag | OrderingsFlag | ActivePlaylistFlag;
+        private uint __set;
+        private uint __invalidated;
+        private void EnsureSet(uint flag)
+        {
+            if ((__set & flag) == 0)
+            {
+                throw new InvalidOperationException("Property has not been set.");
+            }
+        }
+        private uint _playlistCount = default!;
+        public uint PlaylistCount
+        {
+            get { EnsureSet(PlaylistCountFlag); return _playlistCount; }
+            set { _playlistCount = value; __set |= PlaylistCountFlag; }
+        }
+        private string[] _orderings = default!;
+        public string[] Orderings
+        {
+            get { EnsureSet(OrderingsFlag); return _orderings; }
+            set { _orderings = value; __set |= OrderingsFlag; }
+        }
+        private (bool, (ObjectPath, string, string)) _activePlaylist = default!;
+        public (bool, (ObjectPath, string, string)) ActivePlaylist
+        {
+            get { EnsureSet(ActivePlaylistFlag); return _activePlaylist; }
+            set { _activePlaylist = value; __set |= ActivePlaylistFlag; }
+        }
+        public bool IsSet(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(PlaylistCount) => (__set & PlaylistCountFlag) != 0,
+                nameof(Orderings) => (__set & OrderingsFlag) != 0,
+                nameof(ActivePlaylist) => (__set & ActivePlaylistFlag) != 0,
+                _ => false
+            };
+        }
+        public bool IsInvalidated(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(PlaylistCount) => (__invalidated & PlaylistCountFlag) != 0,
+                nameof(Orderings) => (__invalidated & OrderingsFlag) != 0,
+                nameof(ActivePlaylist) => (__invalidated & ActivePlaylistFlag) != 0,
+                _ => false
+            };
+        }
+        public void SetDBusInvalidated(string dbusPropertyName)
+        {
+            __invalidated |= dbusPropertyName switch
+            {
+                "PlaylistCount" => PlaylistCountFlag,
+                "Orderings" => OrderingsFlag,
+                "ActivePlaylist" => ActivePlaylistFlag,
+                _ => 0
+            };
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
     }
     sealed class Playlists : DBusObject
     {
@@ -466,44 +959,30 @@ namespace Mpris.DBus
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Orderings"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
         public Task<(bool, (ObjectPath, string, string))> GetActivePlaylistAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "ActivePlaylist"), (Message m, object? s) => MessageReader.Read_v_rbrosszz(m), this);
-        public Task<PlaylistsProperties> GetPropertiesAsync()
+        public async Task<PlaylistsProperties> GetPropertiesAsync()
         {
-            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this);
+            var props = await this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
             static PlaylistsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 return ReadProperties(ref reader);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<PlaylistsProperties>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PlaylistsProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
         {
             return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m), handler, emitOnCapturedContext, flags);
-            static PropertyChanges<PlaylistsProperties> ReadMessage(Message message)
+            static PlaylistsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new();
-                return new PropertyChanges<PlaylistsProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
-            }
-            static string[] ReadInvalidated(ref Reader reader)
-            {
-                List<string>? invalidated = null;
-                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-                while (reader.HasNext(arrayEnd))
-                {
-                    invalidated ??= new();
-                    var property = reader.ReadString();
-                    switch (property)
-                    {
-                        case "PlaylistCount": invalidated.Add("PlaylistCount"); break;
-                        case "Orderings": invalidated.Add("Orderings"); break;
-                        case "ActivePlaylist": invalidated.Add("ActivePlaylist"); break;
-                    }
-                }
-                return invalidated?.ToArray() ?? Array.Empty<string>();
+                var props = ReadProperties(ref reader);
+                ReadInvalidated(ref reader, props);
+                return props;
             }
         }
-        private static PlaylistsProperties ReadProperties(ref Reader reader, List<string>? changedList = null)
+        private static PlaylistsProperties ReadProperties(ref Reader reader)
         {
             var props = new PlaylistsProperties();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -515,17 +994,14 @@ namespace Mpris.DBus
                     case "PlaylistCount":
                         reader.ReadSignature("u"u8);
                         props.PlaylistCount = reader.ReadUInt32();
-                        changedList?.Add("PlaylistCount");
                         break;
                     case "Orderings":
                         reader.ReadSignature("as"u8);
                         props.Orderings = reader.ReadArrayOfString();
-                        changedList?.Add("Orderings");
                         break;
                     case "ActivePlaylist":
                         reader.ReadSignature("(b(oss))"u8);
                         props.ActivePlaylist = reader.Read_rbrosszz();
-                        changedList?.Add("ActivePlaylist");
                         break;
                     default:
                         reader.ReadVariantValue();
@@ -534,11 +1010,76 @@ namespace Mpris.DBus
             }
             return props;
         }
+        private static void ReadInvalidated(ref Reader reader, PlaylistsProperties props)
+        {
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
+            while (reader.HasNext(arrayEnd))
+            {
+                props.SetDBusInvalidated(reader.ReadString());
+            }
+        }
     }
-    record TrackListProperties
+    sealed class TrackListProperties
     {
-        public ObjectPath[] Tracks { get; set; } = default!;
-        public bool CanEditTracks { get; set; } = default!;
+        private const uint TracksFlag = 1U << 0;
+        private const uint CanEditTracksFlag = 1U << 1;
+        private const uint PropertiesAllSet = TracksFlag | CanEditTracksFlag;
+        private uint __set;
+        private uint __invalidated;
+        private void EnsureSet(uint flag)
+        {
+            if ((__set & flag) == 0)
+            {
+                throw new InvalidOperationException("Property has not been set.");
+            }
+        }
+        private ObjectPath[] _tracks = default!;
+        public ObjectPath[] Tracks
+        {
+            get { EnsureSet(TracksFlag); return _tracks; }
+            set { _tracks = value; __set |= TracksFlag; }
+        }
+        private bool _canEditTracks = default!;
+        public bool CanEditTracks
+        {
+            get { EnsureSet(CanEditTracksFlag); return _canEditTracks; }
+            set { _canEditTracks = value; __set |= CanEditTracksFlag; }
+        }
+        public bool IsSet(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(Tracks) => (__set & TracksFlag) != 0,
+                nameof(CanEditTracks) => (__set & CanEditTracksFlag) != 0,
+                _ => false
+            };
+        }
+        public bool IsInvalidated(string propertyName)
+        {
+            return propertyName switch
+            {
+                nameof(Tracks) => (__invalidated & TracksFlag) != 0,
+                nameof(CanEditTracks) => (__invalidated & CanEditTracksFlag) != 0,
+                _ => false
+            };
+        }
+        public void SetDBusInvalidated(string dbusPropertyName)
+        {
+            __invalidated |= dbusPropertyName switch
+            {
+                "Tracks" => TracksFlag,
+                "CanEditTracks" => CanEditTracksFlag,
+                _ => 0
+            };
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
     }
     sealed class TrackList : DBusObject
     {
@@ -623,43 +1164,30 @@ namespace Mpris.DBus
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Tracks"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
         public Task<bool> GetCanEditTracksAsync()
             => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanEditTracks"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<TrackListProperties> GetPropertiesAsync()
+        public async Task<TrackListProperties> GetPropertiesAsync()
         {
-            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this);
+            var props = await this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
             static TrackListProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 return ReadProperties(ref reader);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<TrackListProperties>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, TrackListProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
         {
             return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m), handler, emitOnCapturedContext, flags);
-            static PropertyChanges<TrackListProperties> ReadMessage(Message message)
+            static TrackListProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                List<string> changed = new();
-                return new PropertyChanges<TrackListProperties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
-            }
-            static string[] ReadInvalidated(ref Reader reader)
-            {
-                List<string>? invalidated = null;
-                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-                while (reader.HasNext(arrayEnd))
-                {
-                    invalidated ??= new();
-                    var property = reader.ReadString();
-                    switch (property)
-                    {
-                        case "Tracks": invalidated.Add("Tracks"); break;
-                        case "CanEditTracks": invalidated.Add("CanEditTracks"); break;
-                    }
-                }
-                return invalidated?.ToArray() ?? Array.Empty<string>();
+                var props = ReadProperties(ref reader);
+                ReadInvalidated(ref reader, props);
+                return props;
             }
         }
-        private static TrackListProperties ReadProperties(ref Reader reader, List<string>? changedList = null)
+        private static TrackListProperties ReadProperties(ref Reader reader)
         {
             var props = new TrackListProperties();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -671,12 +1199,10 @@ namespace Mpris.DBus
                     case "Tracks":
                         reader.ReadSignature("ao"u8);
                         props.Tracks = reader.ReadArrayOfObjectPath();
-                        changedList?.Add("Tracks");
                         break;
                     case "CanEditTracks":
                         reader.ReadSignature("b"u8);
                         props.CanEditTracks = reader.ReadBool();
-                        changedList?.Add("CanEditTracks");
                         break;
                     default:
                         reader.ReadVariantValue();
@@ -685,200 +1211,21 @@ namespace Mpris.DBus
             }
             return props;
         }
-    }
-    record MediaPlayer2Properties
-    {
-        public bool CanQuit { get; set; } = default!;
-        public bool Fullscreen { get; set; } = default!;
-        public bool CanSetFullscreen { get; set; } = default!;
-        public bool CanRaise { get; set; } = default!;
-        public bool HasTrackList { get; set; } = default!;
-        public string Identity { get; set; } = default!;
-        public string DesktopEntry { get; set; } = default!;
-        public string[] SupportedUriSchemes { get; set; } = default!;
-        public string[] SupportedMimeTypes { get; set; } = default!;
-    }
-    sealed class MediaPlayer2 : DBusObject
-    {
-        private const string __Interface = "org.mpris.MediaPlayer2";
-        public MediaPlayer2(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path) : base(connection, destination, path)
-        { }
-        public Task RaiseAsync()
+        private static void ReadInvalidated(ref Reader reader, TrackListProperties props)
         {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Destination,
-                    path: Path,
-                    @interface: __Interface,
-                    member: "Raise");
-                return writer.CreateMessage();
-            }
-        }
-        public Task QuitAsync()
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Destination,
-                    path: Path,
-                    @interface: __Interface,
-                    member: "Quit");
-                return writer.CreateMessage();
-            }
-        }
-        public Task SetFullscreenAsync(bool value)
-        {
-            return this.Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                var writer = this.Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Destination,
-                    path: Path,
-                    @interface: "org.freedesktop.DBus.Properties",
-                    signature: "ssv",
-                    member: "Set");
-                writer.WriteString(__Interface);
-                writer.WriteString("Fullscreen");
-                writer.WriteSignature("b");
-                writer.WriteBool(value);
-                return writer.CreateMessage();
-            }
-        }
-        public Task<bool> GetCanQuitAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanQuit"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<bool> GetFullscreenAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Fullscreen"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<bool> GetCanSetFullscreenAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanSetFullscreen"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<bool> GetCanRaiseAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "CanRaise"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<bool> GetHasTrackListAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "HasTrackList"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<string> GetIdentityAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "Identity"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetDesktopEntryAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "DesktopEntry"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string[]> GetSupportedUriSchemesAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedUriSchemes"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<string[]> GetSupportedMimeTypesAsync()
-            => this.Connection.CallMethodAsync(CreateGetPropertyMessage(__Interface, "SupportedMimeTypes"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<MediaPlayer2Properties> GetPropertiesAsync()
-        {
-            return this.Connection.CallMethodAsync(CreateGetAllPropertiesMessage(__Interface), (Message m, object? s) => ReadMessage(m), this);
-            static MediaPlayer2Properties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
-            }
-        }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, PropertyChanges<MediaPlayer2Properties>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-        {
-            return base.WatchPropertiesChangedAsync(__Interface, (Message m, object? s) => ReadMessage(m), handler, emitOnCapturedContext, flags);
-            static PropertyChanges<MediaPlayer2Properties> ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                reader.ReadString(); // interface
-                List<string> changed = new();
-                return new PropertyChanges<MediaPlayer2Properties>(ReadProperties(ref reader, changed), ReadInvalidated(ref reader), changed.ToArray());
-            }
-            static string[] ReadInvalidated(ref Reader reader)
-            {
-                List<string>? invalidated = null;
-                ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-                while (reader.HasNext(arrayEnd))
-                {
-                    invalidated ??= new();
-                    var property = reader.ReadString();
-                    switch (property)
-                    {
-                        case "CanQuit": invalidated.Add("CanQuit"); break;
-                        case "Fullscreen": invalidated.Add("Fullscreen"); break;
-                        case "CanSetFullscreen": invalidated.Add("CanSetFullscreen"); break;
-                        case "CanRaise": invalidated.Add("CanRaise"); break;
-                        case "HasTrackList": invalidated.Add("HasTrackList"); break;
-                        case "Identity": invalidated.Add("Identity"); break;
-                        case "DesktopEntry": invalidated.Add("DesktopEntry"); break;
-                        case "SupportedUriSchemes": invalidated.Add("SupportedUriSchemes"); break;
-                        case "SupportedMimeTypes": invalidated.Add("SupportedMimeTypes"); break;
-                    }
-                }
-                return invalidated?.ToArray() ?? Array.Empty<string>();
-            }
-        }
-        private static MediaPlayer2Properties ReadProperties(ref Reader reader, List<string>? changedList = null)
-        {
-            var props = new MediaPlayer2Properties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
             while (reader.HasNext(arrayEnd))
             {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "CanQuit":
-                        reader.ReadSignature("b"u8);
-                        props.CanQuit = reader.ReadBool();
-                        changedList?.Add("CanQuit");
-                        break;
-                    case "Fullscreen":
-                        reader.ReadSignature("b"u8);
-                        props.Fullscreen = reader.ReadBool();
-                        changedList?.Add("Fullscreen");
-                        break;
-                    case "CanSetFullscreen":
-                        reader.ReadSignature("b"u8);
-                        props.CanSetFullscreen = reader.ReadBool();
-                        changedList?.Add("CanSetFullscreen");
-                        break;
-                    case "CanRaise":
-                        reader.ReadSignature("b"u8);
-                        props.CanRaise = reader.ReadBool();
-                        changedList?.Add("CanRaise");
-                        break;
-                    case "HasTrackList":
-                        reader.ReadSignature("b"u8);
-                        props.HasTrackList = reader.ReadBool();
-                        changedList?.Add("HasTrackList");
-                        break;
-                    case "Identity":
-                        reader.ReadSignature("s"u8);
-                        props.Identity = reader.ReadString();
-                        changedList?.Add("Identity");
-                        break;
-                    case "DesktopEntry":
-                        reader.ReadSignature("s"u8);
-                        props.DesktopEntry = reader.ReadString();
-                        changedList?.Add("DesktopEntry");
-                        break;
-                    case "SupportedUriSchemes":
-                        reader.ReadSignature("as"u8);
-                        props.SupportedUriSchemes = reader.ReadArrayOfString();
-                        changedList?.Add("SupportedUriSchemes");
-                        break;
-                    case "SupportedMimeTypes":
-                        reader.ReadSignature("as"u8);
-                        props.SupportedMimeTypes = reader.ReadArrayOfString();
-                        changedList?.Add("SupportedMimeTypes");
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
+                props.SetDBusInvalidated(reader.ReadString());
             }
-            return props;
         }
     }
     static partial class ObjectFactory
     {
+        public static MediaPlayer2 CreateMediaPlayer2(this DBusService service, ObjectPath path) => new MediaPlayer2(service.Connection, service.Name, path);
         public static Player CreatePlayer(this DBusService service, ObjectPath path) => new Player(service.Connection, service.Name, path);
         public static Playlists CreatePlaylists(this DBusService service, ObjectPath path) => new Playlists(service.Connection, service.Name, path);
         public static TrackList CreateTrackList(this DBusService service, ObjectPath path) => new TrackList(service.Connection, service.Name, path);
-        public static MediaPlayer2 CreateMediaPlayer2(this DBusService service, ObjectPath path) => new MediaPlayer2(service.Connection, service.Name, path);
     }
     class DBusObject
     {
@@ -913,7 +1260,7 @@ namespace Mpris.DBus
             writer.WriteString(@interface);
             return writer.CreateMessage();
         }
-        protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<PropertyChanges<TProperties>> reader, Action<Exception?, PropertyChanges<TProperties>> handler, bool emitOnCapturedContext, ObserverFlags flags)
+        protected ValueTask<IDisposable> WatchPropertiesChangedAsync<TProperties>(string @interface, MessageValueReader<TProperties> reader, Action<Exception?, TProperties> handler, bool emitOnCapturedContext, ObserverFlags flags)
         {
             var rule = new MatchRule
             {
@@ -925,7 +1272,7 @@ namespace Mpris.DBus
                 Arg0 = @interface
             };
             return this.Connection.AddMatchAsync(rule, reader,
-                                                    (Exception? ex, PropertyChanges<TProperties> changes, object? rs, object? hs) => ((Action<Exception?, PropertyChanges<TProperties>>)hs!).Invoke(ex, changes),
+                                                    (Exception? ex, TProperties properties, object? rs, object? hs) => ((Action<Exception?, TProperties>)hs!).Invoke(ex, properties),
                                                     this, handler, emitOnCapturedContext, flags);
         }
         public ValueTask<IDisposable> WatchSignalAsync<TArg>(string sender, string @interface, ObjectPath path, string signal, MessageValueReader<TArg> reader, Action<Exception?, TArg> handler, bool emitOnCapturedContext, ObserverFlags flags)
@@ -958,10 +1305,11 @@ namespace Mpris.DBus
     }
     file static class MessageReader
     {
-        public static long Read_x(Message message)
+        public static bool Read_v_b(Message message)
         {
             var reader = message.GetBodyReader();
-            return reader.ReadInt64();
+            reader.ReadSignature("b"u8);
+            return reader.ReadBool();
         }
         public static string Read_v_s(Message message)
         {
@@ -969,17 +1317,22 @@ namespace Mpris.DBus
             reader.ReadSignature("s"u8);
             return reader.ReadString();
         }
+        public static string[] Read_v_as(Message message)
+        {
+            var reader = message.GetBodyReader();
+            reader.ReadSignature("as"u8);
+            return reader.ReadArrayOfString();
+        }
+        public static long Read_x(Message message)
+        {
+            var reader = message.GetBodyReader();
+            return reader.ReadInt64();
+        }
         public static double Read_v_d(Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("d"u8);
             return reader.ReadDouble();
-        }
-        public static bool Read_v_b(Message message)
-        {
-            var reader = message.GetBodyReader();
-            reader.ReadSignature("b"u8);
-            return reader.ReadBool();
         }
         public static Dictionary<string, VariantValue> Read_v_aesv(Message message)
         {
@@ -1008,12 +1361,6 @@ namespace Mpris.DBus
             var reader = message.GetBodyReader();
             reader.ReadSignature("u"u8);
             return reader.ReadUInt32();
-        }
-        public static string[] Read_v_as(Message message)
-        {
-            var reader = message.GetBodyReader();
-            reader.ReadSignature("as"u8);
-            return reader.ReadArrayOfString();
         }
         public static (bool, (ObjectPath, string, string)) Read_v_rbrosszz(Message message)
         {
@@ -1090,15 +1437,4 @@ namespace Mpris.DBus
     file static class MessageWriterExtensions
     {
     }
-    sealed class PropertyChanges<TProperties>
-    {
-        public PropertyChanges(TProperties properties, string[] invalidated, string[] changed)
-        	=> (Properties, Invalidated, Changed) = (properties, invalidated, changed);
-        public TProperties Properties { get; }
-        public string[] Invalidated { get; }
-        public string[] Changed { get; }
-        public bool HasChanged(string property) => Array.IndexOf(Changed, property) != -1;
-        public bool IsInvalidated(string property) => Array.IndexOf(Invalidated, property) != -1;
-    }
 }
-

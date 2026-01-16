@@ -96,7 +96,7 @@ class Player
 
         return watcher;
 
-        async void OnPropertiesChanged(Exception? ex, PropertyChanges<PlayerProperties> changes)
+        async void OnPropertiesChanged(Exception? ex, PlayerProperties properties)
         {
             if (ex is not null)
             {
@@ -106,11 +106,11 @@ class Player
             try
             {
                 Dictionary<string, VariantValue>? metadata = null;
-                if (changes.HasChanged(nameof(PlayerProperties.Metadata)))
+                if (properties.IsSet(nameof(PlayerProperties.Metadata)))
                 {
-                    metadata = changes.Properties.Metadata;
+                    metadata = properties.Metadata;
                 }
-                else if (changes.IsInvalidated(nameof(PlayerProperties.Metadata)))
+                else if (properties.IsInvalidated(nameof(PlayerProperties.Metadata)))
                 {
                     metadata = await _player.GetMetadataAsync();
                 }

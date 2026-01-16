@@ -348,6 +348,65 @@ public sealed partial class DBusConnection : IDisposable
     }
 
     /// <summary>
+    /// Watches for property changes.
+    /// </summary>
+    public ValueTask<IDisposable> WatchPropertiesChangedAsync<T>(string? sender, string? path, string @interface, MessageValueReader<T> reader, Action<Exception?, T> handler, object? readerState, bool emitOnCapturedContext, ObserverFlags flags)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Interface = "org.freedesktop.DBus.Properties",
+            Member = "PropertiesChanged",
+            Arg0 = @interface
+        };
+        return AddMatchAsync(rule, reader, (Exception? ex, T value, object? rs, object? hs) => ((Action<Exception?, T>)hs!).Invoke(ex, value), readerState, handler, emitOnCapturedContext, flags);
+    }
+
+    /// <summary>
+    /// Watches for a D-Bus signal.
+    /// </summary>
+    public ValueTask<IDisposable> WatchSignalAsync<T>(string? sender, string? path, string @interface, string signal, MessageValueReader<T> reader, Action<Exception?, T> handler, object? readerState, bool emitOnCapturedContext, ObserverFlags flags)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        if (string.IsNullOrEmpty(signal))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(signal));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Member = signal,
+            Interface = @interface
+        };
+        return AddMatchAsync(rule, reader, (Exception? ex, T value, object? rs, object? hs) => ((Action<Exception?, T>)hs!).Invoke(ex, value), readerState, handler, emitOnCapturedContext, flags);
+    }
+
+    /// <summary>
+    /// Watches for a D-Bus signal.
+    /// </summary>
+    public ValueTask<IDisposable> WatchSignalAsync(string? sender, string? path, string @interface, string signal, Action<Exception?> handler, object? readerState, bool emitOnCapturedContext, ObserverFlags flags)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        if (string.IsNullOrEmpty(signal))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(signal));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Member = signal,
+            Interface = @interface
+        };
+        return AddMatchAsync<object>(rule, (Message message, object? state) => null!, (Exception? ex, object v, object? rs, object? hs) => ((Action<Exception?>)hs!).Invoke(ex), readerState, handler, emitOnCapturedContext, flags);
+    }
+
+    /// <summary>
     /// Adds an <see cref="IMethodHandler"/> to handle incoming method calls.
     /// </summary>
     /// <param name="methodHandler">The method handler to add.</param>

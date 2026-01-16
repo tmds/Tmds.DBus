@@ -40,3 +40,46 @@ if (disconnectReason is not null)
     return 1;
 }
 return 0;
+
+namespace NetworkManager.DBus
+{
+    using System.Threading.Tasks;
+
+    enum DeviceState : uint
+    {
+        Unknown = 0,
+        Unmanaged = 10,
+        Unavailable = 20,
+        Disconnected = 30,
+        Prepare = 40,
+        Config = 50,
+        NeedAuth = 60,
+        IpConfig = 70,
+        IpCheck = 80,
+        Secondaries = 90,
+        Activated = 100,
+        Deactivating = 110,
+        Failed = 120
+    }
+
+    partial class Device
+    {
+        public ValueTask<IDisposable> WatchStateChangedAsync(Action<Exception?, (DeviceState NewState, DeviceState OldState, uint Reason)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchSignalAsync(
+                Destination,
+                Path,
+                DBusInterfaceName,
+                "StateChanged",
+                (Message m, object? s) =>
+                {
+                    var reader = m.GetBodyReader();
+                    return ((DeviceState)reader.ReadUInt32(), (DeviceState)reader.ReadUInt32(), reader.ReadUInt32());
+                },
+                handler,
+                this,
+                emitOnCapturedContext,
+                flags);
+        }
+    }
+}

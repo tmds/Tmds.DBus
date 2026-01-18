@@ -9,6 +9,15 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Tmds.DBus.Tool
 {
+    enum Accessibility
+    {
+        NotApplicable,
+        Public,
+        Internal,
+        Private,
+        Protected
+    }
+
     class ProtocolGeneratorSettings
     {
         public string Namespace { get; set; } = "DBus";
@@ -56,7 +65,7 @@ namespace Tmds.DBus.Tool
             _sb.AppendLine(line);
         }
 
-        public bool TryGenerate(IEnumerable<InterfaceDescription> interfaceDescriptions, out string sourceCode)
+        public string Generate(IEnumerable<InterfaceDescription> interfaceDescriptions)
         {
             _sb.Clear();
             if (!string.IsNullOrEmpty(_settings.GeneratorDescription))
@@ -82,13 +91,7 @@ namespace Tmds.DBus.Tool
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"There was an unexpected exception while generating code for the '{interf.Name}' interface:");
-                    Console.WriteLine(interf.InterfaceXml);
-                    Console.WriteLine();
-                    Console.WriteLine("Exception:");
-                    Console.WriteLine(ex);
-                    sourceCode = default;
-                    return false;
+                    throw new InterfaceGenerationException(interf, ex);
                 }
             }
 
@@ -98,8 +101,7 @@ namespace Tmds.DBus.Tool
 
             EndBlock();
 
-            sourceCode = _sb.ToString();
-            return true;
+            return _sb.ToString();
         }
 
         private void AppendServiceClass(IEnumerable<InterfaceDescription> interfaceDescriptions)

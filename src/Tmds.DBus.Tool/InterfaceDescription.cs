@@ -6,5 +6,7 @@ namespace Tmds.DBus.Tool
     {
         public XElement InterfaceXml { get; set; }
         public string   Name { get; set; }
+        public string?  SourceFile { get; set; }
+        public string   InterfaceName => InterfaceXml.Attribute("name")?.Value ?? string.Empty;
     }
 }

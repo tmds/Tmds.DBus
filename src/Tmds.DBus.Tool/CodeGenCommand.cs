@@ -239,8 +239,18 @@ namespace Tmds.DBus.Tool
                         GeneratorDescription = generatorDescription
                     });
 
-            if (!generator.TryGenerate(descriptions, out string? code))
+            string code;
+            try
             {
+                code = generator.Generate(descriptions);
+            }
+            catch (InterfaceGenerationException ex)
+            {
+                Console.WriteLine($"There was an unexpected exception while generating code for the '{ex.InterfaceDescription.Name}' interface:");
+                Console.WriteLine(ex.InterfaceDescription.InterfaceXml);
+                Console.WriteLine();
+                Console.WriteLine("Exception:");
+                Console.WriteLine(ex.InnerException);
                 return false;
             }
 

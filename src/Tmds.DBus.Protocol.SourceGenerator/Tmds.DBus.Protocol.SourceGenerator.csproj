@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <PackageId>Tmds.DBus.Protocol.SourceGenerator</PackageId>
+    <Description>Source generator for Tmds.DBus.Protocol that generates DBus proxy objects from XML files at compile-time.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Directly use source files from Tmds.DBus.Protocol instead of taking a library dependency. -->
+  <ItemGroup>
+    <Compile Include="..\Tmds.DBus.Protocol\DBusType.cs" Link="Protocol\DBusType.cs" />
+    <Compile Include="..\Tmds.DBus.Protocol\SignatureReader.cs" Link="Protocol\SignatureReader.cs" />
+  </ItemGroup>
+
+  <!-- Link shared files from Tmds.DBus.Tool for code generation -->
+  <ItemGroup>
+    <Compile Include="..\Tmds.DBus.Tool\ProtocolGenerator.cs" Link="Shared\ProtocolGenerator.cs" />
+    <Compile Include="..\Tmds.DBus.Tool\InterfaceDescription.cs" Link="Shared\InterfaceDescription.cs" />
+    <Compile Include="..\Tmds.DBus.Tool\IGenerator.cs" Link="Shared\IGenerator.cs" />
+    <Compile Include="..\Tmds.DBus.Tool\Generator.cs" Link="Shared\Generator.cs" />
+  </ItemGroup>
+
+  <!-- Pack the generator DLL into the analyzers folder -->
+  <ItemGroup>
+    <None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <!-- Package the props file -->
+  <ItemGroup>
+    <None Include="Tmds.DBus.Protocol.SourceGenerator.props" Pack="true" PackagePath="build" Visible="false" />
+  </ItemGroup>
+
+</Project>

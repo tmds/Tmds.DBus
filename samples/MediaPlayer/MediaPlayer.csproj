@@ -20,10 +20,10 @@
 
   <!-- https://gitlab.freedesktop.org/mpris/mpris-spec/ -->
   <ItemGroup>
-    <AdditionalFiles Include="org.mpris.MediaPlayer2.xml" DBusGeneratorMode="Handler" />
-    <AdditionalFiles Include="org.mpris.MediaPlayer2.Player.xml" DBusGeneratorMode="Handler" />
-    <AdditionalFiles Include="org.mpris.MediaPlayer2.Playlists.xml" DBusGeneratorMode="Handler" />
-    <AdditionalFiles Include="org.mpris.MediaPlayer2.TrackList.xml" DBusGeneratorMode="Handler" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.xml" DBusGeneratorMode="Handler" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.Player.xml" DBusGeneratorMode="Handler" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.Playlists.xml" DBusGeneratorMode="Handler" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.TrackList.xml" DBusGeneratorMode="Handler" />
   </ItemGroup>
 
 </Project>

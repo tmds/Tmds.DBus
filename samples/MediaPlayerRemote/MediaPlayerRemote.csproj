@@ -4,10 +4,23 @@
     <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
+
+  <!-- https://gitlab.freedesktop.org/mpris/mpris-spec/ -->
+  <ItemGroup>
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.xml" Namespace="Mpris.DBus" DBusGeneratorMode="Proxy" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.Player.xml" Namespace="Mpris.DBus" DBusGeneratorMode="Proxy" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.Playlists.xml" Namespace="Mpris.DBus" DBusGeneratorMode="Proxy" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.TrackList.xml" Namespace="Mpris.DBus" DBusGeneratorMode="Proxy" />
+  </ItemGroup>
+
+  <!-- This Import is only needed because we're using a ProjectReference instead of a PackageReference for the source generator. -->
+  <Import Project="../../src/Tmds.DBus.Protocol.SourceGenerator/Tmds.DBus.Protocol.SourceGenerator.props" />
 
   <ItemGroup>
     <ProjectReference Include="../../src/Tmds.DBus.Protocol/Tmds.DBus.Protocol.csproj" />
+    <ProjectReference Include="../../src/Tmds.DBus.Protocol.SourceGenerator/Tmds.DBus.Protocol.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

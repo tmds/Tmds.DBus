@@ -6,15 +6,6 @@ using System.Xml.Linq;
 
 namespace Tmds.DBus.Tool
 {
-    enum Accessibility
-    {
-        NotApplicable,
-        Public,
-        Internal,
-        Private,
-        Protected
-    }
-
     class GeneratorSettings
     {
         public string Namespace { get; set; } = "DBus";
@@ -59,7 +50,7 @@ namespace Tmds.DBus.Tool
             _sb.AppendLine(line);
         }
 
-        public bool TryGenerate(IEnumerable<InterfaceDescription> interfaceDescriptions, out string sourceCode)
+        public string Generate(IEnumerable<InterfaceDescription> interfaceDescriptions)
         {
             _sb.Clear();
             if (!string.IsNullOrEmpty(_settings.GeneratorDescription))
@@ -94,20 +85,13 @@ namespace Tmds.DBus.Tool
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"There was an unexpected exception while generating code for the '{interfaceDescription.Name}' interface:");
-                    Console.WriteLine(interfaceDescription.InterfaceXml);
-                    Console.WriteLine();
-                    Console.WriteLine("Exception:");
-                    Console.WriteLine(ex);
-                    sourceCode = default;
-                    return false;
+                    throw new InterfaceGenerationException(interfaceDescription, ex);
                 }
             }
 
             EndBlock();
 
-            sourceCode = _sb.ToString();
-            return true;
+            return _sb.ToString();
         }
 
         private void DBusInterfaceDeclaration(string name, XElement interfaceXml)

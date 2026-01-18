@@ -170,20 +170,20 @@ namespace Tmds.DBus.Protocol.SourceGenerator
                 return null;
             }
 
-            // Parse XML
+            SourceText? text = additionalFile.Text.GetText(ct);
+            if (text == null)
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.UnableToReadFile,
+                    Location.None,
+                    fileName));
+                return null;
+            }
+
             XDocument doc;
             try
             {
-                SourceText? text = additionalFile.Text.GetText(ct);
-                if (text == null)
-                {
-                    spc.ReportDiagnostic(Diagnostic.Create(
-                        DiagnosticDescriptors.InvalidXml,
-                        Location.None,
-                        fileName,
-                        "Unable to read file"));
-                    return null;
-                }
+
                 doc = XDocument.Parse(text.ToString());
             }
             catch (Exception ex)

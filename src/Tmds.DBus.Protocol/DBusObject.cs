@@ -18,7 +18,7 @@ public class DBusObject
     /// <summary>
     /// Gets a DBusService instance for the destination.
     /// </summary>
-    public DBusService Remote => new DBusService(Connection, Destination);
+    public DBusService Service => new DBusService(Connection, Destination);
 
     /// <summary>
     /// Gets the object path.

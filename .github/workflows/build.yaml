@@ -31,6 +31,12 @@ jobs:
         run: |
           pushd src/Tmds.DBus.Tool && dotnet build && popd
 
+      - name: Build examples
+        run: |
+          dotnet build examples/Introspect
+          dotnet build examples/MediaPlayerRemote
+          dotnet build examples/NetworkManager
+
       - name: Build packages
         run: |
           VERSION_SUFFIX="${{ github.run_number }}-${{ github.sha }}"

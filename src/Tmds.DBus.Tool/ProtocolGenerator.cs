@@ -387,19 +387,6 @@ namespace Tmds.DBus.Tool
                 AppendLine("};");
                 EndBlock();
 
-                // Generate SetDBusInvalidated method
-                AppendLine("public void SetDBusInvalidated(string dbusPropertyName)");
-                StartBlock();
-                AppendLine("__invalidated |= dbusPropertyName switch");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"\"{property.Name}\" => {property.NameUpper}Flag,");
-                }
-                AppendLine("_ => 0");
-                _indentation--;
-                AppendLine("};");
-                EndBlock();
 
                 // Generate AreAllPropertiesSet method
                 AppendLine("public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
@@ -411,6 +398,59 @@ namespace Tmds.DBus.Tool
                 StartBlock();
                 AppendLine("throw new ProtocolException($\"Not all properties have been set (0x{__set:x}).\");");
                 EndBlock();
+                EndBlock();
+
+                // ReadFrom - used by both GetPropertiesAsync and WatchPropertiesChangedAsync
+                AppendLine($"public static {propertiesClassName} ReadFrom(ref Reader reader, bool withInvalidated)");
+                StartBlock();
+                AppendLine($"var props = new {propertiesClassName}();");
+                AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
+                AppendLine("while (reader.HasNext(arrayEnd))");
+                StartBlock();
+
+                AppendLine("var property = reader.ReadString();");
+                AppendLine("switch (property)");
+                StartBlock();
+
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"case \"{property.Name}\":");
+                    _indentation++;
+                    AppendLine($"reader.ReadSignature(\"{property.Signature}\"u8);");
+                    AppendLine($"props.{property.NameUpper} = {CallReadArgumentType(property.Signature)};");
+                    AppendLine("break;");
+                    _indentation--;
+                }
+                AppendLine("default:");
+                _indentation++;
+                AppendLine($"reader.ReadVariantValue();");
+                AppendLine("break;");
+                _indentation--;
+
+                EndBlock(); // switch
+
+                EndBlock(); // while
+
+                // Read invalidated properties if requested
+                AppendLine("if (withInvalidated)");
+                StartBlock();
+                AppendLine("ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);");
+                AppendLine("while (reader.HasNext(invalidatedEnd))");
+                StartBlock();
+                AppendLine("var propertyName = reader.ReadString();");
+                AppendLine("props.__invalidated |= propertyName switch");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"\"{property.Name}\" => {property.NameUpper}Flag,");
+                }
+                AppendLine("_ => 0");
+                _indentation--;
+                AppendLine("};");
+                EndBlock(); // while
+                EndBlock(); // if
+
+                AppendLine("return props;");
                 EndBlock();
 
                 EndBlock();
@@ -462,7 +502,7 @@ namespace Tmds.DBus.Tool
                 AppendLine($"static {propertiesClassName} ReadMessage(Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
-                AppendLine($"return ReadProperties(ref reader);");
+                AppendLine($"return {propertiesClassName}.ReadFrom(ref reader, withInvalidated: false);");
                 EndBlock(); // ReadMessage
 
                 EndBlock(); // method
@@ -475,53 +515,7 @@ namespace Tmds.DBus.Tool
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
-                AppendLine($"var props = ReadProperties(ref reader);");
-                AppendLine("ReadInvalidated(ref reader, props);");
-                AppendLine("return props;");
-                EndBlock();
-                EndBlock();
-
-                // ReadProperties - used by both GetPropertiesAsync and WatchPropertiesChangedAsync
-                AppendLine($"private static {propertiesClassName} ReadProperties(ref Reader reader)");
-                StartBlock();
-                AppendLine($"var props = new {propertiesClassName}();");
-                AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
-                AppendLine("while (reader.HasNext(arrayEnd))");
-                StartBlock();
-
-                AppendLine("var property = reader.ReadString();");
-                AppendLine("switch (property)");
-                StartBlock();
-
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"case \"{property.Name}\":");
-                    _indentation++;
-                    AppendLine($"reader.ReadSignature(\"{property.Signature}\"u8);");
-                    AppendLine($"props.{property.NameUpper} = {CallReadArgumentType(property.Signature)};");
-                    AppendLine("break;");
-                    _indentation--;
-                }
-                AppendLine("default:");
-                _indentation++;
-                AppendLine($"reader.ReadVariantValue();");
-                AppendLine("break;");
-                _indentation--;
-
-                EndBlock(); // switch
-
-                EndBlock(); // while
-
-                AppendLine("return props;");
-                EndBlock();
-
-                // ReadInvalidated - for WatchPropertiesChangedAsync (sets Invalidated flags)
-                AppendLine($"private static void ReadInvalidated(ref Reader reader, {propertiesClassName} props)");
-                StartBlock();
-                AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);");
-                AppendLine("while (reader.HasNext(arrayEnd))");
-                StartBlock();
-                AppendLine("props.SetDBusInvalidated(reader.ReadString());");
+                AppendLine($"return {propertiesClassName}.ReadFrom(ref reader, withInvalidated: true);");
                 EndBlock();
                 EndBlock();
 

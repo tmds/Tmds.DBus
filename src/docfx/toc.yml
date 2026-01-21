@@ -1,0 +1,13 @@
+items:
+  - name: Home
+    href: index.md
+  - name: Example
+    href: example.md
+  - name: Source Generator
+    href: generator.md
+  - name: Tool
+    href: tool.md
+  - name: Tmds.DBus API
+    href: api/Tmds.DBus/Tmds.DBus.yml
+  - name: Tmds.DBus.Protocol API
+    href: api/Tmds.DBus.Protocol/Tmds.DBus.Protocol.yml

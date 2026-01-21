@@ -156,7 +156,7 @@ class Player
     }
 
     private static string GetTitle(Dictionary<string, VariantValue> metadata)
-        => (metadata.TryGetValue("xesam:title", out VariantValue value) ? value.GetString() : null) ?? "???";
+        => metadata.TryGetValue("xesam:title", out VariantValue value) && value.Type == VariantValueType.String ? value.GetString() : "???";
 
     public Task PreviousAsync() => _player.PreviousAsync();
 

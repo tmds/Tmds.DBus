@@ -1,0 +1,78 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": [
+            "Tmds.DBus/Tmds.DBus.csproj"
+          ]
+        }
+      ],
+      "dest": "api/Tmds.DBus",
+      "includePrivateMembers": false,
+      "disableGitFeatures": false,
+      "disableDefaultFilter": false,
+      "noRestore": false,
+      "namespaceLayout": "flattened",
+      "memberLayout": "samePage",
+      "EnumSortOrder": "alphabetic",
+      "allowCompilationErrors": false
+    },
+    {
+      "src": [
+        {
+          "src": "..",
+          "files": [
+            "Tmds.DBus.Protocol/Tmds.DBus.Protocol.csproj"
+          ]
+        }
+      ],
+      "dest": "api/Tmds.DBus.Protocol",
+      "includePrivateMembers": false,
+      "disableGitFeatures": false,
+      "disableDefaultFilter": false,
+      "noRestore": false,
+      "namespaceLayout": "flattened",
+      "memberLayout": "samePage",
+      "EnumSortOrder": "alphabetic",
+      "allowCompilationErrors": false
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "api/**/**.yml",
+          "api/**/index.md"
+        ]
+      },
+      {
+        "files": [
+          "*.md",
+          "toc.yml"
+        ],
+        "exclude": [
+          "README.md"
+        ]
+      }
+    ],
+    "overwrite": [
+      {
+        "files": [
+          "namespaces/**.md"
+        ]
+      }
+    ],
+    "output": "../../_site",
+    "template": [
+      "default",
+      "modern"
+    ],
+    "globalMetadata": {
+      "_appTitle": "Tmds.DBus Documentation",
+      "_appName": "Tmds.DBus",
+      "_enableSearch": true
+    }
+  }
+}

@@ -166,7 +166,7 @@ class MonitorCommand : Command
                 sb.Append(reader.ReadSignatureAsString());
                 break;
             case DBusType.UnixFd:
-                sb.Append(reader.ReadHandleRaw());
+                sb.Append($"(fd)[{reader.ReadUInt32()}]");
                 break;
             case DBusType.Array:
                 sigReader = new(innerSignature);

@@ -75,7 +75,8 @@ public sealed class Message
     /// <summary>
     /// Gets the signature as a string.
     /// </summary>
-    public string? SignatureAsString => _signature.ToString();
+    public string SignatureAsString
+        => _signature.ToString() ?? ""; // Omitting the header is the same as an empty signature.
 
     /// <summary>
     /// Gets the object path as a byte span.

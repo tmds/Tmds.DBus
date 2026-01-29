@@ -109,9 +109,9 @@ public ref partial struct Reader
         bool dataRead = _reader.TryCopyTo(MemoryMarshal.AsBytes(array.AsSpan()));
         if (!dataRead)
         {
-            ThrowHelper.ThrowIndexOutOfRange();
+            ThrowHelper.ThrowReaderUnexpectedEndOfData();
         }
-        _reader.Advance(sizeof(T) * array.Length);
+        _reader.Advance(sizeof(T) * array.Length); // TryCopyTo succeeded, data is available
         if (sizeof(T) > 1 && ReverseEndianness)
         {
 #if NET8_0_OR_GREATER

@@ -10,23 +10,63 @@ static class ThrowHelper
         }
     }
 
+    [DoesNotReturn]
     private static void ThrowObjectDisposedException(object instance)
     {
         throw new ObjectDisposedException(instance?.GetType().FullName);
     }
 
+    [DoesNotReturn]
     public static void ThrowIndexOutOfRange()
     {
         throw new IndexOutOfRangeException();
     }
 
+    [DoesNotReturn]
     public static void ThrowNotSupportedException()
     {
         throw new NotSupportedException();
     }
 
+    [DoesNotReturn]
     internal static void ThrowUnexpectedSignature(ReadOnlySpan<byte> signature, string expected)
     {
-        throw new ProtocolException($"Expected signature '{expected}' does not match actual signature '{Encoding.UTF8.GetString(signature)}'.");
+        throw new DBusReaderException($"Unexpected signature: expected '{expected}', got '{SignatureToStringNoThrow(signature)}'.");
+    }
+
+    [DoesNotReturn]
+    internal static void ThrowReaderUnexpectedEndOfData()
+    {
+        throw new DBusReaderException("Unexpected end of data.");
+    }
+
+    [DoesNotReturn]
+    internal static void ThrowReaderInvalidUTF8()
+    {
+        throw new DBusReaderException("Invalid UTF-8 sequence.");
+    }
+
+    [DoesNotReturn]
+    internal static void ThrowReaderNoFileHandle()
+    {
+        throw new DBusReaderException("File handle not present.");
+    }
+
+    [DoesNotReturn]
+    internal static void ThrowHandleAlreadyRead()
+    {
+        throw new InvalidOperationException("The handle was already read.");
+    }
+
+    internal static string SignatureToStringNoThrow(ReadOnlySpan<byte> signature)
+    {
+        try
+        {
+            return Encoding.UTF8.GetString(signature);
+        }
+        catch
+        {
+            return BitConverter.ToString(signature.ToArray());
+        }
     }
 }

@@ -808,6 +808,8 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     /// <remarks>
     /// A handle can only be read once.
     /// </remarks>
+    /// <exception cref="DBusReaderException">The file descriptor is not present in the message.</exception>
+    /// <exception cref="InvalidOperationException">The handle was already read.</exception>
     public T ReadHandle<
 #if NET6_0_OR_GREATER
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -824,7 +826,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         var handles = (UnixFdCollection?)_o;
         if (handles is null)
         {
-            UnixFdCollection.ThrowNoHandles();
+            ThrowHelper.ThrowReaderNoFileHandle();
         }
         int index = (int)_l;
         return handles.ReadHandleGeneric<T>(index);
@@ -2209,11 +2211,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
                 writer.WriteSignature(UnsafeGetSignature());
                 break;
             case VariantValueType.UnixFd:
-                SafeHandle? handle = UnsafeReadHandle<Microsoft.Win32.SafeHandles.SafeFileHandle>();
-                if (handle is null)
-                {
-                    throw new NotSupportedException("Handle not available.");
-                }
+                SafeHandle handle = UnsafeReadHandle<Microsoft.Win32.SafeHandles.SafeFileHandle>();
                 writer.WriteHandle(handle);
                 break;
             case VariantValueType.Array:

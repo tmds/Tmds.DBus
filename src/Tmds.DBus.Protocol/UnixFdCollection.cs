@@ -61,12 +61,16 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
             {
                 ThrowDisposed();
             }
+            if (index < 0 || index >= Count)
+            {
+                ThrowHelper.ThrowReaderNoFileHandle();
+            }
             if (_rawHandles is not null)
             {
                 (IntPtr rawHandle, bool CanRead) = _rawHandles[index];
                 if (!CanRead)
                 {
-                    ThrowHandleAlreadyRead();
+                    ThrowHelper.ThrowHandleAlreadyRead();
                 }
                 // Handle can no longer be read, but we are still responible for disposing it.
                 _rawHandles[index] = (rawHandle, false);
@@ -78,18 +82,13 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 (SafeHandle? handle, bool CanRead) = _handles![index];
                 if (!CanRead)
                 {
-                    ThrowHandleAlreadyRead();
+                    ThrowHelper.ThrowHandleAlreadyRead();
                 }
                 // Handle can no longer be read, but we are still responible for disposing it.
                 _handles[index] = (handle, false);
                 return handle!.DangerousGetHandle();
             }
         }
-    }
-
-    private void ThrowHandleAlreadyRead()
-    {
-        throw new InvalidOperationException("The handle was already read.");
     }
 
     private void ThrowDisposed()
@@ -109,6 +108,10 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
             {
                 ThrowDisposed();
             }
+            if (index < 0 || index >= Count)
+            {
+                ThrowHelper.ThrowReaderNoFileHandle();
+            }
             if (_rawHandles is not null)
             {
                 (IntPtr rawHandle, bool CanRead) = _rawHandles[index];
@@ -118,7 +121,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 }
                 if (!CanRead)
                 {
-                    ThrowHandleAlreadyRead();
+                    ThrowHelper.ThrowHandleAlreadyRead();
                 }
     #if NET6_0_OR_GREATER
                 SafeHandle handle = (Activator.CreateInstance<T>() as SafeHandle)!;
@@ -139,7 +142,7 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
                 }
                 if (!CanRead)
                 {
-                    ThrowHandleAlreadyRead();
+                    ThrowHelper.ThrowHandleAlreadyRead();
                 }
                 if (handle is not T)
                 {
@@ -312,10 +315,4 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         }
     }
 
-    [DoesNotReturn]
-    internal static void ThrowNoHandles()
-    {
-        // Throw the same exception as when we try to get a handle out of the range of handles.
-        throw new IndexOutOfRangeException("Message has no handles.");
-    }
 }

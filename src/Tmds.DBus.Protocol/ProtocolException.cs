@@ -1,7 +1,7 @@
 namespace Tmds.DBus.Protocol;
 
 /// <summary>
-/// Exception thrown when an unexpected condition occurs while handling D-Bus messages.
+/// Exception thrown when the peer gives an unexpected response.
 /// </summary>
 public class ProtocolException : Exception
 {

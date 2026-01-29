@@ -3,8 +3,8 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Exception representing a D-Bus error reply to a method call.
 /// </summary>
-[Obsolete("Use DBusMethodException instead.")]
-public class DBusException : DBusMethodException
+[Obsolete("Use DBusErrorReplyException instead.")]
+public class DBusException : DBusErrorReplyException
 {
     /// <summary>
     /// Initializes a new instance of the DBusException class.

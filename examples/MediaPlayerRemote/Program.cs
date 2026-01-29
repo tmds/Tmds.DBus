@@ -156,7 +156,7 @@ class Player
             }
             return titles.ToArray();
         }
-        catch (DBusMethodException)
+        catch (DBusErrorReplyException)
         {
             // Listing tracks not supported by player.
             return Array.Empty<string>();

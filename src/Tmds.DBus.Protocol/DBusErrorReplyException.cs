@@ -3,14 +3,14 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Exception representing a D-Bus error reply to a method call.
 /// </summary>
-public class DBusMethodException : Exception
+public class DBusErrorReplyException : DBusReplyException
 {
     /// <summary>
-    /// Initializes a new instance of the DBusMethodException class.
+    /// Initializes a new instance of the DBusErrorReplyException class.
     /// </summary>
     /// <param name="errorName">The error name.</param>
     /// <param name="errorMessage">The error message.</param>
-    public DBusMethodException(string errorName, string errorMessage) :
+    public DBusErrorReplyException(string errorName, string errorMessage) :
         base($"{errorName}: {errorMessage}")
     {
         ErrorName = errorName;

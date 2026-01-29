@@ -202,22 +202,24 @@ public class ReaderTests
     public void ReadHandle_WithNoHandles_Throws()
     {
         byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
-        Assert.Throws<IndexOutOfRangeException>(() =>
+        var exception = Assert.Throws<DBusReaderException>(() =>
         {
             Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
             reader.ReadHandle<SafeFileHandle>();
         });
+        Assert.Equal("File handle not present.", exception.Message);
     }
 
     [Fact]
     public void ReadHandleRaw_WithNoHandles_Throws()
     {
         byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
-        Assert.Throws<IndexOutOfRangeException>(() =>
+        var exception = Assert.Throws<DBusReaderException>(() =>
         {
             Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
             reader.ReadHandleRaw();
         });
+        Assert.Equal("File handle not present.", exception.Message);
     }
 
     public bool Equals(VariantValue lhs, VariantValue other)
@@ -521,8 +523,10 @@ public class ReaderTests
                 reader.ReadByte();
                 Assert.False(true, "Not all data was read.");
             }
-            catch (IndexOutOfRangeException)
-            { }
+            catch (DBusReaderException ex)
+            {
+                Assert.Equal("Unexpected end of data.", ex.Message);
+            }
         }
     }
 }

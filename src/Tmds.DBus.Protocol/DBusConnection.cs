@@ -175,7 +175,7 @@ public sealed partial class DBusConnection : IDisposable
             ThrowHelper.ThrowIfDisposed(_disposed, this);
 
             // Throw DisconnectedException or ConnectException.
-            if (exception is DisconnectedException || exception is ConnectException)
+            if (exception is DBusConnectionException)
             {
                 throw;
             }

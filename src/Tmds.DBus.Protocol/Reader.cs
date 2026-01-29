@@ -14,7 +14,14 @@ public ref partial struct Reader
 
     internal ReadOnlySequence<byte> UnreadSequence => _reader.Sequence.Slice(_reader.Position);
 
-    internal void Advance(long count) => _reader.Advance(count);
+    internal void Advance(long count)
+    {
+        if (_reader.Remaining < count)
+        {
+            ThrowHelper.ThrowReaderUnexpectedEndOfData();
+        }
+        _reader.Advance(count);
+    }
 
     internal Reader(bool isBigEndian, ReadOnlySequence<byte> sequence) : this(isBigEndian, sequence, handles: null, 0) { }
 
@@ -38,7 +45,7 @@ public ref partial struct Reader
         long pad = ProtocolConstants.GetPadding((int)_reader.Consumed, alignment);
         if (pad != 0)
         {
-            _reader.Advance(pad);
+            Advance(pad);
         }
     }
 
@@ -53,6 +60,10 @@ public ref partial struct Reader
     {
         uint arrayLength = ReadUInt32();
         AlignReader(alignment);
+        if (_reader.Remaining < arrayLength)
+        {
+            ThrowHelper.ThrowReaderUnexpectedEndOfData();
+        }
         int endOfArray = (int)(_reader.Consumed + arrayLength);
         return new ArrayEnd(alignment, endOfArray);
     }
@@ -73,7 +84,7 @@ public ref partial struct Reader
         int advance = nextElement - consumed;
         if (advance != 0)
         {
-            _reader.Advance(advance);
+            _reader.Advance(advance); // array bounds validated in ReadArrayStart
         }
         return true;
     }
@@ -85,7 +96,7 @@ public ref partial struct Reader
     public void SkipTo(ArrayEnd end)
     {
         int advance = end.EndOfArray - (int)_reader.Consumed;
-        _reader.Advance(advance);
+        _reader.Advance(advance); // array bounds validated in ReadArrayStart
     }
 }
 

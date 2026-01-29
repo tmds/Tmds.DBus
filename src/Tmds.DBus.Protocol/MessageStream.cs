@@ -399,11 +399,11 @@ class MessageStream : IMessageStream
             span = span.Slice(0, (int)src.Length);
             if (!span.EndsWith((ReadOnlySpan<byte>)new byte[] { (byte)'\r' }))
             {
-                throw new ProtocolException("Authentication messages from server must end with '\\r\\n'.");
+                throw new ConnectException("Authentication messages from server must end with '\\r\\n'.");
             }
             if (span.Length == 1)
             {
-                throw new ProtocolException("Received empty authentication message from server.");
+                throw new ConnectException("Received empty authentication message from server.");
             }
             return span.Length - 1;
         }

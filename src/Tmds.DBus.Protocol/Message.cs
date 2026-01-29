@@ -329,7 +329,8 @@ public sealed class Message
                     {
                         if (handles is null || UnixFdCount > handles.Count)
                         {
-                            throw new ProtocolException("Received less handles than UNIX_FDS.");
+                            // Throw DBusReaderException just as we would when trying to read one of these handles which is out of range.
+                            throw new DBusReaderException("Received less handles than UNIX_FDS.");
                         }
                         if (_handles is null)
                         {

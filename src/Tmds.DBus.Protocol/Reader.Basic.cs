@@ -9,7 +9,7 @@ public ref partial struct Reader
     {
         if (!_reader.TryRead(out byte b))
         {
-            ThrowHelper.ThrowIndexOutOfRange();
+            ThrowHelper.ThrowReaderUnexpectedEndOfData();
         }
         return b;
     }
@@ -37,7 +37,7 @@ public ref partial struct Reader
         bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out short rv) : _reader.TryReadLittleEndian(out rv);
         if (!dataRead)
         {
-            ThrowHelper.ThrowIndexOutOfRange();
+            ThrowHelper.ThrowReaderUnexpectedEndOfData();
         }
         return rv;
     }
@@ -57,7 +57,7 @@ public ref partial struct Reader
         bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out int rv) : _reader.TryReadLittleEndian(out rv);
         if (!dataRead)
         {
-            ThrowHelper.ThrowIndexOutOfRange();
+            ThrowHelper.ThrowReaderUnexpectedEndOfData();
         }
         return rv;
     }
@@ -77,7 +77,7 @@ public ref partial struct Reader
         bool dataRead = _isBigEndian ? _reader.TryReadBigEndian(out long rv) : _reader.TryReadLittleEndian(out rv);
         if (!dataRead)
         {
-            ThrowHelper.ThrowIndexOutOfRange();
+            ThrowHelper.ThrowReaderUnexpectedEndOfData();
         }
         return rv;
     }
@@ -136,7 +136,7 @@ public ref partial struct Reader
         ReadOnlySpan<byte> signature = ReadSignatureAsSpan();
         if (!signature.SequenceEqual(expected))
         {
-            ThrowHelper.ThrowUnexpectedSignature(signature, Encoding.UTF8.GetString(expected));
+            ThrowHelper.ThrowUnexpectedSignature(signature, ThrowHelper.SignatureToStringNoThrow(expected));
         }
     }
 
@@ -163,12 +163,18 @@ public ref partial struct Reader
     /// <summary>
     /// Reads a string.
     /// </summary>
-    public string ReadString() => Encoding.UTF8.GetString(ReadSpan());
+    public string ReadString()
+    {
+        return DecodeUTF8(ReadSpan());
+    }
 
     /// <summary>
     /// Reads a signature as a string.
     /// </summary>
-    public string ReadSignatureAsString() => Encoding.UTF8.GetString(ReadSignatureAsSpan());
+    public string ReadSignatureAsString()
+    {
+        return DecodeUTF8(ReadSignatureAsSpan());
+    }
 
     private ReadOnlySpan<byte> ReadSpan()
     {
@@ -181,7 +187,7 @@ public ref partial struct Reader
         var span = _reader.UnreadSpan;
         if (span.Length >= length)
         {
-            _reader.Advance(length + 1);
+            _reader.Advance(length + 1); // we verified span has enough data
             return span.Slice(0, length);
         }
         else
@@ -189,13 +195,34 @@ public ref partial struct Reader
             var buffer = new byte[length];
             if (!_reader.TryCopyTo(buffer))
             {
-                ThrowHelper.ThrowIndexOutOfRange();
+                ThrowHelper.ThrowReaderUnexpectedEndOfData();
             }
-            _reader.Advance(length + 1);
+            _reader.Advance(length + 1); // TryCopyTo succeeded, data is available
             return new ReadOnlySpan<byte>(buffer);
         }
     }
 
     private bool ReverseEndianness
         => BitConverter.IsLittleEndian != !_isBigEndian;
+
+    private static string DecodeUTF8(ReadOnlySpan<byte> bytes)
+    {
+#if NET8_0_OR_GREATER
+        if (!System.Text.Unicode.Utf8.IsValid(bytes))
+        {
+            ThrowHelper.ThrowReaderInvalidUTF8();
+        }
+        return Encoding.UTF8.GetString(bytes);
+#else
+        try
+        {
+            return Encoding.UTF8.GetString(bytes);
+        }
+        catch
+        {
+            ThrowHelper.ThrowReaderInvalidUTF8();
+            return string.Empty;
+        }
+#endif
+    }
 }

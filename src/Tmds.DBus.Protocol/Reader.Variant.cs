@@ -15,7 +15,7 @@ public ref partial struct Reader
         SignatureReader sigReader = new(signature);
         if (!sigReader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
         {
-            ThrowInvalidSignature($"Invalid variant signature: {Encoding.UTF8.GetString(signature)}");
+            ThrowInvalidSignature($"Invalid variant signature: {ThrowHelper.SignatureToStringNoThrow(signature)}");
         }
         return ReadTypeAsVariantValue(type, innerSignature, nesting);
     }
@@ -178,7 +178,7 @@ public ref partial struct Reader
 
     private void ThrowInvalidSignature(string message)
     {
-        throw new ProtocolException(message);
+        throw new DBusReaderException(message);
     }
 
     private static VariantValueType ToVariantValueType(DBusType type, ReadOnlySpan<byte> innerSignature)

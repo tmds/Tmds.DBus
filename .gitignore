@@ -39,3 +39,6 @@ node_modules
 *launchSettings.json
 *.orig
 coverage-reports
+
+# Verify
+*.received.*

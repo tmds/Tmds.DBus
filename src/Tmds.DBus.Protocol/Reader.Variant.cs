@@ -178,7 +178,7 @@ public ref partial struct Reader
 
     private void ThrowInvalidSignature(string message)
     {
-        throw new DBusReaderException(message);
+        throw new DBusReadException(message);
     }
 
     private static VariantValueType ToVariantValueType(DBusType type, ReadOnlySpan<byte> innerSignature)

@@ -202,7 +202,7 @@ public class ReaderTests
     public void ReadHandle_WithNoHandles_Throws()
     {
         byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
-        var exception = Assert.Throws<DBusReaderException>(() =>
+        var exception = Assert.Throws<DBusReadException>(() =>
         {
             Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
             reader.ReadHandle<SafeFileHandle>();
@@ -214,7 +214,7 @@ public class ReaderTests
     public void ReadHandleRaw_WithNoHandles_Throws()
     {
         byte[] bigEndianData = new byte[] { 0, 0, 0, 0 };
-        var exception = Assert.Throws<DBusReaderException>(() =>
+        var exception = Assert.Throws<DBusReadException>(() =>
         {
             Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: null, handleCount: 0);
             reader.ReadHandleRaw();
@@ -523,7 +523,7 @@ public class ReaderTests
                 reader.ReadByte();
                 Assert.False(true, "Not all data was read.");
             }
-            catch (DBusReaderException ex)
+            catch (DBusReadException ex)
             {
                 Assert.Equal("Unexpected end of data.", ex.Message);
             }

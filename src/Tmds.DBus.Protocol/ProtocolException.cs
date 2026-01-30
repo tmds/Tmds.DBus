@@ -3,8 +3,8 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Exception thrown when the peer gives an unexpected response.
 /// </summary>
-[Obsolete("Use DBusReplyException instead.")]
-public class ProtocolException : DBusReplyException
+[Obsolete("Use DBusUnexpectedValueException instead.")]
+public class ProtocolException : DBusUnexpectedValueException
 {
     /// <summary>
     /// Initializes a new instance of the ProtocolException class.

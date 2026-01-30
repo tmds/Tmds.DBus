@@ -31,25 +31,25 @@ static class ThrowHelper
     [DoesNotReturn]
     internal static void ThrowUnexpectedSignature(ReadOnlySpan<byte> signature, string expected)
     {
-        throw new DBusReaderException($"Unexpected signature: expected '{expected}', got '{SignatureToStringNoThrow(signature)}'.");
+        throw new DBusReadException($"Unexpected signature: expected '{expected}', got '{SignatureToStringNoThrow(signature)}'.");
     }
 
     [DoesNotReturn]
     internal static void ThrowReaderUnexpectedEndOfData()
     {
-        throw new DBusReaderException("Unexpected end of data.");
+        throw new DBusReadException("Unexpected end of data.");
     }
 
     [DoesNotReturn]
     internal static void ThrowReaderInvalidUTF8()
     {
-        throw new DBusReaderException("Invalid UTF-8 sequence.");
+        throw new DBusReadException("Invalid UTF-8 sequence.");
     }
 
     [DoesNotReturn]
     internal static void ThrowReaderNoFileHandle()
     {
-        throw new DBusReaderException("File handle not present.");
+        throw new DBusReadException("File handle not present.");
     }
 
     [DoesNotReturn]

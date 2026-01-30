@@ -305,9 +305,12 @@ namespace Tmds.DBus.Tool
         private void AppendInterface(string name, XElement interfaceXml)
         {
             var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument).ToArray();
-            var writableProperties = WritableProperties(interfaceXml).Select(ToArgument);
+            var writablePropertiesArray = WritableProperties(interfaceXml).Select(ToArgument).ToArray();
+            var writableProperties = writablePropertiesArray.AsEnumerable();
 
             string propertiesClassName = $"{name}Properties";
+            string propertyEnumName = $"{name}Property";
+            string writablePropertyEnumName = $"{name}WritableProperty";
 
             if (readableProperties.Any())
             {
@@ -324,27 +327,40 @@ namespace Tmds.DBus.Tool
                 string flagType = readableProperties.Length <= 32 ? "uint" : "ulong";
                 string one = readableProperties.Length <= 32 ? "1U" : "1UL";
 
-                // Generate const flag fields for property tracking
-                for (int i = 0; i < readableProperties.Length; i++)
+                // Calculate all properties set value
+                string allSetValue;
+                if (readableProperties.Length <= 32)
                 {
-                    var property = readableProperties[i];
-                    AppendLine($"private const {flagType} {property.NameUpper}Flag = {one} << {i};");
+                    uint value = readableProperties.Length == 32 ? uint.MaxValue : (1U << readableProperties.Length) - 1;
+                    allSetValue = $"0x{value:X}U";
                 }
-
-                // Generate PropertiesAllSet const
-                var allFlags = string.Join(" | ", readableProperties.Select(p => $"{p.NameUpper}Flag"));
-                AppendLine($"private const {flagType} PropertiesAllSet = {allFlags};");
+                else
+                {
+                    ulong value = readableProperties.Length == 64 ? ulong.MaxValue : (1UL << readableProperties.Length) - 1;
+                    allSetValue = $"0x{value:X}UL";
+                }
 
                 // Generate flags fields
                 AppendLine($"private {flagType} __set;");
                 AppendLine($"private {flagType} __invalidated;");
+                AppendLine($"private const {flagType} PropertiesAllSet = {allSetValue}; // {readableProperties.Length} properties");
+
+                // Generate static Flag method
+                AppendLine($"private static {flagType} Flag({propertyEnumName} property) => property == 0 ? 0 : {one} << ((int)property - 1);");
+
+                // Generate constructors
+                AppendLine($"public {propertiesClassName}() {{ }}");
+                AppendLine("#nullable disable");
+                AppendLine("[System.Diagnostics.CodeAnalysis.SetsRequiredMembers]");
+                AppendLine($"private {propertiesClassName}(bool _) {{ }}");
+                AppendLine("#nullable enable");
 
                 // Generate EnsureSet helper method
-                AppendLine($"private void EnsureSet({flagType} flag)");
+                AppendLine($"private void EnsureSet({propertyEnumName} property)");
                 StartBlock();
-                AppendLine("if ((__set & flag) == 0)");
+                AppendLine("if (!HasFlag(__set, property))");
                 StartBlock();
-                AppendLine("throw new InvalidOperationException(\"Property has not been set.\");");
+                AppendLine("throw new InvalidOperationException(\"Property is not set.\");");
                 EndBlock();
                 EndBlock();
 
@@ -352,58 +368,53 @@ namespace Tmds.DBus.Tool
                 foreach (var property in readableProperties)
                 {
                     AppendLine($"private {property.DotnetReadType} {property.UnderscoreNameLower} = default!;");
-                    AppendLine($"public {property.DotnetReadType} {property.NameUpper}");
+                    AppendLine($"public required {property.DotnetReadType} {property.NameUpper}");
                     StartBlock();
-                    AppendLine($"get {{ EnsureSet({property.NameUpper}Flag); return {property.UnderscoreNameLower}; }}");
-                    AppendLine($"set {{ {property.UnderscoreNameLower} = value; __set |= {property.NameUpper}Flag; }}");
+                    AppendLine($"get {{ EnsureSet({propertyEnumName}.{property.NameUpper}); return {property.UnderscoreNameLower}; }}");
+                    AppendLine($"set {{ {property.UnderscoreNameLower} = value; __set |= Flag({propertyEnumName}.{property.NameUpper}); }}");
                     EndBlock();
                 }
 
-                // Generate IsSet method
-                AppendLine("public bool IsSet(string propertyName)");
-                StartBlock();
-                AppendLine("return propertyName switch");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"nameof({property.NameUpper}) => (__set & {property.NameUpper}Flag) != 0,");
-                }
-                AppendLine("_ => false");
+                // Generate CreateUninitialized method
+                AppendLine($"public static {propertiesClassName} CreateUninitialized() => new {propertiesClassName}(false);");
+
+                // Generate HasFlag helper method
+                AppendLine($"private bool HasFlag({flagType} flags, {propertyEnumName} property)");
+                _indentation++;
+                AppendLine($"=> property != 0 && (flags & Flag(property)) != 0;");
                 _indentation--;
-                AppendLine("};");
-                EndBlock();
+
+                // Generate IsSet method
+                AppendLine($"public bool IsSet({propertyEnumName} property) => HasFlag(__set, property);");
 
                 // Generate IsInvalidated method
-                AppendLine("public bool IsInvalidated(string propertyName)");
+                AppendLine($"public bool IsInvalidated({propertyEnumName} property) => HasFlag(__invalidated, property);");
+
+                // Generate SetInvalidated method
+                AppendLine($"public void SetInvalidated({propertyEnumName} property)");
                 StartBlock();
-                AppendLine("return propertyName switch");
+                AppendLine("if (property != 0)");
                 StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"nameof({property.NameUpper}) => (__invalidated & {property.NameUpper}Flag) != 0,");
-                }
-                AppendLine("_ => false");
-                _indentation--;
-                AppendLine("};");
+                AppendLine("__invalidated |= Flag(property);");
+                EndBlock();
                 EndBlock();
 
-
                 // Generate AreAllPropertiesSet method
-                AppendLine("public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
+                AppendLine($"public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
 
                 // Generate EnsureAllPropertiesSet method
                 AppendLine("public void EnsureAllPropertiesSet()");
                 StartBlock();
                 AppendLine("if (!AreAllPropertiesSet())");
                 StartBlock();
-                AppendLine("throw new ProtocolException($\"Not all properties have been set (0x{__set:x}).\");");
+                AppendLine("throw new DBusUnexpectedValueException($\"Not all properties have been set (0x{__set:x}).\");");
                 EndBlock();
                 EndBlock();
 
                 // ReadFrom - used by both GetPropertiesAsync and WatchPropertiesChangedAsync
                 AppendLine($"public static {propertiesClassName} ReadFrom(ref Reader reader, bool withInvalidated)");
                 StartBlock();
-                AppendLine($"var props = new {propertiesClassName}();");
+                AppendLine($"var props = CreateUninitialized();");
                 AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
                 AppendLine("while (reader.HasNext(arrayEnd))");
                 StartBlock();
@@ -442,7 +453,7 @@ namespace Tmds.DBus.Tool
                 StartBlock();
                 foreach (var property in readableProperties)
                 {
-                    AppendLine($"\"{property.Name}\" => {property.NameUpper}Flag,");
+                    AppendLine($"\"{property.Name}\" => Flag({propertyEnumName}.{property.NameUpper}),");
                 }
                 AppendLine("_ => 0");
                 _indentation--;
@@ -452,6 +463,55 @@ namespace Tmds.DBus.Tool
 
                 AppendLine("return props;");
                 EndBlock();
+
+                EndBlock();
+
+                // Generate helper class with Parse method
+                AppendLine($"file static class {name}Helper");
+                StartBlock();
+                AppendLine($"public static int Parse(string propertyName)");
+                StartBlock();
+                AppendLine("return propertyName switch");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"\"{property.Name}\" => (int){propertyEnumName}.{property.NameUpper},");
+                }
+                AppendLine("_ => 0");
+                _indentation--;
+                AppendLine("};");
+                EndBlock();
+                EndBlock();
+            }
+
+            if (readableProperties.Any())
+            {
+                AppendLine($"enum {propertyEnumName}");
+                StartBlock();
+                AppendLine("UnknownProperty = 0,");
+                for (int i = 0; i < readableProperties.Length; i++)
+                {
+                    var property = readableProperties[i];
+                    AppendLine($"{property.NameUpper} = {i + 1}{(i < readableProperties.Length - 1 ? "," : "")}");
+                }
+                EndBlock();
+            }
+
+            if (writablePropertiesArray.Any())
+            {
+                AppendLine($"enum {writablePropertyEnumName}");
+                StartBlock();
+                AppendLine("UnknownProperty = 0,");
+
+                int writeOnlyPropValue = readableProperties.Length + 1;
+                for (int i = 0; i < writablePropertiesArray.Length; i++)
+                {
+                    var property = readableProperties[i];
+                    int index = Array.FindIndex(readableProperties, p => p.Name == property.Name);
+                    // When the property is readable use the same value as the other enum, otherwise start numbering past that enum.
+                    int value = index >= 0 ? index + 1 : writeOnlyPropValue++;
+                    AppendLine($"{property.NameUpper} = {value}{(i < writablePropertiesArray.Length - 1 ? "," : "")}");
+                }
 
                 EndBlock();
             }

@@ -106,11 +106,11 @@ class Player
             try
             {
                 Dictionary<string, VariantValue>? metadata = null;
-                if (properties.IsSet(nameof(PlayerProperties.Metadata)))
+                if (properties.IsSet(PlayerProperty.Metadata))
                 {
                     metadata = properties.Metadata;
                 }
-                else if (properties.IsInvalidated(nameof(PlayerProperties.Metadata)))
+                else if (properties.IsInvalidated(PlayerProperty.Metadata))
                 {
                     metadata = await _player.GetMetadataAsync();
                 }

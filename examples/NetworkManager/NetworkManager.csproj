@@ -4,10 +4,19 @@
     <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
   <ItemGroup>
+    <AdditionalFiles Include="../dbus-xml/org.freedesktop.NetworkManager_proxy.xml" Namespace="NetworkManager.DBus" GenerateDBusTypes="true" />
+  </ItemGroup>
+
+  <!-- This Import is only needed because we're using a ProjectReference instead of a PackageReference for the source generator. -->
+  <Import Project="../../src/Tmds.DBus.Protocol.SourceGenerator/Tmds.DBus.Protocol.SourceGenerator.props" />
+
+  <ItemGroup>
     <ProjectReference Include="../../src/Tmds.DBus.Protocol/Tmds.DBus.Protocol.csproj" />
+    <ProjectReference Include="../../src/Tmds.DBus.Protocol.SourceGenerator/Tmds.DBus.Protocol.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

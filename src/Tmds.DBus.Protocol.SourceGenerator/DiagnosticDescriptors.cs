@@ -14,14 +14,6 @@ namespace Tmds.DBus.Protocol.SourceGenerator
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
 
-        public static readonly DiagnosticDescriptor UnsupportedGeneratorMode = new DiagnosticDescriptor(
-            id: "DBUS1002",
-            title: "Unsupported generator mode",
-            messageFormat: "The AdditionalFile '{0}' uses an unsupported DBusGeneratorMode '{1}'. Only 'Proxy' mode is supported.",
-            category: Category,
-            defaultSeverity: DiagnosticSeverity.Error,
-            isEnabledByDefault: true);
-
         public static readonly DiagnosticDescriptor UnableToReadFile = new DiagnosticDescriptor(
             id: "DBUS1003",
             title: "Unable to read file",

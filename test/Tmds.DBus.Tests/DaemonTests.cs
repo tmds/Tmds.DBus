@@ -6,7 +6,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Win32.SafeHandles;
 using Xunit;
-using XunitSkip;
 
 namespace Tmds.DBus.Tests
 {
@@ -302,12 +301,12 @@ namespace Tmds.DBus.Tests
             }
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task UnixFd_Unsupported()
         {
             if (DBusDaemon.IsSELinux)
             {
-                throw new SkipTestException("Cannot provide SELinux context to DBus daemon over TCP");
+                Assert.Skip("Cannot provide SELinux context to DBus daemon over TCP");
             }
             using (var dbusDaemon = new DBusDaemon())
             {

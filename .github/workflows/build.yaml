@@ -14,9 +14,6 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Install reportgenerator tool
-        run: dotnet tool install --global dotnet-reportgenerator-globaltool
-
       - name: Fetch sources
         uses: actions/checkout@v3
         with:
@@ -24,8 +21,8 @@ jobs:
 
       - name: Run tests
         run: |
-          pushd test/Tmds.DBus.Tests && dotnet test && popd
-          pushd test/Tmds.DBus.Protocol.Tests && dotnet test --collect:"XPlat Code Coverage" && popd
+          dotnet test --project test/Tmds.DBus.Tests
+          dotnet test --project test/Tmds.DBus.Protocol.Tests
 
       - name: Build tool
         run: |
@@ -52,12 +49,3 @@ jobs:
           dotnet nuget push -s https://www.myget.org/F/tmds/api/v2/package -k "${{ secrets.NUGET_APIKEY }}" src/Tmds.DBus.Protocol.SourceGenerator/*.nupkg
           dotnet nuget push -s https://www.myget.org/F/tmds/api/v2/package -k "${{ secrets.NUGET_APIKEY }}" src/Tmds.DBus.Tool/*.nupkg
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-
-      - name: Generate coverage report
-        run: ~/.dotnet/tools/reportgenerator -reports:test/Tmds.DBus.Protocol.Tests/TestResults/*/coverage.cobertura.xml -targetdir:coverage-reports
-
-      - name: Upload coverage reports to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-reports
-          path: coverage-reports

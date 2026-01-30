@@ -1,9 +1,9 @@
 namespace Tmds.DBus.Protocol;
 
 /// <summary>
-/// Exception representing a D-Bus error reply to a method call.
+/// Exception thrown when receiving an error message reply to a method call.
 /// </summary>
-public class DBusErrorReplyException : DBusReplyException
+public class DBusErrorReplyException : DBusMessageException
 {
     /// <summary>
     /// Initializes a new instance of the DBusErrorReplyException class.

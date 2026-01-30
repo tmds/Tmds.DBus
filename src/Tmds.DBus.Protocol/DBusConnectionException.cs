@@ -3,7 +3,7 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Base exception class for D-Bus connection-related exceptions.
 /// </summary>
-public class DBusConnectionException : Exception
+public class DBusConnectionException : DBusExceptionBase
 {
     /// <summary>
     /// Initializes a new instance of the DBusConnectionException class.

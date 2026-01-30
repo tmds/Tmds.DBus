@@ -808,7 +808,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     /// <remarks>
     /// A handle can only be read once.
     /// </remarks>
-    /// <exception cref="DBusReaderException">The file descriptor is not present in the message.</exception>
+    /// <exception cref="DBusReadException">The file descriptor is not present in the message.</exception>
     /// <exception cref="InvalidOperationException">The handle was already read.</exception>
     public T ReadHandle<
 #if NET6_0_OR_GREATER

@@ -20,6 +20,7 @@
 
     <!-- Test dependencies -->
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
+    <PackageVersion Include="Verify.XunitV3" Version="31.10.0" />
 
     <!-- Example dependencies -->
     <PackageVersion Include="Tmds.DBus.SourceGenerator" Version="0.0.22">

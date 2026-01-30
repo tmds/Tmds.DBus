@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/test/">
     <Project Path="test\Tmds.DBus.Protocol.Tests\Tmds.DBus.Protocol.Tests.csproj" />
+    <Project Path="test\Tmds.DBus.Protocol.SourceGenerator.Tests\Tmds.DBus.Protocol.SourceGenerator.Tests.csproj" />
     <Project Path="test\Tmds.DBus.Tests\Tmds.DBus.Tests.csproj" />
   </Folder>
   <Folder Name="/examples/">

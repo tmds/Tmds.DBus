@@ -9,10 +9,10 @@
 
   <!-- https://gitlab.freedesktop.org/mpris/mpris-spec/ -->
   <ItemGroup>
-    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.xml" Namespace="Mpris.DBus" DBusGeneratorMode="Proxy" />
-    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.Player.xml" Namespace="Mpris.DBus" DBusGeneratorMode="Proxy" />
-    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.Playlists.xml" Namespace="Mpris.DBus" DBusGeneratorMode="Proxy" />
-    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.TrackList.xml" Namespace="Mpris.DBus" DBusGeneratorMode="Proxy" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.xml" Namespace="Mpris.DBus" GenerateDBusTypes="true" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.Player.xml" Namespace="Mpris.DBus" GenerateDBusTypes="true" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.Playlists.xml" Namespace="Mpris.DBus" GenerateDBusTypes="true" />
+    <AdditionalFiles Include="../dbus-xml/org.mpris.MediaPlayer2.TrackList.xml" Namespace="Mpris.DBus" GenerateDBusTypes="true" />
   </ItemGroup>
 
   <!-- This Import is only needed because we're using a ProjectReference instead of a PackageReference for the source generator. -->

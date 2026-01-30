@@ -10,18 +10,12 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Tmds.DBus.Protocol.SourceGenerator
 {
-    internal enum DBusGeneratorMode
-    {
-        Proxy,
-        Handler
-    }
-
     [Generator]
     public class DBusSourceGenerator : IIncrementalGenerator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // Find AdditionalFiles xml files that have a DBusGeneratorMode.
+            // Find AdditionalFiles xml files that have GenerateDBusTypes set to true.
             IncrementalValuesProvider<AdditionalFile> additionalFiles =
                 context.AdditionalTextsProvider
                 .Where(static file => file.Path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
@@ -30,14 +24,14 @@ namespace Tmds.DBus.Protocol.SourceGenerator
                 {
                     var (file, options) = pair;
                     var fileOptions = options.GetOptions(file);
-                    fileOptions.TryGetValue("build_metadata.AdditionalFiles.DBusGeneratorMode", out string? generatorMode);
-                    if (string.IsNullOrEmpty(generatorMode))
+                    fileOptions.TryGetValue("build_metadata.AdditionalFiles.GenerateDBusTypes", out string? generateDBusTypes);
+                    if (!string.Equals(generateDBusTypes, "true", StringComparison.OrdinalIgnoreCase))
                     {
                         return new AdditionalFile?();
                     }
 
                     fileOptions.TryGetValue("build_metadata.AdditionalFiles.Namespace", out string? ns);
-                    return new AdditionalFile(file, ns ?? string.Empty, generatorMode ?? string.Empty);
+                    return new AdditionalFile(file, ns ?? string.Empty);
                 })
                 .Where(static file => file.HasValue)
                 .Select(static (file, ct) => file!.Value);
@@ -159,17 +153,6 @@ namespace Tmds.DBus.Protocol.SourceGenerator
                 return null;
             }
 
-            // Validate generator mode - only Proxy is supported
-            if (!additionalFile.GeneratorMode.Equals("Proxy", StringComparison.OrdinalIgnoreCase))
-            {
-                spc.ReportDiagnostic(Diagnostic.Create(
-                    DiagnosticDescriptors.UnsupportedGeneratorMode,
-                    Location.None,
-                    fileName,
-                    additionalFile.GeneratorMode));
-                return null;
-            }
-
             SourceText? text = additionalFile.Text.GetText(ct);
             if (text == null)
             {
@@ -248,6 +231,6 @@ namespace Tmds.DBus.Protocol.SourceGenerator
             public List<Tool.InterfaceDescription> Interfaces { get; }
         }
 
-        private readonly record struct AdditionalFile(AdditionalText Text, string Namespace, string GeneratorMode);
+        private readonly record struct AdditionalFile(AdditionalText Text, string Namespace);
     }
 }

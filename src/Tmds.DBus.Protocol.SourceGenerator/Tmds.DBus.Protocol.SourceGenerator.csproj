@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <PackageId>Tmds.DBus.Protocol.SourceGenerator</PackageId>
     <Description>Source generator for Tmds.DBus.Protocol that generates DBus proxy objects from XML files at compile-time.</Description>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
 
   <ItemGroup>

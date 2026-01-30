@@ -1,7 +1,6 @@
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
-using XunitSkip;
 
 namespace Tmds.DBus.Tests
 {
@@ -10,12 +9,12 @@ namespace Tmds.DBus.Tests
         [InlineData(DBusDaemonProtocol.Tcp)]
         [InlineData(DBusDaemonProtocol.Unix)]
         [InlineData(DBusDaemonProtocol.UnixAbstract)]
-        [SkippableTheory]
+        [Theory]
         public async Task Transport(DBusDaemonProtocol protocol)
         {
             if (DBusDaemon.IsSELinux && protocol == DBusDaemonProtocol.Tcp)
             {
-                throw new SkipTestException("Cannot provide SELinux context to DBus daemon over TCP");
+                Assert.Skip("Cannot provide SELinux context to DBus daemon over TCP");
             }
             using (var dbusDaemon = new DBusDaemon())
             {

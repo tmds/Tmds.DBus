@@ -34,305 +34,431 @@ namespace NetworkManager.DBus
     }
     sealed class NetworkManagerProperties
     {
-        private const uint DevicesFlag = 1U << 0;
-        private const uint AllDevicesFlag = 1U << 1;
-        private const uint CheckpointsFlag = 1U << 2;
-        private const uint NetworkingEnabledFlag = 1U << 3;
-        private const uint WirelessEnabledFlag = 1U << 4;
-        private const uint WirelessHardwareEnabledFlag = 1U << 5;
-        private const uint WwanEnabledFlag = 1U << 6;
-        private const uint WwanHardwareEnabledFlag = 1U << 7;
-        private const uint WimaxEnabledFlag = 1U << 8;
-        private const uint WimaxHardwareEnabledFlag = 1U << 9;
-        private const uint RadioFlagsFlag = 1U << 10;
-        private const uint ActiveConnectionsFlag = 1U << 11;
-        private const uint PrimaryConnectionFlag = 1U << 12;
-        private const uint PrimaryConnectionTypeFlag = 1U << 13;
-        private const uint MeteredFlag = 1U << 14;
-        private const uint ActivatingConnectionFlag = 1U << 15;
-        private const uint StartupFlag = 1U << 16;
-        private const uint VersionFlag = 1U << 17;
-        private const uint VersionInfoFlag = 1U << 18;
-        private const uint CapabilitiesFlag = 1U << 19;
-        private const uint StateFlag = 1U << 20;
-        private const uint ConnectivityFlag = 1U << 21;
-        private const uint ConnectivityCheckAvailableFlag = 1U << 22;
-        private const uint ConnectivityCheckEnabledFlag = 1U << 23;
-        private const uint ConnectivityCheckUriFlag = 1U << 24;
-        private const uint GlobalDnsConfigurationFlag = 1U << 25;
-        private const uint PropertiesAllSet = DevicesFlag | AllDevicesFlag | CheckpointsFlag | NetworkingEnabledFlag | WirelessEnabledFlag | WirelessHardwareEnabledFlag | WwanEnabledFlag | WwanHardwareEnabledFlag | WimaxEnabledFlag | WimaxHardwareEnabledFlag | RadioFlagsFlag | ActiveConnectionsFlag | PrimaryConnectionFlag | PrimaryConnectionTypeFlag | MeteredFlag | ActivatingConnectionFlag | StartupFlag | VersionFlag | VersionInfoFlag | CapabilitiesFlag | StateFlag | ConnectivityFlag | ConnectivityCheckAvailableFlag | ConnectivityCheckEnabledFlag | ConnectivityCheckUriFlag | GlobalDnsConfigurationFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0x3FFFFFFU; // 26 properties
+        private static uint Flag(NetworkManagerProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public NetworkManagerProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private NetworkManagerProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(NetworkManagerProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
         private ObjectPath[] _devices = default!;
-        public ObjectPath[] Devices
+        public required ObjectPath[] Devices
         {
-            get { EnsureSet(DevicesFlag); return _devices; }
-            set { _devices = value; __set |= DevicesFlag; }
+            get { EnsureSet(NetworkManagerProperty.Devices); return _devices; }
+            set { _devices = value; __set |= Flag(NetworkManagerProperty.Devices); }
         }
         private ObjectPath[] _allDevices = default!;
-        public ObjectPath[] AllDevices
+        public required ObjectPath[] AllDevices
         {
-            get { EnsureSet(AllDevicesFlag); return _allDevices; }
-            set { _allDevices = value; __set |= AllDevicesFlag; }
+            get { EnsureSet(NetworkManagerProperty.AllDevices); return _allDevices; }
+            set { _allDevices = value; __set |= Flag(NetworkManagerProperty.AllDevices); }
         }
         private ObjectPath[] _checkpoints = default!;
-        public ObjectPath[] Checkpoints
+        public required ObjectPath[] Checkpoints
         {
-            get { EnsureSet(CheckpointsFlag); return _checkpoints; }
-            set { _checkpoints = value; __set |= CheckpointsFlag; }
+            get { EnsureSet(NetworkManagerProperty.Checkpoints); return _checkpoints; }
+            set { _checkpoints = value; __set |= Flag(NetworkManagerProperty.Checkpoints); }
         }
         private bool _networkingEnabled = default!;
-        public bool NetworkingEnabled
+        public required bool NetworkingEnabled
         {
-            get { EnsureSet(NetworkingEnabledFlag); return _networkingEnabled; }
-            set { _networkingEnabled = value; __set |= NetworkingEnabledFlag; }
+            get { EnsureSet(NetworkManagerProperty.NetworkingEnabled); return _networkingEnabled; }
+            set { _networkingEnabled = value; __set |= Flag(NetworkManagerProperty.NetworkingEnabled); }
         }
         private bool _wirelessEnabled = default!;
-        public bool WirelessEnabled
+        public required bool WirelessEnabled
         {
-            get { EnsureSet(WirelessEnabledFlag); return _wirelessEnabled; }
-            set { _wirelessEnabled = value; __set |= WirelessEnabledFlag; }
+            get { EnsureSet(NetworkManagerProperty.WirelessEnabled); return _wirelessEnabled; }
+            set { _wirelessEnabled = value; __set |= Flag(NetworkManagerProperty.WirelessEnabled); }
         }
         private bool _wirelessHardwareEnabled = default!;
-        public bool WirelessHardwareEnabled
+        public required bool WirelessHardwareEnabled
         {
-            get { EnsureSet(WirelessHardwareEnabledFlag); return _wirelessHardwareEnabled; }
-            set { _wirelessHardwareEnabled = value; __set |= WirelessHardwareEnabledFlag; }
+            get { EnsureSet(NetworkManagerProperty.WirelessHardwareEnabled); return _wirelessHardwareEnabled; }
+            set { _wirelessHardwareEnabled = value; __set |= Flag(NetworkManagerProperty.WirelessHardwareEnabled); }
         }
         private bool _wwanEnabled = default!;
-        public bool WwanEnabled
+        public required bool WwanEnabled
         {
-            get { EnsureSet(WwanEnabledFlag); return _wwanEnabled; }
-            set { _wwanEnabled = value; __set |= WwanEnabledFlag; }
+            get { EnsureSet(NetworkManagerProperty.WwanEnabled); return _wwanEnabled; }
+            set { _wwanEnabled = value; __set |= Flag(NetworkManagerProperty.WwanEnabled); }
         }
         private bool _wwanHardwareEnabled = default!;
-        public bool WwanHardwareEnabled
+        public required bool WwanHardwareEnabled
         {
-            get { EnsureSet(WwanHardwareEnabledFlag); return _wwanHardwareEnabled; }
-            set { _wwanHardwareEnabled = value; __set |= WwanHardwareEnabledFlag; }
+            get { EnsureSet(NetworkManagerProperty.WwanHardwareEnabled); return _wwanHardwareEnabled; }
+            set { _wwanHardwareEnabled = value; __set |= Flag(NetworkManagerProperty.WwanHardwareEnabled); }
         }
         private bool _wimaxEnabled = default!;
-        public bool WimaxEnabled
+        public required bool WimaxEnabled
         {
-            get { EnsureSet(WimaxEnabledFlag); return _wimaxEnabled; }
-            set { _wimaxEnabled = value; __set |= WimaxEnabledFlag; }
+            get { EnsureSet(NetworkManagerProperty.WimaxEnabled); return _wimaxEnabled; }
+            set { _wimaxEnabled = value; __set |= Flag(NetworkManagerProperty.WimaxEnabled); }
         }
         private bool _wimaxHardwareEnabled = default!;
-        public bool WimaxHardwareEnabled
+        public required bool WimaxHardwareEnabled
         {
-            get { EnsureSet(WimaxHardwareEnabledFlag); return _wimaxHardwareEnabled; }
-            set { _wimaxHardwareEnabled = value; __set |= WimaxHardwareEnabledFlag; }
+            get { EnsureSet(NetworkManagerProperty.WimaxHardwareEnabled); return _wimaxHardwareEnabled; }
+            set { _wimaxHardwareEnabled = value; __set |= Flag(NetworkManagerProperty.WimaxHardwareEnabled); }
         }
         private uint _radioFlags = default!;
-        public uint RadioFlags
+        public required uint RadioFlags
         {
-            get { EnsureSet(RadioFlagsFlag); return _radioFlags; }
-            set { _radioFlags = value; __set |= RadioFlagsFlag; }
+            get { EnsureSet(NetworkManagerProperty.RadioFlags); return _radioFlags; }
+            set { _radioFlags = value; __set |= Flag(NetworkManagerProperty.RadioFlags); }
         }
         private ObjectPath[] _activeConnections = default!;
-        public ObjectPath[] ActiveConnections
+        public required ObjectPath[] ActiveConnections
         {
-            get { EnsureSet(ActiveConnectionsFlag); return _activeConnections; }
-            set { _activeConnections = value; __set |= ActiveConnectionsFlag; }
+            get { EnsureSet(NetworkManagerProperty.ActiveConnections); return _activeConnections; }
+            set { _activeConnections = value; __set |= Flag(NetworkManagerProperty.ActiveConnections); }
         }
         private ObjectPath _primaryConnection = default!;
-        public ObjectPath PrimaryConnection
+        public required ObjectPath PrimaryConnection
         {
-            get { EnsureSet(PrimaryConnectionFlag); return _primaryConnection; }
-            set { _primaryConnection = value; __set |= PrimaryConnectionFlag; }
+            get { EnsureSet(NetworkManagerProperty.PrimaryConnection); return _primaryConnection; }
+            set { _primaryConnection = value; __set |= Flag(NetworkManagerProperty.PrimaryConnection); }
         }
         private string _primaryConnectionType = default!;
-        public string PrimaryConnectionType
+        public required string PrimaryConnectionType
         {
-            get { EnsureSet(PrimaryConnectionTypeFlag); return _primaryConnectionType; }
-            set { _primaryConnectionType = value; __set |= PrimaryConnectionTypeFlag; }
+            get { EnsureSet(NetworkManagerProperty.PrimaryConnectionType); return _primaryConnectionType; }
+            set { _primaryConnectionType = value; __set |= Flag(NetworkManagerProperty.PrimaryConnectionType); }
         }
         private uint _metered = default!;
-        public uint Metered
+        public required uint Metered
         {
-            get { EnsureSet(MeteredFlag); return _metered; }
-            set { _metered = value; __set |= MeteredFlag; }
+            get { EnsureSet(NetworkManagerProperty.Metered); return _metered; }
+            set { _metered = value; __set |= Flag(NetworkManagerProperty.Metered); }
         }
         private ObjectPath _activatingConnection = default!;
-        public ObjectPath ActivatingConnection
+        public required ObjectPath ActivatingConnection
         {
-            get { EnsureSet(ActivatingConnectionFlag); return _activatingConnection; }
-            set { _activatingConnection = value; __set |= ActivatingConnectionFlag; }
+            get { EnsureSet(NetworkManagerProperty.ActivatingConnection); return _activatingConnection; }
+            set { _activatingConnection = value; __set |= Flag(NetworkManagerProperty.ActivatingConnection); }
         }
         private bool _startup = default!;
-        public bool Startup
+        public required bool Startup
         {
-            get { EnsureSet(StartupFlag); return _startup; }
-            set { _startup = value; __set |= StartupFlag; }
+            get { EnsureSet(NetworkManagerProperty.Startup); return _startup; }
+            set { _startup = value; __set |= Flag(NetworkManagerProperty.Startup); }
         }
         private string _version = default!;
-        public string Version
+        public required string Version
         {
-            get { EnsureSet(VersionFlag); return _version; }
-            set { _version = value; __set |= VersionFlag; }
+            get { EnsureSet(NetworkManagerProperty.Version); return _version; }
+            set { _version = value; __set |= Flag(NetworkManagerProperty.Version); }
         }
         private uint[] _versionInfo = default!;
-        public uint[] VersionInfo
+        public required uint[] VersionInfo
         {
-            get { EnsureSet(VersionInfoFlag); return _versionInfo; }
-            set { _versionInfo = value; __set |= VersionInfoFlag; }
+            get { EnsureSet(NetworkManagerProperty.VersionInfo); return _versionInfo; }
+            set { _versionInfo = value; __set |= Flag(NetworkManagerProperty.VersionInfo); }
         }
         private uint[] _capabilities = default!;
-        public uint[] Capabilities
+        public required uint[] Capabilities
         {
-            get { EnsureSet(CapabilitiesFlag); return _capabilities; }
-            set { _capabilities = value; __set |= CapabilitiesFlag; }
+            get { EnsureSet(NetworkManagerProperty.Capabilities); return _capabilities; }
+            set { _capabilities = value; __set |= Flag(NetworkManagerProperty.Capabilities); }
         }
         private uint _state = default!;
-        public uint State
+        public required uint State
         {
-            get { EnsureSet(StateFlag); return _state; }
-            set { _state = value; __set |= StateFlag; }
+            get { EnsureSet(NetworkManagerProperty.State); return _state; }
+            set { _state = value; __set |= Flag(NetworkManagerProperty.State); }
         }
         private uint _connectivity = default!;
-        public uint Connectivity
+        public required uint Connectivity
         {
-            get { EnsureSet(ConnectivityFlag); return _connectivity; }
-            set { _connectivity = value; __set |= ConnectivityFlag; }
+            get { EnsureSet(NetworkManagerProperty.Connectivity); return _connectivity; }
+            set { _connectivity = value; __set |= Flag(NetworkManagerProperty.Connectivity); }
         }
         private bool _connectivityCheckAvailable = default!;
-        public bool ConnectivityCheckAvailable
+        public required bool ConnectivityCheckAvailable
         {
-            get { EnsureSet(ConnectivityCheckAvailableFlag); return _connectivityCheckAvailable; }
-            set { _connectivityCheckAvailable = value; __set |= ConnectivityCheckAvailableFlag; }
+            get { EnsureSet(NetworkManagerProperty.ConnectivityCheckAvailable); return _connectivityCheckAvailable; }
+            set { _connectivityCheckAvailable = value; __set |= Flag(NetworkManagerProperty.ConnectivityCheckAvailable); }
         }
         private bool _connectivityCheckEnabled = default!;
-        public bool ConnectivityCheckEnabled
+        public required bool ConnectivityCheckEnabled
         {
-            get { EnsureSet(ConnectivityCheckEnabledFlag); return _connectivityCheckEnabled; }
-            set { _connectivityCheckEnabled = value; __set |= ConnectivityCheckEnabledFlag; }
+            get { EnsureSet(NetworkManagerProperty.ConnectivityCheckEnabled); return _connectivityCheckEnabled; }
+            set { _connectivityCheckEnabled = value; __set |= Flag(NetworkManagerProperty.ConnectivityCheckEnabled); }
         }
         private string _connectivityCheckUri = default!;
-        public string ConnectivityCheckUri
+        public required string ConnectivityCheckUri
         {
-            get { EnsureSet(ConnectivityCheckUriFlag); return _connectivityCheckUri; }
-            set { _connectivityCheckUri = value; __set |= ConnectivityCheckUriFlag; }
+            get { EnsureSet(NetworkManagerProperty.ConnectivityCheckUri); return _connectivityCheckUri; }
+            set { _connectivityCheckUri = value; __set |= Flag(NetworkManagerProperty.ConnectivityCheckUri); }
         }
         private Dictionary<string, VariantValue> _globalDnsConfiguration = default!;
-        public Dictionary<string, VariantValue> GlobalDnsConfiguration
+        public required Dictionary<string, VariantValue> GlobalDnsConfiguration
         {
-            get { EnsureSet(GlobalDnsConfigurationFlag); return _globalDnsConfiguration; }
-            set { _globalDnsConfiguration = value; __set |= GlobalDnsConfigurationFlag; }
+            get { EnsureSet(NetworkManagerProperty.GlobalDnsConfiguration); return _globalDnsConfiguration; }
+            set { _globalDnsConfiguration = value; __set |= Flag(NetworkManagerProperty.GlobalDnsConfiguration); }
         }
-        public bool IsSet(string propertyName)
+        public static NetworkManagerProperties CreateUninitialized() => new NetworkManagerProperties(false);
+        private bool HasFlag(uint flags, NetworkManagerProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(NetworkManagerProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(NetworkManagerProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(NetworkManagerProperty property)
         {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(Devices) => (__set & DevicesFlag) != 0,
-                nameof(AllDevices) => (__set & AllDevicesFlag) != 0,
-                nameof(Checkpoints) => (__set & CheckpointsFlag) != 0,
-                nameof(NetworkingEnabled) => (__set & NetworkingEnabledFlag) != 0,
-                nameof(WirelessEnabled) => (__set & WirelessEnabledFlag) != 0,
-                nameof(WirelessHardwareEnabled) => (__set & WirelessHardwareEnabledFlag) != 0,
-                nameof(WwanEnabled) => (__set & WwanEnabledFlag) != 0,
-                nameof(WwanHardwareEnabled) => (__set & WwanHardwareEnabledFlag) != 0,
-                nameof(WimaxEnabled) => (__set & WimaxEnabledFlag) != 0,
-                nameof(WimaxHardwareEnabled) => (__set & WimaxHardwareEnabledFlag) != 0,
-                nameof(RadioFlags) => (__set & RadioFlagsFlag) != 0,
-                nameof(ActiveConnections) => (__set & ActiveConnectionsFlag) != 0,
-                nameof(PrimaryConnection) => (__set & PrimaryConnectionFlag) != 0,
-                nameof(PrimaryConnectionType) => (__set & PrimaryConnectionTypeFlag) != 0,
-                nameof(Metered) => (__set & MeteredFlag) != 0,
-                nameof(ActivatingConnection) => (__set & ActivatingConnectionFlag) != 0,
-                nameof(Startup) => (__set & StartupFlag) != 0,
-                nameof(Version) => (__set & VersionFlag) != 0,
-                nameof(VersionInfo) => (__set & VersionInfoFlag) != 0,
-                nameof(Capabilities) => (__set & CapabilitiesFlag) != 0,
-                nameof(State) => (__set & StateFlag) != 0,
-                nameof(Connectivity) => (__set & ConnectivityFlag) != 0,
-                nameof(ConnectivityCheckAvailable) => (__set & ConnectivityCheckAvailableFlag) != 0,
-                nameof(ConnectivityCheckEnabled) => (__set & ConnectivityCheckEnabledFlag) != 0,
-                nameof(ConnectivityCheckUri) => (__set & ConnectivityCheckUriFlag) != 0,
-                nameof(GlobalDnsConfiguration) => (__set & GlobalDnsConfigurationFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Devices) => (__invalidated & DevicesFlag) != 0,
-                nameof(AllDevices) => (__invalidated & AllDevicesFlag) != 0,
-                nameof(Checkpoints) => (__invalidated & CheckpointsFlag) != 0,
-                nameof(NetworkingEnabled) => (__invalidated & NetworkingEnabledFlag) != 0,
-                nameof(WirelessEnabled) => (__invalidated & WirelessEnabledFlag) != 0,
-                nameof(WirelessHardwareEnabled) => (__invalidated & WirelessHardwareEnabledFlag) != 0,
-                nameof(WwanEnabled) => (__invalidated & WwanEnabledFlag) != 0,
-                nameof(WwanHardwareEnabled) => (__invalidated & WwanHardwareEnabledFlag) != 0,
-                nameof(WimaxEnabled) => (__invalidated & WimaxEnabledFlag) != 0,
-                nameof(WimaxHardwareEnabled) => (__invalidated & WimaxHardwareEnabledFlag) != 0,
-                nameof(RadioFlags) => (__invalidated & RadioFlagsFlag) != 0,
-                nameof(ActiveConnections) => (__invalidated & ActiveConnectionsFlag) != 0,
-                nameof(PrimaryConnection) => (__invalidated & PrimaryConnectionFlag) != 0,
-                nameof(PrimaryConnectionType) => (__invalidated & PrimaryConnectionTypeFlag) != 0,
-                nameof(Metered) => (__invalidated & MeteredFlag) != 0,
-                nameof(ActivatingConnection) => (__invalidated & ActivatingConnectionFlag) != 0,
-                nameof(Startup) => (__invalidated & StartupFlag) != 0,
-                nameof(Version) => (__invalidated & VersionFlag) != 0,
-                nameof(VersionInfo) => (__invalidated & VersionInfoFlag) != 0,
-                nameof(Capabilities) => (__invalidated & CapabilitiesFlag) != 0,
-                nameof(State) => (__invalidated & StateFlag) != 0,
-                nameof(Connectivity) => (__invalidated & ConnectivityFlag) != 0,
-                nameof(ConnectivityCheckAvailable) => (__invalidated & ConnectivityCheckAvailableFlag) != 0,
-                nameof(ConnectivityCheckEnabled) => (__invalidated & ConnectivityCheckEnabledFlag) != 0,
-                nameof(ConnectivityCheckUri) => (__invalidated & ConnectivityCheckUriFlag) != 0,
-                nameof(GlobalDnsConfiguration) => (__invalidated & GlobalDnsConfigurationFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Devices" => DevicesFlag,
-                "AllDevices" => AllDevicesFlag,
-                "Checkpoints" => CheckpointsFlag,
-                "NetworkingEnabled" => NetworkingEnabledFlag,
-                "WirelessEnabled" => WirelessEnabledFlag,
-                "WirelessHardwareEnabled" => WirelessHardwareEnabledFlag,
-                "WwanEnabled" => WwanEnabledFlag,
-                "WwanHardwareEnabled" => WwanHardwareEnabledFlag,
-                "WimaxEnabled" => WimaxEnabledFlag,
-                "WimaxHardwareEnabled" => WimaxHardwareEnabledFlag,
-                "RadioFlags" => RadioFlagsFlag,
-                "ActiveConnections" => ActiveConnectionsFlag,
-                "PrimaryConnection" => PrimaryConnectionFlag,
-                "PrimaryConnectionType" => PrimaryConnectionTypeFlag,
-                "Metered" => MeteredFlag,
-                "ActivatingConnection" => ActivatingConnectionFlag,
-                "Startup" => StartupFlag,
-                "Version" => VersionFlag,
-                "VersionInfo" => VersionInfoFlag,
-                "Capabilities" => CapabilitiesFlag,
-                "State" => StateFlag,
-                "Connectivity" => ConnectivityFlag,
-                "ConnectivityCheckAvailable" => ConnectivityCheckAvailableFlag,
-                "ConnectivityCheckEnabled" => ConnectivityCheckEnabledFlag,
-                "ConnectivityCheckUri" => ConnectivityCheckUriFlag,
-                "GlobalDnsConfiguration" => GlobalDnsConfigurationFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
+        public static NetworkManagerProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "Devices":
+                        reader.ReadSignature("ao"u8);
+                        props.Devices = reader.ReadArrayOfObjectPath();
+                        break;
+                    case "AllDevices":
+                        reader.ReadSignature("ao"u8);
+                        props.AllDevices = reader.ReadArrayOfObjectPath();
+                        break;
+                    case "Checkpoints":
+                        reader.ReadSignature("ao"u8);
+                        props.Checkpoints = reader.ReadArrayOfObjectPath();
+                        break;
+                    case "NetworkingEnabled":
+                        reader.ReadSignature("b"u8);
+                        props.NetworkingEnabled = reader.ReadBool();
+                        break;
+                    case "WirelessEnabled":
+                        reader.ReadSignature("b"u8);
+                        props.WirelessEnabled = reader.ReadBool();
+                        break;
+                    case "WirelessHardwareEnabled":
+                        reader.ReadSignature("b"u8);
+                        props.WirelessHardwareEnabled = reader.ReadBool();
+                        break;
+                    case "WwanEnabled":
+                        reader.ReadSignature("b"u8);
+                        props.WwanEnabled = reader.ReadBool();
+                        break;
+                    case "WwanHardwareEnabled":
+                        reader.ReadSignature("b"u8);
+                        props.WwanHardwareEnabled = reader.ReadBool();
+                        break;
+                    case "WimaxEnabled":
+                        reader.ReadSignature("b"u8);
+                        props.WimaxEnabled = reader.ReadBool();
+                        break;
+                    case "WimaxHardwareEnabled":
+                        reader.ReadSignature("b"u8);
+                        props.WimaxHardwareEnabled = reader.ReadBool();
+                        break;
+                    case "RadioFlags":
+                        reader.ReadSignature("u"u8);
+                        props.RadioFlags = reader.ReadUInt32();
+                        break;
+                    case "ActiveConnections":
+                        reader.ReadSignature("ao"u8);
+                        props.ActiveConnections = reader.ReadArrayOfObjectPath();
+                        break;
+                    case "PrimaryConnection":
+                        reader.ReadSignature("o"u8);
+                        props.PrimaryConnection = reader.ReadObjectPath();
+                        break;
+                    case "PrimaryConnectionType":
+                        reader.ReadSignature("s"u8);
+                        props.PrimaryConnectionType = reader.ReadString();
+                        break;
+                    case "Metered":
+                        reader.ReadSignature("u"u8);
+                        props.Metered = reader.ReadUInt32();
+                        break;
+                    case "ActivatingConnection":
+                        reader.ReadSignature("o"u8);
+                        props.ActivatingConnection = reader.ReadObjectPath();
+                        break;
+                    case "Startup":
+                        reader.ReadSignature("b"u8);
+                        props.Startup = reader.ReadBool();
+                        break;
+                    case "Version":
+                        reader.ReadSignature("s"u8);
+                        props.Version = reader.ReadString();
+                        break;
+                    case "VersionInfo":
+                        reader.ReadSignature("au"u8);
+                        props.VersionInfo = reader.ReadArrayOfUInt32();
+                        break;
+                    case "Capabilities":
+                        reader.ReadSignature("au"u8);
+                        props.Capabilities = reader.ReadArrayOfUInt32();
+                        break;
+                    case "State":
+                        reader.ReadSignature("u"u8);
+                        props.State = reader.ReadUInt32();
+                        break;
+                    case "Connectivity":
+                        reader.ReadSignature("u"u8);
+                        props.Connectivity = reader.ReadUInt32();
+                        break;
+                    case "ConnectivityCheckAvailable":
+                        reader.ReadSignature("b"u8);
+                        props.ConnectivityCheckAvailable = reader.ReadBool();
+                        break;
+                    case "ConnectivityCheckEnabled":
+                        reader.ReadSignature("b"u8);
+                        props.ConnectivityCheckEnabled = reader.ReadBool();
+                        break;
+                    case "ConnectivityCheckUri":
+                        reader.ReadSignature("s"u8);
+                        props.ConnectivityCheckUri = reader.ReadString();
+                        break;
+                    case "GlobalDnsConfiguration":
+                        reader.ReadSignature("a{sv}"u8);
+                        props.GlobalDnsConfiguration = reader.ReadDictionaryOfStringToVariantValue();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Devices" => Flag(NetworkManagerProperty.Devices),
+                        "AllDevices" => Flag(NetworkManagerProperty.AllDevices),
+                        "Checkpoints" => Flag(NetworkManagerProperty.Checkpoints),
+                        "NetworkingEnabled" => Flag(NetworkManagerProperty.NetworkingEnabled),
+                        "WirelessEnabled" => Flag(NetworkManagerProperty.WirelessEnabled),
+                        "WirelessHardwareEnabled" => Flag(NetworkManagerProperty.WirelessHardwareEnabled),
+                        "WwanEnabled" => Flag(NetworkManagerProperty.WwanEnabled),
+                        "WwanHardwareEnabled" => Flag(NetworkManagerProperty.WwanHardwareEnabled),
+                        "WimaxEnabled" => Flag(NetworkManagerProperty.WimaxEnabled),
+                        "WimaxHardwareEnabled" => Flag(NetworkManagerProperty.WimaxHardwareEnabled),
+                        "RadioFlags" => Flag(NetworkManagerProperty.RadioFlags),
+                        "ActiveConnections" => Flag(NetworkManagerProperty.ActiveConnections),
+                        "PrimaryConnection" => Flag(NetworkManagerProperty.PrimaryConnection),
+                        "PrimaryConnectionType" => Flag(NetworkManagerProperty.PrimaryConnectionType),
+                        "Metered" => Flag(NetworkManagerProperty.Metered),
+                        "ActivatingConnection" => Flag(NetworkManagerProperty.ActivatingConnection),
+                        "Startup" => Flag(NetworkManagerProperty.Startup),
+                        "Version" => Flag(NetworkManagerProperty.Version),
+                        "VersionInfo" => Flag(NetworkManagerProperty.VersionInfo),
+                        "Capabilities" => Flag(NetworkManagerProperty.Capabilities),
+                        "State" => Flag(NetworkManagerProperty.State),
+                        "Connectivity" => Flag(NetworkManagerProperty.Connectivity),
+                        "ConnectivityCheckAvailable" => Flag(NetworkManagerProperty.ConnectivityCheckAvailable),
+                        "ConnectivityCheckEnabled" => Flag(NetworkManagerProperty.ConnectivityCheckEnabled),
+                        "ConnectivityCheckUri" => Flag(NetworkManagerProperty.ConnectivityCheckUri),
+                        "GlobalDnsConfiguration" => Flag(NetworkManagerProperty.GlobalDnsConfiguration),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class NetworkManagerHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Devices" => (int)NetworkManagerProperty.Devices,
+                "AllDevices" => (int)NetworkManagerProperty.AllDevices,
+                "Checkpoints" => (int)NetworkManagerProperty.Checkpoints,
+                "NetworkingEnabled" => (int)NetworkManagerProperty.NetworkingEnabled,
+                "WirelessEnabled" => (int)NetworkManagerProperty.WirelessEnabled,
+                "WirelessHardwareEnabled" => (int)NetworkManagerProperty.WirelessHardwareEnabled,
+                "WwanEnabled" => (int)NetworkManagerProperty.WwanEnabled,
+                "WwanHardwareEnabled" => (int)NetworkManagerProperty.WwanHardwareEnabled,
+                "WimaxEnabled" => (int)NetworkManagerProperty.WimaxEnabled,
+                "WimaxHardwareEnabled" => (int)NetworkManagerProperty.WimaxHardwareEnabled,
+                "RadioFlags" => (int)NetworkManagerProperty.RadioFlags,
+                "ActiveConnections" => (int)NetworkManagerProperty.ActiveConnections,
+                "PrimaryConnection" => (int)NetworkManagerProperty.PrimaryConnection,
+                "PrimaryConnectionType" => (int)NetworkManagerProperty.PrimaryConnectionType,
+                "Metered" => (int)NetworkManagerProperty.Metered,
+                "ActivatingConnection" => (int)NetworkManagerProperty.ActivatingConnection,
+                "Startup" => (int)NetworkManagerProperty.Startup,
+                "Version" => (int)NetworkManagerProperty.Version,
+                "VersionInfo" => (int)NetworkManagerProperty.VersionInfo,
+                "Capabilities" => (int)NetworkManagerProperty.Capabilities,
+                "State" => (int)NetworkManagerProperty.State,
+                "Connectivity" => (int)NetworkManagerProperty.Connectivity,
+                "ConnectivityCheckAvailable" => (int)NetworkManagerProperty.ConnectivityCheckAvailable,
+                "ConnectivityCheckEnabled" => (int)NetworkManagerProperty.ConnectivityCheckEnabled,
+                "ConnectivityCheckUri" => (int)NetworkManagerProperty.ConnectivityCheckUri,
+                "GlobalDnsConfiguration" => (int)NetworkManagerProperty.GlobalDnsConfiguration,
+                _ => 0
+            };
+        }
+    }
+    enum NetworkManagerProperty
+    {
+        UnknownProperty = 0,
+        Devices = 1,
+        AllDevices = 2,
+        Checkpoints = 3,
+        NetworkingEnabled = 4,
+        WirelessEnabled = 5,
+        WirelessHardwareEnabled = 6,
+        WwanEnabled = 7,
+        WwanHardwareEnabled = 8,
+        WimaxEnabled = 9,
+        WimaxHardwareEnabled = 10,
+        RadioFlags = 11,
+        ActiveConnections = 12,
+        PrimaryConnection = 13,
+        PrimaryConnectionType = 14,
+        Metered = 15,
+        ActivatingConnection = 16,
+        Startup = 17,
+        Version = 18,
+        VersionInfo = 19,
+        Capabilities = 20,
+        State = 21,
+        Connectivity = 22,
+        ConnectivityCheckAvailable = 23,
+        ConnectivityCheckEnabled = 24,
+        ConnectivityCheckUri = 25,
+        GlobalDnsConfiguration = 26
+    }
+    enum NetworkManagerWritableProperty
+    {
+        UnknownProperty = 0,
+        Devices = 1,
+        AllDevices = 2,
+        Checkpoints = 3,
+        NetworkingEnabled = 4,
+        WirelessEnabled = 5
     }
     sealed partial class NetworkManager : Tmds.DBus.Protocol.DBusObject
     {
@@ -806,7 +932,7 @@ namespace NetworkManager.DBus
             static NetworkManagerProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
+                return NetworkManagerProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, NetworkManagerProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
@@ -816,137 +942,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static NetworkManagerProperties ReadProperties(ref Reader reader)
-        {
-            var props = new NetworkManagerProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Devices":
-                        reader.ReadSignature("ao"u8);
-                        props.Devices = reader.ReadArrayOfObjectPath();
-                        break;
-                    case "AllDevices":
-                        reader.ReadSignature("ao"u8);
-                        props.AllDevices = reader.ReadArrayOfObjectPath();
-                        break;
-                    case "Checkpoints":
-                        reader.ReadSignature("ao"u8);
-                        props.Checkpoints = reader.ReadArrayOfObjectPath();
-                        break;
-                    case "NetworkingEnabled":
-                        reader.ReadSignature("b"u8);
-                        props.NetworkingEnabled = reader.ReadBool();
-                        break;
-                    case "WirelessEnabled":
-                        reader.ReadSignature("b"u8);
-                        props.WirelessEnabled = reader.ReadBool();
-                        break;
-                    case "WirelessHardwareEnabled":
-                        reader.ReadSignature("b"u8);
-                        props.WirelessHardwareEnabled = reader.ReadBool();
-                        break;
-                    case "WwanEnabled":
-                        reader.ReadSignature("b"u8);
-                        props.WwanEnabled = reader.ReadBool();
-                        break;
-                    case "WwanHardwareEnabled":
-                        reader.ReadSignature("b"u8);
-                        props.WwanHardwareEnabled = reader.ReadBool();
-                        break;
-                    case "WimaxEnabled":
-                        reader.ReadSignature("b"u8);
-                        props.WimaxEnabled = reader.ReadBool();
-                        break;
-                    case "WimaxHardwareEnabled":
-                        reader.ReadSignature("b"u8);
-                        props.WimaxHardwareEnabled = reader.ReadBool();
-                        break;
-                    case "RadioFlags":
-                        reader.ReadSignature("u"u8);
-                        props.RadioFlags = reader.ReadUInt32();
-                        break;
-                    case "ActiveConnections":
-                        reader.ReadSignature("ao"u8);
-                        props.ActiveConnections = reader.ReadArrayOfObjectPath();
-                        break;
-                    case "PrimaryConnection":
-                        reader.ReadSignature("o"u8);
-                        props.PrimaryConnection = reader.ReadObjectPath();
-                        break;
-                    case "PrimaryConnectionType":
-                        reader.ReadSignature("s"u8);
-                        props.PrimaryConnectionType = reader.ReadString();
-                        break;
-                    case "Metered":
-                        reader.ReadSignature("u"u8);
-                        props.Metered = reader.ReadUInt32();
-                        break;
-                    case "ActivatingConnection":
-                        reader.ReadSignature("o"u8);
-                        props.ActivatingConnection = reader.ReadObjectPath();
-                        break;
-                    case "Startup":
-                        reader.ReadSignature("b"u8);
-                        props.Startup = reader.ReadBool();
-                        break;
-                    case "Version":
-                        reader.ReadSignature("s"u8);
-                        props.Version = reader.ReadString();
-                        break;
-                    case "VersionInfo":
-                        reader.ReadSignature("au"u8);
-                        props.VersionInfo = reader.ReadArrayOfUInt32();
-                        break;
-                    case "Capabilities":
-                        reader.ReadSignature("au"u8);
-                        props.Capabilities = reader.ReadArrayOfUInt32();
-                        break;
-                    case "State":
-                        reader.ReadSignature("u"u8);
-                        props.State = reader.ReadUInt32();
-                        break;
-                    case "Connectivity":
-                        reader.ReadSignature("u"u8);
-                        props.Connectivity = reader.ReadUInt32();
-                        break;
-                    case "ConnectivityCheckAvailable":
-                        reader.ReadSignature("b"u8);
-                        props.ConnectivityCheckAvailable = reader.ReadBool();
-                        break;
-                    case "ConnectivityCheckEnabled":
-                        reader.ReadSignature("b"u8);
-                        props.ConnectivityCheckEnabled = reader.ReadBool();
-                        break;
-                    case "ConnectivityCheckUri":
-                        reader.ReadSignature("s"u8);
-                        props.ConnectivityCheckUri = reader.ReadString();
-                        break;
-                    case "GlobalDnsConfiguration":
-                        reader.ReadSignature("a{sv}"u8);
-                        props.GlobalDnsConfiguration = reader.ReadDictionaryOfStringToVariantValue();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, NetworkManagerProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
+                return NetworkManagerProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -977,75 +973,123 @@ namespace NetworkManager.DBus
     }
     sealed class SettingsProperties
     {
-        private const uint ConnectionsFlag = 1U << 0;
-        private const uint HostnameFlag = 1U << 1;
-        private const uint CanModifyFlag = 1U << 2;
-        private const uint PropertiesAllSet = ConnectionsFlag | HostnameFlag | CanModifyFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0x7U; // 3 properties
+        private static uint Flag(SettingsProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public SettingsProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private SettingsProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(SettingsProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
         private ObjectPath[] _connections = default!;
-        public ObjectPath[] Connections
+        public required ObjectPath[] Connections
         {
-            get { EnsureSet(ConnectionsFlag); return _connections; }
-            set { _connections = value; __set |= ConnectionsFlag; }
+            get { EnsureSet(SettingsProperty.Connections); return _connections; }
+            set { _connections = value; __set |= Flag(SettingsProperty.Connections); }
         }
         private string _hostname = default!;
-        public string Hostname
+        public required string Hostname
         {
-            get { EnsureSet(HostnameFlag); return _hostname; }
-            set { _hostname = value; __set |= HostnameFlag; }
+            get { EnsureSet(SettingsProperty.Hostname); return _hostname; }
+            set { _hostname = value; __set |= Flag(SettingsProperty.Hostname); }
         }
         private bool _canModify = default!;
-        public bool CanModify
+        public required bool CanModify
         {
-            get { EnsureSet(CanModifyFlag); return _canModify; }
-            set { _canModify = value; __set |= CanModifyFlag; }
+            get { EnsureSet(SettingsProperty.CanModify); return _canModify; }
+            set { _canModify = value; __set |= Flag(SettingsProperty.CanModify); }
         }
-        public bool IsSet(string propertyName)
+        public static SettingsProperties CreateUninitialized() => new SettingsProperties(false);
+        private bool HasFlag(uint flags, SettingsProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(SettingsProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(SettingsProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(SettingsProperty property)
         {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(Connections) => (__set & ConnectionsFlag) != 0,
-                nameof(Hostname) => (__set & HostnameFlag) != 0,
-                nameof(CanModify) => (__set & CanModifyFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Connections) => (__invalidated & ConnectionsFlag) != 0,
-                nameof(Hostname) => (__invalidated & HostnameFlag) != 0,
-                nameof(CanModify) => (__invalidated & CanModifyFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Connections" => ConnectionsFlag,
-                "Hostname" => HostnameFlag,
-                "CanModify" => CanModifyFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
+        public static SettingsProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "Connections":
+                        reader.ReadSignature("ao"u8);
+                        props.Connections = reader.ReadArrayOfObjectPath();
+                        break;
+                    case "Hostname":
+                        reader.ReadSignature("s"u8);
+                        props.Hostname = reader.ReadString();
+                        break;
+                    case "CanModify":
+                        reader.ReadSignature("b"u8);
+                        props.CanModify = reader.ReadBool();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Connections" => Flag(SettingsProperty.Connections),
+                        "Hostname" => Flag(SettingsProperty.Hostname),
+                        "CanModify" => Flag(SettingsProperty.CanModify),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class SettingsHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Connections" => (int)SettingsProperty.Connections,
+                "Hostname" => (int)SettingsProperty.Hostname,
+                "CanModify" => (int)SettingsProperty.CanModify,
+                _ => 0
+            };
+        }
+    }
+    enum SettingsProperty
+    {
+        UnknownProperty = 0,
+        Connections = 1,
+        Hostname = 2,
+        CanModify = 3
     }
     sealed partial class Settings : Tmds.DBus.Protocol.DBusObject
     {
@@ -1197,7 +1241,7 @@ namespace NetworkManager.DBus
             static SettingsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
+                return SettingsProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, SettingsProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
@@ -1207,45 +1251,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static SettingsProperties ReadProperties(ref Reader reader)
-        {
-            var props = new SettingsProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Connections":
-                        reader.ReadSignature("ao"u8);
-                        props.Connections = reader.ReadArrayOfObjectPath();
-                        break;
-                    case "Hostname":
-                        reader.ReadSignature("s"u8);
-                        props.Hostname = reader.ReadString();
-                        break;
-                    case "CanModify":
-                        reader.ReadSignature("b"u8);
-                        props.CanModify = reader.ReadBool();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, SettingsProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
+                return SettingsProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -1276,85 +1282,136 @@ namespace NetworkManager.DBus
     }
     sealed class ConnectionProperties
     {
-        private const uint UnsavedFlag = 1U << 0;
-        private const uint FlagsFlag = 1U << 1;
-        private const uint FilenameFlag = 1U << 2;
-        private const uint VersionIdFlag = 1U << 3;
-        private const uint PropertiesAllSet = UnsavedFlag | FlagsFlag | FilenameFlag | VersionIdFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0xFU; // 4 properties
+        private static uint Flag(ConnectionProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public ConnectionProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private ConnectionProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(ConnectionProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
         private bool _unsaved = default!;
-        public bool Unsaved
+        public required bool Unsaved
         {
-            get { EnsureSet(UnsavedFlag); return _unsaved; }
-            set { _unsaved = value; __set |= UnsavedFlag; }
+            get { EnsureSet(ConnectionProperty.Unsaved); return _unsaved; }
+            set { _unsaved = value; __set |= Flag(ConnectionProperty.Unsaved); }
         }
         private uint _flags = default!;
-        public uint Flags
+        public required uint Flags
         {
-            get { EnsureSet(FlagsFlag); return _flags; }
-            set { _flags = value; __set |= FlagsFlag; }
+            get { EnsureSet(ConnectionProperty.Flags); return _flags; }
+            set { _flags = value; __set |= Flag(ConnectionProperty.Flags); }
         }
         private string _filename = default!;
-        public string Filename
+        public required string Filename
         {
-            get { EnsureSet(FilenameFlag); return _filename; }
-            set { _filename = value; __set |= FilenameFlag; }
+            get { EnsureSet(ConnectionProperty.Filename); return _filename; }
+            set { _filename = value; __set |= Flag(ConnectionProperty.Filename); }
         }
         private ulong _versionId = default!;
-        public ulong VersionId
+        public required ulong VersionId
         {
-            get { EnsureSet(VersionIdFlag); return _versionId; }
-            set { _versionId = value; __set |= VersionIdFlag; }
+            get { EnsureSet(ConnectionProperty.VersionId); return _versionId; }
+            set { _versionId = value; __set |= Flag(ConnectionProperty.VersionId); }
         }
-        public bool IsSet(string propertyName)
+        public static ConnectionProperties CreateUninitialized() => new ConnectionProperties(false);
+        private bool HasFlag(uint flags, ConnectionProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(ConnectionProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(ConnectionProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(ConnectionProperty property)
         {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(Unsaved) => (__set & UnsavedFlag) != 0,
-                nameof(Flags) => (__set & FlagsFlag) != 0,
-                nameof(Filename) => (__set & FilenameFlag) != 0,
-                nameof(VersionId) => (__set & VersionIdFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Unsaved) => (__invalidated & UnsavedFlag) != 0,
-                nameof(Flags) => (__invalidated & FlagsFlag) != 0,
-                nameof(Filename) => (__invalidated & FilenameFlag) != 0,
-                nameof(VersionId) => (__invalidated & VersionIdFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Unsaved" => UnsavedFlag,
-                "Flags" => FlagsFlag,
-                "Filename" => FilenameFlag,
-                "VersionId" => VersionIdFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
+        public static ConnectionProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "Unsaved":
+                        reader.ReadSignature("b"u8);
+                        props.Unsaved = reader.ReadBool();
+                        break;
+                    case "Flags":
+                        reader.ReadSignature("u"u8);
+                        props.Flags = reader.ReadUInt32();
+                        break;
+                    case "Filename":
+                        reader.ReadSignature("s"u8);
+                        props.Filename = reader.ReadString();
+                        break;
+                    case "VersionId":
+                        reader.ReadSignature("t"u8);
+                        props.VersionId = reader.ReadUInt64();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Unsaved" => Flag(ConnectionProperty.Unsaved),
+                        "Flags" => Flag(ConnectionProperty.Flags),
+                        "Filename" => Flag(ConnectionProperty.Filename),
+                        "VersionId" => Flag(ConnectionProperty.VersionId),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class ConnectionHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Unsaved" => (int)ConnectionProperty.Unsaved,
+                "Flags" => (int)ConnectionProperty.Flags,
+                "Filename" => (int)ConnectionProperty.Filename,
+                "VersionId" => (int)ConnectionProperty.VersionId,
+                _ => 0
+            };
+        }
+    }
+    enum ConnectionProperty
+    {
+        UnknownProperty = 0,
+        Unsaved = 1,
+        Flags = 2,
+        Filename = 3,
+        VersionId = 4
     }
     sealed partial class Connection : Tmds.DBus.Protocol.DBusObject
     {
@@ -1504,7 +1561,7 @@ namespace NetworkManager.DBus
             static ConnectionProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
+                return ConnectionProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, ConnectionProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
@@ -1514,49 +1571,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static ConnectionProperties ReadProperties(ref Reader reader)
-        {
-            var props = new ConnectionProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Unsaved":
-                        reader.ReadSignature("b"u8);
-                        props.Unsaved = reader.ReadBool();
-                        break;
-                    case "Flags":
-                        reader.ReadSignature("u"u8);
-                        props.Flags = reader.ReadUInt32();
-                        break;
-                    case "Filename":
-                        reader.ReadSignature("s"u8);
-                        props.Filename = reader.ReadString();
-                        break;
-                    case "VersionId":
-                        reader.ReadSignature("t"u8);
-                        props.VersionId = reader.ReadUInt64();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, ConnectionProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
+                return ConnectionProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -1587,198 +1602,105 @@ namespace NetworkManager.DBus
     }
     sealed class IP6ConfigProperties
     {
-        private const uint AddressesFlag = 1U << 0;
-        private const uint AddressDataFlag = 1U << 1;
-        private const uint GatewayFlag = 1U << 2;
-        private const uint RoutesFlag = 1U << 3;
-        private const uint RouteDataFlag = 1U << 4;
-        private const uint NameserversFlag = 1U << 5;
-        private const uint DomainsFlag = 1U << 6;
-        private const uint SearchesFlag = 1U << 7;
-        private const uint DnsOptionsFlag = 1U << 8;
-        private const uint DnsPriorityFlag = 1U << 9;
-        private const uint PropertiesAllSet = AddressesFlag | AddressDataFlag | GatewayFlag | RoutesFlag | RouteDataFlag | NameserversFlag | DomainsFlag | SearchesFlag | DnsOptionsFlag | DnsPriorityFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0x3FFU; // 10 properties
+        private static uint Flag(IP6ConfigProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public IP6ConfigProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private IP6ConfigProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(IP6ConfigProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
         private (byte[], uint, byte[])[] _addresses = default!;
-        public (byte[], uint, byte[])[] Addresses
+        public required (byte[], uint, byte[])[] Addresses
         {
-            get { EnsureSet(AddressesFlag); return _addresses; }
-            set { _addresses = value; __set |= AddressesFlag; }
+            get { EnsureSet(IP6ConfigProperty.Addresses); return _addresses; }
+            set { _addresses = value; __set |= Flag(IP6ConfigProperty.Addresses); }
         }
         private Dictionary<string, VariantValue>[] _addressData = default!;
-        public Dictionary<string, VariantValue>[] AddressData
+        public required Dictionary<string, VariantValue>[] AddressData
         {
-            get { EnsureSet(AddressDataFlag); return _addressData; }
-            set { _addressData = value; __set |= AddressDataFlag; }
+            get { EnsureSet(IP6ConfigProperty.AddressData); return _addressData; }
+            set { _addressData = value; __set |= Flag(IP6ConfigProperty.AddressData); }
         }
         private string _gateway = default!;
-        public string Gateway
+        public required string Gateway
         {
-            get { EnsureSet(GatewayFlag); return _gateway; }
-            set { _gateway = value; __set |= GatewayFlag; }
+            get { EnsureSet(IP6ConfigProperty.Gateway); return _gateway; }
+            set { _gateway = value; __set |= Flag(IP6ConfigProperty.Gateway); }
         }
         private (byte[], uint, byte[], uint)[] _routes = default!;
-        public (byte[], uint, byte[], uint)[] Routes
+        public required (byte[], uint, byte[], uint)[] Routes
         {
-            get { EnsureSet(RoutesFlag); return _routes; }
-            set { _routes = value; __set |= RoutesFlag; }
+            get { EnsureSet(IP6ConfigProperty.Routes); return _routes; }
+            set { _routes = value; __set |= Flag(IP6ConfigProperty.Routes); }
         }
         private Dictionary<string, VariantValue>[] _routeData = default!;
-        public Dictionary<string, VariantValue>[] RouteData
+        public required Dictionary<string, VariantValue>[] RouteData
         {
-            get { EnsureSet(RouteDataFlag); return _routeData; }
-            set { _routeData = value; __set |= RouteDataFlag; }
+            get { EnsureSet(IP6ConfigProperty.RouteData); return _routeData; }
+            set { _routeData = value; __set |= Flag(IP6ConfigProperty.RouteData); }
         }
         private byte[][] _nameservers = default!;
-        public byte[][] Nameservers
+        public required byte[][] Nameservers
         {
-            get { EnsureSet(NameserversFlag); return _nameservers; }
-            set { _nameservers = value; __set |= NameserversFlag; }
+            get { EnsureSet(IP6ConfigProperty.Nameservers); return _nameservers; }
+            set { _nameservers = value; __set |= Flag(IP6ConfigProperty.Nameservers); }
         }
         private string[] _domains = default!;
-        public string[] Domains
+        public required string[] Domains
         {
-            get { EnsureSet(DomainsFlag); return _domains; }
-            set { _domains = value; __set |= DomainsFlag; }
+            get { EnsureSet(IP6ConfigProperty.Domains); return _domains; }
+            set { _domains = value; __set |= Flag(IP6ConfigProperty.Domains); }
         }
         private string[] _searches = default!;
-        public string[] Searches
+        public required string[] Searches
         {
-            get { EnsureSet(SearchesFlag); return _searches; }
-            set { _searches = value; __set |= SearchesFlag; }
+            get { EnsureSet(IP6ConfigProperty.Searches); return _searches; }
+            set { _searches = value; __set |= Flag(IP6ConfigProperty.Searches); }
         }
         private string[] _dnsOptions = default!;
-        public string[] DnsOptions
+        public required string[] DnsOptions
         {
-            get { EnsureSet(DnsOptionsFlag); return _dnsOptions; }
-            set { _dnsOptions = value; __set |= DnsOptionsFlag; }
+            get { EnsureSet(IP6ConfigProperty.DnsOptions); return _dnsOptions; }
+            set { _dnsOptions = value; __set |= Flag(IP6ConfigProperty.DnsOptions); }
         }
         private int _dnsPriority = default!;
-        public int DnsPriority
+        public required int DnsPriority
         {
-            get { EnsureSet(DnsPriorityFlag); return _dnsPriority; }
-            set { _dnsPriority = value; __set |= DnsPriorityFlag; }
+            get { EnsureSet(IP6ConfigProperty.DnsPriority); return _dnsPriority; }
+            set { _dnsPriority = value; __set |= Flag(IP6ConfigProperty.DnsPriority); }
         }
-        public bool IsSet(string propertyName)
+        public static IP6ConfigProperties CreateUninitialized() => new IP6ConfigProperties(false);
+        private bool HasFlag(uint flags, IP6ConfigProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(IP6ConfigProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(IP6ConfigProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(IP6ConfigProperty property)
         {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(Addresses) => (__set & AddressesFlag) != 0,
-                nameof(AddressData) => (__set & AddressDataFlag) != 0,
-                nameof(Gateway) => (__set & GatewayFlag) != 0,
-                nameof(Routes) => (__set & RoutesFlag) != 0,
-                nameof(RouteData) => (__set & RouteDataFlag) != 0,
-                nameof(Nameservers) => (__set & NameserversFlag) != 0,
-                nameof(Domains) => (__set & DomainsFlag) != 0,
-                nameof(Searches) => (__set & SearchesFlag) != 0,
-                nameof(DnsOptions) => (__set & DnsOptionsFlag) != 0,
-                nameof(DnsPriority) => (__set & DnsPriorityFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Addresses) => (__invalidated & AddressesFlag) != 0,
-                nameof(AddressData) => (__invalidated & AddressDataFlag) != 0,
-                nameof(Gateway) => (__invalidated & GatewayFlag) != 0,
-                nameof(Routes) => (__invalidated & RoutesFlag) != 0,
-                nameof(RouteData) => (__invalidated & RouteDataFlag) != 0,
-                nameof(Nameservers) => (__invalidated & NameserversFlag) != 0,
-                nameof(Domains) => (__invalidated & DomainsFlag) != 0,
-                nameof(Searches) => (__invalidated & SearchesFlag) != 0,
-                nameof(DnsOptions) => (__invalidated & DnsOptionsFlag) != 0,
-                nameof(DnsPriority) => (__invalidated & DnsPriorityFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Addresses" => AddressesFlag,
-                "AddressData" => AddressDataFlag,
-                "Gateway" => GatewayFlag,
-                "Routes" => RoutesFlag,
-                "RouteData" => RouteDataFlag,
-                "Nameservers" => NameserversFlag,
-                "Domains" => DomainsFlag,
-                "Searches" => SearchesFlag,
-                "DnsOptions" => DnsOptionsFlag,
-                "DnsPriority" => DnsPriorityFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-    }
-    sealed partial class IP6Config : Tmds.DBus.Protocol.DBusObject
-    {
-        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.IP6Config";
-        public IP6Config(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
-            : base(connection, destination, path)
-        { }
-        public Task<(byte[], uint, byte[])[]> GetAddressesAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Addresses"), (Message m, object? s) => MessageReader.Read_v_arayuayz(m), this);
-        public Task<Dictionary<string, VariantValue>[]> GetAddressDataAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("AddressData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
-        public Task<string> GetGatewayAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Gateway"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<(byte[], uint, byte[], uint)[]> GetRoutesAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Routes"), (Message m, object? s) => MessageReader.Read_v_arayuayuz(m), this);
-        public Task<Dictionary<string, VariantValue>[]> GetRouteDataAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("RouteData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
-        public Task<byte[][]> GetNameserversAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Nameservers"), (Message m, object? s) => MessageReader.Read_v_aay(m), this);
-        public Task<string[]> GetDomainsAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Domains"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<string[]> GetSearchesAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Searches"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<string[]> GetDnsOptionsAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("DnsOptions"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<int> GetDnsPriorityAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("DnsPriority"), (Message m, object? s) => MessageReader.Read_v_i(m), this);
-        public async Task<IP6ConfigProperties> GetPropertiesAsync()
+        public static IP6ConfigProperties ReadFrom(ref Reader reader, bool withInvalidated)
         {
-            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
-            props.EnsureAllPropertiesSet();
-            return props;
-            static IP6ConfigProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
-            }
-        }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, IP6ConfigProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-        {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
-            static IP6ConfigProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static IP6ConfigProperties ReadProperties(ref Reader reader)
-        {
-            var props = new IP6ConfigProperties();
+            var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
             while (reader.HasNext(arrayEnd))
             {
@@ -1830,14 +1752,110 @@ namespace NetworkManager.DBus
                         break;
                 }
             }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Addresses" => Flag(IP6ConfigProperty.Addresses),
+                        "AddressData" => Flag(IP6ConfigProperty.AddressData),
+                        "Gateway" => Flag(IP6ConfigProperty.Gateway),
+                        "Routes" => Flag(IP6ConfigProperty.Routes),
+                        "RouteData" => Flag(IP6ConfigProperty.RouteData),
+                        "Nameservers" => Flag(IP6ConfigProperty.Nameservers),
+                        "Domains" => Flag(IP6ConfigProperty.Domains),
+                        "Searches" => Flag(IP6ConfigProperty.Searches),
+                        "DnsOptions" => Flag(IP6ConfigProperty.DnsOptions),
+                        "DnsPriority" => Flag(IP6ConfigProperty.DnsPriority),
+                        _ => 0
+                    };
+                }
+            }
             return props;
         }
-        private static void ReadInvalidated(ref Reader reader, IP6ConfigProperties props)
+    }
+    file static class IP6ConfigHelper
+    {
+        public static int Parse(string propertyName)
         {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
+            return propertyName switch
             {
-                props.SetDBusInvalidated(reader.ReadString());
+                "Addresses" => (int)IP6ConfigProperty.Addresses,
+                "AddressData" => (int)IP6ConfigProperty.AddressData,
+                "Gateway" => (int)IP6ConfigProperty.Gateway,
+                "Routes" => (int)IP6ConfigProperty.Routes,
+                "RouteData" => (int)IP6ConfigProperty.RouteData,
+                "Nameservers" => (int)IP6ConfigProperty.Nameservers,
+                "Domains" => (int)IP6ConfigProperty.Domains,
+                "Searches" => (int)IP6ConfigProperty.Searches,
+                "DnsOptions" => (int)IP6ConfigProperty.DnsOptions,
+                "DnsPriority" => (int)IP6ConfigProperty.DnsPriority,
+                _ => 0
+            };
+        }
+    }
+    enum IP6ConfigProperty
+    {
+        UnknownProperty = 0,
+        Addresses = 1,
+        AddressData = 2,
+        Gateway = 3,
+        Routes = 4,
+        RouteData = 5,
+        Nameservers = 6,
+        Domains = 7,
+        Searches = 8,
+        DnsOptions = 9,
+        DnsPriority = 10
+    }
+    sealed partial class IP6Config : Tmds.DBus.Protocol.DBusObject
+    {
+        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.IP6Config";
+        public IP6Config(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+            : base(connection, destination, path)
+        { }
+        public Task<(byte[], uint, byte[])[]> GetAddressesAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Addresses"), (Message m, object? s) => MessageReader.Read_v_arayuayz(m), this);
+        public Task<Dictionary<string, VariantValue>[]> GetAddressDataAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("AddressData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
+        public Task<string> GetGatewayAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Gateway"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<(byte[], uint, byte[], uint)[]> GetRoutesAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Routes"), (Message m, object? s) => MessageReader.Read_v_arayuayuz(m), this);
+        public Task<Dictionary<string, VariantValue>[]> GetRouteDataAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("RouteData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
+        public Task<byte[][]> GetNameserversAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Nameservers"), (Message m, object? s) => MessageReader.Read_v_aay(m), this);
+        public Task<string[]> GetDomainsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Domains"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<string[]> GetSearchesAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Searches"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<string[]> GetDnsOptionsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("DnsOptions"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<int> GetDnsPriorityAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("DnsPriority"), (Message m, object? s) => MessageReader.Read_v_i(m), this);
+        public async Task<IP6ConfigProperties> GetPropertiesAsync()
+        {
+            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
+            static IP6ConfigProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return IP6ConfigProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, IP6ConfigProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            static IP6ConfigProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                return IP6ConfigProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -1866,275 +1884,157 @@ namespace NetworkManager.DBus
             return writer.CreateMessage();
         }
     }
-    sealed class AccessPointProperties
+    sealed class DnsManagerProperties
     {
-        private const uint FlagsFlag = 1U << 0;
-        private const uint WpaFlagsFlag = 1U << 1;
-        private const uint RsnFlagsFlag = 1U << 2;
-        private const uint SsidFlag = 1U << 3;
-        private const uint FrequencyFlag = 1U << 4;
-        private const uint HwAddressFlag = 1U << 5;
-        private const uint ModeFlag = 1U << 6;
-        private const uint MaxBitrateFlag = 1U << 7;
-        private const uint BandwidthFlag = 1U << 8;
-        private const uint StrengthFlag = 1U << 9;
-        private const uint LastSeenFlag = 1U << 10;
-        private const uint PropertiesAllSet = FlagsFlag | WpaFlagsFlag | RsnFlagsFlag | SsidFlag | FrequencyFlag | HwAddressFlag | ModeFlag | MaxBitrateFlag | BandwidthFlag | StrengthFlag | LastSeenFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0x7U; // 3 properties
+        private static uint Flag(DnsManagerProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public DnsManagerProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private DnsManagerProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(DnsManagerProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
-        private uint _flags = default!;
-        public uint Flags
+        private string _mode = default!;
+        public required string Mode
         {
-            get { EnsureSet(FlagsFlag); return _flags; }
-            set { _flags = value; __set |= FlagsFlag; }
+            get { EnsureSet(DnsManagerProperty.Mode); return _mode; }
+            set { _mode = value; __set |= Flag(DnsManagerProperty.Mode); }
         }
-        private uint _wpaFlags = default!;
-        public uint WpaFlags
+        private string _rcManager = default!;
+        public required string RcManager
         {
-            get { EnsureSet(WpaFlagsFlag); return _wpaFlags; }
-            set { _wpaFlags = value; __set |= WpaFlagsFlag; }
+            get { EnsureSet(DnsManagerProperty.RcManager); return _rcManager; }
+            set { _rcManager = value; __set |= Flag(DnsManagerProperty.RcManager); }
         }
-        private uint _rsnFlags = default!;
-        public uint RsnFlags
+        private Dictionary<string, VariantValue>[] _configuration = default!;
+        public required Dictionary<string, VariantValue>[] Configuration
         {
-            get { EnsureSet(RsnFlagsFlag); return _rsnFlags; }
-            set { _rsnFlags = value; __set |= RsnFlagsFlag; }
+            get { EnsureSet(DnsManagerProperty.Configuration); return _configuration; }
+            set { _configuration = value; __set |= Flag(DnsManagerProperty.Configuration); }
         }
-        private byte[] _ssid = default!;
-        public byte[] Ssid
+        public static DnsManagerProperties CreateUninitialized() => new DnsManagerProperties(false);
+        private bool HasFlag(uint flags, DnsManagerProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(DnsManagerProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(DnsManagerProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(DnsManagerProperty property)
         {
-            get { EnsureSet(SsidFlag); return _ssid; }
-            set { _ssid = value; __set |= SsidFlag; }
-        }
-        private uint _frequency = default!;
-        public uint Frequency
-        {
-            get { EnsureSet(FrequencyFlag); return _frequency; }
-            set { _frequency = value; __set |= FrequencyFlag; }
-        }
-        private string _hwAddress = default!;
-        public string HwAddress
-        {
-            get { EnsureSet(HwAddressFlag); return _hwAddress; }
-            set { _hwAddress = value; __set |= HwAddressFlag; }
-        }
-        private uint _mode = default!;
-        public uint Mode
-        {
-            get { EnsureSet(ModeFlag); return _mode; }
-            set { _mode = value; __set |= ModeFlag; }
-        }
-        private uint _maxBitrate = default!;
-        public uint MaxBitrate
-        {
-            get { EnsureSet(MaxBitrateFlag); return _maxBitrate; }
-            set { _maxBitrate = value; __set |= MaxBitrateFlag; }
-        }
-        private uint _bandwidth = default!;
-        public uint Bandwidth
-        {
-            get { EnsureSet(BandwidthFlag); return _bandwidth; }
-            set { _bandwidth = value; __set |= BandwidthFlag; }
-        }
-        private byte _strength = default!;
-        public byte Strength
-        {
-            get { EnsureSet(StrengthFlag); return _strength; }
-            set { _strength = value; __set |= StrengthFlag; }
-        }
-        private int _lastSeen = default!;
-        public int LastSeen
-        {
-            get { EnsureSet(LastSeenFlag); return _lastSeen; }
-            set { _lastSeen = value; __set |= LastSeenFlag; }
-        }
-        public bool IsSet(string propertyName)
-        {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(Flags) => (__set & FlagsFlag) != 0,
-                nameof(WpaFlags) => (__set & WpaFlagsFlag) != 0,
-                nameof(RsnFlags) => (__set & RsnFlagsFlag) != 0,
-                nameof(Ssid) => (__set & SsidFlag) != 0,
-                nameof(Frequency) => (__set & FrequencyFlag) != 0,
-                nameof(HwAddress) => (__set & HwAddressFlag) != 0,
-                nameof(Mode) => (__set & ModeFlag) != 0,
-                nameof(MaxBitrate) => (__set & MaxBitrateFlag) != 0,
-                nameof(Bandwidth) => (__set & BandwidthFlag) != 0,
-                nameof(Strength) => (__set & StrengthFlag) != 0,
-                nameof(LastSeen) => (__set & LastSeenFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Flags) => (__invalidated & FlagsFlag) != 0,
-                nameof(WpaFlags) => (__invalidated & WpaFlagsFlag) != 0,
-                nameof(RsnFlags) => (__invalidated & RsnFlagsFlag) != 0,
-                nameof(Ssid) => (__invalidated & SsidFlag) != 0,
-                nameof(Frequency) => (__invalidated & FrequencyFlag) != 0,
-                nameof(HwAddress) => (__invalidated & HwAddressFlag) != 0,
-                nameof(Mode) => (__invalidated & ModeFlag) != 0,
-                nameof(MaxBitrate) => (__invalidated & MaxBitrateFlag) != 0,
-                nameof(Bandwidth) => (__invalidated & BandwidthFlag) != 0,
-                nameof(Strength) => (__invalidated & StrengthFlag) != 0,
-                nameof(LastSeen) => (__invalidated & LastSeenFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Flags" => FlagsFlag,
-                "WpaFlags" => WpaFlagsFlag,
-                "RsnFlags" => RsnFlagsFlag,
-                "Ssid" => SsidFlag,
-                "Frequency" => FrequencyFlag,
-                "HwAddress" => HwAddressFlag,
-                "Mode" => ModeFlag,
-                "MaxBitrate" => MaxBitrateFlag,
-                "Bandwidth" => BandwidthFlag,
-                "Strength" => StrengthFlag,
-                "LastSeen" => LastSeenFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-    }
-    sealed partial class AccessPoint : Tmds.DBus.Protocol.DBusObject
-    {
-        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.AccessPoint";
-        public AccessPoint(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
-            : base(connection, destination, path)
-        { }
-        public Task<uint> GetFlagsAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Flags"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<uint> GetWpaFlagsAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("WpaFlags"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<uint> GetRsnFlagsAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("RsnFlags"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<byte[]> GetSsidAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Ssid"), (Message m, object? s) => MessageReader.Read_v_ay(m), this);
-        public Task<uint> GetFrequencyAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Frequency"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<string> GetHwAddressAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("HwAddress"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<uint> GetModeAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Mode"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<uint> GetMaxBitrateAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("MaxBitrate"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<uint> GetBandwidthAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Bandwidth"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<byte> GetStrengthAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Strength"), (Message m, object? s) => MessageReader.Read_v_y(m), this);
-        public Task<int> GetLastSeenAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("LastSeen"), (Message m, object? s) => MessageReader.Read_v_i(m), this);
-        public async Task<AccessPointProperties> GetPropertiesAsync()
+        public static DnsManagerProperties ReadFrom(ref Reader reader, bool withInvalidated)
         {
-            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
-            props.EnsureAllPropertiesSet();
-            return props;
-            static AccessPointProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
-            }
-        }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, AccessPointProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-        {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
-            static AccessPointProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static AccessPointProperties ReadProperties(ref Reader reader)
-        {
-            var props = new AccessPointProperties();
+            var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
             while (reader.HasNext(arrayEnd))
             {
                 var property = reader.ReadString();
                 switch (property)
                 {
-                    case "Flags":
-                        reader.ReadSignature("u"u8);
-                        props.Flags = reader.ReadUInt32();
-                        break;
-                    case "WpaFlags":
-                        reader.ReadSignature("u"u8);
-                        props.WpaFlags = reader.ReadUInt32();
-                        break;
-                    case "RsnFlags":
-                        reader.ReadSignature("u"u8);
-                        props.RsnFlags = reader.ReadUInt32();
-                        break;
-                    case "Ssid":
-                        reader.ReadSignature("ay"u8);
-                        props.Ssid = reader.ReadArrayOfByte();
-                        break;
-                    case "Frequency":
-                        reader.ReadSignature("u"u8);
-                        props.Frequency = reader.ReadUInt32();
-                        break;
-                    case "HwAddress":
-                        reader.ReadSignature("s"u8);
-                        props.HwAddress = reader.ReadString();
-                        break;
                     case "Mode":
-                        reader.ReadSignature("u"u8);
-                        props.Mode = reader.ReadUInt32();
+                        reader.ReadSignature("s"u8);
+                        props.Mode = reader.ReadString();
                         break;
-                    case "MaxBitrate":
-                        reader.ReadSignature("u"u8);
-                        props.MaxBitrate = reader.ReadUInt32();
+                    case "RcManager":
+                        reader.ReadSignature("s"u8);
+                        props.RcManager = reader.ReadString();
                         break;
-                    case "Bandwidth":
-                        reader.ReadSignature("u"u8);
-                        props.Bandwidth = reader.ReadUInt32();
-                        break;
-                    case "Strength":
-                        reader.ReadSignature("y"u8);
-                        props.Strength = reader.ReadByte();
-                        break;
-                    case "LastSeen":
-                        reader.ReadSignature("i"u8);
-                        props.LastSeen = reader.ReadInt32();
+                    case "Configuration":
+                        reader.ReadSignature("aa{sv}"u8);
+                        props.Configuration = reader.Read_aaesv();
                         break;
                     default:
                         reader.ReadVariantValue();
                         break;
                 }
             }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Mode" => Flag(DnsManagerProperty.Mode),
+                        "RcManager" => Flag(DnsManagerProperty.RcManager),
+                        "Configuration" => Flag(DnsManagerProperty.Configuration),
+                        _ => 0
+                    };
+                }
+            }
             return props;
         }
-        private static void ReadInvalidated(ref Reader reader, AccessPointProperties props)
+    }
+    file static class DnsManagerHelper
+    {
+        public static int Parse(string propertyName)
         {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
+            return propertyName switch
             {
-                props.SetDBusInvalidated(reader.ReadString());
+                "Mode" => (int)DnsManagerProperty.Mode,
+                "RcManager" => (int)DnsManagerProperty.RcManager,
+                "Configuration" => (int)DnsManagerProperty.Configuration,
+                _ => 0
+            };
+        }
+    }
+    enum DnsManagerProperty
+    {
+        UnknownProperty = 0,
+        Mode = 1,
+        RcManager = 2,
+        Configuration = 3
+    }
+    sealed partial class DnsManager : Tmds.DBus.Protocol.DBusObject
+    {
+        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.DnsManager";
+        public DnsManager(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+            : base(connection, destination, path)
+        { }
+        public Task<string> GetModeAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Mode"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<string> GetRcManagerAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("RcManager"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<Dictionary<string, VariantValue>[]> GetConfigurationAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Configuration"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
+        public async Task<DnsManagerProperties> GetPropertiesAsync()
+        {
+            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
+            static DnsManagerProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return DnsManagerProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, DnsManagerProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            static DnsManagerProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                return DnsManagerProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -2165,75 +2065,128 @@ namespace NetworkManager.DBus
     }
     sealed class StatisticsProperties
     {
-        private const uint RefreshRateMsFlag = 1U << 0;
-        private const uint TxBytesFlag = 1U << 1;
-        private const uint RxBytesFlag = 1U << 2;
-        private const uint PropertiesAllSet = RefreshRateMsFlag | TxBytesFlag | RxBytesFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0x7U; // 3 properties
+        private static uint Flag(StatisticsProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public StatisticsProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private StatisticsProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(StatisticsProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
         private uint _refreshRateMs = default!;
-        public uint RefreshRateMs
+        public required uint RefreshRateMs
         {
-            get { EnsureSet(RefreshRateMsFlag); return _refreshRateMs; }
-            set { _refreshRateMs = value; __set |= RefreshRateMsFlag; }
+            get { EnsureSet(StatisticsProperty.RefreshRateMs); return _refreshRateMs; }
+            set { _refreshRateMs = value; __set |= Flag(StatisticsProperty.RefreshRateMs); }
         }
         private ulong _txBytes = default!;
-        public ulong TxBytes
+        public required ulong TxBytes
         {
-            get { EnsureSet(TxBytesFlag); return _txBytes; }
-            set { _txBytes = value; __set |= TxBytesFlag; }
+            get { EnsureSet(StatisticsProperty.TxBytes); return _txBytes; }
+            set { _txBytes = value; __set |= Flag(StatisticsProperty.TxBytes); }
         }
         private ulong _rxBytes = default!;
-        public ulong RxBytes
+        public required ulong RxBytes
         {
-            get { EnsureSet(RxBytesFlag); return _rxBytes; }
-            set { _rxBytes = value; __set |= RxBytesFlag; }
+            get { EnsureSet(StatisticsProperty.RxBytes); return _rxBytes; }
+            set { _rxBytes = value; __set |= Flag(StatisticsProperty.RxBytes); }
         }
-        public bool IsSet(string propertyName)
+        public static StatisticsProperties CreateUninitialized() => new StatisticsProperties(false);
+        private bool HasFlag(uint flags, StatisticsProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(StatisticsProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(StatisticsProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(StatisticsProperty property)
         {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(RefreshRateMs) => (__set & RefreshRateMsFlag) != 0,
-                nameof(TxBytes) => (__set & TxBytesFlag) != 0,
-                nameof(RxBytes) => (__set & RxBytesFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(RefreshRateMs) => (__invalidated & RefreshRateMsFlag) != 0,
-                nameof(TxBytes) => (__invalidated & TxBytesFlag) != 0,
-                nameof(RxBytes) => (__invalidated & RxBytesFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "RefreshRateMs" => RefreshRateMsFlag,
-                "TxBytes" => TxBytesFlag,
-                "RxBytes" => RxBytesFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
+        public static StatisticsProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "RefreshRateMs":
+                        reader.ReadSignature("u"u8);
+                        props.RefreshRateMs = reader.ReadUInt32();
+                        break;
+                    case "TxBytes":
+                        reader.ReadSignature("t"u8);
+                        props.TxBytes = reader.ReadUInt64();
+                        break;
+                    case "RxBytes":
+                        reader.ReadSignature("t"u8);
+                        props.RxBytes = reader.ReadUInt64();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "RefreshRateMs" => Flag(StatisticsProperty.RefreshRateMs),
+                        "TxBytes" => Flag(StatisticsProperty.TxBytes),
+                        "RxBytes" => Flag(StatisticsProperty.RxBytes),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class StatisticsHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "RefreshRateMs" => (int)StatisticsProperty.RefreshRateMs,
+                "TxBytes" => (int)StatisticsProperty.TxBytes,
+                "RxBytes" => (int)StatisticsProperty.RxBytes,
+                _ => 0
+            };
+        }
+    }
+    enum StatisticsProperty
+    {
+        UnknownProperty = 0,
+        RefreshRateMs = 1,
+        TxBytes = 2,
+        RxBytes = 3
+    }
+    enum StatisticsWritableProperty
+    {
+        UnknownProperty = 0,
+        RefreshRateMs = 1
     }
     sealed partial class Statistics : Tmds.DBus.Protocol.DBusObject
     {
@@ -2274,7 +2227,7 @@ namespace NetworkManager.DBus
             static StatisticsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
+                return StatisticsProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, StatisticsProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
@@ -2284,232 +2237,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static StatisticsProperties ReadProperties(ref Reader reader)
-        {
-            var props = new StatisticsProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "RefreshRateMs":
-                        reader.ReadSignature("u"u8);
-                        props.RefreshRateMs = reader.ReadUInt32();
-                        break;
-                    case "TxBytes":
-                        reader.ReadSignature("t"u8);
-                        props.TxBytes = reader.ReadUInt64();
-                        break;
-                    case "RxBytes":
-                        reader.ReadSignature("t"u8);
-                        props.RxBytes = reader.ReadUInt64();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, StatisticsProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
-            }
-        }
-        private MessageBuffer CreateGetPropertyMessage(string property)
-        {
-            var writer = Connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Destination,
-                path: Path,
-                @interface: "org.freedesktop.DBus.Properties",
-                signature: "ss",
-                member: "Get");
-            writer.WriteString(DBusInterfaceName);
-            writer.WriteString(property);
-            return writer.CreateMessage();
-        }
-        private MessageBuffer CreateGetAllPropertiesMessage()
-        {
-            var writer = Connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Destination,
-                path: Path,
-                @interface: "org.freedesktop.DBus.Properties",
-                signature: "s",
-                member: "GetAll");
-            writer.WriteString(DBusInterfaceName);
-            return writer.CreateMessage();
-        }
-    }
-    sealed class WifiP2PProperties
-    {
-        private const uint HwAddressFlag = 1U << 0;
-        private const uint PeersFlag = 1U << 1;
-        private const uint PropertiesAllSet = HwAddressFlag | PeersFlag;
-        private uint __set;
-        private uint __invalidated;
-        private void EnsureSet(uint flag)
-        {
-            if ((__set & flag) == 0)
-            {
-                throw new InvalidOperationException("Property has not been set.");
-            }
-        }
-        private string _hwAddress = default!;
-        public string HwAddress
-        {
-            get { EnsureSet(HwAddressFlag); return _hwAddress; }
-            set { _hwAddress = value; __set |= HwAddressFlag; }
-        }
-        private ObjectPath[] _peers = default!;
-        public ObjectPath[] Peers
-        {
-            get { EnsureSet(PeersFlag); return _peers; }
-            set { _peers = value; __set |= PeersFlag; }
-        }
-        public bool IsSet(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(HwAddress) => (__set & HwAddressFlag) != 0,
-                nameof(Peers) => (__set & PeersFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(HwAddress) => (__invalidated & HwAddressFlag) != 0,
-                nameof(Peers) => (__invalidated & PeersFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "HwAddress" => HwAddressFlag,
-                "Peers" => PeersFlag,
-                _ => 0
-            };
-        }
-        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
-        public void EnsureAllPropertiesSet()
-        {
-            if (!AreAllPropertiesSet())
-            {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
-            }
-        }
-    }
-    sealed partial class WifiP2P : Tmds.DBus.Protocol.DBusObject
-    {
-        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.Device.WifiP2P";
-        public WifiP2P(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
-            : base(connection, destination, path)
-        { }
-        public Task StartFindAsync(Dictionary<string, VariantValue> options)
-        {
-            return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                var writer = Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Destination,
-                    path: Path,
-                    @interface: DBusInterfaceName,
-                    signature: "a{sv}",
-                    member: "StartFind");
-                writer.WriteDictionary(options);
-                return writer.CreateMessage();
-            }
-        }
-        public Task StopFindAsync()
-        {
-            return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
-            {
-                var writer = Connection.GetMessageWriter();
-                writer.WriteMethodCallHeader(
-                    destination: Destination,
-                    path: Path,
-                    @interface: DBusInterfaceName,
-                    member: "StopFind");
-                return writer.CreateMessage();
-            }
-        }
-        public ValueTask<IDisposable> WatchPeerAddedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "PeerAdded", (Message m, object? s) => MessageReader.Read_o(m), handler, this, emitOnCapturedContext, flags);
-        public ValueTask<IDisposable> WatchPeerRemovedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "PeerRemoved", (Message m, object? s) => MessageReader.Read_o(m), handler, this, emitOnCapturedContext, flags);
-        public Task<string> GetHwAddressAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("HwAddress"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<ObjectPath[]> GetPeersAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Peers"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
-        public async Task<WifiP2PProperties> GetPropertiesAsync()
-        {
-            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
-            props.EnsureAllPropertiesSet();
-            return props;
-            static WifiP2PProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
-            }
-        }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, WifiP2PProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-        {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
-            static WifiP2PProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static WifiP2PProperties ReadProperties(ref Reader reader)
-        {
-            var props = new WifiP2PProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "HwAddress":
-                        reader.ReadSignature("s"u8);
-                        props.HwAddress = reader.ReadString();
-                        break;
-                    case "Peers":
-                        reader.ReadSignature("ao"u8);
-                        props.Peers = reader.ReadArrayOfObjectPath();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, WifiP2PProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
+                return StatisticsProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -2540,365 +2268,506 @@ namespace NetworkManager.DBus
     }
     sealed class DeviceProperties
     {
-        private const uint UdiFlag = 1U << 0;
-        private const uint PathFlag = 1U << 1;
-        private const uint InterfaceFlag = 1U << 2;
-        private const uint IpInterfaceFlag = 1U << 3;
-        private const uint DriverFlag = 1U << 4;
-        private const uint DriverVersionFlag = 1U << 5;
-        private const uint FirmwareVersionFlag = 1U << 6;
-        private const uint CapabilitiesFlag = 1U << 7;
-        private const uint Ip4AddressFlag = 1U << 8;
-        private const uint StateFlag = 1U << 9;
-        private const uint StateReasonFlag = 1U << 10;
-        private const uint ActiveConnectionFlag = 1U << 11;
-        private const uint Ip4ConfigFlag = 1U << 12;
-        private const uint Dhcp4ConfigFlag = 1U << 13;
-        private const uint Ip6ConfigFlag = 1U << 14;
-        private const uint Dhcp6ConfigFlag = 1U << 15;
-        private const uint ManagedFlag = 1U << 16;
-        private const uint AutoconnectFlag = 1U << 17;
-        private const uint FirmwareMissingFlag = 1U << 18;
-        private const uint NmPluginMissingFlag = 1U << 19;
-        private const uint DeviceTypeFlag = 1U << 20;
-        private const uint AvailableConnectionsFlag = 1U << 21;
-        private const uint PhysicalPortIdFlag = 1U << 22;
-        private const uint MtuFlag = 1U << 23;
-        private const uint MeteredFlag = 1U << 24;
-        private const uint LldpNeighborsFlag = 1U << 25;
-        private const uint RealFlag = 1U << 26;
-        private const uint Ip4ConnectivityFlag = 1U << 27;
-        private const uint Ip6ConnectivityFlag = 1U << 28;
-        private const uint InterfaceFlagsFlag = 1U << 29;
-        private const uint HwAddressFlag = 1U << 30;
-        private const uint PortsFlag = 1U << 31;
-        private const uint PropertiesAllSet = UdiFlag | PathFlag | InterfaceFlag | IpInterfaceFlag | DriverFlag | DriverVersionFlag | FirmwareVersionFlag | CapabilitiesFlag | Ip4AddressFlag | StateFlag | StateReasonFlag | ActiveConnectionFlag | Ip4ConfigFlag | Dhcp4ConfigFlag | Ip6ConfigFlag | Dhcp6ConfigFlag | ManagedFlag | AutoconnectFlag | FirmwareMissingFlag | NmPluginMissingFlag | DeviceTypeFlag | AvailableConnectionsFlag | PhysicalPortIdFlag | MtuFlag | MeteredFlag | LldpNeighborsFlag | RealFlag | Ip4ConnectivityFlag | Ip6ConnectivityFlag | InterfaceFlagsFlag | HwAddressFlag | PortsFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0xFFFFFFFFU; // 32 properties
+        private static uint Flag(DeviceProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public DeviceProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private DeviceProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(DeviceProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
         private string _udi = default!;
-        public string Udi
+        public required string Udi
         {
-            get { EnsureSet(UdiFlag); return _udi; }
-            set { _udi = value; __set |= UdiFlag; }
+            get { EnsureSet(DeviceProperty.Udi); return _udi; }
+            set { _udi = value; __set |= Flag(DeviceProperty.Udi); }
         }
         private string _path = default!;
-        public string Path
+        public required string Path
         {
-            get { EnsureSet(PathFlag); return _path; }
-            set { _path = value; __set |= PathFlag; }
+            get { EnsureSet(DeviceProperty.Path); return _path; }
+            set { _path = value; __set |= Flag(DeviceProperty.Path); }
         }
         private string _interface = default!;
-        public string Interface
+        public required string Interface
         {
-            get { EnsureSet(InterfaceFlag); return _interface; }
-            set { _interface = value; __set |= InterfaceFlag; }
+            get { EnsureSet(DeviceProperty.Interface); return _interface; }
+            set { _interface = value; __set |= Flag(DeviceProperty.Interface); }
         }
         private string _ipInterface = default!;
-        public string IpInterface
+        public required string IpInterface
         {
-            get { EnsureSet(IpInterfaceFlag); return _ipInterface; }
-            set { _ipInterface = value; __set |= IpInterfaceFlag; }
+            get { EnsureSet(DeviceProperty.IpInterface); return _ipInterface; }
+            set { _ipInterface = value; __set |= Flag(DeviceProperty.IpInterface); }
         }
         private string _driver = default!;
-        public string Driver
+        public required string Driver
         {
-            get { EnsureSet(DriverFlag); return _driver; }
-            set { _driver = value; __set |= DriverFlag; }
+            get { EnsureSet(DeviceProperty.Driver); return _driver; }
+            set { _driver = value; __set |= Flag(DeviceProperty.Driver); }
         }
         private string _driverVersion = default!;
-        public string DriverVersion
+        public required string DriverVersion
         {
-            get { EnsureSet(DriverVersionFlag); return _driverVersion; }
-            set { _driverVersion = value; __set |= DriverVersionFlag; }
+            get { EnsureSet(DeviceProperty.DriverVersion); return _driverVersion; }
+            set { _driverVersion = value; __set |= Flag(DeviceProperty.DriverVersion); }
         }
         private string _firmwareVersion = default!;
-        public string FirmwareVersion
+        public required string FirmwareVersion
         {
-            get { EnsureSet(FirmwareVersionFlag); return _firmwareVersion; }
-            set { _firmwareVersion = value; __set |= FirmwareVersionFlag; }
+            get { EnsureSet(DeviceProperty.FirmwareVersion); return _firmwareVersion; }
+            set { _firmwareVersion = value; __set |= Flag(DeviceProperty.FirmwareVersion); }
         }
         private uint _capabilities = default!;
-        public uint Capabilities
+        public required uint Capabilities
         {
-            get { EnsureSet(CapabilitiesFlag); return _capabilities; }
-            set { _capabilities = value; __set |= CapabilitiesFlag; }
+            get { EnsureSet(DeviceProperty.Capabilities); return _capabilities; }
+            set { _capabilities = value; __set |= Flag(DeviceProperty.Capabilities); }
         }
         private uint _ip4Address = default!;
-        public uint Ip4Address
+        public required uint Ip4Address
         {
-            get { EnsureSet(Ip4AddressFlag); return _ip4Address; }
-            set { _ip4Address = value; __set |= Ip4AddressFlag; }
+            get { EnsureSet(DeviceProperty.Ip4Address); return _ip4Address; }
+            set { _ip4Address = value; __set |= Flag(DeviceProperty.Ip4Address); }
         }
         private uint _state = default!;
-        public uint State
+        public required uint State
         {
-            get { EnsureSet(StateFlag); return _state; }
-            set { _state = value; __set |= StateFlag; }
+            get { EnsureSet(DeviceProperty.State); return _state; }
+            set { _state = value; __set |= Flag(DeviceProperty.State); }
         }
         private (uint, uint) _stateReason = default!;
-        public (uint, uint) StateReason
+        public required (uint, uint) StateReason
         {
-            get { EnsureSet(StateReasonFlag); return _stateReason; }
-            set { _stateReason = value; __set |= StateReasonFlag; }
+            get { EnsureSet(DeviceProperty.StateReason); return _stateReason; }
+            set { _stateReason = value; __set |= Flag(DeviceProperty.StateReason); }
         }
         private ObjectPath _activeConnection = default!;
-        public ObjectPath ActiveConnection
+        public required ObjectPath ActiveConnection
         {
-            get { EnsureSet(ActiveConnectionFlag); return _activeConnection; }
-            set { _activeConnection = value; __set |= ActiveConnectionFlag; }
+            get { EnsureSet(DeviceProperty.ActiveConnection); return _activeConnection; }
+            set { _activeConnection = value; __set |= Flag(DeviceProperty.ActiveConnection); }
         }
         private ObjectPath _ip4Config = default!;
-        public ObjectPath Ip4Config
+        public required ObjectPath Ip4Config
         {
-            get { EnsureSet(Ip4ConfigFlag); return _ip4Config; }
-            set { _ip4Config = value; __set |= Ip4ConfigFlag; }
+            get { EnsureSet(DeviceProperty.Ip4Config); return _ip4Config; }
+            set { _ip4Config = value; __set |= Flag(DeviceProperty.Ip4Config); }
         }
         private ObjectPath _dhcp4Config = default!;
-        public ObjectPath Dhcp4Config
+        public required ObjectPath Dhcp4Config
         {
-            get { EnsureSet(Dhcp4ConfigFlag); return _dhcp4Config; }
-            set { _dhcp4Config = value; __set |= Dhcp4ConfigFlag; }
+            get { EnsureSet(DeviceProperty.Dhcp4Config); return _dhcp4Config; }
+            set { _dhcp4Config = value; __set |= Flag(DeviceProperty.Dhcp4Config); }
         }
         private ObjectPath _ip6Config = default!;
-        public ObjectPath Ip6Config
+        public required ObjectPath Ip6Config
         {
-            get { EnsureSet(Ip6ConfigFlag); return _ip6Config; }
-            set { _ip6Config = value; __set |= Ip6ConfigFlag; }
+            get { EnsureSet(DeviceProperty.Ip6Config); return _ip6Config; }
+            set { _ip6Config = value; __set |= Flag(DeviceProperty.Ip6Config); }
         }
         private ObjectPath _dhcp6Config = default!;
-        public ObjectPath Dhcp6Config
+        public required ObjectPath Dhcp6Config
         {
-            get { EnsureSet(Dhcp6ConfigFlag); return _dhcp6Config; }
-            set { _dhcp6Config = value; __set |= Dhcp6ConfigFlag; }
+            get { EnsureSet(DeviceProperty.Dhcp6Config); return _dhcp6Config; }
+            set { _dhcp6Config = value; __set |= Flag(DeviceProperty.Dhcp6Config); }
         }
         private bool _managed = default!;
-        public bool Managed
+        public required bool Managed
         {
-            get { EnsureSet(ManagedFlag); return _managed; }
-            set { _managed = value; __set |= ManagedFlag; }
+            get { EnsureSet(DeviceProperty.Managed); return _managed; }
+            set { _managed = value; __set |= Flag(DeviceProperty.Managed); }
         }
         private bool _autoconnect = default!;
-        public bool Autoconnect
+        public required bool Autoconnect
         {
-            get { EnsureSet(AutoconnectFlag); return _autoconnect; }
-            set { _autoconnect = value; __set |= AutoconnectFlag; }
+            get { EnsureSet(DeviceProperty.Autoconnect); return _autoconnect; }
+            set { _autoconnect = value; __set |= Flag(DeviceProperty.Autoconnect); }
         }
         private bool _firmwareMissing = default!;
-        public bool FirmwareMissing
+        public required bool FirmwareMissing
         {
-            get { EnsureSet(FirmwareMissingFlag); return _firmwareMissing; }
-            set { _firmwareMissing = value; __set |= FirmwareMissingFlag; }
+            get { EnsureSet(DeviceProperty.FirmwareMissing); return _firmwareMissing; }
+            set { _firmwareMissing = value; __set |= Flag(DeviceProperty.FirmwareMissing); }
         }
         private bool _nmPluginMissing = default!;
-        public bool NmPluginMissing
+        public required bool NmPluginMissing
         {
-            get { EnsureSet(NmPluginMissingFlag); return _nmPluginMissing; }
-            set { _nmPluginMissing = value; __set |= NmPluginMissingFlag; }
+            get { EnsureSet(DeviceProperty.NmPluginMissing); return _nmPluginMissing; }
+            set { _nmPluginMissing = value; __set |= Flag(DeviceProperty.NmPluginMissing); }
         }
         private uint _deviceType = default!;
-        public uint DeviceType
+        public required uint DeviceType
         {
-            get { EnsureSet(DeviceTypeFlag); return _deviceType; }
-            set { _deviceType = value; __set |= DeviceTypeFlag; }
+            get { EnsureSet(DeviceProperty.DeviceType); return _deviceType; }
+            set { _deviceType = value; __set |= Flag(DeviceProperty.DeviceType); }
         }
         private ObjectPath[] _availableConnections = default!;
-        public ObjectPath[] AvailableConnections
+        public required ObjectPath[] AvailableConnections
         {
-            get { EnsureSet(AvailableConnectionsFlag); return _availableConnections; }
-            set { _availableConnections = value; __set |= AvailableConnectionsFlag; }
+            get { EnsureSet(DeviceProperty.AvailableConnections); return _availableConnections; }
+            set { _availableConnections = value; __set |= Flag(DeviceProperty.AvailableConnections); }
         }
         private string _physicalPortId = default!;
-        public string PhysicalPortId
+        public required string PhysicalPortId
         {
-            get { EnsureSet(PhysicalPortIdFlag); return _physicalPortId; }
-            set { _physicalPortId = value; __set |= PhysicalPortIdFlag; }
+            get { EnsureSet(DeviceProperty.PhysicalPortId); return _physicalPortId; }
+            set { _physicalPortId = value; __set |= Flag(DeviceProperty.PhysicalPortId); }
         }
         private uint _mtu = default!;
-        public uint Mtu
+        public required uint Mtu
         {
-            get { EnsureSet(MtuFlag); return _mtu; }
-            set { _mtu = value; __set |= MtuFlag; }
+            get { EnsureSet(DeviceProperty.Mtu); return _mtu; }
+            set { _mtu = value; __set |= Flag(DeviceProperty.Mtu); }
         }
         private uint _metered = default!;
-        public uint Metered
+        public required uint Metered
         {
-            get { EnsureSet(MeteredFlag); return _metered; }
-            set { _metered = value; __set |= MeteredFlag; }
+            get { EnsureSet(DeviceProperty.Metered); return _metered; }
+            set { _metered = value; __set |= Flag(DeviceProperty.Metered); }
         }
         private Dictionary<string, VariantValue>[] _lldpNeighbors = default!;
-        public Dictionary<string, VariantValue>[] LldpNeighbors
+        public required Dictionary<string, VariantValue>[] LldpNeighbors
         {
-            get { EnsureSet(LldpNeighborsFlag); return _lldpNeighbors; }
-            set { _lldpNeighbors = value; __set |= LldpNeighborsFlag; }
+            get { EnsureSet(DeviceProperty.LldpNeighbors); return _lldpNeighbors; }
+            set { _lldpNeighbors = value; __set |= Flag(DeviceProperty.LldpNeighbors); }
         }
         private bool _real = default!;
-        public bool Real
+        public required bool Real
         {
-            get { EnsureSet(RealFlag); return _real; }
-            set { _real = value; __set |= RealFlag; }
+            get { EnsureSet(DeviceProperty.Real); return _real; }
+            set { _real = value; __set |= Flag(DeviceProperty.Real); }
         }
         private uint _ip4Connectivity = default!;
-        public uint Ip4Connectivity
+        public required uint Ip4Connectivity
         {
-            get { EnsureSet(Ip4ConnectivityFlag); return _ip4Connectivity; }
-            set { _ip4Connectivity = value; __set |= Ip4ConnectivityFlag; }
+            get { EnsureSet(DeviceProperty.Ip4Connectivity); return _ip4Connectivity; }
+            set { _ip4Connectivity = value; __set |= Flag(DeviceProperty.Ip4Connectivity); }
         }
         private uint _ip6Connectivity = default!;
-        public uint Ip6Connectivity
+        public required uint Ip6Connectivity
         {
-            get { EnsureSet(Ip6ConnectivityFlag); return _ip6Connectivity; }
-            set { _ip6Connectivity = value; __set |= Ip6ConnectivityFlag; }
+            get { EnsureSet(DeviceProperty.Ip6Connectivity); return _ip6Connectivity; }
+            set { _ip6Connectivity = value; __set |= Flag(DeviceProperty.Ip6Connectivity); }
         }
         private uint _interfaceFlags = default!;
-        public uint InterfaceFlags
+        public required uint InterfaceFlags
         {
-            get { EnsureSet(InterfaceFlagsFlag); return _interfaceFlags; }
-            set { _interfaceFlags = value; __set |= InterfaceFlagsFlag; }
+            get { EnsureSet(DeviceProperty.InterfaceFlags); return _interfaceFlags; }
+            set { _interfaceFlags = value; __set |= Flag(DeviceProperty.InterfaceFlags); }
         }
         private string _hwAddress = default!;
-        public string HwAddress
+        public required string HwAddress
         {
-            get { EnsureSet(HwAddressFlag); return _hwAddress; }
-            set { _hwAddress = value; __set |= HwAddressFlag; }
+            get { EnsureSet(DeviceProperty.HwAddress); return _hwAddress; }
+            set { _hwAddress = value; __set |= Flag(DeviceProperty.HwAddress); }
         }
         private ObjectPath[] _ports = default!;
-        public ObjectPath[] Ports
+        public required ObjectPath[] Ports
         {
-            get { EnsureSet(PortsFlag); return _ports; }
-            set { _ports = value; __set |= PortsFlag; }
+            get { EnsureSet(DeviceProperty.Ports); return _ports; }
+            set { _ports = value; __set |= Flag(DeviceProperty.Ports); }
         }
-        public bool IsSet(string propertyName)
+        public static DeviceProperties CreateUninitialized() => new DeviceProperties(false);
+        private bool HasFlag(uint flags, DeviceProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(DeviceProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(DeviceProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(DeviceProperty property)
         {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(Udi) => (__set & UdiFlag) != 0,
-                nameof(Path) => (__set & PathFlag) != 0,
-                nameof(Interface) => (__set & InterfaceFlag) != 0,
-                nameof(IpInterface) => (__set & IpInterfaceFlag) != 0,
-                nameof(Driver) => (__set & DriverFlag) != 0,
-                nameof(DriverVersion) => (__set & DriverVersionFlag) != 0,
-                nameof(FirmwareVersion) => (__set & FirmwareVersionFlag) != 0,
-                nameof(Capabilities) => (__set & CapabilitiesFlag) != 0,
-                nameof(Ip4Address) => (__set & Ip4AddressFlag) != 0,
-                nameof(State) => (__set & StateFlag) != 0,
-                nameof(StateReason) => (__set & StateReasonFlag) != 0,
-                nameof(ActiveConnection) => (__set & ActiveConnectionFlag) != 0,
-                nameof(Ip4Config) => (__set & Ip4ConfigFlag) != 0,
-                nameof(Dhcp4Config) => (__set & Dhcp4ConfigFlag) != 0,
-                nameof(Ip6Config) => (__set & Ip6ConfigFlag) != 0,
-                nameof(Dhcp6Config) => (__set & Dhcp6ConfigFlag) != 0,
-                nameof(Managed) => (__set & ManagedFlag) != 0,
-                nameof(Autoconnect) => (__set & AutoconnectFlag) != 0,
-                nameof(FirmwareMissing) => (__set & FirmwareMissingFlag) != 0,
-                nameof(NmPluginMissing) => (__set & NmPluginMissingFlag) != 0,
-                nameof(DeviceType) => (__set & DeviceTypeFlag) != 0,
-                nameof(AvailableConnections) => (__set & AvailableConnectionsFlag) != 0,
-                nameof(PhysicalPortId) => (__set & PhysicalPortIdFlag) != 0,
-                nameof(Mtu) => (__set & MtuFlag) != 0,
-                nameof(Metered) => (__set & MeteredFlag) != 0,
-                nameof(LldpNeighbors) => (__set & LldpNeighborsFlag) != 0,
-                nameof(Real) => (__set & RealFlag) != 0,
-                nameof(Ip4Connectivity) => (__set & Ip4ConnectivityFlag) != 0,
-                nameof(Ip6Connectivity) => (__set & Ip6ConnectivityFlag) != 0,
-                nameof(InterfaceFlags) => (__set & InterfaceFlagsFlag) != 0,
-                nameof(HwAddress) => (__set & HwAddressFlag) != 0,
-                nameof(Ports) => (__set & PortsFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Udi) => (__invalidated & UdiFlag) != 0,
-                nameof(Path) => (__invalidated & PathFlag) != 0,
-                nameof(Interface) => (__invalidated & InterfaceFlag) != 0,
-                nameof(IpInterface) => (__invalidated & IpInterfaceFlag) != 0,
-                nameof(Driver) => (__invalidated & DriverFlag) != 0,
-                nameof(DriverVersion) => (__invalidated & DriverVersionFlag) != 0,
-                nameof(FirmwareVersion) => (__invalidated & FirmwareVersionFlag) != 0,
-                nameof(Capabilities) => (__invalidated & CapabilitiesFlag) != 0,
-                nameof(Ip4Address) => (__invalidated & Ip4AddressFlag) != 0,
-                nameof(State) => (__invalidated & StateFlag) != 0,
-                nameof(StateReason) => (__invalidated & StateReasonFlag) != 0,
-                nameof(ActiveConnection) => (__invalidated & ActiveConnectionFlag) != 0,
-                nameof(Ip4Config) => (__invalidated & Ip4ConfigFlag) != 0,
-                nameof(Dhcp4Config) => (__invalidated & Dhcp4ConfigFlag) != 0,
-                nameof(Ip6Config) => (__invalidated & Ip6ConfigFlag) != 0,
-                nameof(Dhcp6Config) => (__invalidated & Dhcp6ConfigFlag) != 0,
-                nameof(Managed) => (__invalidated & ManagedFlag) != 0,
-                nameof(Autoconnect) => (__invalidated & AutoconnectFlag) != 0,
-                nameof(FirmwareMissing) => (__invalidated & FirmwareMissingFlag) != 0,
-                nameof(NmPluginMissing) => (__invalidated & NmPluginMissingFlag) != 0,
-                nameof(DeviceType) => (__invalidated & DeviceTypeFlag) != 0,
-                nameof(AvailableConnections) => (__invalidated & AvailableConnectionsFlag) != 0,
-                nameof(PhysicalPortId) => (__invalidated & PhysicalPortIdFlag) != 0,
-                nameof(Mtu) => (__invalidated & MtuFlag) != 0,
-                nameof(Metered) => (__invalidated & MeteredFlag) != 0,
-                nameof(LldpNeighbors) => (__invalidated & LldpNeighborsFlag) != 0,
-                nameof(Real) => (__invalidated & RealFlag) != 0,
-                nameof(Ip4Connectivity) => (__invalidated & Ip4ConnectivityFlag) != 0,
-                nameof(Ip6Connectivity) => (__invalidated & Ip6ConnectivityFlag) != 0,
-                nameof(InterfaceFlags) => (__invalidated & InterfaceFlagsFlag) != 0,
-                nameof(HwAddress) => (__invalidated & HwAddressFlag) != 0,
-                nameof(Ports) => (__invalidated & PortsFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Udi" => UdiFlag,
-                "Path" => PathFlag,
-                "Interface" => InterfaceFlag,
-                "IpInterface" => IpInterfaceFlag,
-                "Driver" => DriverFlag,
-                "DriverVersion" => DriverVersionFlag,
-                "FirmwareVersion" => FirmwareVersionFlag,
-                "Capabilities" => CapabilitiesFlag,
-                "Ip4Address" => Ip4AddressFlag,
-                "State" => StateFlag,
-                "StateReason" => StateReasonFlag,
-                "ActiveConnection" => ActiveConnectionFlag,
-                "Ip4Config" => Ip4ConfigFlag,
-                "Dhcp4Config" => Dhcp4ConfigFlag,
-                "Ip6Config" => Ip6ConfigFlag,
-                "Dhcp6Config" => Dhcp6ConfigFlag,
-                "Managed" => ManagedFlag,
-                "Autoconnect" => AutoconnectFlag,
-                "FirmwareMissing" => FirmwareMissingFlag,
-                "NmPluginMissing" => NmPluginMissingFlag,
-                "DeviceType" => DeviceTypeFlag,
-                "AvailableConnections" => AvailableConnectionsFlag,
-                "PhysicalPortId" => PhysicalPortIdFlag,
-                "Mtu" => MtuFlag,
-                "Metered" => MeteredFlag,
-                "LldpNeighbors" => LldpNeighborsFlag,
-                "Real" => RealFlag,
-                "Ip4Connectivity" => Ip4ConnectivityFlag,
-                "Ip6Connectivity" => Ip6ConnectivityFlag,
-                "InterfaceFlags" => InterfaceFlagsFlag,
-                "HwAddress" => HwAddressFlag,
-                "Ports" => PortsFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
+        public static DeviceProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "Udi":
+                        reader.ReadSignature("s"u8);
+                        props.Udi = reader.ReadString();
+                        break;
+                    case "Path":
+                        reader.ReadSignature("s"u8);
+                        props.Path = reader.ReadString();
+                        break;
+                    case "Interface":
+                        reader.ReadSignature("s"u8);
+                        props.Interface = reader.ReadString();
+                        break;
+                    case "IpInterface":
+                        reader.ReadSignature("s"u8);
+                        props.IpInterface = reader.ReadString();
+                        break;
+                    case "Driver":
+                        reader.ReadSignature("s"u8);
+                        props.Driver = reader.ReadString();
+                        break;
+                    case "DriverVersion":
+                        reader.ReadSignature("s"u8);
+                        props.DriverVersion = reader.ReadString();
+                        break;
+                    case "FirmwareVersion":
+                        reader.ReadSignature("s"u8);
+                        props.FirmwareVersion = reader.ReadString();
+                        break;
+                    case "Capabilities":
+                        reader.ReadSignature("u"u8);
+                        props.Capabilities = reader.ReadUInt32();
+                        break;
+                    case "Ip4Address":
+                        reader.ReadSignature("u"u8);
+                        props.Ip4Address = reader.ReadUInt32();
+                        break;
+                    case "State":
+                        reader.ReadSignature("u"u8);
+                        props.State = reader.ReadUInt32();
+                        break;
+                    case "StateReason":
+                        reader.ReadSignature("(uu)"u8);
+                        props.StateReason = reader.Read_ruuz();
+                        break;
+                    case "ActiveConnection":
+                        reader.ReadSignature("o"u8);
+                        props.ActiveConnection = reader.ReadObjectPath();
+                        break;
+                    case "Ip4Config":
+                        reader.ReadSignature("o"u8);
+                        props.Ip4Config = reader.ReadObjectPath();
+                        break;
+                    case "Dhcp4Config":
+                        reader.ReadSignature("o"u8);
+                        props.Dhcp4Config = reader.ReadObjectPath();
+                        break;
+                    case "Ip6Config":
+                        reader.ReadSignature("o"u8);
+                        props.Ip6Config = reader.ReadObjectPath();
+                        break;
+                    case "Dhcp6Config":
+                        reader.ReadSignature("o"u8);
+                        props.Dhcp6Config = reader.ReadObjectPath();
+                        break;
+                    case "Managed":
+                        reader.ReadSignature("b"u8);
+                        props.Managed = reader.ReadBool();
+                        break;
+                    case "Autoconnect":
+                        reader.ReadSignature("b"u8);
+                        props.Autoconnect = reader.ReadBool();
+                        break;
+                    case "FirmwareMissing":
+                        reader.ReadSignature("b"u8);
+                        props.FirmwareMissing = reader.ReadBool();
+                        break;
+                    case "NmPluginMissing":
+                        reader.ReadSignature("b"u8);
+                        props.NmPluginMissing = reader.ReadBool();
+                        break;
+                    case "DeviceType":
+                        reader.ReadSignature("u"u8);
+                        props.DeviceType = reader.ReadUInt32();
+                        break;
+                    case "AvailableConnections":
+                        reader.ReadSignature("ao"u8);
+                        props.AvailableConnections = reader.ReadArrayOfObjectPath();
+                        break;
+                    case "PhysicalPortId":
+                        reader.ReadSignature("s"u8);
+                        props.PhysicalPortId = reader.ReadString();
+                        break;
+                    case "Mtu":
+                        reader.ReadSignature("u"u8);
+                        props.Mtu = reader.ReadUInt32();
+                        break;
+                    case "Metered":
+                        reader.ReadSignature("u"u8);
+                        props.Metered = reader.ReadUInt32();
+                        break;
+                    case "LldpNeighbors":
+                        reader.ReadSignature("aa{sv}"u8);
+                        props.LldpNeighbors = reader.Read_aaesv();
+                        break;
+                    case "Real":
+                        reader.ReadSignature("b"u8);
+                        props.Real = reader.ReadBool();
+                        break;
+                    case "Ip4Connectivity":
+                        reader.ReadSignature("u"u8);
+                        props.Ip4Connectivity = reader.ReadUInt32();
+                        break;
+                    case "Ip6Connectivity":
+                        reader.ReadSignature("u"u8);
+                        props.Ip6Connectivity = reader.ReadUInt32();
+                        break;
+                    case "InterfaceFlags":
+                        reader.ReadSignature("u"u8);
+                        props.InterfaceFlags = reader.ReadUInt32();
+                        break;
+                    case "HwAddress":
+                        reader.ReadSignature("s"u8);
+                        props.HwAddress = reader.ReadString();
+                        break;
+                    case "Ports":
+                        reader.ReadSignature("ao"u8);
+                        props.Ports = reader.ReadArrayOfObjectPath();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Udi" => Flag(DeviceProperty.Udi),
+                        "Path" => Flag(DeviceProperty.Path),
+                        "Interface" => Flag(DeviceProperty.Interface),
+                        "IpInterface" => Flag(DeviceProperty.IpInterface),
+                        "Driver" => Flag(DeviceProperty.Driver),
+                        "DriverVersion" => Flag(DeviceProperty.DriverVersion),
+                        "FirmwareVersion" => Flag(DeviceProperty.FirmwareVersion),
+                        "Capabilities" => Flag(DeviceProperty.Capabilities),
+                        "Ip4Address" => Flag(DeviceProperty.Ip4Address),
+                        "State" => Flag(DeviceProperty.State),
+                        "StateReason" => Flag(DeviceProperty.StateReason),
+                        "ActiveConnection" => Flag(DeviceProperty.ActiveConnection),
+                        "Ip4Config" => Flag(DeviceProperty.Ip4Config),
+                        "Dhcp4Config" => Flag(DeviceProperty.Dhcp4Config),
+                        "Ip6Config" => Flag(DeviceProperty.Ip6Config),
+                        "Dhcp6Config" => Flag(DeviceProperty.Dhcp6Config),
+                        "Managed" => Flag(DeviceProperty.Managed),
+                        "Autoconnect" => Flag(DeviceProperty.Autoconnect),
+                        "FirmwareMissing" => Flag(DeviceProperty.FirmwareMissing),
+                        "NmPluginMissing" => Flag(DeviceProperty.NmPluginMissing),
+                        "DeviceType" => Flag(DeviceProperty.DeviceType),
+                        "AvailableConnections" => Flag(DeviceProperty.AvailableConnections),
+                        "PhysicalPortId" => Flag(DeviceProperty.PhysicalPortId),
+                        "Mtu" => Flag(DeviceProperty.Mtu),
+                        "Metered" => Flag(DeviceProperty.Metered),
+                        "LldpNeighbors" => Flag(DeviceProperty.LldpNeighbors),
+                        "Real" => Flag(DeviceProperty.Real),
+                        "Ip4Connectivity" => Flag(DeviceProperty.Ip4Connectivity),
+                        "Ip6Connectivity" => Flag(DeviceProperty.Ip6Connectivity),
+                        "InterfaceFlags" => Flag(DeviceProperty.InterfaceFlags),
+                        "HwAddress" => Flag(DeviceProperty.HwAddress),
+                        "Ports" => Flag(DeviceProperty.Ports),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class DeviceHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Udi" => (int)DeviceProperty.Udi,
+                "Path" => (int)DeviceProperty.Path,
+                "Interface" => (int)DeviceProperty.Interface,
+                "IpInterface" => (int)DeviceProperty.IpInterface,
+                "Driver" => (int)DeviceProperty.Driver,
+                "DriverVersion" => (int)DeviceProperty.DriverVersion,
+                "FirmwareVersion" => (int)DeviceProperty.FirmwareVersion,
+                "Capabilities" => (int)DeviceProperty.Capabilities,
+                "Ip4Address" => (int)DeviceProperty.Ip4Address,
+                "State" => (int)DeviceProperty.State,
+                "StateReason" => (int)DeviceProperty.StateReason,
+                "ActiveConnection" => (int)DeviceProperty.ActiveConnection,
+                "Ip4Config" => (int)DeviceProperty.Ip4Config,
+                "Dhcp4Config" => (int)DeviceProperty.Dhcp4Config,
+                "Ip6Config" => (int)DeviceProperty.Ip6Config,
+                "Dhcp6Config" => (int)DeviceProperty.Dhcp6Config,
+                "Managed" => (int)DeviceProperty.Managed,
+                "Autoconnect" => (int)DeviceProperty.Autoconnect,
+                "FirmwareMissing" => (int)DeviceProperty.FirmwareMissing,
+                "NmPluginMissing" => (int)DeviceProperty.NmPluginMissing,
+                "DeviceType" => (int)DeviceProperty.DeviceType,
+                "AvailableConnections" => (int)DeviceProperty.AvailableConnections,
+                "PhysicalPortId" => (int)DeviceProperty.PhysicalPortId,
+                "Mtu" => (int)DeviceProperty.Mtu,
+                "Metered" => (int)DeviceProperty.Metered,
+                "LldpNeighbors" => (int)DeviceProperty.LldpNeighbors,
+                "Real" => (int)DeviceProperty.Real,
+                "Ip4Connectivity" => (int)DeviceProperty.Ip4Connectivity,
+                "Ip6Connectivity" => (int)DeviceProperty.Ip6Connectivity,
+                "InterfaceFlags" => (int)DeviceProperty.InterfaceFlags,
+                "HwAddress" => (int)DeviceProperty.HwAddress,
+                "Ports" => (int)DeviceProperty.Ports,
+                _ => 0
+            };
+        }
+    }
+    enum DeviceProperty
+    {
+        UnknownProperty = 0,
+        Udi = 1,
+        Path = 2,
+        Interface = 3,
+        IpInterface = 4,
+        Driver = 5,
+        DriverVersion = 6,
+        FirmwareVersion = 7,
+        Capabilities = 8,
+        Ip4Address = 9,
+        State = 10,
+        StateReason = 11,
+        ActiveConnection = 12,
+        Ip4Config = 13,
+        Dhcp4Config = 14,
+        Ip6Config = 15,
+        Dhcp6Config = 16,
+        Managed = 17,
+        Autoconnect = 18,
+        FirmwareMissing = 19,
+        NmPluginMissing = 20,
+        DeviceType = 21,
+        AvailableConnections = 22,
+        PhysicalPortId = 23,
+        Mtu = 24,
+        Metered = 25,
+        LldpNeighbors = 26,
+        Real = 27,
+        Ip4Connectivity = 28,
+        Ip6Connectivity = 29,
+        InterfaceFlags = 30,
+        HwAddress = 31,
+        Ports = 32
+    }
+    enum DeviceWritableProperty
+    {
+        UnknownProperty = 0,
+        Udi = 1,
+        Path = 2
     }
     sealed partial class Device : Tmds.DBus.Protocol.DBusObject
     {
@@ -3080,7 +2949,7 @@ namespace NetworkManager.DBus
             static DeviceProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
+                return DeviceProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, DeviceProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
@@ -3090,161 +2959,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static DeviceProperties ReadProperties(ref Reader reader)
-        {
-            var props = new DeviceProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Udi":
-                        reader.ReadSignature("s"u8);
-                        props.Udi = reader.ReadString();
-                        break;
-                    case "Path":
-                        reader.ReadSignature("s"u8);
-                        props.Path = reader.ReadString();
-                        break;
-                    case "Interface":
-                        reader.ReadSignature("s"u8);
-                        props.Interface = reader.ReadString();
-                        break;
-                    case "IpInterface":
-                        reader.ReadSignature("s"u8);
-                        props.IpInterface = reader.ReadString();
-                        break;
-                    case "Driver":
-                        reader.ReadSignature("s"u8);
-                        props.Driver = reader.ReadString();
-                        break;
-                    case "DriverVersion":
-                        reader.ReadSignature("s"u8);
-                        props.DriverVersion = reader.ReadString();
-                        break;
-                    case "FirmwareVersion":
-                        reader.ReadSignature("s"u8);
-                        props.FirmwareVersion = reader.ReadString();
-                        break;
-                    case "Capabilities":
-                        reader.ReadSignature("u"u8);
-                        props.Capabilities = reader.ReadUInt32();
-                        break;
-                    case "Ip4Address":
-                        reader.ReadSignature("u"u8);
-                        props.Ip4Address = reader.ReadUInt32();
-                        break;
-                    case "State":
-                        reader.ReadSignature("u"u8);
-                        props.State = reader.ReadUInt32();
-                        break;
-                    case "StateReason":
-                        reader.ReadSignature("(uu)"u8);
-                        props.StateReason = reader.Read_ruuz();
-                        break;
-                    case "ActiveConnection":
-                        reader.ReadSignature("o"u8);
-                        props.ActiveConnection = reader.ReadObjectPath();
-                        break;
-                    case "Ip4Config":
-                        reader.ReadSignature("o"u8);
-                        props.Ip4Config = reader.ReadObjectPath();
-                        break;
-                    case "Dhcp4Config":
-                        reader.ReadSignature("o"u8);
-                        props.Dhcp4Config = reader.ReadObjectPath();
-                        break;
-                    case "Ip6Config":
-                        reader.ReadSignature("o"u8);
-                        props.Ip6Config = reader.ReadObjectPath();
-                        break;
-                    case "Dhcp6Config":
-                        reader.ReadSignature("o"u8);
-                        props.Dhcp6Config = reader.ReadObjectPath();
-                        break;
-                    case "Managed":
-                        reader.ReadSignature("b"u8);
-                        props.Managed = reader.ReadBool();
-                        break;
-                    case "Autoconnect":
-                        reader.ReadSignature("b"u8);
-                        props.Autoconnect = reader.ReadBool();
-                        break;
-                    case "FirmwareMissing":
-                        reader.ReadSignature("b"u8);
-                        props.FirmwareMissing = reader.ReadBool();
-                        break;
-                    case "NmPluginMissing":
-                        reader.ReadSignature("b"u8);
-                        props.NmPluginMissing = reader.ReadBool();
-                        break;
-                    case "DeviceType":
-                        reader.ReadSignature("u"u8);
-                        props.DeviceType = reader.ReadUInt32();
-                        break;
-                    case "AvailableConnections":
-                        reader.ReadSignature("ao"u8);
-                        props.AvailableConnections = reader.ReadArrayOfObjectPath();
-                        break;
-                    case "PhysicalPortId":
-                        reader.ReadSignature("s"u8);
-                        props.PhysicalPortId = reader.ReadString();
-                        break;
-                    case "Mtu":
-                        reader.ReadSignature("u"u8);
-                        props.Mtu = reader.ReadUInt32();
-                        break;
-                    case "Metered":
-                        reader.ReadSignature("u"u8);
-                        props.Metered = reader.ReadUInt32();
-                        break;
-                    case "LldpNeighbors":
-                        reader.ReadSignature("aa{sv}"u8);
-                        props.LldpNeighbors = reader.Read_aaesv();
-                        break;
-                    case "Real":
-                        reader.ReadSignature("b"u8);
-                        props.Real = reader.ReadBool();
-                        break;
-                    case "Ip4Connectivity":
-                        reader.ReadSignature("u"u8);
-                        props.Ip4Connectivity = reader.ReadUInt32();
-                        break;
-                    case "Ip6Connectivity":
-                        reader.ReadSignature("u"u8);
-                        props.Ip6Connectivity = reader.ReadUInt32();
-                        break;
-                    case "InterfaceFlags":
-                        reader.ReadSignature("u"u8);
-                        props.InterfaceFlags = reader.ReadUInt32();
-                        break;
-                    case "HwAddress":
-                        reader.ReadSignature("s"u8);
-                        props.HwAddress = reader.ReadString();
-                        break;
-                    case "Ports":
-                        reader.ReadSignature("ao"u8);
-                        props.Ports = reader.ReadArrayOfObjectPath();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, DeviceProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
+                return DeviceProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -3282,125 +2997,188 @@ namespace NetworkManager.DBus
     }
     sealed class WirelessProperties
     {
-        private const uint HwAddressFlag = 1U << 0;
-        private const uint PermHwAddressFlag = 1U << 1;
-        private const uint ModeFlag = 1U << 2;
-        private const uint BitrateFlag = 1U << 3;
-        private const uint AccessPointsFlag = 1U << 4;
-        private const uint ActiveAccessPointFlag = 1U << 5;
-        private const uint WirelessCapabilitiesFlag = 1U << 6;
-        private const uint LastScanFlag = 1U << 7;
-        private const uint PropertiesAllSet = HwAddressFlag | PermHwAddressFlag | ModeFlag | BitrateFlag | AccessPointsFlag | ActiveAccessPointFlag | WirelessCapabilitiesFlag | LastScanFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0xFFU; // 8 properties
+        private static uint Flag(WirelessProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public WirelessProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private WirelessProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(WirelessProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
         private string _hwAddress = default!;
-        public string HwAddress
+        public required string HwAddress
         {
-            get { EnsureSet(HwAddressFlag); return _hwAddress; }
-            set { _hwAddress = value; __set |= HwAddressFlag; }
+            get { EnsureSet(WirelessProperty.HwAddress); return _hwAddress; }
+            set { _hwAddress = value; __set |= Flag(WirelessProperty.HwAddress); }
         }
         private string _permHwAddress = default!;
-        public string PermHwAddress
+        public required string PermHwAddress
         {
-            get { EnsureSet(PermHwAddressFlag); return _permHwAddress; }
-            set { _permHwAddress = value; __set |= PermHwAddressFlag; }
+            get { EnsureSet(WirelessProperty.PermHwAddress); return _permHwAddress; }
+            set { _permHwAddress = value; __set |= Flag(WirelessProperty.PermHwAddress); }
         }
         private uint _mode = default!;
-        public uint Mode
+        public required uint Mode
         {
-            get { EnsureSet(ModeFlag); return _mode; }
-            set { _mode = value; __set |= ModeFlag; }
+            get { EnsureSet(WirelessProperty.Mode); return _mode; }
+            set { _mode = value; __set |= Flag(WirelessProperty.Mode); }
         }
         private uint _bitrate = default!;
-        public uint Bitrate
+        public required uint Bitrate
         {
-            get { EnsureSet(BitrateFlag); return _bitrate; }
-            set { _bitrate = value; __set |= BitrateFlag; }
+            get { EnsureSet(WirelessProperty.Bitrate); return _bitrate; }
+            set { _bitrate = value; __set |= Flag(WirelessProperty.Bitrate); }
         }
         private ObjectPath[] _accessPoints = default!;
-        public ObjectPath[] AccessPoints
+        public required ObjectPath[] AccessPoints
         {
-            get { EnsureSet(AccessPointsFlag); return _accessPoints; }
-            set { _accessPoints = value; __set |= AccessPointsFlag; }
+            get { EnsureSet(WirelessProperty.AccessPoints); return _accessPoints; }
+            set { _accessPoints = value; __set |= Flag(WirelessProperty.AccessPoints); }
         }
         private ObjectPath _activeAccessPoint = default!;
-        public ObjectPath ActiveAccessPoint
+        public required ObjectPath ActiveAccessPoint
         {
-            get { EnsureSet(ActiveAccessPointFlag); return _activeAccessPoint; }
-            set { _activeAccessPoint = value; __set |= ActiveAccessPointFlag; }
+            get { EnsureSet(WirelessProperty.ActiveAccessPoint); return _activeAccessPoint; }
+            set { _activeAccessPoint = value; __set |= Flag(WirelessProperty.ActiveAccessPoint); }
         }
         private uint _wirelessCapabilities = default!;
-        public uint WirelessCapabilities
+        public required uint WirelessCapabilities
         {
-            get { EnsureSet(WirelessCapabilitiesFlag); return _wirelessCapabilities; }
-            set { _wirelessCapabilities = value; __set |= WirelessCapabilitiesFlag; }
+            get { EnsureSet(WirelessProperty.WirelessCapabilities); return _wirelessCapabilities; }
+            set { _wirelessCapabilities = value; __set |= Flag(WirelessProperty.WirelessCapabilities); }
         }
         private long _lastScan = default!;
-        public long LastScan
+        public required long LastScan
         {
-            get { EnsureSet(LastScanFlag); return _lastScan; }
-            set { _lastScan = value; __set |= LastScanFlag; }
+            get { EnsureSet(WirelessProperty.LastScan); return _lastScan; }
+            set { _lastScan = value; __set |= Flag(WirelessProperty.LastScan); }
         }
-        public bool IsSet(string propertyName)
+        public static WirelessProperties CreateUninitialized() => new WirelessProperties(false);
+        private bool HasFlag(uint flags, WirelessProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(WirelessProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(WirelessProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(WirelessProperty property)
         {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(HwAddress) => (__set & HwAddressFlag) != 0,
-                nameof(PermHwAddress) => (__set & PermHwAddressFlag) != 0,
-                nameof(Mode) => (__set & ModeFlag) != 0,
-                nameof(Bitrate) => (__set & BitrateFlag) != 0,
-                nameof(AccessPoints) => (__set & AccessPointsFlag) != 0,
-                nameof(ActiveAccessPoint) => (__set & ActiveAccessPointFlag) != 0,
-                nameof(WirelessCapabilities) => (__set & WirelessCapabilitiesFlag) != 0,
-                nameof(LastScan) => (__set & LastScanFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(HwAddress) => (__invalidated & HwAddressFlag) != 0,
-                nameof(PermHwAddress) => (__invalidated & PermHwAddressFlag) != 0,
-                nameof(Mode) => (__invalidated & ModeFlag) != 0,
-                nameof(Bitrate) => (__invalidated & BitrateFlag) != 0,
-                nameof(AccessPoints) => (__invalidated & AccessPointsFlag) != 0,
-                nameof(ActiveAccessPoint) => (__invalidated & ActiveAccessPointFlag) != 0,
-                nameof(WirelessCapabilities) => (__invalidated & WirelessCapabilitiesFlag) != 0,
-                nameof(LastScan) => (__invalidated & LastScanFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "HwAddress" => HwAddressFlag,
-                "PermHwAddress" => PermHwAddressFlag,
-                "Mode" => ModeFlag,
-                "Bitrate" => BitrateFlag,
-                "AccessPoints" => AccessPointsFlag,
-                "ActiveAccessPoint" => ActiveAccessPointFlag,
-                "WirelessCapabilities" => WirelessCapabilitiesFlag,
-                "LastScan" => LastScanFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
+        public static WirelessProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "HwAddress":
+                        reader.ReadSignature("s"u8);
+                        props.HwAddress = reader.ReadString();
+                        break;
+                    case "PermHwAddress":
+                        reader.ReadSignature("s"u8);
+                        props.PermHwAddress = reader.ReadString();
+                        break;
+                    case "Mode":
+                        reader.ReadSignature("u"u8);
+                        props.Mode = reader.ReadUInt32();
+                        break;
+                    case "Bitrate":
+                        reader.ReadSignature("u"u8);
+                        props.Bitrate = reader.ReadUInt32();
+                        break;
+                    case "AccessPoints":
+                        reader.ReadSignature("ao"u8);
+                        props.AccessPoints = reader.ReadArrayOfObjectPath();
+                        break;
+                    case "ActiveAccessPoint":
+                        reader.ReadSignature("o"u8);
+                        props.ActiveAccessPoint = reader.ReadObjectPath();
+                        break;
+                    case "WirelessCapabilities":
+                        reader.ReadSignature("u"u8);
+                        props.WirelessCapabilities = reader.ReadUInt32();
+                        break;
+                    case "LastScan":
+                        reader.ReadSignature("x"u8);
+                        props.LastScan = reader.ReadInt64();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "HwAddress" => Flag(WirelessProperty.HwAddress),
+                        "PermHwAddress" => Flag(WirelessProperty.PermHwAddress),
+                        "Mode" => Flag(WirelessProperty.Mode),
+                        "Bitrate" => Flag(WirelessProperty.Bitrate),
+                        "AccessPoints" => Flag(WirelessProperty.AccessPoints),
+                        "ActiveAccessPoint" => Flag(WirelessProperty.ActiveAccessPoint),
+                        "WirelessCapabilities" => Flag(WirelessProperty.WirelessCapabilities),
+                        "LastScan" => Flag(WirelessProperty.LastScan),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class WirelessHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "HwAddress" => (int)WirelessProperty.HwAddress,
+                "PermHwAddress" => (int)WirelessProperty.PermHwAddress,
+                "Mode" => (int)WirelessProperty.Mode,
+                "Bitrate" => (int)WirelessProperty.Bitrate,
+                "AccessPoints" => (int)WirelessProperty.AccessPoints,
+                "ActiveAccessPoint" => (int)WirelessProperty.ActiveAccessPoint,
+                "WirelessCapabilities" => (int)WirelessProperty.WirelessCapabilities,
+                "LastScan" => (int)WirelessProperty.LastScan,
+                _ => 0
+            };
+        }
+    }
+    enum WirelessProperty
+    {
+        UnknownProperty = 0,
+        HwAddress = 1,
+        PermHwAddress = 2,
+        Mode = 3,
+        Bitrate = 4,
+        AccessPoints = 5,
+        ActiveAccessPoint = 6,
+        WirelessCapabilities = 7,
+        LastScan = 8
     }
     sealed partial class Wireless : Tmds.DBus.Protocol.DBusObject
     {
@@ -3480,7 +3258,7 @@ namespace NetworkManager.DBus
             static WirelessProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
+                return WirelessProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, WirelessProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
@@ -3490,14 +3268,304 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
+                return WirelessProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
-        private static WirelessProperties ReadProperties(ref Reader reader)
+        private MessageBuffer CreateGetPropertyMessage(string property)
         {
-            var props = new WirelessProperties();
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "ss",
+                member: "Get");
+            writer.WriteString(DBusInterfaceName);
+            writer.WriteString(property);
+            return writer.CreateMessage();
+        }
+        private MessageBuffer CreateGetAllPropertiesMessage()
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "s",
+                member: "GetAll");
+            writer.WriteString(DBusInterfaceName);
+            return writer.CreateMessage();
+        }
+    }
+    sealed class WifiP2PProperties
+    {
+        private uint __set;
+        private uint __invalidated;
+        private const uint PropertiesAllSet = 0x3U; // 2 properties
+        private static uint Flag(WifiP2PProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public WifiP2PProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private WifiP2PProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(WifiP2PProperty property)
+        {
+            if (!HasFlag(__set, property))
+            {
+                throw new InvalidOperationException("Property is not set.");
+            }
+        }
+        private string _hwAddress = default!;
+        public required string HwAddress
+        {
+            get { EnsureSet(WifiP2PProperty.HwAddress); return _hwAddress; }
+            set { _hwAddress = value; __set |= Flag(WifiP2PProperty.HwAddress); }
+        }
+        private ObjectPath[] _peers = default!;
+        public required ObjectPath[] Peers
+        {
+            get { EnsureSet(WifiP2PProperty.Peers); return _peers; }
+            set { _peers = value; __set |= Flag(WifiP2PProperty.Peers); }
+        }
+        public static WifiP2PProperties CreateUninitialized() => new WifiP2PProperties(false);
+        private bool HasFlag(uint flags, WifiP2PProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(WifiP2PProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(WifiP2PProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(WifiP2PProperty property)
+        {
+            if (property != 0)
+            {
+                __invalidated |= Flag(property);
+            }
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
+        public static WifiP2PProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "HwAddress":
+                        reader.ReadSignature("s"u8);
+                        props.HwAddress = reader.ReadString();
+                        break;
+                    case "Peers":
+                        reader.ReadSignature("ao"u8);
+                        props.Peers = reader.ReadArrayOfObjectPath();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "HwAddress" => Flag(WifiP2PProperty.HwAddress),
+                        "Peers" => Flag(WifiP2PProperty.Peers),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class WifiP2PHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "HwAddress" => (int)WifiP2PProperty.HwAddress,
+                "Peers" => (int)WifiP2PProperty.Peers,
+                _ => 0
+            };
+        }
+    }
+    enum WifiP2PProperty
+    {
+        UnknownProperty = 0,
+        HwAddress = 1,
+        Peers = 2
+    }
+    sealed partial class WifiP2P : Tmds.DBus.Protocol.DBusObject
+    {
+        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.Device.WifiP2P";
+        public WifiP2P(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+            : base(connection, destination, path)
+        { }
+        public Task StartFindAsync(Dictionary<string, VariantValue> options)
+        {
+            return Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Destination,
+                    path: Path,
+                    @interface: DBusInterfaceName,
+                    signature: "a{sv}",
+                    member: "StartFind");
+                writer.WriteDictionary(options);
+                return writer.CreateMessage();
+            }
+        }
+        public Task StopFindAsync()
+        {
+            return Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Destination,
+                    path: Path,
+                    @interface: DBusInterfaceName,
+                    member: "StopFind");
+                return writer.CreateMessage();
+            }
+        }
+        public ValueTask<IDisposable> WatchPeerAddedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "PeerAdded", (Message m, object? s) => MessageReader.Read_o(m), handler, this, emitOnCapturedContext, flags);
+        public ValueTask<IDisposable> WatchPeerRemovedAsync(Action<Exception?, ObjectPath> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "PeerRemoved", (Message m, object? s) => MessageReader.Read_o(m), handler, this, emitOnCapturedContext, flags);
+        public Task<string> GetHwAddressAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("HwAddress"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<ObjectPath[]> GetPeersAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Peers"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
+        public async Task<WifiP2PProperties> GetPropertiesAsync()
+        {
+            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
+            static WifiP2PProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return WifiP2PProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, WifiP2PProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            static WifiP2PProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                return WifiP2PProperties.ReadFrom(ref reader, withInvalidated: true);
+            }
+        }
+        private MessageBuffer CreateGetPropertyMessage(string property)
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "ss",
+                member: "Get");
+            writer.WriteString(DBusInterfaceName);
+            writer.WriteString(property);
+            return writer.CreateMessage();
+        }
+        private MessageBuffer CreateGetAllPropertiesMessage()
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "s",
+                member: "GetAll");
+            writer.WriteString(DBusInterfaceName);
+            return writer.CreateMessage();
+        }
+    }
+    sealed class WiredProperties
+    {
+        private uint __set;
+        private uint __invalidated;
+        private const uint PropertiesAllSet = 0x1FU; // 5 properties
+        private static uint Flag(WiredProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public WiredProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private WiredProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(WiredProperty property)
+        {
+            if (!HasFlag(__set, property))
+            {
+                throw new InvalidOperationException("Property is not set.");
+            }
+        }
+        private string _hwAddress = default!;
+        public required string HwAddress
+        {
+            get { EnsureSet(WiredProperty.HwAddress); return _hwAddress; }
+            set { _hwAddress = value; __set |= Flag(WiredProperty.HwAddress); }
+        }
+        private string _permHwAddress = default!;
+        public required string PermHwAddress
+        {
+            get { EnsureSet(WiredProperty.PermHwAddress); return _permHwAddress; }
+            set { _permHwAddress = value; __set |= Flag(WiredProperty.PermHwAddress); }
+        }
+        private uint _speed = default!;
+        public required uint Speed
+        {
+            get { EnsureSet(WiredProperty.Speed); return _speed; }
+            set { _speed = value; __set |= Flag(WiredProperty.Speed); }
+        }
+        private string[] _s390Subchannels = default!;
+        public required string[] S390Subchannels
+        {
+            get { EnsureSet(WiredProperty.S390Subchannels); return _s390Subchannels; }
+            set { _s390Subchannels = value; __set |= Flag(WiredProperty.S390Subchannels); }
+        }
+        private bool _carrier = default!;
+        public required bool Carrier
+        {
+            get { EnsureSet(WiredProperty.Carrier); return _carrier; }
+            set { _carrier = value; __set |= Flag(WiredProperty.Carrier); }
+        }
+        public static WiredProperties CreateUninitialized() => new WiredProperties(false);
+        private bool HasFlag(uint flags, WiredProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(WiredProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(WiredProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(WiredProperty property)
+        {
+            if (property != 0)
+            {
+                __invalidated |= Flag(property);
+            }
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
+        public static WiredProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
             while (reader.HasNext(arrayEnd))
             {
@@ -3512,43 +3580,102 @@ namespace NetworkManager.DBus
                         reader.ReadSignature("s"u8);
                         props.PermHwAddress = reader.ReadString();
                         break;
-                    case "Mode":
+                    case "Speed":
                         reader.ReadSignature("u"u8);
-                        props.Mode = reader.ReadUInt32();
+                        props.Speed = reader.ReadUInt32();
                         break;
-                    case "Bitrate":
-                        reader.ReadSignature("u"u8);
-                        props.Bitrate = reader.ReadUInt32();
+                    case "S390Subchannels":
+                        reader.ReadSignature("as"u8);
+                        props.S390Subchannels = reader.ReadArrayOfString();
                         break;
-                    case "AccessPoints":
-                        reader.ReadSignature("ao"u8);
-                        props.AccessPoints = reader.ReadArrayOfObjectPath();
-                        break;
-                    case "ActiveAccessPoint":
-                        reader.ReadSignature("o"u8);
-                        props.ActiveAccessPoint = reader.ReadObjectPath();
-                        break;
-                    case "WirelessCapabilities":
-                        reader.ReadSignature("u"u8);
-                        props.WirelessCapabilities = reader.ReadUInt32();
-                        break;
-                    case "LastScan":
-                        reader.ReadSignature("x"u8);
-                        props.LastScan = reader.ReadInt64();
+                    case "Carrier":
+                        reader.ReadSignature("b"u8);
+                        props.Carrier = reader.ReadBool();
                         break;
                     default:
                         reader.ReadVariantValue();
                         break;
                 }
             }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "HwAddress" => Flag(WiredProperty.HwAddress),
+                        "PermHwAddress" => Flag(WiredProperty.PermHwAddress),
+                        "Speed" => Flag(WiredProperty.Speed),
+                        "S390Subchannels" => Flag(WiredProperty.S390Subchannels),
+                        "Carrier" => Flag(WiredProperty.Carrier),
+                        _ => 0
+                    };
+                }
+            }
             return props;
         }
-        private static void ReadInvalidated(ref Reader reader, WirelessProperties props)
+    }
+    file static class WiredHelper
+    {
+        public static int Parse(string propertyName)
         {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
+            return propertyName switch
             {
-                props.SetDBusInvalidated(reader.ReadString());
+                "HwAddress" => (int)WiredProperty.HwAddress,
+                "PermHwAddress" => (int)WiredProperty.PermHwAddress,
+                "Speed" => (int)WiredProperty.Speed,
+                "S390Subchannels" => (int)WiredProperty.S390Subchannels,
+                "Carrier" => (int)WiredProperty.Carrier,
+                _ => 0
+            };
+        }
+    }
+    enum WiredProperty
+    {
+        UnknownProperty = 0,
+        HwAddress = 1,
+        PermHwAddress = 2,
+        Speed = 3,
+        S390Subchannels = 4,
+        Carrier = 5
+    }
+    sealed partial class Wired : Tmds.DBus.Protocol.DBusObject
+    {
+        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.Device.Wired";
+        public Wired(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+            : base(connection, destination, path)
+        { }
+        public Task<string> GetHwAddressAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("HwAddress"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<string> GetPermHwAddressAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("PermHwAddress"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<uint> GetSpeedAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Speed"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<string[]> GetS390SubchannelsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("S390Subchannels"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<bool> GetCarrierAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Carrier"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public async Task<WiredProperties> GetPropertiesAsync()
+        {
+            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
+            static WiredProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return WiredProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, WiredProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            static WiredProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                return WiredProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -3579,55 +3706,97 @@ namespace NetworkManager.DBus
     }
     sealed class DHCP4ConfigProperties
     {
-        private const uint OptionsFlag = 1U << 0;
-        private const uint PropertiesAllSet = OptionsFlag;
         private uint __set;
         private uint __invalidated;
-        private void EnsureSet(uint flag)
+        private const uint PropertiesAllSet = 0x1U; // 1 properties
+        private static uint Flag(DHCP4ConfigProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public DHCP4ConfigProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private DHCP4ConfigProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(DHCP4ConfigProperty property)
         {
-            if ((__set & flag) == 0)
+            if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property has not been set.");
+                throw new InvalidOperationException("Property is not set.");
             }
         }
         private Dictionary<string, VariantValue> _options = default!;
-        public Dictionary<string, VariantValue> Options
+        public required Dictionary<string, VariantValue> Options
         {
-            get { EnsureSet(OptionsFlag); return _options; }
-            set { _options = value; __set |= OptionsFlag; }
+            get { EnsureSet(DHCP4ConfigProperty.Options); return _options; }
+            set { _options = value; __set |= Flag(DHCP4ConfigProperty.Options); }
         }
-        public bool IsSet(string propertyName)
+        public static DHCP4ConfigProperties CreateUninitialized() => new DHCP4ConfigProperties(false);
+        private bool HasFlag(uint flags, DHCP4ConfigProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(DHCP4ConfigProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(DHCP4ConfigProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(DHCP4ConfigProperty property)
         {
-            return propertyName switch
+            if (property != 0)
             {
-                nameof(Options) => (__set & OptionsFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Options) => (__invalidated & OptionsFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Options" => OptionsFlag,
-                _ => 0
-            };
+                __invalidated |= Flag(property);
+            }
         }
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
+        public static DHCP4ConfigProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "Options":
+                        reader.ReadSignature("a{sv}"u8);
+                        props.Options = reader.ReadDictionaryOfStringToVariantValue();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Options" => Flag(DHCP4ConfigProperty.Options),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class DHCP4ConfigHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Options" => (int)DHCP4ConfigProperty.Options,
+                _ => 0
+            };
+        }
+    }
+    enum DHCP4ConfigProperty
+    {
+        UnknownProperty = 0,
+        Options = 1
     }
     sealed partial class DHCP4Config : Tmds.DBus.Protocol.DBusObject
     {
@@ -3645,7 +3814,7 @@ namespace NetworkManager.DBus
             static DHCP4ConfigProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
+                return DHCP4ConfigProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
         public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, DHCP4ConfigProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
@@ -3655,930 +3824,7 @@ namespace NetworkManager.DBus
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static DHCP4ConfigProperties ReadProperties(ref Reader reader)
-        {
-            var props = new DHCP4ConfigProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Options":
-                        reader.ReadSignature("a{sv}"u8);
-                        props.Options = reader.ReadDictionaryOfStringToVariantValue();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, DHCP4ConfigProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
-            }
-        }
-        private MessageBuffer CreateGetPropertyMessage(string property)
-        {
-            var writer = Connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Destination,
-                path: Path,
-                @interface: "org.freedesktop.DBus.Properties",
-                signature: "ss",
-                member: "Get");
-            writer.WriteString(DBusInterfaceName);
-            writer.WriteString(property);
-            return writer.CreateMessage();
-        }
-        private MessageBuffer CreateGetAllPropertiesMessage()
-        {
-            var writer = Connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Destination,
-                path: Path,
-                @interface: "org.freedesktop.DBus.Properties",
-                signature: "s",
-                member: "GetAll");
-            writer.WriteString(DBusInterfaceName);
-            return writer.CreateMessage();
-        }
-    }
-    sealed class DnsManagerProperties
-    {
-        private const uint ModeFlag = 1U << 0;
-        private const uint RcManagerFlag = 1U << 1;
-        private const uint ConfigurationFlag = 1U << 2;
-        private const uint PropertiesAllSet = ModeFlag | RcManagerFlag | ConfigurationFlag;
-        private uint __set;
-        private uint __invalidated;
-        private void EnsureSet(uint flag)
-        {
-            if ((__set & flag) == 0)
-            {
-                throw new InvalidOperationException("Property has not been set.");
-            }
-        }
-        private string _mode = default!;
-        public string Mode
-        {
-            get { EnsureSet(ModeFlag); return _mode; }
-            set { _mode = value; __set |= ModeFlag; }
-        }
-        private string _rcManager = default!;
-        public string RcManager
-        {
-            get { EnsureSet(RcManagerFlag); return _rcManager; }
-            set { _rcManager = value; __set |= RcManagerFlag; }
-        }
-        private Dictionary<string, VariantValue>[] _configuration = default!;
-        public Dictionary<string, VariantValue>[] Configuration
-        {
-            get { EnsureSet(ConfigurationFlag); return _configuration; }
-            set { _configuration = value; __set |= ConfigurationFlag; }
-        }
-        public bool IsSet(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Mode) => (__set & ModeFlag) != 0,
-                nameof(RcManager) => (__set & RcManagerFlag) != 0,
-                nameof(Configuration) => (__set & ConfigurationFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Mode) => (__invalidated & ModeFlag) != 0,
-                nameof(RcManager) => (__invalidated & RcManagerFlag) != 0,
-                nameof(Configuration) => (__invalidated & ConfigurationFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Mode" => ModeFlag,
-                "RcManager" => RcManagerFlag,
-                "Configuration" => ConfigurationFlag,
-                _ => 0
-            };
-        }
-        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
-        public void EnsureAllPropertiesSet()
-        {
-            if (!AreAllPropertiesSet())
-            {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
-            }
-        }
-    }
-    sealed partial class DnsManager : Tmds.DBus.Protocol.DBusObject
-    {
-        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.DnsManager";
-        public DnsManager(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
-            : base(connection, destination, path)
-        { }
-        public Task<string> GetModeAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Mode"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetRcManagerAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("RcManager"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<Dictionary<string, VariantValue>[]> GetConfigurationAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Configuration"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
-        public async Task<DnsManagerProperties> GetPropertiesAsync()
-        {
-            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
-            props.EnsureAllPropertiesSet();
-            return props;
-            static DnsManagerProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
-            }
-        }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, DnsManagerProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-        {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
-            static DnsManagerProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static DnsManagerProperties ReadProperties(ref Reader reader)
-        {
-            var props = new DnsManagerProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Mode":
-                        reader.ReadSignature("s"u8);
-                        props.Mode = reader.ReadString();
-                        break;
-                    case "RcManager":
-                        reader.ReadSignature("s"u8);
-                        props.RcManager = reader.ReadString();
-                        break;
-                    case "Configuration":
-                        reader.ReadSignature("aa{sv}"u8);
-                        props.Configuration = reader.Read_aaesv();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, DnsManagerProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
-            }
-        }
-        private MessageBuffer CreateGetPropertyMessage(string property)
-        {
-            var writer = Connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Destination,
-                path: Path,
-                @interface: "org.freedesktop.DBus.Properties",
-                signature: "ss",
-                member: "Get");
-            writer.WriteString(DBusInterfaceName);
-            writer.WriteString(property);
-            return writer.CreateMessage();
-        }
-        private MessageBuffer CreateGetAllPropertiesMessage()
-        {
-            var writer = Connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Destination,
-                path: Path,
-                @interface: "org.freedesktop.DBus.Properties",
-                signature: "s",
-                member: "GetAll");
-            writer.WriteString(DBusInterfaceName);
-            return writer.CreateMessage();
-        }
-    }
-    sealed class ActiveProperties
-    {
-        private const uint ConnectionFlag = 1U << 0;
-        private const uint SpecificObjectFlag = 1U << 1;
-        private const uint IdFlag = 1U << 2;
-        private const uint UuidFlag = 1U << 3;
-        private const uint TypeFlag = 1U << 4;
-        private const uint DevicesFlag = 1U << 5;
-        private const uint StateFlag = 1U << 6;
-        private const uint StateFlagsFlag = 1U << 7;
-        private const uint DefaultFlag = 1U << 8;
-        private const uint Ip4ConfigFlag = 1U << 9;
-        private const uint Dhcp4ConfigFlag = 1U << 10;
-        private const uint Default6Flag = 1U << 11;
-        private const uint Ip6ConfigFlag = 1U << 12;
-        private const uint Dhcp6ConfigFlag = 1U << 13;
-        private const uint VpnFlag = 1U << 14;
-        private const uint ControllerFlag = 1U << 15;
-        private const uint MasterFlag = 1U << 16;
-        private const uint PropertiesAllSet = ConnectionFlag | SpecificObjectFlag | IdFlag | UuidFlag | TypeFlag | DevicesFlag | StateFlag | StateFlagsFlag | DefaultFlag | Ip4ConfigFlag | Dhcp4ConfigFlag | Default6Flag | Ip6ConfigFlag | Dhcp6ConfigFlag | VpnFlag | ControllerFlag | MasterFlag;
-        private uint __set;
-        private uint __invalidated;
-        private void EnsureSet(uint flag)
-        {
-            if ((__set & flag) == 0)
-            {
-                throw new InvalidOperationException("Property has not been set.");
-            }
-        }
-        private ObjectPath _connection = default!;
-        public ObjectPath Connection
-        {
-            get { EnsureSet(ConnectionFlag); return _connection; }
-            set { _connection = value; __set |= ConnectionFlag; }
-        }
-        private ObjectPath _specificObject = default!;
-        public ObjectPath SpecificObject
-        {
-            get { EnsureSet(SpecificObjectFlag); return _specificObject; }
-            set { _specificObject = value; __set |= SpecificObjectFlag; }
-        }
-        private string _id = default!;
-        public string Id
-        {
-            get { EnsureSet(IdFlag); return _id; }
-            set { _id = value; __set |= IdFlag; }
-        }
-        private string _uuid = default!;
-        public string Uuid
-        {
-            get { EnsureSet(UuidFlag); return _uuid; }
-            set { _uuid = value; __set |= UuidFlag; }
-        }
-        private string _type = default!;
-        public string Type
-        {
-            get { EnsureSet(TypeFlag); return _type; }
-            set { _type = value; __set |= TypeFlag; }
-        }
-        private ObjectPath[] _devices = default!;
-        public ObjectPath[] Devices
-        {
-            get { EnsureSet(DevicesFlag); return _devices; }
-            set { _devices = value; __set |= DevicesFlag; }
-        }
-        private uint _state = default!;
-        public uint State
-        {
-            get { EnsureSet(StateFlag); return _state; }
-            set { _state = value; __set |= StateFlag; }
-        }
-        private uint _stateFlags = default!;
-        public uint StateFlags
-        {
-            get { EnsureSet(StateFlagsFlag); return _stateFlags; }
-            set { _stateFlags = value; __set |= StateFlagsFlag; }
-        }
-        private bool _default = default!;
-        public bool Default
-        {
-            get { EnsureSet(DefaultFlag); return _default; }
-            set { _default = value; __set |= DefaultFlag; }
-        }
-        private ObjectPath _ip4Config = default!;
-        public ObjectPath Ip4Config
-        {
-            get { EnsureSet(Ip4ConfigFlag); return _ip4Config; }
-            set { _ip4Config = value; __set |= Ip4ConfigFlag; }
-        }
-        private ObjectPath _dhcp4Config = default!;
-        public ObjectPath Dhcp4Config
-        {
-            get { EnsureSet(Dhcp4ConfigFlag); return _dhcp4Config; }
-            set { _dhcp4Config = value; __set |= Dhcp4ConfigFlag; }
-        }
-        private bool _default6 = default!;
-        public bool Default6
-        {
-            get { EnsureSet(Default6Flag); return _default6; }
-            set { _default6 = value; __set |= Default6Flag; }
-        }
-        private ObjectPath _ip6Config = default!;
-        public ObjectPath Ip6Config
-        {
-            get { EnsureSet(Ip6ConfigFlag); return _ip6Config; }
-            set { _ip6Config = value; __set |= Ip6ConfigFlag; }
-        }
-        private ObjectPath _dhcp6Config = default!;
-        public ObjectPath Dhcp6Config
-        {
-            get { EnsureSet(Dhcp6ConfigFlag); return _dhcp6Config; }
-            set { _dhcp6Config = value; __set |= Dhcp6ConfigFlag; }
-        }
-        private bool _vpn = default!;
-        public bool Vpn
-        {
-            get { EnsureSet(VpnFlag); return _vpn; }
-            set { _vpn = value; __set |= VpnFlag; }
-        }
-        private ObjectPath _controller = default!;
-        public ObjectPath Controller
-        {
-            get { EnsureSet(ControllerFlag); return _controller; }
-            set { _controller = value; __set |= ControllerFlag; }
-        }
-        private ObjectPath _master = default!;
-        public ObjectPath Master
-        {
-            get { EnsureSet(MasterFlag); return _master; }
-            set { _master = value; __set |= MasterFlag; }
-        }
-        public bool IsSet(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Connection) => (__set & ConnectionFlag) != 0,
-                nameof(SpecificObject) => (__set & SpecificObjectFlag) != 0,
-                nameof(Id) => (__set & IdFlag) != 0,
-                nameof(Uuid) => (__set & UuidFlag) != 0,
-                nameof(Type) => (__set & TypeFlag) != 0,
-                nameof(Devices) => (__set & DevicesFlag) != 0,
-                nameof(State) => (__set & StateFlag) != 0,
-                nameof(StateFlags) => (__set & StateFlagsFlag) != 0,
-                nameof(Default) => (__set & DefaultFlag) != 0,
-                nameof(Ip4Config) => (__set & Ip4ConfigFlag) != 0,
-                nameof(Dhcp4Config) => (__set & Dhcp4ConfigFlag) != 0,
-                nameof(Default6) => (__set & Default6Flag) != 0,
-                nameof(Ip6Config) => (__set & Ip6ConfigFlag) != 0,
-                nameof(Dhcp6Config) => (__set & Dhcp6ConfigFlag) != 0,
-                nameof(Vpn) => (__set & VpnFlag) != 0,
-                nameof(Controller) => (__set & ControllerFlag) != 0,
-                nameof(Master) => (__set & MasterFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Connection) => (__invalidated & ConnectionFlag) != 0,
-                nameof(SpecificObject) => (__invalidated & SpecificObjectFlag) != 0,
-                nameof(Id) => (__invalidated & IdFlag) != 0,
-                nameof(Uuid) => (__invalidated & UuidFlag) != 0,
-                nameof(Type) => (__invalidated & TypeFlag) != 0,
-                nameof(Devices) => (__invalidated & DevicesFlag) != 0,
-                nameof(State) => (__invalidated & StateFlag) != 0,
-                nameof(StateFlags) => (__invalidated & StateFlagsFlag) != 0,
-                nameof(Default) => (__invalidated & DefaultFlag) != 0,
-                nameof(Ip4Config) => (__invalidated & Ip4ConfigFlag) != 0,
-                nameof(Dhcp4Config) => (__invalidated & Dhcp4ConfigFlag) != 0,
-                nameof(Default6) => (__invalidated & Default6Flag) != 0,
-                nameof(Ip6Config) => (__invalidated & Ip6ConfigFlag) != 0,
-                nameof(Dhcp6Config) => (__invalidated & Dhcp6ConfigFlag) != 0,
-                nameof(Vpn) => (__invalidated & VpnFlag) != 0,
-                nameof(Controller) => (__invalidated & ControllerFlag) != 0,
-                nameof(Master) => (__invalidated & MasterFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Connection" => ConnectionFlag,
-                "SpecificObject" => SpecificObjectFlag,
-                "Id" => IdFlag,
-                "Uuid" => UuidFlag,
-                "Type" => TypeFlag,
-                "Devices" => DevicesFlag,
-                "State" => StateFlag,
-                "StateFlags" => StateFlagsFlag,
-                "Default" => DefaultFlag,
-                "Ip4Config" => Ip4ConfigFlag,
-                "Dhcp4Config" => Dhcp4ConfigFlag,
-                "Default6" => Default6Flag,
-                "Ip6Config" => Ip6ConfigFlag,
-                "Dhcp6Config" => Dhcp6ConfigFlag,
-                "Vpn" => VpnFlag,
-                "Controller" => ControllerFlag,
-                "Master" => MasterFlag,
-                _ => 0
-            };
-        }
-        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
-        public void EnsureAllPropertiesSet()
-        {
-            if (!AreAllPropertiesSet())
-            {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
-            }
-        }
-    }
-    sealed partial class Active : Tmds.DBus.Protocol.DBusObject
-    {
-        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.Connection.Active";
-        public Active(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
-            : base(connection, destination, path)
-        { }
-        public ValueTask<IDisposable> WatchStateChangedAsync(Action<Exception?, (uint State, uint Reason)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "StateChanged", (Message m, object? s) => MessageReader.Read_uu(m), handler, this, emitOnCapturedContext, flags);
-        public Task<ObjectPath> GetConnectionAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Connection"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public Task<ObjectPath> GetSpecificObjectAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("SpecificObject"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public Task<string> GetIdAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Id"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetUuidAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Uuid"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetTypeAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Type"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<ObjectPath[]> GetDevicesAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Devices"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
-        public Task<uint> GetStateAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("State"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<uint> GetStateFlagsAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("StateFlags"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
-        public Task<bool> GetDefaultAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Default"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<ObjectPath> GetIp4ConfigAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Ip4Config"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public Task<ObjectPath> GetDhcp4ConfigAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Dhcp4Config"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public Task<bool> GetDefault6Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Default6"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<ObjectPath> GetIp6ConfigAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Ip6Config"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public Task<ObjectPath> GetDhcp6ConfigAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Dhcp6Config"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public Task<bool> GetVpnAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Vpn"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
-        public Task<ObjectPath> GetControllerAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Controller"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public Task<ObjectPath> GetMasterAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Master"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public async Task<ActiveProperties> GetPropertiesAsync()
-        {
-            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
-            props.EnsureAllPropertiesSet();
-            return props;
-            static ActiveProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
-            }
-        }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, ActiveProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-        {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
-            static ActiveProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static ActiveProperties ReadProperties(ref Reader reader)
-        {
-            var props = new ActiveProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Connection":
-                        reader.ReadSignature("o"u8);
-                        props.Connection = reader.ReadObjectPath();
-                        break;
-                    case "SpecificObject":
-                        reader.ReadSignature("o"u8);
-                        props.SpecificObject = reader.ReadObjectPath();
-                        break;
-                    case "Id":
-                        reader.ReadSignature("s"u8);
-                        props.Id = reader.ReadString();
-                        break;
-                    case "Uuid":
-                        reader.ReadSignature("s"u8);
-                        props.Uuid = reader.ReadString();
-                        break;
-                    case "Type":
-                        reader.ReadSignature("s"u8);
-                        props.Type = reader.ReadString();
-                        break;
-                    case "Devices":
-                        reader.ReadSignature("ao"u8);
-                        props.Devices = reader.ReadArrayOfObjectPath();
-                        break;
-                    case "State":
-                        reader.ReadSignature("u"u8);
-                        props.State = reader.ReadUInt32();
-                        break;
-                    case "StateFlags":
-                        reader.ReadSignature("u"u8);
-                        props.StateFlags = reader.ReadUInt32();
-                        break;
-                    case "Default":
-                        reader.ReadSignature("b"u8);
-                        props.Default = reader.ReadBool();
-                        break;
-                    case "Ip4Config":
-                        reader.ReadSignature("o"u8);
-                        props.Ip4Config = reader.ReadObjectPath();
-                        break;
-                    case "Dhcp4Config":
-                        reader.ReadSignature("o"u8);
-                        props.Dhcp4Config = reader.ReadObjectPath();
-                        break;
-                    case "Default6":
-                        reader.ReadSignature("b"u8);
-                        props.Default6 = reader.ReadBool();
-                        break;
-                    case "Ip6Config":
-                        reader.ReadSignature("o"u8);
-                        props.Ip6Config = reader.ReadObjectPath();
-                        break;
-                    case "Dhcp6Config":
-                        reader.ReadSignature("o"u8);
-                        props.Dhcp6Config = reader.ReadObjectPath();
-                        break;
-                    case "Vpn":
-                        reader.ReadSignature("b"u8);
-                        props.Vpn = reader.ReadBool();
-                        break;
-                    case "Controller":
-                        reader.ReadSignature("o"u8);
-                        props.Controller = reader.ReadObjectPath();
-                        break;
-                    case "Master":
-                        reader.ReadSignature("o"u8);
-                        props.Master = reader.ReadObjectPath();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, ActiveProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
-            }
-        }
-        private MessageBuffer CreateGetPropertyMessage(string property)
-        {
-            var writer = Connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Destination,
-                path: Path,
-                @interface: "org.freedesktop.DBus.Properties",
-                signature: "ss",
-                member: "Get");
-            writer.WriteString(DBusInterfaceName);
-            writer.WriteString(property);
-            return writer.CreateMessage();
-        }
-        private MessageBuffer CreateGetAllPropertiesMessage()
-        {
-            var writer = Connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                destination: Destination,
-                path: Path,
-                @interface: "org.freedesktop.DBus.Properties",
-                signature: "s",
-                member: "GetAll");
-            writer.WriteString(DBusInterfaceName);
-            return writer.CreateMessage();
-        }
-    }
-    sealed class IP4ConfigProperties
-    {
-        private const uint AddressesFlag = 1U << 0;
-        private const uint AddressDataFlag = 1U << 1;
-        private const uint GatewayFlag = 1U << 2;
-        private const uint RoutesFlag = 1U << 3;
-        private const uint RouteDataFlag = 1U << 4;
-        private const uint NameserverDataFlag = 1U << 5;
-        private const uint NameserversFlag = 1U << 6;
-        private const uint DomainsFlag = 1U << 7;
-        private const uint SearchesFlag = 1U << 8;
-        private const uint DnsOptionsFlag = 1U << 9;
-        private const uint DnsPriorityFlag = 1U << 10;
-        private const uint WinsServerDataFlag = 1U << 11;
-        private const uint WinsServersFlag = 1U << 12;
-        private const uint PropertiesAllSet = AddressesFlag | AddressDataFlag | GatewayFlag | RoutesFlag | RouteDataFlag | NameserverDataFlag | NameserversFlag | DomainsFlag | SearchesFlag | DnsOptionsFlag | DnsPriorityFlag | WinsServerDataFlag | WinsServersFlag;
-        private uint __set;
-        private uint __invalidated;
-        private void EnsureSet(uint flag)
-        {
-            if ((__set & flag) == 0)
-            {
-                throw new InvalidOperationException("Property has not been set.");
-            }
-        }
-        private uint[][] _addresses = default!;
-        public uint[][] Addresses
-        {
-            get { EnsureSet(AddressesFlag); return _addresses; }
-            set { _addresses = value; __set |= AddressesFlag; }
-        }
-        private Dictionary<string, VariantValue>[] _addressData = default!;
-        public Dictionary<string, VariantValue>[] AddressData
-        {
-            get { EnsureSet(AddressDataFlag); return _addressData; }
-            set { _addressData = value; __set |= AddressDataFlag; }
-        }
-        private string _gateway = default!;
-        public string Gateway
-        {
-            get { EnsureSet(GatewayFlag); return _gateway; }
-            set { _gateway = value; __set |= GatewayFlag; }
-        }
-        private uint[][] _routes = default!;
-        public uint[][] Routes
-        {
-            get { EnsureSet(RoutesFlag); return _routes; }
-            set { _routes = value; __set |= RoutesFlag; }
-        }
-        private Dictionary<string, VariantValue>[] _routeData = default!;
-        public Dictionary<string, VariantValue>[] RouteData
-        {
-            get { EnsureSet(RouteDataFlag); return _routeData; }
-            set { _routeData = value; __set |= RouteDataFlag; }
-        }
-        private Dictionary<string, VariantValue>[] _nameserverData = default!;
-        public Dictionary<string, VariantValue>[] NameserverData
-        {
-            get { EnsureSet(NameserverDataFlag); return _nameserverData; }
-            set { _nameserverData = value; __set |= NameserverDataFlag; }
-        }
-        private uint[] _nameservers = default!;
-        public uint[] Nameservers
-        {
-            get { EnsureSet(NameserversFlag); return _nameservers; }
-            set { _nameservers = value; __set |= NameserversFlag; }
-        }
-        private string[] _domains = default!;
-        public string[] Domains
-        {
-            get { EnsureSet(DomainsFlag); return _domains; }
-            set { _domains = value; __set |= DomainsFlag; }
-        }
-        private string[] _searches = default!;
-        public string[] Searches
-        {
-            get { EnsureSet(SearchesFlag); return _searches; }
-            set { _searches = value; __set |= SearchesFlag; }
-        }
-        private string[] _dnsOptions = default!;
-        public string[] DnsOptions
-        {
-            get { EnsureSet(DnsOptionsFlag); return _dnsOptions; }
-            set { _dnsOptions = value; __set |= DnsOptionsFlag; }
-        }
-        private int _dnsPriority = default!;
-        public int DnsPriority
-        {
-            get { EnsureSet(DnsPriorityFlag); return _dnsPriority; }
-            set { _dnsPriority = value; __set |= DnsPriorityFlag; }
-        }
-        private string[] _winsServerData = default!;
-        public string[] WinsServerData
-        {
-            get { EnsureSet(WinsServerDataFlag); return _winsServerData; }
-            set { _winsServerData = value; __set |= WinsServerDataFlag; }
-        }
-        private uint[] _winsServers = default!;
-        public uint[] WinsServers
-        {
-            get { EnsureSet(WinsServersFlag); return _winsServers; }
-            set { _winsServers = value; __set |= WinsServersFlag; }
-        }
-        public bool IsSet(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Addresses) => (__set & AddressesFlag) != 0,
-                nameof(AddressData) => (__set & AddressDataFlag) != 0,
-                nameof(Gateway) => (__set & GatewayFlag) != 0,
-                nameof(Routes) => (__set & RoutesFlag) != 0,
-                nameof(RouteData) => (__set & RouteDataFlag) != 0,
-                nameof(NameserverData) => (__set & NameserverDataFlag) != 0,
-                nameof(Nameservers) => (__set & NameserversFlag) != 0,
-                nameof(Domains) => (__set & DomainsFlag) != 0,
-                nameof(Searches) => (__set & SearchesFlag) != 0,
-                nameof(DnsOptions) => (__set & DnsOptionsFlag) != 0,
-                nameof(DnsPriority) => (__set & DnsPriorityFlag) != 0,
-                nameof(WinsServerData) => (__set & WinsServerDataFlag) != 0,
-                nameof(WinsServers) => (__set & WinsServersFlag) != 0,
-                _ => false
-            };
-        }
-        public bool IsInvalidated(string propertyName)
-        {
-            return propertyName switch
-            {
-                nameof(Addresses) => (__invalidated & AddressesFlag) != 0,
-                nameof(AddressData) => (__invalidated & AddressDataFlag) != 0,
-                nameof(Gateway) => (__invalidated & GatewayFlag) != 0,
-                nameof(Routes) => (__invalidated & RoutesFlag) != 0,
-                nameof(RouteData) => (__invalidated & RouteDataFlag) != 0,
-                nameof(NameserverData) => (__invalidated & NameserverDataFlag) != 0,
-                nameof(Nameservers) => (__invalidated & NameserversFlag) != 0,
-                nameof(Domains) => (__invalidated & DomainsFlag) != 0,
-                nameof(Searches) => (__invalidated & SearchesFlag) != 0,
-                nameof(DnsOptions) => (__invalidated & DnsOptionsFlag) != 0,
-                nameof(DnsPriority) => (__invalidated & DnsPriorityFlag) != 0,
-                nameof(WinsServerData) => (__invalidated & WinsServerDataFlag) != 0,
-                nameof(WinsServers) => (__invalidated & WinsServersFlag) != 0,
-                _ => false
-            };
-        }
-        public void SetDBusInvalidated(string dbusPropertyName)
-        {
-            __invalidated |= dbusPropertyName switch
-            {
-                "Addresses" => AddressesFlag,
-                "AddressData" => AddressDataFlag,
-                "Gateway" => GatewayFlag,
-                "Routes" => RoutesFlag,
-                "RouteData" => RouteDataFlag,
-                "NameserverData" => NameserverDataFlag,
-                "Nameservers" => NameserversFlag,
-                "Domains" => DomainsFlag,
-                "Searches" => SearchesFlag,
-                "DnsOptions" => DnsOptionsFlag,
-                "DnsPriority" => DnsPriorityFlag,
-                "WinsServerData" => WinsServerDataFlag,
-                "WinsServers" => WinsServersFlag,
-                _ => 0
-            };
-        }
-        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
-        public void EnsureAllPropertiesSet()
-        {
-            if (!AreAllPropertiesSet())
-            {
-                throw new ProtocolException($"Not all properties have been set (0x{__set:x}).");
-            }
-        }
-    }
-    sealed partial class IP4Config : Tmds.DBus.Protocol.DBusObject
-    {
-        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.IP4Config";
-        public IP4Config(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
-            : base(connection, destination, path)
-        { }
-        public Task<uint[][]> GetAddressesAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Addresses"), (Message m, object? s) => MessageReader.Read_v_aau(m), this);
-        public Task<Dictionary<string, VariantValue>[]> GetAddressDataAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("AddressData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
-        public Task<string> GetGatewayAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Gateway"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<uint[][]> GetRoutesAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Routes"), (Message m, object? s) => MessageReader.Read_v_aau(m), this);
-        public Task<Dictionary<string, VariantValue>[]> GetRouteDataAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("RouteData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
-        public Task<Dictionary<string, VariantValue>[]> GetNameserverDataAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("NameserverData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
-        public Task<uint[]> GetNameserversAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Nameservers"), (Message m, object? s) => MessageReader.Read_v_au(m), this);
-        public Task<string[]> GetDomainsAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Domains"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<string[]> GetSearchesAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Searches"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<string[]> GetDnsOptionsAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("DnsOptions"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<int> GetDnsPriorityAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("DnsPriority"), (Message m, object? s) => MessageReader.Read_v_i(m), this);
-        public Task<string[]> GetWinsServerDataAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("WinsServerData"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
-        public Task<uint[]> GetWinsServersAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("WinsServers"), (Message m, object? s) => MessageReader.Read_v_au(m), this);
-        public async Task<IP4ConfigProperties> GetPropertiesAsync()
-        {
-            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
-            props.EnsureAllPropertiesSet();
-            return props;
-            static IP4ConfigProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                return ReadProperties(ref reader);
-            }
-        }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, IP4ConfigProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-        {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
-            static IP4ConfigProperties ReadMessage(Message message)
-            {
-                var reader = message.GetBodyReader();
-                reader.ReadString(); // interface
-                var props = ReadProperties(ref reader);
-                ReadInvalidated(ref reader, props);
-                return props;
-            }
-        }
-        private static IP4ConfigProperties ReadProperties(ref Reader reader)
-        {
-            var props = new IP4ConfigProperties();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
-            while (reader.HasNext(arrayEnd))
-            {
-                var property = reader.ReadString();
-                switch (property)
-                {
-                    case "Addresses":
-                        reader.ReadSignature("aau"u8);
-                        props.Addresses = reader.Read_aau();
-                        break;
-                    case "AddressData":
-                        reader.ReadSignature("aa{sv}"u8);
-                        props.AddressData = reader.Read_aaesv();
-                        break;
-                    case "Gateway":
-                        reader.ReadSignature("s"u8);
-                        props.Gateway = reader.ReadString();
-                        break;
-                    case "Routes":
-                        reader.ReadSignature("aau"u8);
-                        props.Routes = reader.Read_aau();
-                        break;
-                    case "RouteData":
-                        reader.ReadSignature("aa{sv}"u8);
-                        props.RouteData = reader.Read_aaesv();
-                        break;
-                    case "NameserverData":
-                        reader.ReadSignature("aa{sv}"u8);
-                        props.NameserverData = reader.Read_aaesv();
-                        break;
-                    case "Nameservers":
-                        reader.ReadSignature("au"u8);
-                        props.Nameservers = reader.ReadArrayOfUInt32();
-                        break;
-                    case "Domains":
-                        reader.ReadSignature("as"u8);
-                        props.Domains = reader.ReadArrayOfString();
-                        break;
-                    case "Searches":
-                        reader.ReadSignature("as"u8);
-                        props.Searches = reader.ReadArrayOfString();
-                        break;
-                    case "DnsOptions":
-                        reader.ReadSignature("as"u8);
-                        props.DnsOptions = reader.ReadArrayOfString();
-                        break;
-                    case "DnsPriority":
-                        reader.ReadSignature("i"u8);
-                        props.DnsPriority = reader.ReadInt32();
-                        break;
-                    case "WinsServerData":
-                        reader.ReadSignature("as"u8);
-                        props.WinsServerData = reader.ReadArrayOfString();
-                        break;
-                    case "WinsServers":
-                        reader.ReadSignature("au"u8);
-                        props.WinsServers = reader.ReadArrayOfUInt32();
-                        break;
-                    default:
-                        reader.ReadVariantValue();
-                        break;
-                }
-            }
-            return props;
-        }
-        private static void ReadInvalidated(ref Reader reader, IP4ConfigProperties props)
-        {
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.String);
-            while (reader.HasNext(arrayEnd))
-            {
-                props.SetDBusInvalidated(reader.ReadString());
+                return DHCP4ConfigProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
         private MessageBuffer CreateGetPropertyMessage(string property)
@@ -4661,6 +3907,1025 @@ namespace NetworkManager.DBus
             }
         }
     }
+    sealed class ActiveProperties
+    {
+        private uint __set;
+        private uint __invalidated;
+        private const uint PropertiesAllSet = 0x1FFFFU; // 17 properties
+        private static uint Flag(ActiveProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public ActiveProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private ActiveProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(ActiveProperty property)
+        {
+            if (!HasFlag(__set, property))
+            {
+                throw new InvalidOperationException("Property is not set.");
+            }
+        }
+        private ObjectPath _connection = default!;
+        public required ObjectPath Connection
+        {
+            get { EnsureSet(ActiveProperty.Connection); return _connection; }
+            set { _connection = value; __set |= Flag(ActiveProperty.Connection); }
+        }
+        private ObjectPath _specificObject = default!;
+        public required ObjectPath SpecificObject
+        {
+            get { EnsureSet(ActiveProperty.SpecificObject); return _specificObject; }
+            set { _specificObject = value; __set |= Flag(ActiveProperty.SpecificObject); }
+        }
+        private string _id = default!;
+        public required string Id
+        {
+            get { EnsureSet(ActiveProperty.Id); return _id; }
+            set { _id = value; __set |= Flag(ActiveProperty.Id); }
+        }
+        private string _uuid = default!;
+        public required string Uuid
+        {
+            get { EnsureSet(ActiveProperty.Uuid); return _uuid; }
+            set { _uuid = value; __set |= Flag(ActiveProperty.Uuid); }
+        }
+        private string _type = default!;
+        public required string Type
+        {
+            get { EnsureSet(ActiveProperty.Type); return _type; }
+            set { _type = value; __set |= Flag(ActiveProperty.Type); }
+        }
+        private ObjectPath[] _devices = default!;
+        public required ObjectPath[] Devices
+        {
+            get { EnsureSet(ActiveProperty.Devices); return _devices; }
+            set { _devices = value; __set |= Flag(ActiveProperty.Devices); }
+        }
+        private uint _state = default!;
+        public required uint State
+        {
+            get { EnsureSet(ActiveProperty.State); return _state; }
+            set { _state = value; __set |= Flag(ActiveProperty.State); }
+        }
+        private uint _stateFlags = default!;
+        public required uint StateFlags
+        {
+            get { EnsureSet(ActiveProperty.StateFlags); return _stateFlags; }
+            set { _stateFlags = value; __set |= Flag(ActiveProperty.StateFlags); }
+        }
+        private bool _default = default!;
+        public required bool Default
+        {
+            get { EnsureSet(ActiveProperty.Default); return _default; }
+            set { _default = value; __set |= Flag(ActiveProperty.Default); }
+        }
+        private ObjectPath _ip4Config = default!;
+        public required ObjectPath Ip4Config
+        {
+            get { EnsureSet(ActiveProperty.Ip4Config); return _ip4Config; }
+            set { _ip4Config = value; __set |= Flag(ActiveProperty.Ip4Config); }
+        }
+        private ObjectPath _dhcp4Config = default!;
+        public required ObjectPath Dhcp4Config
+        {
+            get { EnsureSet(ActiveProperty.Dhcp4Config); return _dhcp4Config; }
+            set { _dhcp4Config = value; __set |= Flag(ActiveProperty.Dhcp4Config); }
+        }
+        private bool _default6 = default!;
+        public required bool Default6
+        {
+            get { EnsureSet(ActiveProperty.Default6); return _default6; }
+            set { _default6 = value; __set |= Flag(ActiveProperty.Default6); }
+        }
+        private ObjectPath _ip6Config = default!;
+        public required ObjectPath Ip6Config
+        {
+            get { EnsureSet(ActiveProperty.Ip6Config); return _ip6Config; }
+            set { _ip6Config = value; __set |= Flag(ActiveProperty.Ip6Config); }
+        }
+        private ObjectPath _dhcp6Config = default!;
+        public required ObjectPath Dhcp6Config
+        {
+            get { EnsureSet(ActiveProperty.Dhcp6Config); return _dhcp6Config; }
+            set { _dhcp6Config = value; __set |= Flag(ActiveProperty.Dhcp6Config); }
+        }
+        private bool _vpn = default!;
+        public required bool Vpn
+        {
+            get { EnsureSet(ActiveProperty.Vpn); return _vpn; }
+            set { _vpn = value; __set |= Flag(ActiveProperty.Vpn); }
+        }
+        private ObjectPath _controller = default!;
+        public required ObjectPath Controller
+        {
+            get { EnsureSet(ActiveProperty.Controller); return _controller; }
+            set { _controller = value; __set |= Flag(ActiveProperty.Controller); }
+        }
+        private ObjectPath _master = default!;
+        public required ObjectPath Master
+        {
+            get { EnsureSet(ActiveProperty.Master); return _master; }
+            set { _master = value; __set |= Flag(ActiveProperty.Master); }
+        }
+        public static ActiveProperties CreateUninitialized() => new ActiveProperties(false);
+        private bool HasFlag(uint flags, ActiveProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(ActiveProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(ActiveProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(ActiveProperty property)
+        {
+            if (property != 0)
+            {
+                __invalidated |= Flag(property);
+            }
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
+        public static ActiveProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "Connection":
+                        reader.ReadSignature("o"u8);
+                        props.Connection = reader.ReadObjectPath();
+                        break;
+                    case "SpecificObject":
+                        reader.ReadSignature("o"u8);
+                        props.SpecificObject = reader.ReadObjectPath();
+                        break;
+                    case "Id":
+                        reader.ReadSignature("s"u8);
+                        props.Id = reader.ReadString();
+                        break;
+                    case "Uuid":
+                        reader.ReadSignature("s"u8);
+                        props.Uuid = reader.ReadString();
+                        break;
+                    case "Type":
+                        reader.ReadSignature("s"u8);
+                        props.Type = reader.ReadString();
+                        break;
+                    case "Devices":
+                        reader.ReadSignature("ao"u8);
+                        props.Devices = reader.ReadArrayOfObjectPath();
+                        break;
+                    case "State":
+                        reader.ReadSignature("u"u8);
+                        props.State = reader.ReadUInt32();
+                        break;
+                    case "StateFlags":
+                        reader.ReadSignature("u"u8);
+                        props.StateFlags = reader.ReadUInt32();
+                        break;
+                    case "Default":
+                        reader.ReadSignature("b"u8);
+                        props.Default = reader.ReadBool();
+                        break;
+                    case "Ip4Config":
+                        reader.ReadSignature("o"u8);
+                        props.Ip4Config = reader.ReadObjectPath();
+                        break;
+                    case "Dhcp4Config":
+                        reader.ReadSignature("o"u8);
+                        props.Dhcp4Config = reader.ReadObjectPath();
+                        break;
+                    case "Default6":
+                        reader.ReadSignature("b"u8);
+                        props.Default6 = reader.ReadBool();
+                        break;
+                    case "Ip6Config":
+                        reader.ReadSignature("o"u8);
+                        props.Ip6Config = reader.ReadObjectPath();
+                        break;
+                    case "Dhcp6Config":
+                        reader.ReadSignature("o"u8);
+                        props.Dhcp6Config = reader.ReadObjectPath();
+                        break;
+                    case "Vpn":
+                        reader.ReadSignature("b"u8);
+                        props.Vpn = reader.ReadBool();
+                        break;
+                    case "Controller":
+                        reader.ReadSignature("o"u8);
+                        props.Controller = reader.ReadObjectPath();
+                        break;
+                    case "Master":
+                        reader.ReadSignature("o"u8);
+                        props.Master = reader.ReadObjectPath();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Connection" => Flag(ActiveProperty.Connection),
+                        "SpecificObject" => Flag(ActiveProperty.SpecificObject),
+                        "Id" => Flag(ActiveProperty.Id),
+                        "Uuid" => Flag(ActiveProperty.Uuid),
+                        "Type" => Flag(ActiveProperty.Type),
+                        "Devices" => Flag(ActiveProperty.Devices),
+                        "State" => Flag(ActiveProperty.State),
+                        "StateFlags" => Flag(ActiveProperty.StateFlags),
+                        "Default" => Flag(ActiveProperty.Default),
+                        "Ip4Config" => Flag(ActiveProperty.Ip4Config),
+                        "Dhcp4Config" => Flag(ActiveProperty.Dhcp4Config),
+                        "Default6" => Flag(ActiveProperty.Default6),
+                        "Ip6Config" => Flag(ActiveProperty.Ip6Config),
+                        "Dhcp6Config" => Flag(ActiveProperty.Dhcp6Config),
+                        "Vpn" => Flag(ActiveProperty.Vpn),
+                        "Controller" => Flag(ActiveProperty.Controller),
+                        "Master" => Flag(ActiveProperty.Master),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class ActiveHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Connection" => (int)ActiveProperty.Connection,
+                "SpecificObject" => (int)ActiveProperty.SpecificObject,
+                "Id" => (int)ActiveProperty.Id,
+                "Uuid" => (int)ActiveProperty.Uuid,
+                "Type" => (int)ActiveProperty.Type,
+                "Devices" => (int)ActiveProperty.Devices,
+                "State" => (int)ActiveProperty.State,
+                "StateFlags" => (int)ActiveProperty.StateFlags,
+                "Default" => (int)ActiveProperty.Default,
+                "Ip4Config" => (int)ActiveProperty.Ip4Config,
+                "Dhcp4Config" => (int)ActiveProperty.Dhcp4Config,
+                "Default6" => (int)ActiveProperty.Default6,
+                "Ip6Config" => (int)ActiveProperty.Ip6Config,
+                "Dhcp6Config" => (int)ActiveProperty.Dhcp6Config,
+                "Vpn" => (int)ActiveProperty.Vpn,
+                "Controller" => (int)ActiveProperty.Controller,
+                "Master" => (int)ActiveProperty.Master,
+                _ => 0
+            };
+        }
+    }
+    enum ActiveProperty
+    {
+        UnknownProperty = 0,
+        Connection = 1,
+        SpecificObject = 2,
+        Id = 3,
+        Uuid = 4,
+        Type = 5,
+        Devices = 6,
+        State = 7,
+        StateFlags = 8,
+        Default = 9,
+        Ip4Config = 10,
+        Dhcp4Config = 11,
+        Default6 = 12,
+        Ip6Config = 13,
+        Dhcp6Config = 14,
+        Vpn = 15,
+        Controller = 16,
+        Master = 17
+    }
+    sealed partial class Active : Tmds.DBus.Protocol.DBusObject
+    {
+        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.Connection.Active";
+        public Active(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+            : base(connection, destination, path)
+        { }
+        public ValueTask<IDisposable> WatchStateChangedAsync(Action<Exception?, (uint State, uint Reason)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "StateChanged", (Message m, object? s) => MessageReader.Read_uu(m), handler, this, emitOnCapturedContext, flags);
+        public Task<ObjectPath> GetConnectionAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Connection"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public Task<ObjectPath> GetSpecificObjectAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("SpecificObject"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public Task<string> GetIdAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Id"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<string> GetUuidAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Uuid"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<string> GetTypeAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Type"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<ObjectPath[]> GetDevicesAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Devices"), (Message m, object? s) => MessageReader.Read_v_ao(m), this);
+        public Task<uint> GetStateAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("State"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<uint> GetStateFlagsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("StateFlags"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<bool> GetDefaultAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Default"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public Task<ObjectPath> GetIp4ConfigAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Ip4Config"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public Task<ObjectPath> GetDhcp4ConfigAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Dhcp4Config"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public Task<bool> GetDefault6Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Default6"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public Task<ObjectPath> GetIp6ConfigAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Ip6Config"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public Task<ObjectPath> GetDhcp6ConfigAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Dhcp6Config"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public Task<bool> GetVpnAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Vpn"), (Message m, object? s) => MessageReader.Read_v_b(m), this);
+        public Task<ObjectPath> GetControllerAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Controller"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public Task<ObjectPath> GetMasterAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Master"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public async Task<ActiveProperties> GetPropertiesAsync()
+        {
+            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
+            static ActiveProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return ActiveProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, ActiveProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            static ActiveProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                return ActiveProperties.ReadFrom(ref reader, withInvalidated: true);
+            }
+        }
+        private MessageBuffer CreateGetPropertyMessage(string property)
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "ss",
+                member: "Get");
+            writer.WriteString(DBusInterfaceName);
+            writer.WriteString(property);
+            return writer.CreateMessage();
+        }
+        private MessageBuffer CreateGetAllPropertiesMessage()
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "s",
+                member: "GetAll");
+            writer.WriteString(DBusInterfaceName);
+            return writer.CreateMessage();
+        }
+    }
+    sealed class IP4ConfigProperties
+    {
+        private uint __set;
+        private uint __invalidated;
+        private const uint PropertiesAllSet = 0x1FFFU; // 13 properties
+        private static uint Flag(IP4ConfigProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public IP4ConfigProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private IP4ConfigProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(IP4ConfigProperty property)
+        {
+            if (!HasFlag(__set, property))
+            {
+                throw new InvalidOperationException("Property is not set.");
+            }
+        }
+        private uint[][] _addresses = default!;
+        public required uint[][] Addresses
+        {
+            get { EnsureSet(IP4ConfigProperty.Addresses); return _addresses; }
+            set { _addresses = value; __set |= Flag(IP4ConfigProperty.Addresses); }
+        }
+        private Dictionary<string, VariantValue>[] _addressData = default!;
+        public required Dictionary<string, VariantValue>[] AddressData
+        {
+            get { EnsureSet(IP4ConfigProperty.AddressData); return _addressData; }
+            set { _addressData = value; __set |= Flag(IP4ConfigProperty.AddressData); }
+        }
+        private string _gateway = default!;
+        public required string Gateway
+        {
+            get { EnsureSet(IP4ConfigProperty.Gateway); return _gateway; }
+            set { _gateway = value; __set |= Flag(IP4ConfigProperty.Gateway); }
+        }
+        private uint[][] _routes = default!;
+        public required uint[][] Routes
+        {
+            get { EnsureSet(IP4ConfigProperty.Routes); return _routes; }
+            set { _routes = value; __set |= Flag(IP4ConfigProperty.Routes); }
+        }
+        private Dictionary<string, VariantValue>[] _routeData = default!;
+        public required Dictionary<string, VariantValue>[] RouteData
+        {
+            get { EnsureSet(IP4ConfigProperty.RouteData); return _routeData; }
+            set { _routeData = value; __set |= Flag(IP4ConfigProperty.RouteData); }
+        }
+        private Dictionary<string, VariantValue>[] _nameserverData = default!;
+        public required Dictionary<string, VariantValue>[] NameserverData
+        {
+            get { EnsureSet(IP4ConfigProperty.NameserverData); return _nameserverData; }
+            set { _nameserverData = value; __set |= Flag(IP4ConfigProperty.NameserverData); }
+        }
+        private uint[] _nameservers = default!;
+        public required uint[] Nameservers
+        {
+            get { EnsureSet(IP4ConfigProperty.Nameservers); return _nameservers; }
+            set { _nameservers = value; __set |= Flag(IP4ConfigProperty.Nameservers); }
+        }
+        private string[] _domains = default!;
+        public required string[] Domains
+        {
+            get { EnsureSet(IP4ConfigProperty.Domains); return _domains; }
+            set { _domains = value; __set |= Flag(IP4ConfigProperty.Domains); }
+        }
+        private string[] _searches = default!;
+        public required string[] Searches
+        {
+            get { EnsureSet(IP4ConfigProperty.Searches); return _searches; }
+            set { _searches = value; __set |= Flag(IP4ConfigProperty.Searches); }
+        }
+        private string[] _dnsOptions = default!;
+        public required string[] DnsOptions
+        {
+            get { EnsureSet(IP4ConfigProperty.DnsOptions); return _dnsOptions; }
+            set { _dnsOptions = value; __set |= Flag(IP4ConfigProperty.DnsOptions); }
+        }
+        private int _dnsPriority = default!;
+        public required int DnsPriority
+        {
+            get { EnsureSet(IP4ConfigProperty.DnsPriority); return _dnsPriority; }
+            set { _dnsPriority = value; __set |= Flag(IP4ConfigProperty.DnsPriority); }
+        }
+        private string[] _winsServerData = default!;
+        public required string[] WinsServerData
+        {
+            get { EnsureSet(IP4ConfigProperty.WinsServerData); return _winsServerData; }
+            set { _winsServerData = value; __set |= Flag(IP4ConfigProperty.WinsServerData); }
+        }
+        private uint[] _winsServers = default!;
+        public required uint[] WinsServers
+        {
+            get { EnsureSet(IP4ConfigProperty.WinsServers); return _winsServers; }
+            set { _winsServers = value; __set |= Flag(IP4ConfigProperty.WinsServers); }
+        }
+        public static IP4ConfigProperties CreateUninitialized() => new IP4ConfigProperties(false);
+        private bool HasFlag(uint flags, IP4ConfigProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(IP4ConfigProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(IP4ConfigProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(IP4ConfigProperty property)
+        {
+            if (property != 0)
+            {
+                __invalidated |= Flag(property);
+            }
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
+        public static IP4ConfigProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "Addresses":
+                        reader.ReadSignature("aau"u8);
+                        props.Addresses = reader.Read_aau();
+                        break;
+                    case "AddressData":
+                        reader.ReadSignature("aa{sv}"u8);
+                        props.AddressData = reader.Read_aaesv();
+                        break;
+                    case "Gateway":
+                        reader.ReadSignature("s"u8);
+                        props.Gateway = reader.ReadString();
+                        break;
+                    case "Routes":
+                        reader.ReadSignature("aau"u8);
+                        props.Routes = reader.Read_aau();
+                        break;
+                    case "RouteData":
+                        reader.ReadSignature("aa{sv}"u8);
+                        props.RouteData = reader.Read_aaesv();
+                        break;
+                    case "NameserverData":
+                        reader.ReadSignature("aa{sv}"u8);
+                        props.NameserverData = reader.Read_aaesv();
+                        break;
+                    case "Nameservers":
+                        reader.ReadSignature("au"u8);
+                        props.Nameservers = reader.ReadArrayOfUInt32();
+                        break;
+                    case "Domains":
+                        reader.ReadSignature("as"u8);
+                        props.Domains = reader.ReadArrayOfString();
+                        break;
+                    case "Searches":
+                        reader.ReadSignature("as"u8);
+                        props.Searches = reader.ReadArrayOfString();
+                        break;
+                    case "DnsOptions":
+                        reader.ReadSignature("as"u8);
+                        props.DnsOptions = reader.ReadArrayOfString();
+                        break;
+                    case "DnsPriority":
+                        reader.ReadSignature("i"u8);
+                        props.DnsPriority = reader.ReadInt32();
+                        break;
+                    case "WinsServerData":
+                        reader.ReadSignature("as"u8);
+                        props.WinsServerData = reader.ReadArrayOfString();
+                        break;
+                    case "WinsServers":
+                        reader.ReadSignature("au"u8);
+                        props.WinsServers = reader.ReadArrayOfUInt32();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Addresses" => Flag(IP4ConfigProperty.Addresses),
+                        "AddressData" => Flag(IP4ConfigProperty.AddressData),
+                        "Gateway" => Flag(IP4ConfigProperty.Gateway),
+                        "Routes" => Flag(IP4ConfigProperty.Routes),
+                        "RouteData" => Flag(IP4ConfigProperty.RouteData),
+                        "NameserverData" => Flag(IP4ConfigProperty.NameserverData),
+                        "Nameservers" => Flag(IP4ConfigProperty.Nameservers),
+                        "Domains" => Flag(IP4ConfigProperty.Domains),
+                        "Searches" => Flag(IP4ConfigProperty.Searches),
+                        "DnsOptions" => Flag(IP4ConfigProperty.DnsOptions),
+                        "DnsPriority" => Flag(IP4ConfigProperty.DnsPriority),
+                        "WinsServerData" => Flag(IP4ConfigProperty.WinsServerData),
+                        "WinsServers" => Flag(IP4ConfigProperty.WinsServers),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class IP4ConfigHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Addresses" => (int)IP4ConfigProperty.Addresses,
+                "AddressData" => (int)IP4ConfigProperty.AddressData,
+                "Gateway" => (int)IP4ConfigProperty.Gateway,
+                "Routes" => (int)IP4ConfigProperty.Routes,
+                "RouteData" => (int)IP4ConfigProperty.RouteData,
+                "NameserverData" => (int)IP4ConfigProperty.NameserverData,
+                "Nameservers" => (int)IP4ConfigProperty.Nameservers,
+                "Domains" => (int)IP4ConfigProperty.Domains,
+                "Searches" => (int)IP4ConfigProperty.Searches,
+                "DnsOptions" => (int)IP4ConfigProperty.DnsOptions,
+                "DnsPriority" => (int)IP4ConfigProperty.DnsPriority,
+                "WinsServerData" => (int)IP4ConfigProperty.WinsServerData,
+                "WinsServers" => (int)IP4ConfigProperty.WinsServers,
+                _ => 0
+            };
+        }
+    }
+    enum IP4ConfigProperty
+    {
+        UnknownProperty = 0,
+        Addresses = 1,
+        AddressData = 2,
+        Gateway = 3,
+        Routes = 4,
+        RouteData = 5,
+        NameserverData = 6,
+        Nameservers = 7,
+        Domains = 8,
+        Searches = 9,
+        DnsOptions = 10,
+        DnsPriority = 11,
+        WinsServerData = 12,
+        WinsServers = 13
+    }
+    sealed partial class IP4Config : Tmds.DBus.Protocol.DBusObject
+    {
+        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.IP4Config";
+        public IP4Config(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+            : base(connection, destination, path)
+        { }
+        public Task<uint[][]> GetAddressesAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Addresses"), (Message m, object? s) => MessageReader.Read_v_aau(m), this);
+        public Task<Dictionary<string, VariantValue>[]> GetAddressDataAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("AddressData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
+        public Task<string> GetGatewayAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Gateway"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<uint[][]> GetRoutesAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Routes"), (Message m, object? s) => MessageReader.Read_v_aau(m), this);
+        public Task<Dictionary<string, VariantValue>[]> GetRouteDataAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("RouteData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
+        public Task<Dictionary<string, VariantValue>[]> GetNameserverDataAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("NameserverData"), (Message m, object? s) => MessageReader.Read_v_aaesv(m), this);
+        public Task<uint[]> GetNameserversAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Nameservers"), (Message m, object? s) => MessageReader.Read_v_au(m), this);
+        public Task<string[]> GetDomainsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Domains"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<string[]> GetSearchesAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Searches"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<string[]> GetDnsOptionsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("DnsOptions"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<int> GetDnsPriorityAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("DnsPriority"), (Message m, object? s) => MessageReader.Read_v_i(m), this);
+        public Task<string[]> GetWinsServerDataAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("WinsServerData"), (Message m, object? s) => MessageReader.Read_v_as(m), this);
+        public Task<uint[]> GetWinsServersAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("WinsServers"), (Message m, object? s) => MessageReader.Read_v_au(m), this);
+        public async Task<IP4ConfigProperties> GetPropertiesAsync()
+        {
+            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
+            static IP4ConfigProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return IP4ConfigProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, IP4ConfigProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            static IP4ConfigProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                return IP4ConfigProperties.ReadFrom(ref reader, withInvalidated: true);
+            }
+        }
+        private MessageBuffer CreateGetPropertyMessage(string property)
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "ss",
+                member: "Get");
+            writer.WriteString(DBusInterfaceName);
+            writer.WriteString(property);
+            return writer.CreateMessage();
+        }
+        private MessageBuffer CreateGetAllPropertiesMessage()
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "s",
+                member: "GetAll");
+            writer.WriteString(DBusInterfaceName);
+            return writer.CreateMessage();
+        }
+    }
+    sealed class AccessPointProperties
+    {
+        private uint __set;
+        private uint __invalidated;
+        private const uint PropertiesAllSet = 0x7FFU; // 11 properties
+        private static uint Flag(AccessPointProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
+        public AccessPointProperties() { }
+        #nullable disable
+        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        private AccessPointProperties(bool _) { }
+        #nullable enable
+        private void EnsureSet(AccessPointProperty property)
+        {
+            if (!HasFlag(__set, property))
+            {
+                throw new InvalidOperationException("Property is not set.");
+            }
+        }
+        private uint _flags = default!;
+        public required uint Flags
+        {
+            get { EnsureSet(AccessPointProperty.Flags); return _flags; }
+            set { _flags = value; __set |= Flag(AccessPointProperty.Flags); }
+        }
+        private uint _wpaFlags = default!;
+        public required uint WpaFlags
+        {
+            get { EnsureSet(AccessPointProperty.WpaFlags); return _wpaFlags; }
+            set { _wpaFlags = value; __set |= Flag(AccessPointProperty.WpaFlags); }
+        }
+        private uint _rsnFlags = default!;
+        public required uint RsnFlags
+        {
+            get { EnsureSet(AccessPointProperty.RsnFlags); return _rsnFlags; }
+            set { _rsnFlags = value; __set |= Flag(AccessPointProperty.RsnFlags); }
+        }
+        private byte[] _ssid = default!;
+        public required byte[] Ssid
+        {
+            get { EnsureSet(AccessPointProperty.Ssid); return _ssid; }
+            set { _ssid = value; __set |= Flag(AccessPointProperty.Ssid); }
+        }
+        private uint _frequency = default!;
+        public required uint Frequency
+        {
+            get { EnsureSet(AccessPointProperty.Frequency); return _frequency; }
+            set { _frequency = value; __set |= Flag(AccessPointProperty.Frequency); }
+        }
+        private string _hwAddress = default!;
+        public required string HwAddress
+        {
+            get { EnsureSet(AccessPointProperty.HwAddress); return _hwAddress; }
+            set { _hwAddress = value; __set |= Flag(AccessPointProperty.HwAddress); }
+        }
+        private uint _mode = default!;
+        public required uint Mode
+        {
+            get { EnsureSet(AccessPointProperty.Mode); return _mode; }
+            set { _mode = value; __set |= Flag(AccessPointProperty.Mode); }
+        }
+        private uint _maxBitrate = default!;
+        public required uint MaxBitrate
+        {
+            get { EnsureSet(AccessPointProperty.MaxBitrate); return _maxBitrate; }
+            set { _maxBitrate = value; __set |= Flag(AccessPointProperty.MaxBitrate); }
+        }
+        private uint _bandwidth = default!;
+        public required uint Bandwidth
+        {
+            get { EnsureSet(AccessPointProperty.Bandwidth); return _bandwidth; }
+            set { _bandwidth = value; __set |= Flag(AccessPointProperty.Bandwidth); }
+        }
+        private byte _strength = default!;
+        public required byte Strength
+        {
+            get { EnsureSet(AccessPointProperty.Strength); return _strength; }
+            set { _strength = value; __set |= Flag(AccessPointProperty.Strength); }
+        }
+        private int _lastSeen = default!;
+        public required int LastSeen
+        {
+            get { EnsureSet(AccessPointProperty.LastSeen); return _lastSeen; }
+            set { _lastSeen = value; __set |= Flag(AccessPointProperty.LastSeen); }
+        }
+        public static AccessPointProperties CreateUninitialized() => new AccessPointProperties(false);
+        private bool HasFlag(uint flags, AccessPointProperty property)
+            => property != 0 && (flags & Flag(property)) != 0;
+        public bool IsSet(AccessPointProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(AccessPointProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(AccessPointProperty property)
+        {
+            if (property != 0)
+            {
+                __invalidated |= Flag(property);
+            }
+        }
+        public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
+        public void EnsureAllPropertiesSet()
+        {
+            if (!AreAllPropertiesSet())
+            {
+                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
+            }
+        }
+        public static AccessPointProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        {
+            var props = CreateUninitialized();
+            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            while (reader.HasNext(arrayEnd))
+            {
+                var property = reader.ReadString();
+                switch (property)
+                {
+                    case "Flags":
+                        reader.ReadSignature("u"u8);
+                        props.Flags = reader.ReadUInt32();
+                        break;
+                    case "WpaFlags":
+                        reader.ReadSignature("u"u8);
+                        props.WpaFlags = reader.ReadUInt32();
+                        break;
+                    case "RsnFlags":
+                        reader.ReadSignature("u"u8);
+                        props.RsnFlags = reader.ReadUInt32();
+                        break;
+                    case "Ssid":
+                        reader.ReadSignature("ay"u8);
+                        props.Ssid = reader.ReadArrayOfByte();
+                        break;
+                    case "Frequency":
+                        reader.ReadSignature("u"u8);
+                        props.Frequency = reader.ReadUInt32();
+                        break;
+                    case "HwAddress":
+                        reader.ReadSignature("s"u8);
+                        props.HwAddress = reader.ReadString();
+                        break;
+                    case "Mode":
+                        reader.ReadSignature("u"u8);
+                        props.Mode = reader.ReadUInt32();
+                        break;
+                    case "MaxBitrate":
+                        reader.ReadSignature("u"u8);
+                        props.MaxBitrate = reader.ReadUInt32();
+                        break;
+                    case "Bandwidth":
+                        reader.ReadSignature("u"u8);
+                        props.Bandwidth = reader.ReadUInt32();
+                        break;
+                    case "Strength":
+                        reader.ReadSignature("y"u8);
+                        props.Strength = reader.ReadByte();
+                        break;
+                    case "LastSeen":
+                        reader.ReadSignature("i"u8);
+                        props.LastSeen = reader.ReadInt32();
+                        break;
+                    default:
+                        reader.ReadVariantValue();
+                        break;
+                }
+            }
+            if (withInvalidated)
+            {
+                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                while (reader.HasNext(invalidatedEnd))
+                {
+                    var propertyName = reader.ReadString();
+                    props.__invalidated |= propertyName switch
+                    {
+                        "Flags" => Flag(AccessPointProperty.Flags),
+                        "WpaFlags" => Flag(AccessPointProperty.WpaFlags),
+                        "RsnFlags" => Flag(AccessPointProperty.RsnFlags),
+                        "Ssid" => Flag(AccessPointProperty.Ssid),
+                        "Frequency" => Flag(AccessPointProperty.Frequency),
+                        "HwAddress" => Flag(AccessPointProperty.HwAddress),
+                        "Mode" => Flag(AccessPointProperty.Mode),
+                        "MaxBitrate" => Flag(AccessPointProperty.MaxBitrate),
+                        "Bandwidth" => Flag(AccessPointProperty.Bandwidth),
+                        "Strength" => Flag(AccessPointProperty.Strength),
+                        "LastSeen" => Flag(AccessPointProperty.LastSeen),
+                        _ => 0
+                    };
+                }
+            }
+            return props;
+        }
+    }
+    file static class AccessPointHelper
+    {
+        public static int Parse(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Flags" => (int)AccessPointProperty.Flags,
+                "WpaFlags" => (int)AccessPointProperty.WpaFlags,
+                "RsnFlags" => (int)AccessPointProperty.RsnFlags,
+                "Ssid" => (int)AccessPointProperty.Ssid,
+                "Frequency" => (int)AccessPointProperty.Frequency,
+                "HwAddress" => (int)AccessPointProperty.HwAddress,
+                "Mode" => (int)AccessPointProperty.Mode,
+                "MaxBitrate" => (int)AccessPointProperty.MaxBitrate,
+                "Bandwidth" => (int)AccessPointProperty.Bandwidth,
+                "Strength" => (int)AccessPointProperty.Strength,
+                "LastSeen" => (int)AccessPointProperty.LastSeen,
+                _ => 0
+            };
+        }
+    }
+    enum AccessPointProperty
+    {
+        UnknownProperty = 0,
+        Flags = 1,
+        WpaFlags = 2,
+        RsnFlags = 3,
+        Ssid = 4,
+        Frequency = 5,
+        HwAddress = 6,
+        Mode = 7,
+        MaxBitrate = 8,
+        Bandwidth = 9,
+        Strength = 10,
+        LastSeen = 11
+    }
+    sealed partial class AccessPoint : Tmds.DBus.Protocol.DBusObject
+    {
+        public const string DBusInterfaceName = "org.freedesktop.NetworkManager.AccessPoint";
+        public AccessPoint(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+            : base(connection, destination, path)
+        { }
+        public Task<uint> GetFlagsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Flags"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<uint> GetWpaFlagsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("WpaFlags"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<uint> GetRsnFlagsAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("RsnFlags"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<byte[]> GetSsidAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Ssid"), (Message m, object? s) => MessageReader.Read_v_ay(m), this);
+        public Task<uint> GetFrequencyAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Frequency"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<string> GetHwAddressAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("HwAddress"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public Task<uint> GetModeAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Mode"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<uint> GetMaxBitrateAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("MaxBitrate"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<uint> GetBandwidthAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Bandwidth"), (Message m, object? s) => MessageReader.Read_v_u(m), this);
+        public Task<byte> GetStrengthAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Strength"), (Message m, object? s) => MessageReader.Read_v_y(m), this);
+        public Task<int> GetLastSeenAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("LastSeen"), (Message m, object? s) => MessageReader.Read_v_i(m), this);
+        public async Task<AccessPointProperties> GetPropertiesAsync()
+        {
+            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
+            props.EnsureAllPropertiesSet();
+            return props;
+            static AccessPointProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return AccessPointProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, AccessPointProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        {
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            static AccessPointProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                reader.ReadString(); // interface
+                return AccessPointProperties.ReadFrom(ref reader, withInvalidated: true);
+            }
+        }
+        private MessageBuffer CreateGetPropertyMessage(string property)
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "ss",
+                member: "Get");
+            writer.WriteString(DBusInterfaceName);
+            writer.WriteString(property);
+            return writer.CreateMessage();
+        }
+        private MessageBuffer CreateGetAllPropertiesMessage()
+        {
+            var writer = Connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                destination: Destination,
+                path: Path,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "s",
+                member: "GetAll");
+            writer.WriteString(DBusInterfaceName);
+            return writer.CreateMessage();
+        }
+    }
     static partial class ObjectFactory
     {
         public static ObjectManager CreateObjectManager(this DBusService service, ObjectPath path) => new ObjectManager(service.Connection, service.Name, path);
@@ -4668,17 +4933,18 @@ namespace NetworkManager.DBus
         public static Settings CreateSettings(this DBusService service, ObjectPath path) => new Settings(service.Connection, service.Name, path);
         public static Connection CreateConnection(this DBusService service, ObjectPath path) => new Connection(service.Connection, service.Name, path);
         public static IP6Config CreateIP6Config(this DBusService service, ObjectPath path) => new IP6Config(service.Connection, service.Name, path);
-        public static AccessPoint CreateAccessPoint(this DBusService service, ObjectPath path) => new AccessPoint(service.Connection, service.Name, path);
+        public static DnsManager CreateDnsManager(this DBusService service, ObjectPath path) => new DnsManager(service.Connection, service.Name, path);
         public static Statistics CreateStatistics(this DBusService service, ObjectPath path) => new Statistics(service.Connection, service.Name, path);
-        public static WifiP2P CreateWifiP2P(this DBusService service, ObjectPath path) => new WifiP2P(service.Connection, service.Name, path);
         public static Device CreateDevice(this DBusService service, ObjectPath path) => new Device(service.Connection, service.Name, path);
         public static Loopback CreateLoopback(this DBusService service, ObjectPath path) => new Loopback(service.Connection, service.Name, path);
         public static Wireless CreateWireless(this DBusService service, ObjectPath path) => new Wireless(service.Connection, service.Name, path);
+        public static WifiP2P CreateWifiP2P(this DBusService service, ObjectPath path) => new WifiP2P(service.Connection, service.Name, path);
+        public static Wired CreateWired(this DBusService service, ObjectPath path) => new Wired(service.Connection, service.Name, path);
         public static DHCP4Config CreateDHCP4Config(this DBusService service, ObjectPath path) => new DHCP4Config(service.Connection, service.Name, path);
-        public static DnsManager CreateDnsManager(this DBusService service, ObjectPath path) => new DnsManager(service.Connection, service.Name, path);
+        public static AgentManager CreateAgentManager(this DBusService service, ObjectPath path) => new AgentManager(service.Connection, service.Name, path);
         public static Active CreateActive(this DBusService service, ObjectPath path) => new Active(service.Connection, service.Name, path);
         public static IP4Config CreateIP4Config(this DBusService service, ObjectPath path) => new IP4Config(service.Connection, service.Name, path);
-        public static AgentManager CreateAgentManager(this DBusService service, ObjectPath path) => new AgentManager(service.Connection, service.Name, path);
+        public static AccessPoint CreateAccessPoint(this DBusService service, ObjectPath path) => new AccessPoint(service.Connection, service.Name, path);
     }
     file static class MessageReader
     {
@@ -4861,18 +5127,6 @@ namespace NetworkManager.DBus
             reader.ReadSignature("i"u8);
             return reader.ReadInt32();
         }
-        public static byte[] Read_v_ay(Message message)
-        {
-            var reader = message.GetBodyReader();
-            reader.ReadSignature("ay"u8);
-            return reader.ReadArrayOfByte();
-        }
-        public static byte Read_v_y(Message message)
-        {
-            var reader = message.GetBodyReader();
-            reader.ReadSignature("y"u8);
-            return reader.ReadByte();
-        }
         public static (Dictionary<string, Dictionary<string, VariantValue>>, ulong) Read_aesaesvt(Message message)
         {
             var reader = message.GetBodyReader();
@@ -4912,6 +5166,18 @@ namespace NetworkManager.DBus
             var reader = message.GetBodyReader();
             reader.ReadSignature("aau"u8);
             return reader.Read_aau();
+        }
+        public static byte[] Read_v_ay(Message message)
+        {
+            var reader = message.GetBodyReader();
+            reader.ReadSignature("ay"u8);
+            return reader.ReadArrayOfByte();
+        }
+        public static byte Read_v_y(Message message)
+        {
+            var reader = message.GetBodyReader();
+            reader.ReadSignature("y"u8);
+            return reader.ReadByte();
         }
         public static (byte[], uint, byte[])[] Read_arayuayz(this ref Reader reader)
         {

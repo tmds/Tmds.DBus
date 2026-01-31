@@ -74,33 +74,6 @@ class InnerConnection : IDisposable
         private readonly object? _state3;
     }
 
-    delegate void MessageHandlerDelegate4(Exception? exception, Message message, object? state1, object? state2, object? state3, object? state4);
-
-    readonly struct MessageHandler4
-    {
-        public MessageHandler4(MessageHandlerDelegate4 handler, object? state1 = null, object? state2 = null, object? state3 = null, object? state4 = null)
-        {
-            _delegate = handler;
-            _state1 = state1;
-            _state2 = state2;
-            _state3 = state3;
-            _state4 = state4;
-        }
-
-        public void Invoke(Exception? exception, Message message)
-        {
-            _delegate(exception, message, _state1, _state2, _state3, _state4);
-        }
-
-        public bool HasValue => _delegate is not null;
-
-        private readonly MessageHandlerDelegate4 _delegate;
-        private readonly object? _state1;
-        private readonly object? _state2;
-        private readonly object? _state3;
-        private readonly object? _state4;
-    }
-
     private readonly Lock _gate = new();
     private readonly DBusConnection _parentDBusConnection;
     private readonly Dictionary<uint, MessageHandler> _pendingCalls;
@@ -825,6 +798,33 @@ class InnerConnection : IDisposable
 
     sealed class Observer : IDisposable
     {
+        private delegate void MessageHandlerDelegate4(Observer observer, Exception? exception, Message message, object? state1, object? state2, object? state3, object? state4);
+
+        private readonly struct MessageHandler4
+        {
+            public MessageHandler4(MessageHandlerDelegate4 handler, object? state1 = null, object? state2 = null, object? state3 = null, object? state4 = null)
+            {
+                _delegate = handler;
+                _state1 = state1;
+                _state2 = state2;
+                _state3 = state3;
+                _state4 = state4;
+            }
+
+            public void Invoke(Observer observer, Exception? exception, Message message)
+            {
+                _delegate(observer, exception, message, _state1, _state2, _state3, _state4);
+            }
+
+            public bool HasValue => _delegate is not null;
+
+            private readonly MessageHandlerDelegate4 _delegate;
+            private readonly object? _state1;
+            private readonly object? _state2;
+            private readonly object? _state3;
+            private readonly object? _state4;
+        }
+
         private readonly Lock _gate = new();
         private readonly SynchronizationContext? _synchronizationContext;
         private readonly MatchMaker _matchMaker;
@@ -848,7 +848,7 @@ class InnerConnection : IDisposable
 
         public static Observer Create<T>(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
         {
-            MessageHandlerDelegate4 fn = static (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
+            MessageHandlerDelegate4 fn = static (Observer observer, Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
             {
                 var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
                 if (exception is not null)
@@ -857,9 +857,16 @@ class InnerConnection : IDisposable
                 }
                 else
                 {
-                    var valueReaderState = (MessageValueReader<T>)reader!;
-                    T value = valueReaderState(message, rs);
-                    valueHandlerState(null, value, rs, hs);
+                    try
+                    {
+                        var valueReaderState = (MessageValueReader<T>)reader!;
+                        T value = valueReaderState(message, rs);
+                        valueHandlerState(null, value, rs, hs);
+                    }
+                    catch (Exception ex)
+                    {
+                        observer.Dispose(ex, ignoreSynchronizationContext: true);
+                    }
                 }
             };
 
@@ -870,7 +877,7 @@ class InnerConnection : IDisposable
         public void Dispose() =>
             Dispose(EmitOnObserverDispose ? ObserverDisposedException : null);
 
-        public void Dispose(Exception? exception, bool removeObserver = true)
+        public void Dispose(Exception? exception, bool removeObserver = true, bool ignoreSynchronizationContext = false)
         {
             lock (_gate)
             {
@@ -883,7 +890,7 @@ class InnerConnection : IDisposable
 
             if (exception is not null)
             {
-                Emit(exception);
+                Emit(exception, ignoreSynchronizationContext);
             }
 
             if (removeObserver)
@@ -908,7 +915,7 @@ class InnerConnection : IDisposable
                         return;
                     }
 
-                    _messageHandler.Invoke(null, message);
+                    _messageHandler.Invoke(this, null, message);
                 }
             }
             else
@@ -935,7 +942,7 @@ class InnerConnection : IDisposable
                     {
                         return;
                     }
-                    _messageHandler.Invoke(null, message);
+                    _messageHandler.Invoke(this, null, message);
                 }
             }
             finally
@@ -945,12 +952,13 @@ class InnerConnection : IDisposable
             }
         }
 
-        private void Emit(Exception exception)
+        private void Emit(Exception exception, bool ignoreSynchronizationContext = false)
         {
-            if (_synchronizationContext is null ||
+            if (ignoreSynchronizationContext ||
+                _synchronizationContext is null ||
                 SynchronizationContext.Current == _synchronizationContext)
             {
-                _messageHandler.Invoke(exception, null!);
+                _messageHandler.Invoke(this, exception, null!);
             }
             else
             {
@@ -964,7 +972,7 @@ class InnerConnection : IDisposable
             try
             {
                 SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                _messageHandler.Invoke((Exception)state!, null!);
+                _messageHandler.Invoke(this, (Exception)state!, null!);
             }
             finally
             {
@@ -986,7 +994,7 @@ class InnerConnection : IDisposable
                     return;
                 }
 
-                _messageHandler.Invoke(null, message);
+                _messageHandler.Invoke(this, null, message);
             }
         }
     }

@@ -7,7 +7,14 @@ namespace TestNamespace
     using Tmds.DBus.Protocol;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    sealed class CalculatorProperties
+    interface ICalculatorProperties
+    {
+        double? LastResult { get; }
+        bool IsInvalidated(string propertyName);
+        bool AreAllPropertiesSet();
+        void EnsureAllPropertiesSet();
+    }
+    sealed class CalculatorProperties : ICalculatorProperties
     {
         private uint __set;
         private uint __invalidated;
@@ -31,18 +38,35 @@ namespace TestNamespace
             get { EnsureSet(CalculatorProperty.LastResult); return _lastResult; }
             set { _lastResult = value; __set |= Flag(CalculatorProperty.LastResult); }
         }
+        double? ICalculatorProperties.LastResult
+            => IsSet(CalculatorProperty.LastResult) ? _lastResult : null;
         public static CalculatorProperties CreateUninitialized() => new CalculatorProperties(false);
         private bool HasFlag(uint flags, CalculatorProperty property)
             => property != 0 && (flags & Flag(property)) != 0;
-        public bool IsSet(CalculatorProperty property) => HasFlag(__set, property);
-        public bool IsInvalidated(CalculatorProperty property) => HasFlag(__invalidated, property);
-        public void SetInvalidated(CalculatorProperty property)
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static CalculatorProperty ParsePropertyName(string propertyName)
+        {
+            return propertyName switch
+            {
+                "LastResult" => CalculatorProperty.LastResult,
+                _ => 0
+            };
+        }
+        private bool IsSet(CalculatorProperty property) => HasFlag(__set, property);
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public bool IsSet(string propertyName) => IsSet(ParsePropertyName(propertyName));
+        private bool IsInvalidated(CalculatorProperty property) => HasFlag(__invalidated, property);
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public bool IsInvalidated(string propertyName) => IsInvalidated(ParsePropertyName(propertyName));
+        private void SetInvalidated(CalculatorProperty property)
         {
             if (property != 0)
             {
                 __invalidated |= Flag(property);
             }
         }
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void SetInvalidated(string propertyName) => SetInvalidated(ParsePropertyName(propertyName));
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
@@ -84,22 +108,11 @@ namespace TestNamespace
             }
             return props;
         }
-    }
-    file static class CalculatorHelper
-    {
-        public static int Parse(string propertyName)
+        private enum CalculatorProperty
         {
-            return propertyName switch
-            {
-                "LastResult" => (int)CalculatorProperty.LastResult,
-                _ => 0
-            };
+            UnknownProperty = 0,
+            LastResult = 1
         }
-    }
-    enum CalculatorProperty
-    {
-        UnknownProperty = 0,
-        LastResult = 1
     }
     sealed partial class Calculator : Tmds.DBus.Protocol.DBusObject
     {
@@ -303,7 +316,15 @@ namespace TestNamespace
             return writer.CreateMessage();
         }
     }
-    sealed class SettingsProperties
+    interface ISettingsProperties
+    {
+        string? Theme { get; }
+        string? Language { get; }
+        bool IsInvalidated(string propertyName);
+        bool AreAllPropertiesSet();
+        void EnsureAllPropertiesSet();
+    }
+    sealed class SettingsProperties : ISettingsProperties
     {
         private uint __set;
         private uint __invalidated;
@@ -333,18 +354,38 @@ namespace TestNamespace
             get { EnsureSet(SettingsProperty.Language); return _language; }
             set { _language = value; __set |= Flag(SettingsProperty.Language); }
         }
+        string? ISettingsProperties.Theme
+            => IsSet(SettingsProperty.Theme) ? _theme : null;
+        string? ISettingsProperties.Language
+            => IsSet(SettingsProperty.Language) ? _language : null;
         public static SettingsProperties CreateUninitialized() => new SettingsProperties(false);
         private bool HasFlag(uint flags, SettingsProperty property)
             => property != 0 && (flags & Flag(property)) != 0;
-        public bool IsSet(SettingsProperty property) => HasFlag(__set, property);
-        public bool IsInvalidated(SettingsProperty property) => HasFlag(__invalidated, property);
-        public void SetInvalidated(SettingsProperty property)
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        private static SettingsProperty ParsePropertyName(string propertyName)
+        {
+            return propertyName switch
+            {
+                "Theme" => SettingsProperty.Theme,
+                "Language" => SettingsProperty.Language,
+                _ => 0
+            };
+        }
+        private bool IsSet(SettingsProperty property) => HasFlag(__set, property);
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public bool IsSet(string propertyName) => IsSet(ParsePropertyName(propertyName));
+        private bool IsInvalidated(SettingsProperty property) => HasFlag(__invalidated, property);
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public bool IsInvalidated(string propertyName) => IsInvalidated(ParsePropertyName(propertyName));
+        private void SetInvalidated(SettingsProperty property)
         {
             if (property != 0)
             {
                 __invalidated |= Flag(property);
             }
         }
+        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        public void SetInvalidated(string propertyName) => SetInvalidated(ParsePropertyName(propertyName));
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
@@ -391,30 +432,12 @@ namespace TestNamespace
             }
             return props;
         }
-    }
-    file static class SettingsHelper
-    {
-        public static int Parse(string propertyName)
+        private enum SettingsProperty
         {
-            return propertyName switch
-            {
-                "Theme" => (int)SettingsProperty.Theme,
-                "Language" => (int)SettingsProperty.Language,
-                _ => 0
-            };
+            UnknownProperty = 0,
+            Theme = 1,
+            Language = 2
         }
-    }
-    enum SettingsProperty
-    {
-        UnknownProperty = 0,
-        Theme = 1,
-        Language = 2
-    }
-    enum SettingsWritableProperty
-    {
-        UnknownProperty = 0,
-        Theme = 1,
-        Language = 2
     }
     sealed partial class Settings : Tmds.DBus.Protocol.DBusObject
     {

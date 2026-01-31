@@ -96,7 +96,7 @@ class Player
 
         return watcher;
 
-        async void OnPropertiesChanged(Exception? ex, PlayerProperties properties)
+        async void OnPropertiesChanged(Exception? ex, IPlayerProperties props)
         {
             if (ex is not null)
             {
@@ -105,12 +105,8 @@ class Player
 
             try
             {
-                Dictionary<string, VariantValue>? metadata = null;
-                if (properties.IsSet(PlayerProperty.Metadata))
-                {
-                    metadata = properties.Metadata;
-                }
-                else if (properties.IsInvalidated(PlayerProperty.Metadata))
+                Dictionary<string, VariantValue>? metadata = props.Metadata;
+                if (metadata is null && props.IsInvalidated(nameof(props.Metadata)))
                 {
                     metadata = await _player.GetMetadataAsync();
                 }

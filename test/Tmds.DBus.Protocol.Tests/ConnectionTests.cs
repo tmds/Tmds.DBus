@@ -372,6 +372,20 @@ namespace Tmds.DBus.Protocol.Tests
             }
         }
 
+        static void SendHelloWorldSignal(DBusConnection connection)
+        {
+            using var writer = connection.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: HelloWorldConstants.Path,
+                @interface: HelloWorldConstants.Interface,
+                signature: "s",
+                member: HelloWorldConstants.OnHelloWorld);
+            writer.WriteString("hello world");
+            MessageBuffer buffer = writer.CreateMessage();
+            bool messageSent = connection.TrySendMessage(buffer);
+            Assert.True(messageSent);
+        }
+
         static class StringOperationsConstants
         {
             public const string Path = "/tmds/dbus/tests/stringoperations";
@@ -490,6 +504,88 @@ namespace Tmds.DBus.Protocol.Tests
 
                 return default;
             }
+        }
+
+        [Fact]
+        public async Task ObserverExceptionInValueReaderDisposesObserver()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var exceptionTcs = new TaskCompletionSource<Exception?>();
+            var handlerCallCount = 0;
+
+            var proxy = new HelloWorld(conn1, conn2.UniqueName!);
+            var disposable = await proxy.WatchSignalAsync<string>(
+                conn2.UniqueName!,
+                HelloWorldConstants.Interface,
+                HelloWorldConstants.Path,
+                HelloWorldConstants.OnHelloWorld,
+                reader: (Message m, object? s) => throw new InvalidOperationException("Reader error"),
+                handler: (Exception? ex, string msg) =>
+                {
+                    handlerCallCount++;
+                    exceptionTcs.TrySetResult(ex);
+                },
+                emitOnCapturedContext: false);
+
+            // Send a signal that will trigger the reader exception
+            SendHelloWorldSignal(conn2);
+
+            var exception = await exceptionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.IsType<InvalidOperationException>(exception);
+            Assert.Equal("Reader error", exception.Message);
+            Assert.Equal(1, handlerCallCount);
+
+            // Verify observer is disposed by trying to send another signal
+            SendHelloWorldSignal(conn2);
+            await Task.Delay(10); // Give time for signal to be processed
+            Assert.Equal(1, handlerCallCount);
+        }
+
+        [Fact]
+        public async Task ObserverExceptionInValueHandlerDisposesObserver()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var exceptionTcs = new TaskCompletionSource<Exception?>();
+            var handlerCallCount = 0;
+
+            var proxy = new HelloWorld(conn1, conn2.UniqueName!);
+            var disposable = await proxy.WatchSignalAsync<string>(
+                conn2.UniqueName!,
+                HelloWorldConstants.Interface,
+                HelloWorldConstants.Path,
+                HelloWorldConstants.OnHelloWorld,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: (Exception? ex, string msg) =>
+                {
+                    handlerCallCount++;
+                    if (ex is null)
+                    {
+                        throw new InvalidOperationException("Handler error");
+                    }
+                    exceptionTcs.TrySetResult(ex);
+                },
+                emitOnCapturedContext: false);
+
+            // Send a signal that will trigger the handler exception
+            SendHelloWorldSignal(conn2);
+
+            var exception = await exceptionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.IsType<InvalidOperationException>(exception);
+            Assert.Equal("Handler error", exception.Message);
+            Assert.Equal(2, handlerCallCount); // Called once with message, once with exception
+
+            // Verify observer is disposed by trying to send another signal
+            SendHelloWorldSignal(conn2);
+            await Task.Delay(10); // Give time for signal to be processed
+            Assert.Equal(2, handlerCallCount); // Should still be 2, observer disposed
         }
     }
 }

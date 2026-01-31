@@ -326,9 +326,12 @@ namespace Tmds.DBus.Tool
                 {
                     AppendLine($"{GetNullableType(property.DotnetReadType)} {property.NameUpper} {{ get; }}");
                 }
-                AppendLine("bool IsInvalidated(string propertyName);");
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"bool Has{property.NameUpper}Changed {{ get; }}");
+                }
                 AppendLine("bool AreAllPropertiesSet();");
-                AppendLine("void EnsureAllPropertiesSet();");
+                AppendLine($"{propertiesClassName} EnsureAllPropertiesSet();");
                 EndBlock();
 
                 AppendLine($"sealed class {propertiesClassName} : {propertiesInterfaceName}");
@@ -395,6 +398,20 @@ namespace Tmds.DBus.Tool
                     _indentation--;
                 }
 
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"bool {propertiesInterfaceName}.Has{property.NameUpper}Changed");
+                    _indentation++;
+                    AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) || IsInvalidated({propertyEnumName}.{property.NameUpper});");
+                    _indentation--;
+                }
+
+                AppendLine($"{propertiesClassName} {propertiesInterfaceName}.EnsureAllPropertiesSet()");
+                StartBlock();
+                AppendLine("EnsureAllPropertiesSet();");
+                AppendLine("return this;");
+                EndBlock();
+
                 AppendLine($"public static {propertiesClassName} CreateUninitialized() => new {propertiesClassName}(false);");
 
                 AppendLine($"private bool HasFlag({flagType} flags, {propertyEnumName} property)");
@@ -417,12 +434,7 @@ namespace Tmds.DBus.Tool
                 EndBlock();
 
                 AppendLine($"private bool IsSet({propertyEnumName} property) => HasFlag(__set, property);");
-                AppendLine($"[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-                AppendLine($"public bool IsSet(string propertyName) => IsSet(ParsePropertyName(propertyName));");
-
                 AppendLine($"private bool IsInvalidated({propertyEnumName} property) => HasFlag(__invalidated, property);");
-                AppendLine($"[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-                AppendLine($"public bool IsInvalidated(string propertyName) => IsInvalidated(ParsePropertyName(propertyName));");
 
                 AppendLine($"private void SetInvalidated({propertyEnumName} property)");
                 StartBlock();

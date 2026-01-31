@@ -103,21 +103,17 @@ class Player
                 return;
             }
 
-            try
+            if (props.HasMetadataChanged)
             {
-                Dictionary<string, VariantValue>? metadata = props.Metadata;
-                if (metadata is null && props.IsInvalidated(nameof(props.Metadata)))
+                try
                 {
-                    metadata = await _player.GetMetadataAsync();
-                }
-                if (metadata is not null)
-                {
+                    Dictionary<string, VariantValue> metadata = props.Metadata ?? await _player.GetMetadataAsync();
                     UpdateCurrentTitle(metadata);
                 }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error while handling player properties changed: {e}");
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Error while handling player properties changed: {e}");
+                }
             }
         }
 

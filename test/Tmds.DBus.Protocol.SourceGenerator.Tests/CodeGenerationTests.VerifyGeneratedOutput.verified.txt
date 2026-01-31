@@ -10,9 +10,9 @@ namespace TestNamespace
     interface ICalculatorProperties
     {
         double? LastResult { get; }
-        bool IsInvalidated(string propertyName);
+        bool HasLastResultChanged { get; }
         bool AreAllPropertiesSet();
-        void EnsureAllPropertiesSet();
+        CalculatorProperties EnsureAllPropertiesSet();
     }
     sealed class CalculatorProperties : ICalculatorProperties
     {
@@ -40,6 +40,13 @@ namespace TestNamespace
         }
         double? ICalculatorProperties.LastResult
             => IsSet(CalculatorProperty.LastResult) ? _lastResult : null;
+        bool ICalculatorProperties.HasLastResultChanged
+            => IsSet(CalculatorProperty.LastResult) || IsInvalidated(CalculatorProperty.LastResult);
+        CalculatorProperties ICalculatorProperties.EnsureAllPropertiesSet()
+        {
+            EnsureAllPropertiesSet();
+            return this;
+        }
         public static CalculatorProperties CreateUninitialized() => new CalculatorProperties(false);
         private bool HasFlag(uint flags, CalculatorProperty property)
             => property != 0 && (flags & Flag(property)) != 0;
@@ -53,11 +60,7 @@ namespace TestNamespace
             };
         }
         private bool IsSet(CalculatorProperty property) => HasFlag(__set, property);
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public bool IsSet(string propertyName) => IsSet(ParsePropertyName(propertyName));
         private bool IsInvalidated(CalculatorProperty property) => HasFlag(__invalidated, property);
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public bool IsInvalidated(string propertyName) => IsInvalidated(ParsePropertyName(propertyName));
         private void SetInvalidated(CalculatorProperty property)
         {
             if (property != 0)
@@ -75,7 +78,7 @@ namespace TestNamespace
                 throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-        public static CalculatorProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        public static ICalculatorProperties ReadFrom(ref Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -269,21 +272,21 @@ namespace TestNamespace
             => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "OperationComplete", (Message m, object? s) => MessageReader.Read_sd(m), handler, this, emitOnCapturedContext, flags);
         public Task<double> GetLastResultAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("LastResult"), (Message m, object? s) => MessageReader.Read_v_d(m), this);
-        public async Task<CalculatorProperties> GetPropertiesAsync()
+        public async Task<ICalculatorProperties> GetPropertiesAsync()
         {
             var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
             props.EnsureAllPropertiesSet();
             return props;
-            static CalculatorProperties ReadMessage(Message message)
+            static ICalculatorProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 return CalculatorProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, CalculatorProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, ICalculatorProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
         {
             return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
-            static CalculatorProperties ReadMessage(Message message)
+            static ICalculatorProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
@@ -320,9 +323,10 @@ namespace TestNamespace
     {
         string? Theme { get; }
         string? Language { get; }
-        bool IsInvalidated(string propertyName);
+        bool HasThemeChanged { get; }
+        bool HasLanguageChanged { get; }
         bool AreAllPropertiesSet();
-        void EnsureAllPropertiesSet();
+        SettingsProperties EnsureAllPropertiesSet();
     }
     sealed class SettingsProperties : ISettingsProperties
     {
@@ -358,6 +362,15 @@ namespace TestNamespace
             => IsSet(SettingsProperty.Theme) ? _theme : null;
         string? ISettingsProperties.Language
             => IsSet(SettingsProperty.Language) ? _language : null;
+        bool ISettingsProperties.HasThemeChanged
+            => IsSet(SettingsProperty.Theme) || IsInvalidated(SettingsProperty.Theme);
+        bool ISettingsProperties.HasLanguageChanged
+            => IsSet(SettingsProperty.Language) || IsInvalidated(SettingsProperty.Language);
+        SettingsProperties ISettingsProperties.EnsureAllPropertiesSet()
+        {
+            EnsureAllPropertiesSet();
+            return this;
+        }
         public static SettingsProperties CreateUninitialized() => new SettingsProperties(false);
         private bool HasFlag(uint flags, SettingsProperty property)
             => property != 0 && (flags & Flag(property)) != 0;
@@ -372,11 +385,7 @@ namespace TestNamespace
             };
         }
         private bool IsSet(SettingsProperty property) => HasFlag(__set, property);
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public bool IsSet(string propertyName) => IsSet(ParsePropertyName(propertyName));
         private bool IsInvalidated(SettingsProperty property) => HasFlag(__invalidated, property);
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public bool IsInvalidated(string propertyName) => IsInvalidated(ParsePropertyName(propertyName));
         private void SetInvalidated(SettingsProperty property)
         {
             if (property != 0)
@@ -394,7 +403,7 @@ namespace TestNamespace
                 throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-        public static SettingsProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        public static ISettingsProperties ReadFrom(ref Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -503,21 +512,21 @@ namespace TestNamespace
             => Connection.CallMethodAsync(CreateGetPropertyMessage("Theme"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
         public Task<string> GetLanguageAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("Language"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public async Task<SettingsProperties> GetPropertiesAsync()
+        public async Task<ISettingsProperties> GetPropertiesAsync()
         {
             var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
             props.EnsureAllPropertiesSet();
             return props;
-            static SettingsProperties ReadMessage(Message message)
+            static ISettingsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 return SettingsProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, SettingsProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, ISettingsProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
         {
             return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
-            static SettingsProperties ReadMessage(Message message)
+            static ISettingsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface

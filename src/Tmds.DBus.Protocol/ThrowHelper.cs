@@ -55,7 +55,7 @@ static class ThrowHelper
     [DoesNotReturn]
     internal static void ThrowHandleAlreadyRead()
     {
-        throw new InvalidOperationException("The handle was already read.");
+        throw new DBusUnexpectedValueException("The handle was already read.");
     }
 
     internal static string SignatureToStringNoThrow(ReadOnlySpan<byte> signature)

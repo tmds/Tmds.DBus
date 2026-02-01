@@ -1,4 +1,6 @@
-[![NuGet](https://img.shields.io/nuget/v/Tmds.DBus.svg)](https://www.nuget.org/packages/Tmds.DBus)
+# Documentation
+
+https://tmds.github.io/Tmds.DBus/
 
 # CI Packages
 

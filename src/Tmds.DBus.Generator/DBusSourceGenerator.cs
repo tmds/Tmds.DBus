@@ -8,7 +8,7 @@ using System.Xml.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
 
-namespace Tmds.DBus.Protocol.SourceGenerator
+namespace Tmds.DBus.Generator
 {
     [Generator]
     public class DBusSourceGenerator : IIncrementalGenerator
@@ -107,7 +107,7 @@ namespace Tmds.DBus.Protocol.SourceGenerator
                     var settings = new Tool.ProtocolGeneratorSettings
                     {
                         Namespace = ns,
-                        GeneratorDescription = "Tmds.DBus.Protocol.SourceGenerator"
+                        GeneratorDescription = "Tmds.DBus.Generator"
                     };
                     var generator = new Tool.ProtocolGenerator(settings);
 

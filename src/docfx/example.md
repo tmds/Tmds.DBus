@@ -3,7 +3,7 @@
 In this section we build an example console application that controls media players using the MPRIS D-Bus interface.
 The application will list available media players, display the currently playing track, and provide keyboard controls to play/pause and skip tracks.
 
-We'll use the `Tmds.DBus.Protocol.SourceGenerator` to automatically generate C# code from D-Bus XML interface definitions. Alternatively, you can use the [Tmds.DBus.Tool](tool.md) to generate code manually from the command line.
+We'll use the `Tmds.DBus.Generator` to automatically generate C# code from D-Bus XML interface definitions. Alternatively, you can use the [Tmds.DBus.Tool](tool.md) to generate code manually from the command line.
 
 We use the dotnet CLI to create a new console application:
 
@@ -16,7 +16,7 @@ Now we add a reference to `Tmds.DBus.Protocol` and the source generator:
 
 ```bash
 $ dotnet add package Tmds.DBus.Protocol
-$ dotnet add package Tmds.DBus.Protocol.SourceGenerator
+$ dotnet add package Tmds.DBus.Generator
 ```
 
 Next, we need to obtain the D-Bus interface XML file for the MPRIS Player interface. The MPRIS (Media Player Remote Interfacing Specification) interface definitions are available from the [MPRIS specification repository](https://gitlab.freedesktop.org/mpris/mpris-spec/).
@@ -36,7 +36,7 @@ Now we'll configure the source generator in the project file. Edit `MediaPlayerR
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Tmds.DBus.Protocol" Version="*" />
-    <PackageReference Include="Tmds.DBus.Protocol.SourceGenerator" Version="*" />
+    <PackageReference Include="Tmds.DBus.Generator" Version="*" />
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="dbus-xml/org.mpris.MediaPlayer2.Player.xml" Namespace="Mpris.DBus" GenerateDBusTypes="true" />

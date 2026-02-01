@@ -1,10 +1,10 @@
 using Microsoft.CodeAnalysis;
 
-namespace Tmds.DBus.Protocol.SourceGenerator
+namespace Tmds.DBus.Generator
 {
     internal static class DiagnosticDescriptors
     {
-        private const string Category = "Tmds.DBus.Protocol.SourceGenerator";
+        private const string Category = "Tmds.DBus.Generator";
 
         public static readonly DiagnosticDescriptor MissingNamespace = new DiagnosticDescriptor(
             id: "DBUS1001",

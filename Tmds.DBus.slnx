@@ -2,12 +2,12 @@
   <Folder Name="/src/">
     <Project Path="src\Tmds.DBus\Tmds.DBus.csproj" />
     <Project Path="src\Tmds.DBus.Protocol\Tmds.DBus.Protocol.csproj" />
-    <Project Path="src\Tmds.DBus.Protocol.SourceGenerator\Tmds.DBus.Protocol.SourceGenerator.csproj" />
+    <Project Path="src\Tmds.DBus.Generator\Tmds.DBus.Generator.csproj" />
     <Project Path="src\Tmds.DBus.Tool\Tmds.DBus.Tool.csproj" />
   </Folder>
   <Folder Name="/test/">
     <Project Path="test\Tmds.DBus.Protocol.Tests\Tmds.DBus.Protocol.Tests.csproj" />
-    <Project Path="test\Tmds.DBus.Protocol.SourceGenerator.Tests\Tmds.DBus.Protocol.SourceGenerator.Tests.csproj" />
+    <Project Path="test\Tmds.DBus.Generator.Tests\Tmds.DBus.Generator.Tests.csproj" />
     <Project Path="test\Tmds.DBus.Tests\Tmds.DBus.Tests.csproj" />
   </Folder>
   <Folder Name="/examples/">

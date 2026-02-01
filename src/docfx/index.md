@@ -23,7 +23,7 @@ Tmds.DBus provides .NET libraries for working with D-Bus from .NET.
 
 The following code generators are available for `Tmds.DBus.Protocol`:
 - [Tmds.DBus.Tool](tool.md): CLI tool that supports generating proxy only.
-- [Tmds.DBus.Protocol.SourceGenerator](generator.md): Roslyn source Generator that supports generating proxy only.
+- [Tmds.DBus.Generator](generator.md): Roslyn source Generator that supports generating proxy only.
 - [affederaffe/Tmds.DBus.SourceGenerator](https://github.com/affederaffe/Tmds.DBus.SourceGenerator): Roslyn source Generator that supports generating proxy and handler types.
 
 ## Tmds.DBus

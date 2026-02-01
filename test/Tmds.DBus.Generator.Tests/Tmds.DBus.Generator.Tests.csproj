@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Tmds.DBus.Protocol.SourceGenerator\Tmds.DBus.Protocol.SourceGenerator.csproj" />
+    <ProjectReference Include="..\..\src\Tmds.DBus.Generator\Tmds.DBus.Generator.csproj" />
     <ProjectReference Include="..\..\src\Tmds.DBus.Protocol\Tmds.DBus.Protocol.csproj" />
   </ItemGroup>
 

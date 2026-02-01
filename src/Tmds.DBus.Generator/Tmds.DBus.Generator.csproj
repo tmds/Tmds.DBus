@@ -5,7 +5,7 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <PackageId>Tmds.DBus.Protocol.SourceGenerator</PackageId>
+    <PackageId>Tmds.DBus.Generator</PackageId>
     <Description>Source generator for Tmds.DBus.Protocol that generates DBus proxy objects from XML files at compile-time.</Description>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
@@ -36,7 +36,7 @@
 
   <!-- Package the props file -->
   <ItemGroup>
-    <None Include="Tmds.DBus.Protocol.SourceGenerator.props" Pack="true" PackagePath="build" Visible="false" />
+    <None Include="Tmds.DBus.Generator.props" Pack="true" PackagePath="build" Visible="false" />
   </ItemGroup>
 
 </Project>

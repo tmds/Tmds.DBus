@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Xml.Linq;
@@ -107,7 +108,7 @@ namespace Tmds.DBus.Generator
                     var settings = new Tool.ProtocolGeneratorSettings
                     {
                         Namespace = ns,
-                        GeneratorDescription = "Tmds.DBus.Generator"
+                        GeneratorDescription = GetGeneratorDescription()
                     };
                     var generator = new Tool.ProtocolGenerator(settings);
 
@@ -215,6 +216,21 @@ namespace Tmds.DBus.Generator
             }
 
             return new ParsedXmlFile(additionalFile.Namespace, fileName, interfaces);
+        }
+
+        private static string GetGeneratorDescription()
+        {
+            var assembly = typeof(DBusSourceGenerator).Assembly;
+
+            string generatorVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
+            // strip the metadata (commit sha)
+            int plusIndex = generatorVersion.IndexOf('+');
+            if (plusIndex >= 0)
+            {
+                generatorVersion = generatorVersion.Substring(0, plusIndex);
+            }
+
+            return $"Tmds.DBus.Generator v{generatorVersion}";
         }
 
         private class ParsedXmlFile

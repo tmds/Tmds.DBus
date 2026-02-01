@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace Tmds.DBus.Protocol.SourceGenerator.Tests;
+namespace Tmds.DBus.Generator.Tests;
 
 public class CodeGenerationTests : TestsBase
 {

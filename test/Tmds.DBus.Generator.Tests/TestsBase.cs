@@ -5,11 +5,11 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
-using Tmds.DBus.Protocol.SourceGenerator;
+using Tmds.DBus.Generator;
 using VerifyXunit;
 using Xunit;
 
-namespace Tmds.DBus.Protocol.SourceGenerator.Tests;
+namespace Tmds.DBus.Generator.Tests;
 
 public record AdditionalFile(string FileName, string Content, string? Namespace = null);
 

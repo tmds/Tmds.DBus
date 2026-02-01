@@ -1,10 +1,10 @@
-# Tmds.DBus.Protocol.SourceGenerator
+# Tmds.DBus.Generator
 
-`Tmds.DBus.Protocol.SourceGenerator` is a Roslyn source generator that automatically generates C# proxy types from D-Bus interface XML files at compile time.
+`Tmds.DBus.Generator` is a Roslyn source generator that automatically generates C# proxy types from D-Bus interface XML files at compile time.
 
 ## Setup your project
 
-`Tmds.DBus.Protocol.SourceGenerator` does not add runtime dependencies to your application. You must also add a reference to `Tmds.DBus.Protocol` to provide the APIs that are targetted by the generator.
+`Tmds.DBus.Generator` does not add runtime dependencies to your application. You must also add a reference to `Tmds.DBus.Protocol` to provide the APIs that are targetted by the generator.
 
 D-Bus interface XML files are added to the project file through `AdditionalFiles` elements. These attributes are available:
 * `Include`: (required) path to the XML file. A file may include multiple interfaces.
@@ -22,7 +22,7 @@ The following shows an example project file:
 
   <ItemGroup>
     <PackageReference Include="Tmds.DBus.Protocol" Version="*" />
-    <PackageReference Include="Tmds.DBus.Protocol.SourceGenerator" Version="*" />
+    <PackageReference Include="Tmds.DBus.Generator" Version="*" />
   </ItemGroup>
 
   <ItemGroup>

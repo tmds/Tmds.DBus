@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
-namespace Tmds.DBus.Protocol.SourceGenerator.Tests;
+namespace Tmds.DBus.Generator.Tests;
 
 public class DiagnosticsTests : TestsBase
 {

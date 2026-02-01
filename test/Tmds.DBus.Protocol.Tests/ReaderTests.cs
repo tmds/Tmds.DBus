@@ -222,6 +222,42 @@ public class ReaderTests
         Assert.Equal("File handle not present.", exception.Message);
     }
 
+    [Fact]
+    public void ReadHandle_AlreadyRead_Throws()
+    {
+        byte handleIndex = 0;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(expected);
+        byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex, 0, 0, 0, handleIndex };
+
+        var exception = Assert.Throws<DBusUnexpectedValueException>(() =>
+        {
+            Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
+            using var handle1 = reader.ReadHandle<SafeFileHandle>();
+            using var handle2 = reader.ReadHandle<SafeFileHandle>();
+        });
+        Assert.Equal("The handle was already read.", exception.Message);
+    }
+
+    [Fact]
+    public void ReadHandleRaw_AlreadyRead_Throws()
+    {
+        byte handleIndex = 0;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(expected);
+        byte[] bigEndianData = new byte[] { 0, 0, 0, handleIndex, 0, 0, 0, handleIndex };
+
+        var exception = Assert.Throws<DBusUnexpectedValueException>(() =>
+        {
+            Reader reader = new Reader(isBigEndian: true, new System.Buffers.ReadOnlySequence<byte>(bigEndianData), handles: fds, fds.Count);
+            IntPtr handle1 = reader.ReadHandleRaw();
+            IntPtr handle2 = reader.ReadHandleRaw();
+        });
+        Assert.Equal("The handle was already read.", exception.Message);
+    }
+
     public bool Equals(VariantValue lhs, VariantValue other)
     {
         if (lhs.GetDBusSignature() != other.GetDBusSignature())

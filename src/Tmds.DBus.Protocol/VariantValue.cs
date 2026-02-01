@@ -809,7 +809,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     /// A handle can only be read once.
     /// </remarks>
     /// <exception cref="DBusReadException">The file descriptor is not present in the message.</exception>
-    /// <exception cref="InvalidOperationException">The handle was already read.</exception>
+    /// <exception cref="DBusUnexpectedValueException">The handle was already read.</exception>
     public T ReadHandle<
 #if NET6_0_OR_GREATER
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]

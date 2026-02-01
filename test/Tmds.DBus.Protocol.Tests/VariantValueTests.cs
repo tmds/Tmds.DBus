@@ -803,6 +803,24 @@ public class VariantValueTests
         Assert.Equal(expected, handle.DangerousGetHandle());
     }
 
+    [Fact]
+    public void UnixFd_AlreadyRead_Throws()
+    {
+        byte handleIndex = 0;
+        IntPtr expected = new IntPtr(-3);
+        using UnixFdCollection fds = new UnixFdCollection(isRawHandleCollection: true);
+        fds.AddHandle(expected);
+
+        var vv = new VariantValue(fds, handleIndex);
+
+        var exception = Assert.Throws<DBusUnexpectedValueException>(() =>
+        {
+            using var handle1 = vv.ReadHandle<SafeFileHandle>();
+            using var handle2 = vv.ReadHandle<SafeFileHandle>();
+        });
+        Assert.Equal("The handle was already read.", exception.Message);
+    }
+
     private static VariantValue Nest(VariantValue vv, byte nesting)
     {
         for (int i = 0; i < nesting; i++)

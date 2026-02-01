@@ -10,7 +10,7 @@ public ref partial struct Reader
     /// A handle can only be read once. Use <see cref="SkipSafeHandle"/> to avoid consuming the handle.
     /// </remarks>
     /// <exception cref="DBusReadException">The file descriptor is not present in the message.</exception>
-    /// <exception cref="InvalidOperationException">The handle was already read.</exception>
+    /// <exception cref="DBusUnexpectedValueException">The handle was already read.</exception>
     public T ReadHandle<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]T>() where T : SafeHandle, new()
         => ReadHandleGeneric<T>();
 
@@ -33,7 +33,7 @@ public ref partial struct Reader
     /// The handle is still owned (i.e. Disposed) by the <see cref="Message"/>.
     /// </remarks>
     /// <exception cref="DBusReadException">The file descriptor is not present in the message.</exception>
-    /// <exception cref="InvalidOperationException">The handle was already read.</exception>
+    /// <exception cref="DBusUnexpectedValueException">The handle was already read.</exception>
     public IntPtr ReadHandleRaw()
     {
         int idx = (int)ReadUInt32();

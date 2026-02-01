@@ -14,11 +14,12 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <Description>Tmds.DBus.Protocol Library</Description>
+    <Description>Modern, low-level, high-performance D-Bus library for .NET that is NativeAOT compatible.</Description>
     <Authors>Tom Deseyn</Authors>
     <PackageTags>dbus</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageIcon>icon_128.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
     <Copyright>Tom Deseyn</Copyright>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\sign.snk</AssemblyOriginatorKeyFile>
@@ -27,6 +28,7 @@
 
   <ItemGroup>
     <None Include="../icon/icon_128.png" Pack="true" PackagePath="/" />
+    <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
   <ItemGroup>

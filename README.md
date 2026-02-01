@@ -4,25 +4,11 @@
 
 CI NuGet packages are built from the `main` branch and pushed to the https://www.myget.org/F/tmds/api/v3/index feed.
 
-NuGet.Config:
-```
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <packageSources>
-    <add key="tmds" value="https://www.myget.org/F/tmds/api/v3/index.json" />
-  </packageSources>
-</configuration>
-```
-
 To add a package using `dotnet`:
 
 ```
-dotnet add package --prerelease Tmds.DBus.Protocol
+dotnet add package --source https://www.myget.org/F/tmds/api/v3/index.json --prerelease Tmds.DBus.Protocol
 ```
-
-This will add the package to your `csproj` file and use the latest available version.
-
-You can change the package `Version` in the `csproj` file to `*-*`. Then it will restore newer versions when they become available on the CI feed.
 
 # Further Reading
 

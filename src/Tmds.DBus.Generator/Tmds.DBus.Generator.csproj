@@ -7,8 +7,13 @@
     <Nullable>enable</Nullable>
     <PackageId>Tmds.DBus.Generator</PackageId>
     <Description>Source generator for Tmds.DBus.Protocol that generates DBus proxy objects from XML files at compile-time.</Description>
+    <PackageIcon>icon_128.png</PackageIcon>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../icon/icon_128.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />

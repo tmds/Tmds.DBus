@@ -64,6 +64,15 @@
         ]
       }
     ],
+    "resource": [
+      {
+        "src": "../icon",
+        "files": [
+          "icon.svg",
+          "icon_128.png"
+        ]
+      }
+    ],
     "output": "../../_site",
     "template": [
       "default",
@@ -72,6 +81,8 @@
     "globalMetadata": {
       "_appTitle": "Tmds.DBus Documentation",
       "_appName": "Tmds.DBus",
+      "_appLogoPath": "icon.svg",
+      "_appFaviconPath": "icon.svg",
       "_enableSearch": true
     }
   }

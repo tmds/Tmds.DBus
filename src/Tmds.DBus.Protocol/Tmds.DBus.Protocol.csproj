@@ -18,11 +18,16 @@
     <Authors>Tom Deseyn</Authors>
     <PackageTags>dbus</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>icon_128.png</PackageIcon>
     <Copyright>Tom Deseyn</Copyright>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>..\..\sign.snk</AssemblyOriginatorKeyFile>
     <PublicSign>true</PublicSign>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../icon/icon_128.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="..\..\sign.snk" />

@@ -57,6 +57,7 @@ public class CodeGenerationTests : TestsBase
                   <arg name="result" type="d"/>
                 </signal>
                 <property name="LastResult" type="d" access="read"/>
+                <property name="CurrentPath" type="o" access="read"/>
               </interface>
               <interface name="org.example.Settings">
                 <method name="Save"/>

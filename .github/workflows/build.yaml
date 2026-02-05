@@ -23,6 +23,7 @@ jobs:
         run: |
           dotnet test --project test/Tmds.DBus.Tests
           dotnet test --project test/Tmds.DBus.Protocol.Tests
+          dotnet test --project test/Tmds.DBus.Generator.Tests
 
       - name: Build tool
         run: |

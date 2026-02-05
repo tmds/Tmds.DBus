@@ -51,6 +51,7 @@ public abstract class TestsBase : VerifyBase
                     <TargetFramework>netstandard2.0</TargetFramework>
                     <LangVersion>11</LangVersion>
                     <Nullable>enable</Nullable>
+                    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
                   </PropertyGroup>
 
                   <ItemGroup>

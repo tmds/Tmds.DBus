@@ -394,7 +394,7 @@ namespace Tmds.DBus.Tool
                     string nullableType = GetNullableType(property.DotnetReadType);
                     AppendLine($"{nullableType} {propertiesInterfaceName}.{property.NameUpper}");
                     _indentation++;
-                    AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) ? {property.UnderscoreNameLower} : null;");
+                    AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) ? {property.UnderscoreNameLower} : default({nullableType});");
                     _indentation--;
                 }
 

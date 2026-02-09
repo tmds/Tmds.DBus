@@ -2,7 +2,7 @@
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
   <PropertyGroup>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <VersionPrefix>0.90.2</VersionPrefix>
+    <VersionPrefix>0.90.3</VersionPrefix>
     <DeterministicSourcePaths Condition="'$(Configuration)' == 'Release'">true</DeterministicSourcePaths>
   </PropertyGroup>
 </Project>

@@ -857,16 +857,9 @@ class InnerConnection : IDisposable
                 }
                 else
                 {
-                    try
-                    {
-                        var valueReaderState = (MessageValueReader<T>)reader!;
-                        T value = valueReaderState(message, rs);
-                        valueHandlerState(null, value, rs, hs);
-                    }
-                    catch (Exception ex)
-                    {
-                        observer.Dispose(ex, ignoreSynchronizationContext: true);
-                    }
+                    var valueReaderState = (MessageValueReader<T>)reader!;
+                    T value = valueReaderState(message, rs);
+                    valueHandlerState(null, value, rs, hs);
                 }
             };
 

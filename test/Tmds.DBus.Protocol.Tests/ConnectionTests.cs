@@ -535,13 +535,9 @@ namespace Tmds.DBus.Protocol.Tests
 
             var exception = await exceptionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-            Assert.IsType<InvalidOperationException>(exception);
-            Assert.Equal("Reader error", exception.Message);
-            Assert.Equal(1, handlerCallCount);
-
-            // Verify observer is disposed by trying to send another signal
-            SendHelloWorldSignal(conn2);
-            await Task.Delay(10); // Give time for signal to be processed
+            Assert.IsType<DisconnectedException>(exception);
+            Assert.IsType<InvalidOperationException>(exception.InnerException);
+            Assert.Equal("Reader error", exception.InnerException!.Message);
             Assert.Equal(1, handlerCallCount);
         }
 
@@ -578,14 +574,10 @@ namespace Tmds.DBus.Protocol.Tests
 
             var exception = await exceptionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-            Assert.IsType<InvalidOperationException>(exception);
-            Assert.Equal("Handler error", exception.Message);
+            Assert.IsType<DisconnectedException>(exception);
+            Assert.IsType<InvalidOperationException>(exception.InnerException);
+            Assert.Equal("Handler error", exception.InnerException!.Message);
             Assert.Equal(2, handlerCallCount); // Called once with message, once with exception
-
-            // Verify observer is disposed by trying to send another signal
-            SendHelloWorldSignal(conn2);
-            await Task.Delay(10); // Give time for signal to be processed
-            Assert.Equal(2, handlerCallCount); // Should still be 2, observer disposed
         }
     }
 }

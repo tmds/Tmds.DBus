@@ -82,16 +82,16 @@ namespace Tmds.DBus.Protocol.Tests
             }
         }
 
-        public ValueTask<bool> TrySendMessageAsync(MessageBuffer message)
+        public bool TrySendMessage(MessageBuffer message)
         {
             _writeQueue.Enqueue(message);
             _writeSemaphore.Release();
-            return ValueTask.FromResult(true);
+            return true;
         }
 
         public void Close(Exception? closeReason = null)
         {
-            TrySendMessageAsync(null!); // Use null as EOF.
+            TrySendMessage(null!); // Use null as EOF.
         }
 
         public void BecomeMonitor()

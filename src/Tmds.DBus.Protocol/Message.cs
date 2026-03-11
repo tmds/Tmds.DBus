@@ -340,7 +340,9 @@ public sealed class Message
                     }
                     break;
                 default:
-                    throw new NotSupportedException();
+                    // Header fields with an unknown or unexpected field code must be ignored, though again they must still be well-formed.
+                    _ = reader.ReadVariantValue(sig);
+                    break;
             }
         }
         reader.AlignStruct();

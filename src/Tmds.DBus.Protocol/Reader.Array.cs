@@ -100,12 +100,16 @@ public ref partial struct Reader
 
     private unsafe T[] ReadArrayOfNumeric<T>() where T : unmanaged
     {
-        int length = ReadInt32();
+        uint length = ReadUInt32();
+        if (length > ProtocolConstants.MaxArrayLength)
+        {
+            ThrowHelper.ThrowReaderArrayLengthExceeded(length);
+        }
         if (sizeof(T) > 4)
         {
             AlignReader(sizeof(T));
         }
-        T[] array = new T[length / sizeof(T)];
+        T[] array = new T[length / (uint)sizeof(T)];
         bool dataRead = _reader.TryCopyTo(MemoryMarshal.AsBytes(array.AsSpan()));
         if (!dataRead)
         {

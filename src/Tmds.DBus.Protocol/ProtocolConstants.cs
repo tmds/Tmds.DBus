@@ -3,6 +3,7 @@ namespace Tmds.DBus.Protocol;
 static class ProtocolConstants
 {
     public const int MaxSignatureLength = 256;
+    public const uint MaxArrayLength = 64 * 1024 * 1024;
     public const int StructAlignment = 8;
     public const int UInt32Alignment = 4;
 

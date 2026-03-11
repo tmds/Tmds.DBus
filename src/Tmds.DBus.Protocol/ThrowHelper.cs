@@ -41,6 +41,12 @@ static class ThrowHelper
     }
 
     [DoesNotReturn]
+    internal static void ThrowReaderArrayLengthExceeded(uint length)
+    {
+        throw new DBusReadException($"Array length {length} exceeds the D-Bus maximum of {ProtocolConstants.MaxArrayLength} bytes.");
+    }
+
+    [DoesNotReturn]
     internal static void ThrowReaderInvalidUTF8()
     {
         throw new DBusReadException("Invalid UTF-8 sequence.");

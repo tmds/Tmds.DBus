@@ -59,6 +59,10 @@ public ref partial struct Reader
     internal ArrayEnd ReadArrayStart(int alignment)
     {
         uint arrayLength = ReadUInt32();
+        if (arrayLength > ProtocolConstants.MaxArrayLength)
+        {
+            ThrowHelper.ThrowReaderArrayLengthExceeded(arrayLength);
+        }
         AlignReader(alignment);
         if (_reader.Remaining < arrayLength)
         {

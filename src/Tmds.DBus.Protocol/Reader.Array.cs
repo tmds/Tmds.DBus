@@ -160,7 +160,7 @@ public ref partial struct Reader
         {
             long l = *(long*)&d;
             l = BinaryPrimitives.ReverseEndianness(l);
-            return *(double*)&d;
+            return *(double*)&l;
         }
 #endif
     }

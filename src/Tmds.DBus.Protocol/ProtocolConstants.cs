@@ -32,7 +32,7 @@ static class ProtocolConstants
             case DBusType.Double: return 8;
             case DBusType.String: return 4;
             case DBusType.ObjectPath: return 4;
-            case DBusType.Signature: return 4;
+            case DBusType.Signature: return 1;
             case DBusType.Array: return 4;
             case DBusType.Struct: return StructAlignment;
             case DBusType.Variant: return 1;

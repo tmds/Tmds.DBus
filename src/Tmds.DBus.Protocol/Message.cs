@@ -250,6 +250,11 @@ public sealed class Message
 
         long totalLength = seqReader.Consumed + headerFieldLength + bodyLength;
 
+        if (totalLength > ProtocolConstants.MaxMessageLength)
+        {
+            throw new DBusReadException($"Message length {totalLength} exceeds the D-Bus maximum of {ProtocolConstants.MaxMessageLength} bytes.");
+        }
+
         if (sequence.Length < totalLength)
         {
             return null;

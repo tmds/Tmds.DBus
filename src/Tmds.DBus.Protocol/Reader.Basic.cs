@@ -185,9 +185,9 @@ public ref partial struct Reader
     private ReadOnlySpan<byte> ReadSpan(int length)
     {
         var span = _reader.UnreadSpan;
-        if (span.Length >= length)
+        if (span.Length > length)
         {
-            _reader.Advance(length + 1); // we verified span has enough data
+            _reader.Advance(length + 1);
             return span.Slice(0, length);
         }
         else
@@ -197,7 +197,11 @@ public ref partial struct Reader
             {
                 ThrowHelper.ThrowReaderUnexpectedEndOfData();
             }
-            _reader.Advance(length + 1); // TryCopyTo succeeded, data is available
+            _reader.Advance(length);
+            if (!_reader.TryRead(out byte _))
+            {
+                ThrowHelper.ThrowReaderUnexpectedEndOfData();
+            }
             return new ReadOnlySpan<byte>(buffer);
         }
     }

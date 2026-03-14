@@ -19,7 +19,7 @@ static class AddressParser
     public static bool TryGetNextEntry(string addresses, ref AddressEntry address)
     {
         int offset = address.String is null ? 0 : address.Offset + address.Count + 1;
-        if (offset >= addresses.Length - 1)
+        if (offset >= addresses.Length)
         {
             return false;
         }
@@ -145,7 +145,9 @@ static class AddressParser
         {
             return value.AsString();
         }
-        Span<char> unescaped = stackalloc char[Constants.StackAllocCharThreshold];
+        Span<char> unescaped = value.Length <= Constants.StackAllocCharThreshold
+            ? stackalloc char[Constants.StackAllocCharThreshold]
+            : new char[value.Length];
         int pos = 0;
         for (int i = 0; i < value.Length;)
         {
@@ -154,7 +156,7 @@ static class AddressParser
             {
                 unescaped[pos++] = c;
             }
-            else if (i + 2 < value.Length)
+            else if (i + 2 <= value.Length)
             {
                 int a = FromHexChar(value[i++]);
                 int b = FromHexChar(value[i++]);

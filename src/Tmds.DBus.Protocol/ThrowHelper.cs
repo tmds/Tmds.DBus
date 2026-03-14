@@ -53,6 +53,12 @@ static class ThrowHelper
     }
 
     [DoesNotReturn]
+    internal static void ThrowReaderRecursionDepthExceeded()
+    {
+        throw new DBusReadException($"Variant recursion exceeds the allowed ({ProtocolConstants.MaxVariantRecursionDepth}).");
+    }
+
+    [DoesNotReturn]
     internal static void ThrowReaderNoFileHandle()
     {
         throw new DBusReadException("File handle not present.");

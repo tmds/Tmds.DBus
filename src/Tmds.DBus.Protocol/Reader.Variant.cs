@@ -7,26 +7,31 @@ public ref partial struct Reader
     /// </summary>
     /// <returns>The variant value.</returns>
     public VariantValue ReadVariantValue()
-        => ReadVariantValue(nesting: 0);
+        => ReadVariantValue(nesting: 0, recursionDepth: 0);
 
-    private VariantValue ReadVariantValue(byte nesting)
+    private VariantValue ReadVariantValue(byte nesting, int recursionDepth)
     {
         ReadOnlySpan<byte> signature = ReadSignatureAsSpan();
-        return ReadVariantValue(signature, nesting);
+        return ReadVariantValue(signature, nesting, recursionDepth);
     }
 
-    internal VariantValue ReadVariantValue(ReadOnlySpan<byte> signature, byte nesting = 0)
+    internal VariantValue ReadVariantValue(ReadOnlySpan<byte> signature, byte nesting = 0, int recursionDepth = 0)
     {
         SignatureReader sigReader = new(signature);
         if (!sigReader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
         {
             ThrowInvalidSignature($"Invalid variant signature: {ThrowHelper.SignatureToStringNoThrow(signature)}");
         }
-        return ReadTypeAsVariantValue(type, innerSignature, nesting);
+        return ReadTypeAsVariantValue(type, innerSignature, nesting, recursionDepth);
     }
 
-    private VariantValue ReadTypeAsVariantValue(DBusType type, ReadOnlySpan<byte> innerSignature, byte nesting)
+    private VariantValue ReadTypeAsVariantValue(DBusType type, ReadOnlySpan<byte> innerSignature, byte nesting, int recursionDepth)
     {
+        recursionDepth++;
+        if (recursionDepth > ProtocolConstants.MaxVariantRecursionDepth)
+        {
+            ThrowHelper.ThrowReaderRecursionDepthExceeded();
+        }
         SignatureReader sigReader;
         switch (type)
         {
@@ -59,7 +64,7 @@ public ref partial struct Reader
                 return new VariantValue(_handles, idx, nesting);
             case DBusType.Variant:
                 nesting += 1;
-                return ReadVariantValue(nesting);
+                return ReadVariantValue(nesting, recursionDepth);
             case DBusType.Array:
                 ReadOnlySpan<byte> itemSignature = innerSignature;
                 sigReader = new(innerSignature);
@@ -83,10 +88,10 @@ public ref partial struct Reader
                     while (HasNext(arrayEnd))
                     {
                         AlignStruct();
-                        VariantValue key = ReadTypeAsVariantValue(keyType, keyInnerSignature, nesting: 0);
+                        VariantValue key = ReadTypeAsVariantValue(keyType, keyInnerSignature, nesting: 0, recursionDepth);
                         VariantValue value = valueType == DBusType.Variant
-                                                ? ReadVariantValue() // unwrap
-                                                : ReadTypeAsVariantValue(valueType, valueInnerSignature, nesting: 0);
+                                                ? ReadVariantValue(nesting: 0, recursionDepth) // unwrap
+                                                : ReadTypeAsVariantValue(valueType, valueInnerSignature, nesting: 0, recursionDepth);
                         items.Add(new KeyValuePair<VariantValue, VariantValue>(key, value));
                     }
                     ReadOnlySpan<byte> valueSignature = itemSignature.Slice(2, itemSignature.Length - 3);
@@ -141,8 +146,8 @@ public ref partial struct Reader
                         while (HasNext(arrayEnd))
                         {
                             VariantValue value = type == DBusType.Variant
-                                                    ? ReadVariantValue() // unwrap
-                                                    : ReadTypeAsVariantValue(type, innerSignature, nesting: 0);
+                                                    ? ReadVariantValue(nesting: 0, recursionDepth) // unwrap
+                                                    : ReadTypeAsVariantValue(type, innerSignature, nesting: 0, recursionDepth);
                             items.Add(value);
                         }
                         return new VariantValue(ToVariantValueType(type, innerSignature), VariantValue.GetSignatureObject(items.Count, itemSignature), items.ToArray(), nesting);
@@ -161,11 +166,11 @@ public ref partial struct Reader
                         if (type == DBusType.Variant)
                         {
                             variantMask |= (1L << i);
-                            value = ReadVariantValue(); // unwrap
+                            value = ReadVariantValue(nesting: 0, recursionDepth); // unwrap
                         }
                         else
                         {
-                            value = ReadTypeAsVariantValue(type, innerSignature, nesting: 0);
+                            value = ReadTypeAsVariantValue(type, innerSignature, nesting: 0, recursionDepth);
                         }
                         items.Add(value);
                         i++;

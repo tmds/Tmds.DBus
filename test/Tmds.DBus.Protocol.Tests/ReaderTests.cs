@@ -533,6 +533,85 @@ public class ReaderTests
         }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadVariantValue_VariantRecursionDepthLimit(bool exceedLimit)
+    {
+        // Each variant level calls ReadTypeAsVariantValue once, plus one more for the final byte value.
+        int depth = ProtocolConstants.MaxVariantRecursionDepth - 1 + (exceedLimit ? 2 : 0);
+        byte[] data = new byte[depth * 3 + 4];
+        int offset = 0;
+        for (int i = 0; i < depth; i++)
+        {
+            data[offset++] = 1;            // signature length
+            data[offset++] = (byte)'v';    // variant type
+            data[offset++] = 0;            // null terminator
+        }
+        data[offset++] = 1;                // signature length
+        data[offset++] = (byte)'y';        // byte type
+        data[offset++] = 0;                // null terminator
+        data[offset++] = 42;               // byte value
+
+        if (exceedLimit)
+        {
+            var exception = Assert.Throws<DBusReadException>(() =>
+            {
+                Reader reader = new Reader(isBigEndian: false, new System.Buffers.ReadOnlySequence<byte>(data));
+                reader.ReadVariantValue();
+            });
+            Assert.Equal($"Variant recursion exceeds the allowed ({ProtocolConstants.MaxVariantRecursionDepth}).", exception.Message);
+        }
+        else
+        {
+            Reader reader = new Reader(isBigEndian: false, new System.Buffers.ReadOnlySequence<byte>(data));
+            reader.ReadVariantValue();
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadVariantValue_StructVariantRecursionDepthLimit(bool exceedLimit)
+    {
+        // Each (v) level calls ReadTypeAsVariantValue twice (struct + variant), plus one for the final byte.
+        int depth = exceedLimit
+            ? ProtocolConstants.MaxVariantRecursionDepth + 1
+            : (ProtocolConstants.MaxVariantRecursionDepth - 1) / 2;
+        List<byte> bytes = new();
+        for (int i = 0; i < depth; i++)
+        {
+            bytes.Add(3);                   // signature length
+            bytes.Add((byte)'(');
+            bytes.Add((byte)'v');
+            bytes.Add((byte)')');
+            bytes.Add(0);                   // null terminator
+            // Pad to 8-byte alignment for struct.
+            while (bytes.Count % 8 != 0)
+                bytes.Add(0);
+        }
+        // Innermost variant value: a byte.
+        bytes.Add(1);                       // signature length
+        bytes.Add((byte)'y');               // byte type
+        bytes.Add(0);                       // null terminator
+        bytes.Add(42);                      // byte value
+
+        if (exceedLimit)
+        {
+            var exception = Assert.Throws<DBusReadException>(() =>
+            {
+                Reader reader = new Reader(isBigEndian: false, new System.Buffers.ReadOnlySequence<byte>(bytes.ToArray()));
+                reader.ReadVariantValue();
+            });
+            Assert.Equal($"Variant recursion exceeds the allowed ({ProtocolConstants.MaxVariantRecursionDepth}).", exception.Message);
+        }
+        else
+        {
+            Reader reader = new Reader(isBigEndian: false, new System.Buffers.ReadOnlySequence<byte>(bytes.ToArray()));
+            reader.ReadVariantValue();
+        }
+    }
+
     private void TestRead<T>(T expected, ReadFunction<T> readFunction, int alignment, byte[] bigEndianData, byte[] littleEndianData, Action<T, T>? assertEquals = null)
     {
         assertEquals ??= (T expected, T value) => Assert.Equal(expected, value);

@@ -9,10 +9,9 @@ public static class DBusAddress
 {
     private const string LibX11 = "libX11.so.6";
 
-    private static bool _systemAddressResolved = false;
-    private static string? _systemAddress = null;
-    private static bool _sessionAddressResolved = false;
-    private static string? _sessionAddress = null;
+    // null means not yet resolved; empty string means resolved to no address.
+    private static string? _systemAddress;
+    private static string? _sessionAddress;
 
     /// <summary>
     /// Gets the D-Bus system bus address.
@@ -21,20 +20,21 @@ public static class DBusAddress
     {
         get
         {
-            if (_systemAddressResolved)
+            string? address = _systemAddress;
+            if (address is not null)
             {
-                return _systemAddress;
+                return address.Length == 0 ? null : address;
             }
 
-            _systemAddress = Environment.GetEnvironmentVariable("DBUS_SYSTEM_BUS_ADDRESS");
+            address = Environment.GetEnvironmentVariable("DBUS_SYSTEM_BUS_ADDRESS");
 
-            if (string.IsNullOrEmpty(_systemAddress) && !PlatformDetection.IsWindows())
+            if (string.IsNullOrEmpty(address) && !PlatformDetection.IsWindows())
             {
-                _systemAddress = "unix:path=/var/run/dbus/system_bus_socket";
+                address = "unix:path=/var/run/dbus/system_bus_socket";
             }
 
-            _systemAddressResolved = true;
-            return _systemAddress;
+            _systemAddress = address ?? "";
+            return address;
         }
     }
 
@@ -45,27 +45,28 @@ public static class DBusAddress
     {
         get
         {
-            if (_sessionAddressResolved)
+            string? address = _sessionAddress;
+            if (address is not null)
             {
-                return _sessionAddress;
+                return address.Length == 0 ? null : address;
             }
 
-            _sessionAddress = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
+            address = Environment.GetEnvironmentVariable("DBUS_SESSION_BUS_ADDRESS");
 
-            if (string.IsNullOrEmpty(_sessionAddress))
+            if (string.IsNullOrEmpty(address))
             {
                 if (PlatformDetection.IsWindows())
                 {
-                    _sessionAddress = GetSessionBusAddressFromSharedMemory();
+                    address = GetSessionBusAddressFromSharedMemory();
                 }
                 else
                 {
-                    _sessionAddress = GetSessionBusAddressFromX11();
+                    address = GetSessionBusAddressFromX11();
                 }
             }
 
-            _sessionAddressResolved = true;
-            return _sessionAddress;
+            _sessionAddress = address ?? "";
+            return address;
         }
     }
 
@@ -78,58 +79,67 @@ public static class DBusAddress
             {
                 return null;
             }
-            string username;
-            unsafe
+            try
             {
-                const int BufLen = 1024;
-                byte* stackBuf = stackalloc byte[BufLen];
-                Passwd passwd;
-                IntPtr result;
-                getpwuid_r(getuid(), out passwd, stackBuf, BufLen, out result);
-                if (result != IntPtr.Zero)
+                string username;
+                unsafe
                 {
-                    username = Marshal.PtrToStringAnsi(passwd.Name)!;
+                    const int BufLen = 1024;
+                    byte* stackBuf = stackalloc byte[BufLen];
+                    Passwd passwd;
+                    IntPtr result;
+                    getpwuid_r(getuid(), out passwd, stackBuf, BufLen, out result);
+                    if (result != IntPtr.Zero)
+                    {
+                        username = Marshal.PtrToStringAnsi(passwd.Name)!;
+                    }
+                    else
+                    {
+                        return null;
+                    }
                 }
-                else
+                var machineId = DBusEnvironment.MachineId.Replace("-", string.Empty);
+                var selectionName = $"_DBUS_SESSION_BUS_SELECTION_{username}_{machineId}";
+                var selectionAtom = XInternAtom(display, selectionName, false);
+                if (selectionAtom == IntPtr.Zero)
                 {
                     return null;
                 }
-            }
-            var machineId = DBusEnvironment.MachineId.Replace("-", string.Empty);
-            var selectionName = $"_DBUS_SESSION_BUS_SELECTION_{username}_{machineId}";
-            var selectionAtom = XInternAtom(display, selectionName, false);
-            if (selectionAtom == IntPtr.Zero)
-            {
-                return null;
-            }
-            var owner = XGetSelectionOwner(display, selectionAtom);
-            if (owner == IntPtr.Zero)
-            {
-                return null;
-            }
-            var addressAtom = XInternAtom(display, "_DBUS_SESSION_BUS_ADDRESS", false);
-            if (addressAtom == IntPtr.Zero)
-            {
-                return null;
-            }
+                var owner = XGetSelectionOwner(display, selectionAtom);
+                if (owner == IntPtr.Zero)
+                {
+                    return null;
+                }
+                var addressAtom = XInternAtom(display, "_DBUS_SESSION_BUS_ADDRESS", false);
+                if (addressAtom == IntPtr.Zero)
+                {
+                    return null;
+                }
 
-            IntPtr actualReturnType;
-            IntPtr actualReturnFormat;
-            IntPtr nrItemsReturned;
-            IntPtr bytesAfterReturn;
-            IntPtr propReturn;
+                IntPtr actualReturnType;
+                IntPtr actualReturnFormat;
+                IntPtr nrItemsReturned;
+                IntPtr bytesAfterReturn;
+                IntPtr propReturn;
 
-            int rv = XGetWindowProperty(display, owner, addressAtom, 0, 1024, false, (IntPtr)31 /* XA_STRING */,
-                out actualReturnType, out actualReturnFormat, out nrItemsReturned, out bytesAfterReturn, out propReturn);
-            string? address = rv == 0 ? Marshal.PtrToStringAnsi(propReturn) : null;
-            if (propReturn != IntPtr.Zero)
-            {
-                XFree(propReturn);
+                int rv = XGetWindowProperty(display, owner, addressAtom, 0, 1024, false, (IntPtr)31 /* XA_STRING */,
+                    out actualReturnType, out actualReturnFormat, out nrItemsReturned, out bytesAfterReturn, out propReturn);
+                try
+                {
+                    return rv == 0 ? Marshal.PtrToStringAnsi(propReturn) : null;
+                }
+                finally
+                {
+                    if (propReturn != IntPtr.Zero)
+                    {
+                        XFree(propReturn);
+                    }
+                }
             }
-
-            XCloseDisplay(display);
-
-            return address;
+            finally
+            {
+                XCloseDisplay(display);
+            }
         }
         else
         {
@@ -167,34 +177,37 @@ public static class DBusAddress
             return null;
         }
 
-        MemoryMappedViewStream s = shmem.CreateViewStream();
-        long len = s.Length;
-        if (maxlen >= 0 && len > maxlen)
+        using (shmem)
+        using (MemoryMappedViewStream s = shmem.CreateViewStream())
         {
-            len = maxlen;
-        }
-        if (len == 0)
-        {
-            return string.Empty;
-        }
-        if (len > int.MaxValue)
-        {
-            len = int.MaxValue;
-        }
-        byte[] bytes = new byte[len];
-        int count = s.Read(bytes, 0, (int)len);
-        if (count <= 0)
-        {
-            return string.Empty;
-        }
+            long len = s.Length;
+            if (maxlen >= 0 && len > maxlen)
+            {
+                len = maxlen;
+            }
+            if (len == 0)
+            {
+                return string.Empty;
+            }
+            if (len > int.MaxValue)
+            {
+                len = int.MaxValue;
+            }
+            byte[] bytes = new byte[len];
+            int count = s.Read(bytes, 0, (int)len);
+            if (count <= 0)
+            {
+                return string.Empty;
+            }
 
-        count = 0;
-        while (count < len && bytes[count] != 0)
-        {
-            count++;
-        }
+            count = 0;
+            while (count < len && bytes[count] != 0)
+            {
+                count++;
+            }
 
-        return Encoding.UTF8.GetString(bytes, 0, count);
+            return Encoding.UTF8.GetString(bytes, 0, count);
+        }
     }
 
     struct Passwd

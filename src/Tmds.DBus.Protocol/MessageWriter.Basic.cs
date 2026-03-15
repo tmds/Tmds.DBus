@@ -295,7 +295,7 @@ public ref partial struct MessageWriter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void WritePrimitiveCore<T>(T value)
     {
-        int length = Marshal.SizeOf<T>();
+        int length = Unsafe.SizeOf<T>();
         WritePadding(length);
         var span = GetSpan(length);
         Unsafe.WriteUnaligned<T>(ref MemoryMarshal.GetReference(span), value);

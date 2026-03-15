@@ -909,7 +909,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         }
 
         var values = _o as KeyValuePair<VariantValue, VariantValue>[];
-        if (_o is null)
+        if (values is null)
         {
             ThrowCannotRetrieveAs(Type, VariantValueType.Dictionary);
         }
@@ -1696,7 +1696,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
 
         private static long GetStructVariantMask(ReadOnlySpan<byte> signature)
         {
-            signature = signature.Slice(1, signature.Length - 1);
+            signature = signature.Slice(1, signature.Length - 2);
             int i = 0;
             long mask = 0;
             while (TryReadSingleCompleteType(ref signature, out ReadOnlySpan<byte> itemSignature))
@@ -1898,7 +1898,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
     internal VariantValueType GetStructFieldType(int index)
     {
         EnsureTypeIs(VariantValueType.Struct);
-        if (index < 0 || index > UnsafeCount)
+        if (index < 0 || index >= UnsafeCount)
         {
             throw new IndexOutOfRangeException();
         }
@@ -2070,7 +2070,7 @@ public readonly struct VariantValue : IEquatable<VariantValue>
         {
             0 => $"[{type}{suffix}]",
             1 => $"[{nameof(VariantValueType.Variant)}<{type}{suffix}>]",
-            _ => $"[{nameof(VariantValueType.Variant)}^{nesting}<{type}{suffix}]>"
+            _ => $"[{nameof(VariantValueType.Variant)}^{nesting}<{type}{suffix}>]"
         };
     }
 

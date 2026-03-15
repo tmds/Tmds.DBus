@@ -137,7 +137,7 @@ static partial class TypeModel
                 type == typeof(Struct<,,,,,,,,>) ||
                 type == typeof(Struct<,,,,,,,,,>))
             {
-                foreach (var innerType in type.GenericTypeArguments)
+                foreach (var innerType in typeof(T).GenericTypeArguments)
                 {
                     EnsureSupportedVariantType(innerType);
                 }
@@ -199,7 +199,7 @@ static partial class TypeModel
                 typeDefinition == typeof(Struct<,,,,,,,,>) ||
                 typeDefinition == typeof(Struct<,,,,,,,,,>))
             {
-                foreach (var innerType in typeDefinition.GenericTypeArguments)
+                foreach (var innerType in type.GenericTypeArguments)
                 {
                     EnsureSupportedVariantType(innerType);
                 }

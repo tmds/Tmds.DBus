@@ -260,6 +260,21 @@ public class PathNodeDictionaryTests
     }
 
     [Fact]
+    public void RollbackRemovesParentAndChildNodes()
+    {
+        var dictionary = new PathNodeDictionary();
+        Assert.Throws<FormatException>(() =>
+        dictionary.AddMethodHandlers(
+        [
+            new MethodHandler("/root1"),
+            new MethodHandler("/root1/node1"),
+            new MethodHandler("invalid_path"),
+        ]));
+
+        Assert.Equal(0, dictionary.Count);
+    }
+
+    [Fact]
     public void RemoveHandlersDoesntRemovePreExistingParentNodes()
     {
         var dictionary = new PathNodeDictionary();

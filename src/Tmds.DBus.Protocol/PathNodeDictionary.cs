@@ -238,42 +238,9 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
 
     private void RemoveMethodHandlers(IReadOnlyList<IPathMethodHandler> methodHandlers, int count)
     {
-        // We start by (optimistically) removing all nodes (assuming they form a tree that is pruned).
-        // If there are nodes that are still needed to serve as parent nodes, we'll add them back at the end.
-        (string Path, PathNode Node)[] nodes = new (string, PathNode)[count];
-        int j = 0;
         for (int i = 0; i < count; i++)
         {
-            string path = methodHandlers[i].Path;
-            if (_dictionary.Remove(path, out PathNode? node))
-            {
-                nodes[j++] = (path, node);
-                node.MethodHandler = null;
-            }
-        }
-        count = j; j = 0;
-        
-        // Reverse sort by path length to remove leaves before parents.
-        Array.Sort(nodes, 0, count, RemoveKeyComparerInstance);
-        for (int i = 0; i < count; i++)
-        {
-            var node = nodes[i];
-            if (node.Node.ChildNameCount == 0)
-            {
-                RemoveFromParent(node.Path, node.Node);
-            }
-            else
-            {
-                nodes[j++] = node;
-            }
-        }
-        count = j; j = 0;
-
-        // Add back the nodes that serve as parent nodes.
-        for (int i = 0; i < count; i++)
-        {
-            var node = nodes[i];
-            _dictionary[node.Path] = node.Node;
+            RemoveMethodHandler(methodHandlers[i].Path);
         }
     }
 
@@ -287,12 +254,8 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
         Debug.Assert(parent.ChildNameCount >= 1, "node is expected to be a known child");
         if (parent.ChildNameCount == 1) // We're the only child.
         {
-            if (parent.MethodHandler is not null)
-            {
-                // Parent is still needed for the MethodHandler.
-                parent.ClearChildNames();
-            }
-            else
+            parent.ClearChildNames();
+            if (parent.MethodHandler is null)
             {
 // Suppress netstandard2.0 nullability warnings around NetstandardExtensions.Remove.
 #if NETSTANDARD2_0
@@ -302,9 +265,9 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
                 // Parent is no longer needed.
                 string parentPath = GetParentPath(path)!;
                 Debug.Assert(parentPath is not null);
-                _dictionary.Remove(parentPath, out PathNode? parentNode);
-                Debug.Assert(parentNode is not null);
-                RemoveFromParent(parentPath, parentNode);
+                bool removed = _dictionary.Remove(parentPath, out PathNode? parentNode);
+                Debug.Assert(removed);
+                RemoveFromParent(parentPath, parentNode!);
 #if NETSTANDARD2_0
 #pragma warning restore CS8620
 #pragma warning restore CS8604
@@ -386,13 +349,5 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
         {
             RemoveMethodHandler(path);
         }
-    }
-
-    private static readonly RemoveKeyComparer RemoveKeyComparerInstance = new();
-
-    sealed class RemoveKeyComparer : IComparer<(string Path, PathNode Node)>
-    {
-        public int Compare((string Path, PathNode Node) x, (string Path, PathNode Node) y)
-            => x.Path.Length - y.Path.Length;
     }
 }

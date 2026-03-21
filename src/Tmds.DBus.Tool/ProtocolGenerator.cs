@@ -208,6 +208,7 @@ namespace Tmds.DBus.Tool
                 }
                 else if (type == DBusType.Struct)
                 {
+                    AppendLine("reader.AlignStruct();");
                     StringBuilder sb = new();
                     sb.Append("return (");
                     bool first = true;

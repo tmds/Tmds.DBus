@@ -48,6 +48,13 @@ public class CodeGenerationTests : TestsBase
                   <arg name="equal" direction="out" type="b"/>
                   <arg name="difference" direction="out" type="d"/>
                 </method>
+                <method name="GetEntry">
+                  <arg name="key" direction="in" type="s"/>
+                  <arg name="entry" direction="out" type="(sd)"/>
+                </method>
+                <method name="SetEntry">
+                  <arg name="entry" direction="in" type="(sd)"/>
+                </method>
                 <signal name="Reset"/>
                 <signal name="Error">
                   <arg name="message" type="s"/>

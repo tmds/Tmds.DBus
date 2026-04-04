@@ -5,6 +5,7 @@
     <Description>D-Bus library for .NET that uses reflection and runtime code generation</Description>
     <Authors>Tom Deseyn</Authors>
     <TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
+    <LangVersion>9.0</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageTags>dbus</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

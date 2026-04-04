@@ -291,6 +291,11 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
     [DllImport("libc")]
     private static extern void close(int fd);
 
+    internal void DiscardHandles()
+    {
+        DisposeHandles(disposing: true);
+    }
+
     internal void MoveTo(UnixFdCollection handles, int count)
     {
         if (handles.IsRawHandleCollection != IsRawHandleCollection)

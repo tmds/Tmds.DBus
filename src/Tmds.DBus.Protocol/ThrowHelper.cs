@@ -70,6 +70,12 @@ static class ThrowHelper
         throw new DBusUnexpectedValueException("The handle was already read.");
     }
 
+    [DoesNotReturn]
+    internal static void ThrowConnectionClosedByPeer()
+    {
+        throw new IOException("Connection closed by peer");
+    }
+
     internal static string SignatureToStringNoThrow(ReadOnlySpan<byte> signature)
     {
         try

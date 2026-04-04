@@ -316,7 +316,7 @@ class DBusConnection : IDisposable
     {
         if (exception is not null)
         {
-            _parentConnection.Disconnect(exception, this);
+            Disconnect(exception);
         }
         else
         {
@@ -441,7 +441,7 @@ class DBusConnection : IDisposable
             }
             catch (Exception ex)
             {
-                _parentConnection.Disconnect(ex, this);
+                Disconnect(ex);
             }
         }
     }
@@ -492,7 +492,7 @@ class DBusConnection : IDisposable
         }
         catch (Exception ex)
         {
-            _parentConnection.Disconnect(ex, this);
+            Disconnect(ex);
         }
     }
 
@@ -783,18 +783,25 @@ class DBusConnection : IDisposable
 
     public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
     {
-        MessageHandlerDelegate4 fn = static (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
+        MessageHandlerDelegate4 fn = (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
         {
-            var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
-            if (exception is not null)
+            try
             {
-                valueHandlerState(exception, default(T)!, rs, hs);
+                var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
+                if (exception is not null)
+                {
+                    valueHandlerState(exception, default(T)!, rs, hs);
+                }
+                else
+                {
+                    var valueReaderState = (MessageValueReader<T>)reader!;
+                    T value = valueReaderState(message, rs);
+                    valueHandlerState(null, value, rs, hs);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                var valueReaderState = (MessageValueReader<T>)reader!;
-                T value = valueReaderState(message, rs);
-                valueHandlerState(null, value, rs, hs);
+                Disconnect(ex);
             }
         };
 
@@ -906,6 +913,7 @@ class DBusConnection : IDisposable
         public bool Subscribes => (_flags & ObserverFlags.NoSubscribe) == 0;
         public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionDispose) != 0;
         public bool EmitOnObserverDispose => (_flags & ObserverFlags.EmitOnObserverDispose) != 0;
+        public DBusConnection Connection => _matchMaker.Connection;
 
         public Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, ObserverFlags flags)
         {
@@ -995,6 +1003,11 @@ class DBusConnection : IDisposable
                 _messageHandler.Invoke(null, message);
             }
         }
+    }
+
+    private void Disconnect(Exception ex)
+    {
+        _parentConnection.Disconnect(ex, this);
     }
 
     private async void RemoveObserver(MatchMaker matchMaker, Observer observer)

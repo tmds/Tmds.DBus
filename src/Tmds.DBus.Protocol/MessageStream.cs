@@ -1,4 +1,3 @@
-using System.IO.Pipelines;
 using System.Net.Sockets;
 using System.Threading.Channels;
 
@@ -20,8 +19,7 @@ class MessageStream : IMessageStream
     private readonly ChannelWriter<MessageBuffer> _messageWriter;
 
     // Bytes coming in.
-    private readonly PipeWriter _pipeWriter;
-    private readonly PipeReader _pipeReader;
+    private readonly Sequence<byte> _receiveBuffer;
 
     private Exception? _completionException;
     private bool _isMonitor;
@@ -47,50 +45,13 @@ class MessageStream : IMessageStream
         });
         _messageReader = channel.Reader;
         _messageWriter = channel.Writer;
-        var pipe = new Pipe(new PipeOptions(useSynchronizationContext: false));
-        _pipeReader = pipe.Reader;
-        _pipeWriter = pipe.Writer;
+        _receiveBuffer = new Sequence<byte>(ArrayPool<byte>.Shared) { MinimumSpanLength = 4096 };
         _messagePool = new();
     }
 
     public void BecomeMonitor()
     {
         _isMonitor = true;
-    }
-
-    private async void ReadFromSocketIntoPipe()
-    {
-        var writer = _pipeWriter;
-        Exception? exception = null;
-        try
-        {
-            while (true)
-            {
-                Memory<byte> memory = writer.GetMemory(1024);
-                int bytesRead;
-                if (_socket is not null)
-                {
-                    bytesRead = await _socket.ReceiveAsync(memory, _fdCollection).ConfigureAwait(false);
-                }
-                else
-                {
-                    bytesRead = await _stream.ReadAsync(memory).ConfigureAwait(false);
-                }
-
-                if (bytesRead == 0)
-                {
-                    throw new IOException("Connection closed by peer");
-                }
-                writer.Advance(bytesRead);
-
-                await writer.FlushAsync().ConfigureAwait(false);
-            }
-        }
-        catch (Exception e)
-        {
-            exception = e;
-        }
-        writer.Complete(exception);
     }
 
     private async void ReadMessagesIntoSocket()
@@ -147,17 +108,23 @@ class MessageStream : IMessageStream
 
     public async void ReceiveMessages<T>(IMessageStream.MessageReceivedHandler<T> handler, T state)
     {
-        var reader = _pipeReader;
+        var receiveBuffer = _receiveBuffer;
         try
         {
             while (true)
             {
-                ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
-                ReadOnlySequence<byte> buffer = result.Buffer;
+                Memory<byte> memory = receiveBuffer.GetMemory(1024);
+                int bytesRead = await ReceiveFromSocketAsync(memory).ConfigureAwait(false);
 
+                if (bytesRead == 0)
+                {
+                    ThrowHelper.ThrowConnectionClosedByPeer();
+                }
+                receiveBuffer.Advance(bytesRead);
+
+                ReadOnlySequence<byte> buffer = receiveBuffer.AsReadOnlySequence;
                 ReadMessages(ref buffer, handler, state);
-
-                reader.AdvanceTo(buffer.Start, buffer.End);
+                receiveBuffer.AdvanceTo(buffer.Start);
             }
         }
         catch (Exception exception)
@@ -167,6 +134,7 @@ class MessageStream : IMessageStream
         }
         finally
         {
+            receiveBuffer.Dispose();
             _fdCollection?.Dispose();
         }
 
@@ -175,6 +143,9 @@ class MessageStream : IMessageStream
             Message? message;
             while ((message = Message.TryReadMessage(_messagePool, ref buffer, _fdCollection, _isMonitor)) != null)
             {
+                // Discard any file descriptors that were received but not claimed by the message.
+                _fdCollection?.DiscardHandles();
+
                 handler(closeReason: null, message, state);
             }
         }
@@ -182,6 +153,18 @@ class MessageStream : IMessageStream
         static void OnException(Exception exception, IMessageStream.MessageReceivedHandler<T> handler, T state)
         {
             handler(exception, message: null!, state);
+        }
+    }
+
+    private async ValueTask<int> ReceiveFromSocketAsync(Memory<byte> memory)
+    {
+        if (_socket is not null)
+        {
+            return await _socket.ReceiveAsync(memory, _fdCollection).ConfigureAwait(false);
+        }
+        else
+        {
+            return await _stream.ReadAsync(memory).ConfigureAwait(false);
         }
     }
 
@@ -194,8 +177,6 @@ class MessageStream : IMessageStream
 
     public async ValueTask DoClientAuthAsync(Guid guid, string? userId, bool supportsFdPassing)
     {
-        ReadFromSocketIntoPipe();
-
         // send 1 byte
         await _stream.WriteAsync(OneByteArray).ConfigureAwait(false);
         // auth
@@ -279,7 +260,7 @@ class MessageStream : IMessageStream
 
     private async ValueTask<AuthenticationResult> SendAuthCommandAsync(string command, bool supportsFdPassing)
     {
-        byte[] lineBuffer = ArrayPool<byte>.Shared.Rent(512);
+        byte[] lineBuffer = ArrayPool<byte>.Shared.Rent(ProtocolConstants.MaxAuthLineLength);
         try
         {
             AuthenticationResult result = default(AuthenticationResult);
@@ -371,25 +352,36 @@ class MessageStream : IMessageStream
 
     private async ValueTask<int> ReadLineAsync(Memory<byte> lineBuffer)
     {
-        var reader = _pipeReader;
+        var receiveBuffer = _receiveBuffer;
         while (true)
         {
-            ReadResult result = await reader.ReadAsync().ConfigureAwait(false);
-            ReadOnlySequence<byte> buffer = result.Buffer;
-
-            // TODO (low prio): check length.
-
+            ReadOnlySequence<byte> buffer = receiveBuffer.AsReadOnlySequence;
             SequencePosition? position = buffer.PositionOf((byte)'\n');
 
-            if (!position.HasValue)
+            if (position.HasValue)
             {
-                reader.AdvanceTo(buffer.Start, buffer.End);
-                continue;
+                ReadOnlySequence<byte> line = buffer.Slice(0, position.Value);
+                if (line.Length <= ProtocolConstants.MaxAuthLineLength)
+                {
+                    int length = CopyBuffer(line, lineBuffer);
+                    receiveBuffer.AdvanceTo(buffer.GetPosition(1, position.Value));
+                    return length;
+                }
             }
 
-            int length = CopyBuffer(buffer.Slice(0, position.Value), lineBuffer);
-            reader.AdvanceTo(buffer.GetPosition(1, position.Value));
-            return length;
+            if (buffer.Length > ProtocolConstants.MaxAuthLineLength)
+            {
+                throw new ConnectException("Authentication message from server is too long.");
+            }
+
+            // Need more data.
+            Memory<byte> memory = receiveBuffer.GetMemory(lineBuffer.Length);
+            int bytesRead = await _stream.ReadAsync(memory).ConfigureAwait(false);
+            if (bytesRead == 0)
+            {
+                ThrowHelper.ThrowConnectionClosedByPeer();
+            }
+            receiveBuffer.Advance(bytesRead);
         }
 
         int CopyBuffer(ReadOnlySequence<byte> src, Memory<byte> dst)

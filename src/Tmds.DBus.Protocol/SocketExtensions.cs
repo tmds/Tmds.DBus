@@ -94,34 +94,43 @@ static class SocketExtensions
 
     private static unsafe int sendmsg(Socket socket, ReadOnlyMemory<byte> buffer, UnixFdCollection handles)
     {
-        fixed (byte* ptr = buffer.Span)
+        lock (handles.SyncObject)
         {
-            IOVector* iovs = stackalloc IOVector[1];
-            iovs[0].Base = ptr;
-            iovs[0].Length = (SizeT)buffer.Length;
-
-            Msghdr msg = new Msghdr();
-            msg.msg_iov = iovs;
-            msg.msg_iovlen = (SizeT)1;
-
-            var fdm = new cmsg_fd();
-            int size = sizeof(Cmsghdr) + 4 * handles.Count;
-            msg.msg_control = &fdm;
-            msg.msg_controllen = (SizeT)size;
-            fdm.hdr.cmsg_len = (SizeT)size;
-            fdm.hdr.cmsg_level = SOL_SOCKET;
-            fdm.hdr.cmsg_type = SCM_RIGHTS;
-
-            SafeHandle handle = socket.GetSafeHandle();
-            lock (handles.SyncObject)
+            // limit stackalloc
+            if (handles.Count > ProtocolConstants.MaxMessageFileDescriptors)
             {
+                throw new SocketException((int)SocketError.NoBufferSpaceAvailable);
+            }
+
+            fixed (byte* ptr = buffer.Span)
+            {
+                IOVector* iovs = stackalloc IOVector[1];
+                iovs[0].Base = ptr;
+                iovs[0].Length = (SizeT)buffer.Length;
+
+                Msghdr msg = new Msghdr();
+                msg.msg_iov = iovs;
+                msg.msg_iovlen = (SizeT)1;
+
+                int size = sizeof(Cmsghdr) + sizeof(int) * handles.Count;
+                byte* cmsgBuf = stackalloc byte[size];
+                Cmsghdr* hdr = (Cmsghdr*)cmsgBuf;
+                hdr->cmsg_len = (SizeT)size;
+                hdr->cmsg_level = SOL_SOCKET;
+                hdr->cmsg_type = SCM_RIGHTS;
+                int* fds = (int*)(cmsgBuf + sizeof(Cmsghdr));
+
+                msg.msg_control = cmsgBuf;
+                msg.msg_controllen = (SizeT)size;
+
+                SafeHandle handle = socket.GetSafeHandle();
                 bool refAdded = false;
                 try
                 {
                     handle.DangerousAddRef(ref refAdded);
-                    for (int i = 0, j = 0; i < handles.Count; i++)
+                    for (int i = 0; i < handles.Count; i++)
                     {
-                        fdm.fds[j++] = handles.DangerousGetHandle(i);
+                        fds[i] = handles.DangerousGetHandle(i);
                     }
 
                     return (int)sendmsg(handle.DangerousGetHandle().ToInt32(), new IntPtr(&msg), 0);
@@ -149,9 +158,18 @@ static class SocketExtensions
             msg.msg_iov = &iov;
             msg.msg_iovlen = (SizeT)1;
 
-            cmsg_fd cm = new cmsg_fd();
-            msg.msg_control = &cm;
-            msg.msg_controllen = (SizeT)sizeof(cmsg_fd);
+            // The kernel does not coalesce control messages across sendmsg boundaries.
+            // We only need to have room for handles from a single D-Bus message.
+            int maxRecvFds = ProtocolConstants.MaxMessageFileDescriptors - handles.Count;
+            if (maxRecvFds <= 0)
+            {
+                maxRecvFds = 0;
+            }
+            int cmsgSize = sizeof(Cmsghdr) + sizeof(int) * maxRecvFds;
+            byte* cmsgBuf = stackalloc byte[cmsgSize];
+            Cmsghdr* cmsgHdr = (Cmsghdr*)cmsgBuf;
+            msg.msg_control = cmsgBuf;
+            msg.msg_controllen = (SizeT)cmsgSize;
 
             var handle = socket.GetSafeHandle();
             bool refAdded = false;
@@ -159,17 +177,23 @@ static class SocketExtensions
             {
                 handle.DangerousAddRef(ref refAdded);
 
-                int rv = (int)recvmsg(handle.DangerousGetHandle().ToInt32(), new IntPtr(&msg), 0);
+                int rv = (int)recvmsg(handle.DangerousGetHandle().ToInt32(), new IntPtr(&msg), MSG_CMSG_CLOEXEC);
 
                 if (rv >= 0)
                 {
-                    if (cm.hdr.cmsg_level == SOL_SOCKET && cm.hdr.cmsg_type == SCM_RIGHTS)
+                    if ((int)msg.msg_controllen > 0 && cmsgHdr->cmsg_level == SOL_SOCKET && cmsgHdr->cmsg_type == SCM_RIGHTS)
                     {
-                        int msgFdCount = ((int)cm.hdr.cmsg_len - sizeof(Cmsghdr)) / sizeof(int);
+                        int msgFdCount = ((int)cmsgHdr->cmsg_len - sizeof(Cmsghdr)) / sizeof(int);
+                        int* fds = (int*)(cmsgBuf + sizeof(Cmsghdr));
                         for (int i = 0; i < msgFdCount; i++)
                         {
-                            handles.AddHandle(new IntPtr(cm.fds[i]));
+                            handles.AddHandle(new IntPtr(fds[i]));
                         }
+                    }
+
+                    if ((msg.msg_flags & MSG_CTRUNC) != 0)
+                    {
+                        throw new SocketException((int)SocketError.NoBufferSpaceAvailable);
                     }
                 }
                 return rv;
@@ -187,8 +211,28 @@ static class SocketExtensions
     const int SOL_SOCKET = 1;
     const int EINTR = 4;
     const int EBADF = 9;
-    static readonly int EAGAIN = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 35 : 11;
     const int SCM_RIGHTS = 1;
+
+    static readonly int EAGAIN;
+    static readonly int MSG_CMSG_CLOEXEC;
+    static readonly int MSG_CTRUNC;
+
+    static SocketExtensions()
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
+            EAGAIN = 35;
+            MSG_CMSG_CLOEXEC = 0;
+            MSG_CTRUNC = 0x20;
+        }
+        else
+        {
+            // Linux
+            EAGAIN = 11;
+            MSG_CMSG_CLOEXEC = 0x40000000;
+            MSG_CTRUNC = 8;
+        }
+    }
 
     private unsafe struct Msghdr
     {
@@ -214,11 +258,6 @@ static class SocketExtensions
         public int cmsg_type; //protocol-specific type
     }
 
-    private unsafe struct cmsg_fd
-    {
-        public Cmsghdr hdr;
-        public fixed int fds[64];
-    }
 
     [DllImport("libc", SetLastError = true)]
     public static extern SSizeT sendmsg(int sockfd, IntPtr msg, int flags);

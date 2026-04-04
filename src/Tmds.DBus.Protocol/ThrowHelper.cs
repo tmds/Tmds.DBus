@@ -29,4 +29,10 @@ static class ThrowHelper
     {
         throw new ProtocolException($"Expected signature '{expected}' does not match actual signature '{Encoding.UTF8.GetString(signature)}'.");
     }
+
+    [DoesNotReturn]
+    internal static void ThrowConnectionClosedByPeer()
+    {
+        throw new IOException("Connection closed by peer");
+    }
 }

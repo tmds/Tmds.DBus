@@ -3,6 +3,8 @@ namespace Tmds.DBus.Protocol;
 static class ProtocolConstants
 {
     public const int MaxSignatureLength = 256;
+    public const int MaxMessageFileDescriptors = 16;
+    public const int MaxAuthLineLength = 512;
     public const int StructAlignment = 8;
     public const int UInt32Alignment = 4;
 

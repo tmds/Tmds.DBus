@@ -1028,17 +1028,17 @@ namespace Tmds.DBus
             }
         }
 
-        internal async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
+        internal async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, string sender, SignalHandler handler)
         {
             var connection = await GetConnectionTask().ConfigureAwait(false);
             try
             {
-                return await connection.WatchSignalAsync(path, @interface, signalName, handler).ConfigureAwait(false);
+                return await connection.WatchSignalAsync(path, @interface, signalName, sender, handler).ConfigureAwait(false);
             }
             catch (DisconnectedException) when (_connectionType == ConnectionType.ClientAutoConnect)
             {
                 connection = await GetConnectionTask().ConfigureAwait(false);
-                return await connection.WatchSignalAsync(path, @interface, signalName, handler).ConfigureAwait(false);
+                return await connection.WatchSignalAsync(path, @interface, signalName, sender, handler).ConfigureAwait(false);
             }
         }
 

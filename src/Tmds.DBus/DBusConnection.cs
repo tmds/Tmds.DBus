@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Tmds.DBus.Protocol;
 using Tmds.DBus.Transports;
 using System.Threading.Tasks.Sources;
+using System.Diagnostics;
 
 namespace Tmds.DBus
 {
@@ -106,6 +107,15 @@ namespace Tmds.DBus
             public SynchronizationContext SynchronizationContext;
         }
 
+        private sealed class NameWatcher
+        {
+            public Task<IDisposable> NameOwnerHandlerTask;
+            public Task WatchNameOwnerTask;
+            public Task<string> GetNameOwnerTask;
+            public int RefCount;
+            public string CurrentOwner;
+        }
+
         public static readonly ObjectPath DBusObjectPath = new ObjectPath("/org/freedesktop/DBus");
         public const string DBusServiceName = "org.freedesktop.DBus";
         public const string DBusInterface = "org.freedesktop.DBus";
@@ -145,7 +155,9 @@ namespace Tmds.DBus
         private readonly IMessageStream _stream;
         private readonly object _gate = new object();
         private Dictionary<SignalMatchRule, SignalHandler> _signalHandlers = new Dictionary<SignalMatchRule, SignalHandler>();
-        private Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>> _nameOwnerWatchers = new Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>>();
+        private Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>> _nameOwnerHandlers = new Dictionary<string, Action<ServiceOwnerChangedEventArgs, Exception>>();
+        private readonly Dictionary<string, NameWatcher> _nameWatchers = new Dictionary<string, NameWatcher>();
+        private readonly Dictionary<string, List<string>> _uniqueIdToNames = new Dictionary<string, List<string>>();
         private Dictionary<uint, TaskCompletionSource<Message>> _pendingMethods = new Dictionary<uint, TaskCompletionSource<Message>>();
         private readonly Dictionary<ObjectPath, MethodHandler> _methodHandlers = new Dictionary<ObjectPath, MethodHandler>();
         private readonly Dictionary<ObjectPath, string[]> _childNames = new Dictionary<ObjectPath, string[]>();
@@ -338,47 +350,63 @@ namespace Tmds.DBus
             }
         }
 
-        public async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, SignalHandler handler)
+        public async Task<IDisposable> WatchSignalAsync(ObjectPath path, string @interface, string signalName, string sender, SignalHandler handler)
         {
+            if (!ConnectionInfo.RemoteIsBus)
+            {
+                sender = null;
+            }
+
             SignalMatchRule rule = new SignalMatchRule()
             {
                 Interface = @interface,
                 Member = signalName,
-                Path = path
+                Path = path,
+                Sender = sender
             };
 
-            Task task = null;
+            Task addMatch = Task.CompletedTask;
+            Task watchNameOwner = Task.CompletedTask;
             lock (_gate)
             {
                 ThrowIfNotConnected();
+
+                if (ShouldWatchNameOwner(sender))
+                {
+                    watchNameOwner = WatchNameOwnerAsync(sender);
+                }
+
                 if (_signalHandlers.ContainsKey(rule))
                 {
                     _signalHandlers[rule] = (SignalHandler)Delegate.Combine(_signalHandlers[rule], handler);
-                    task = Task.CompletedTask;
                 }
                 else
                 {
                     _signalHandlers[rule] = handler;
                     if (ConnectionInfo.RemoteIsBus)
                     {
-                        task = CallAddMatchRuleAsync(rule.ToString());
+                        addMatch = CallAddMatchRuleAsync(rule.ToString());
                     }
                 }
             }
             SignalHandlerRegistration registration = new SignalHandlerRegistration(this, rule, handler);
             try
             {
-                if (task != null)
-                {
-                    await task.ConfigureAwait(false);
-                }
+                await watchNameOwner.ConfigureAwait(false);
+                await addMatch.ConfigureAwait(false);
             }
             catch
             {
+                EnsureExceptionObserved(addMatch);
                 registration.Dispose();
                 throw;
             }
             return registration;
+        }
+
+        private bool ShouldWatchNameOwner(string sender)
+        {
+            return ConnectionInfo.RemoteIsBus && sender != null && sender.Length > 0 && sender[0] != ':' && sender != DBusServiceName;
         }
 
         public async Task<RequestNameReply> RequestNameAsync(string name, RequestNameOptions options, Action onAquired, Action onLost, SynchronizationContext synchronzationContext)
@@ -442,14 +470,14 @@ namespace Tmds.DBus
                 ThrowIfNotConnected();
                 ThrowIfRemoteIsNotBus();
 
-                if (_nameOwnerWatchers.ContainsKey(key))
+                if (_nameOwnerHandlers.ContainsKey(key))
                 {
-                    _nameOwnerWatchers[key] = (Action<ServiceOwnerChangedEventArgs, Exception>)Delegate.Combine(_nameOwnerWatchers[key], handler);
+                    _nameOwnerHandlers[key] = (Action<ServiceOwnerChangedEventArgs, Exception>)Delegate.Combine(_nameOwnerHandlers[key], handler);
                     task = Task.CompletedTask;
                 }
                 else
                 {
-                    _nameOwnerWatchers[key] = handler;
+                    _nameOwnerHandlers[key] = handler;
                     task = CallAddMatchRuleAsync(rule.ToString());
                 }
             }
@@ -555,6 +583,10 @@ namespace Tmds.DBus
             switch (msg.Header.Interface)
             {
                 case "org.freedesktop.DBus":
+                    if (msg.Header.Sender != DBusServiceName)
+                    {
+                        break;
+                    }
                     switch (msg.Header.Member)
                     {
                         case "NameAcquired":
@@ -593,10 +625,12 @@ namespace Tmds.DBus
                                 keys[keys.Length - 1] = serviceName;
                                 lock (_gate)
                                 {
+                                    UpdateOwnership(serviceName, oldOwner, newOwner);
+
                                     foreach (var key in keys)
                                     {
                                         Action<ServiceOwnerChangedEventArgs, Exception> keyWatchers = null;
-                                        if (_nameOwnerWatchers?.TryGetValue(key, out keyWatchers) == true)
+                                        if (_nameOwnerHandlers?.TryGetValue(key, out keyWatchers) == true)
                                         {
                                             watchers += keyWatchers;
                                         }
@@ -613,28 +647,83 @@ namespace Tmds.DBus
                     break;
             }
 
+            string sender = msg.Header.Sender;
             SignalMatchRule rule = new SignalMatchRule()
             {
                 Interface = msg.Header.Interface,
                 Member = msg.Header.Member,
-                Path = msg.Header.Path.Value
+                Path = msg.Header.Path.Value,
+                Sender = ConnectionInfo.RemoteIsBus ? sender : null
             };
 
             SignalHandler signalHandler = null;
             lock (_gate)
             {
-                if (_signalHandlers?.TryGetValue(rule, out signalHandler) == true)
+                _signalHandlers?.TryGetValue(rule, out signalHandler);
+
+                if (ConnectionInfo.RemoteIsBus && _uniqueIdToNames.TryGetValue(sender, out List<string> ownedNames))
                 {
-                    try
+                    foreach (var name in ownedNames)
                     {
-                        signalHandler(this, msg, null);
-                    }
-                    catch (Exception e)
-                    {
-                        throw new InvalidOperationException("Signal handler for " + msg.Header.Interface + "." + msg.Header.Member + " threw an exception", e);
+                        rule.Sender = name;
+                        if (_signalHandlers?.TryGetValue(rule, out SignalHandler handler) == true)
+                        {
+                            if (signalHandler == null)
+                            {
+                                signalHandler = handler;
+                            }
+                            else
+                            {
+                                signalHandler = (SignalHandler)Delegate.Combine(signalHandler, handler);
+                            }
+                        }
                     }
                 }
             }
+
+            if (signalHandler != null)
+            {
+                try
+                {
+                    signalHandler(this, msg, null);
+                }
+                catch (Exception e)
+                {
+                    throw new InvalidOperationException("Signal handler for " + msg.Header.Interface + "." + msg.Header.Member + " threw an exception", e);
+                }
+            }
+        }
+
+        private void UpdateOwnership(string serviceName, string oldOwner, string newOwner)
+        {
+            Debug.Assert(Monitor.IsEntered(_gate));
+            if (!_nameWatchers.TryGetValue(serviceName, out NameWatcher watcher))
+            {
+                return;
+            }
+
+            if (oldOwner != null && _uniqueIdToNames.TryGetValue(oldOwner, out List<string> oldOwnedNames) == true)
+            {
+                oldOwnedNames.Remove(serviceName);
+                if (oldOwnedNames.Count == 0)
+                {
+                    _uniqueIdToNames.Remove(oldOwner);
+                }
+            }
+
+            if (newOwner != null)
+            {
+                if (!_uniqueIdToNames.TryGetValue(newOwner, out List<string> newOwnedNames))
+                {
+                    newOwnedNames = new List<string>();
+                    _uniqueIdToNames[newOwner] = newOwnedNames;
+                }
+                if (!newOwnedNames.Contains(serviceName))
+                {
+                    newOwnedNames.Add(serviceName);
+                }
+            }
+            watcher.CurrentOwner = newOwner;
         }
 
         private void OnNameAcquiredOrLost(string name, bool aquiredNotLost)
@@ -688,9 +777,12 @@ namespace Tmds.DBus
                 _pendingMethods = null;
                 signalHandlers = _signalHandlers;
                 _signalHandlers = null;
-                nameOwnerWatchers = _nameOwnerWatchers;
-                _nameOwnerWatchers = null;
+                nameOwnerWatchers = _nameOwnerHandlers;
+                _nameOwnerHandlers = null;
                 _serviceNameRegistrations.Clear();
+
+                _nameWatchers.Clear();
+                _uniqueIdToNames.Clear();
 
                 _onDisconnect = null;
 
@@ -961,13 +1053,18 @@ namespace Tmds.DBus
             {
                 if (_signalHandlers?.ContainsKey(rule) == true)
                 {
-                    _signalHandlers[rule] = (SignalHandler)Delegate.Remove(_signalHandlers[rule], dlg);
+                    var previous = _signalHandlers[rule];
+                    _signalHandlers[rule] = (SignalHandler)Delegate.Remove(previous, dlg);
                     if (_signalHandlers[rule] == null)
                     {
                         _signalHandlers.Remove(rule);
                         if (ConnectionInfo.RemoteIsBus)
                         {
                             CallRemoveMatchRule(rule.ToString());
+                        }
+                        if (ShouldWatchNameOwner(rule.Sender))
+                        {
+                            ReleaseSenderTracking(rule.Sender);
                         }
                     }
                 }
@@ -978,12 +1075,12 @@ namespace Tmds.DBus
         {
             lock (_gate)
             {
-                if (_nameOwnerWatchers?.ContainsKey(key) == true)
+                if (_nameOwnerHandlers?.ContainsKey(key) == true)
                 {
-                    _nameOwnerWatchers[key] = (Action<ServiceOwnerChangedEventArgs, Exception>)Delegate.Remove(_nameOwnerWatchers[key], dlg);
-                    if (_nameOwnerWatchers[key] == null)
+                    _nameOwnerHandlers[key] = (Action<ServiceOwnerChangedEventArgs, Exception>)Delegate.Remove(_nameOwnerHandlers[key], dlg);
+                    if (_nameOwnerHandlers[key] == null)
                     {
-                        _nameOwnerWatchers.Remove(key);
+                        _nameOwnerHandlers.Remove(key);
                         CallRemoveMatchRule(rule.ToString());
                     }
                 }
@@ -992,7 +1089,7 @@ namespace Tmds.DBus
 
         private void CallRemoveMatchRule(string rule)
         {
-            var reply = CallMethodAsync(DBusServiceName, DBusObjectPath, DBusInterface, "RemoveMatch", rule);
+            EnsureExceptionObserved(CallMethodAsync(DBusServiceName, DBusObjectPath, DBusInterface, "RemoveMatch", rule));
         }
 
         private Task CallAddMatchRuleAsync(string rule)
@@ -1018,6 +1115,131 @@ namespace Tmds.DBus
                 writer.UnixFds
             );
             return CallMethodAsync(message);
+        }
+
+        private Task WatchNameOwnerAsync(string name)
+        {
+            Debug.Assert(Monitor.IsEntered(_gate));
+            Debug.Assert(name != DBusServiceName);
+            // Watch for NameOwnerChanged to track when ownership changes
+            // Set this up BEFORE getting the current owner to avoid race conditions
+            if (_nameWatchers.TryGetValue(name, out NameWatcher existing))
+            {
+                existing.RefCount++;
+                return existing.WatchNameOwnerTask;
+            }
+
+            var watcher = new NameWatcher
+            {
+                RefCount = 1,
+                CurrentOwner = name,
+                NameOwnerHandlerTask = WatchNameOwnerChangedAsync(name, (args, ex) => { }),
+                // Get the current owner AFTER starting to watch for changes.
+                GetNameOwnerTask = GetNameOwnerAsync(name)
+            };
+            _nameWatchers[name] = watcher;
+
+            return watcher.WatchNameOwnerTask = AwaitWatchNameOwnerAsync(watcher);
+
+            async Task AwaitWatchNameOwnerAsync(NameWatcher watcher)
+            {
+                try
+                {
+                    await watcher.NameOwnerHandlerTask.ConfigureAwait(false);
+                    string currentOwner = await watcher.GetNameOwnerTask.ConfigureAwait(false);
+
+                    lock (_gate)
+                    {
+                        // Update _nameToUniqueId mapping only if it's still pointing to itself to avoid overriding a name change.
+                        if (watcher.CurrentOwner == name)
+                        {
+                            watcher.CurrentOwner = currentOwner;
+
+                            if (currentOwner is not null)
+                            {
+                                if (!_uniqueIdToNames.TryGetValue(currentOwner, out List<string> ownedNames))
+                                {
+                                    ownedNames = new List<string>();
+                                    _uniqueIdToNames[currentOwner] = ownedNames;
+                                }
+                                if (!ownedNames.Contains(name))
+                                {
+                                    ownedNames.Add(name);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    EnsureExceptionObserved(watcher.GetNameOwnerTask);
+                    ReleaseSenderTracking(name);
+                    throw;
+                }
+            }
+        }
+
+        private void ReleaseSenderTracking(string name)
+        {
+            lock (_gate)
+            {
+                if (_nameWatchers?.TryGetValue(name, out NameWatcher watcher) == true)
+                {
+                    if (--watcher.RefCount > 0)
+                    {
+                        return;
+                    }
+                    _nameWatchers.Remove(name);
+                    string uniqueId = watcher.CurrentOwner;
+                    if (uniqueId != null)
+                    {
+                        if (_uniqueIdToNames.TryGetValue(uniqueId, out List<string> ownedNames))
+                        {
+                            if (ownedNames.Remove(name) && ownedNames.Count == 0)
+                            {
+                                _uniqueIdToNames.Remove(uniqueId);
+                            }
+                        }
+                    }
+                    watcher.NameOwnerHandlerTask.ContinueWith(static t => t.Result.Dispose(), TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
+                }
+            }
+        }
+
+        private async Task<string> GetNameOwnerAsync(string name)
+        {
+            var writer = new MessageWriter();
+            writer.WriteString(name);
+
+            Message callMsg = new Message(
+                new Header(MessageType.MethodCall)
+                {
+                    Path = DBusObjectPath,
+                    Interface = DBusInterface,
+                    Member = "GetNameOwner",
+                    Destination = DBusServiceName,
+                    Signature = Signature.StringSig
+                },
+                writer.ToArray(),
+                writer.UnixFds
+            );
+
+            try
+            {
+                Message reply = await CallMethodAsync(callMsg, checkConnected: true, checkReplyType: true).ConfigureAwait(false);
+                var reader = new MessageReader(reply, null);
+                return reader.ReadString();
+            }
+            catch (DBusException ex) when (ex.ErrorName == "org.freedesktop.DBus.Error.NameHasNoOwner")
+            {
+                // Name has no current owner
+                return null;
+            }
+        }
+
+        private static void EnsureExceptionObserved(Task task)
+        {
+            task.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
         }
 
         private void ThrowIfNotConnected()

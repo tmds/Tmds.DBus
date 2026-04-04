@@ -13,6 +13,9 @@
 
   <ItemGroup>
     <ProjectReference Include="../../src/Tmds.DBus/Tmds.DBus.csproj" />
+    <ProjectReference Include="../../src/Tmds.DBus.Protocol/Tmds.DBus.Protocol.csproj">
+      <Aliases>Protocol</Aliases>
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>

@@ -12,6 +12,7 @@ namespace Tmds.DBus
         public string Interface { get; set; }
         public string Member { get; set; }
         public ObjectPath? Path { get; set; }
+        public string Sender { get; set; }
 
         public override int GetHashCode()
         {
@@ -19,6 +20,7 @@ namespace Tmds.DBus
             hash = hash * 23 + (Interface == null ? 0 : Interface.GetHashCode());
             hash = hash * 23 + (Member == null ? 0 : Member.GetHashCode());
             hash = hash * 23 + Path.GetHashCode();
+            hash = hash * 23 + (Sender == null ? 0 : Sender.GetHashCode());
             return hash;
         }
 
@@ -30,15 +32,11 @@ namespace Tmds.DBus
 
             return Interface == r.Interface &&
                 Member == r.Member &&
-                Path == r.Path;
+                Path == r.Path &&
+                Sender == r.Sender;
         }
 
         public override string ToString()
-        {
-            return ToStringWithSender(null);
-        }
-
-        private string ToStringWithSender(string sender)
         {
             StringBuilder sb = new StringBuilder();
 
@@ -56,9 +54,9 @@ namespace Tmds.DBus
             {
                 Append(sb, "path", Path.Value);
             }
-            if (sender != null)
+            if (Sender != null)
             {
-                Append(sb, "sender", sender);
+                Append(sb, "sender", Sender);
             }
 
             return sb.ToString();

@@ -60,11 +60,11 @@ namespace Tmds.DBus.CodeGen
 
             if (isPropertiesChanged)
             {
-                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, "org.freedesktop.DBus.Properties", "PropertiesChanged", handler).ConfigureAwait(false);
+                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, "org.freedesktop.DBus.Properties", "PropertiesChanged", _serviceName, handler).ConfigureAwait(false);
             }
             else
             {
-                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler).ConfigureAwait(false);
+                wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, _serviceName, handler).ConfigureAwait(false);
             }
 
             return wrappedDisposable;
@@ -93,7 +93,7 @@ namespace Tmds.DBus.CodeGen
                 wrappedDisposable.Call(conn, action);
             };
 
-            wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler).ConfigureAwait(false);
+            wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, _serviceName, handler).ConfigureAwait(false);
 
             return wrappedDisposable;
         }

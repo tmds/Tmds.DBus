@@ -14,7 +14,6 @@ namespace Tmds.DBus
             ServiceName = serviceName;
             Interface = DBusConnection.DBusInterface;
             Member = "NameOwnerChanged";
-            Path = DBusConnection.DBusObjectPath;
         }
 
         public string ServiceName { get; set; }
@@ -34,7 +33,6 @@ namespace Tmds.DBus
 
             return Interface == r.Interface &&
                 Member == r.Member &&
-                Path == r.Path &&
                 ServiceName == r.ServiceName;
         }
 
@@ -51,10 +49,6 @@ namespace Tmds.DBus
             if (Member != null)
             {
                 Append(sb, "member", Member);
-            }
-            if (Path != null)
-            {
-                Append(sb, "path", Path.Value);
             }
             if (ServiceName != null)
             {

@@ -24,8 +24,28 @@ namespace Tmds.DBus.Transports
         const int SOL_SOCKET = 1;
         const int EINTR = 4;
         const int EBADF = 9;
-        static readonly int EAGAIN = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 35 : 11;
         const int SCM_RIGHTS = 1;
+
+        static readonly int EAGAIN;
+        static readonly int MSG_CMSG_CLOEXEC;
+        static readonly int MSG_CTRUNC;
+
+        static TransportSocket()
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                EAGAIN = 35;
+                MSG_CMSG_CLOEXEC = 0;
+                MSG_CTRUNC = 0x20;
+            }
+            else
+            {
+                // Linux
+                EAGAIN = 11;
+                MSG_CMSG_CLOEXEC = 0x40000000;
+                MSG_CTRUNC = 8;
+            }
+        }
 
         private unsafe struct msghdr
         {
@@ -51,11 +71,7 @@ namespace Tmds.DBus.Transports
             public int cmsg_type; //protocol-specific type
         }
 
-        private unsafe struct cmsg_fd
-        {
-            public cmsghdr hdr;
-            public fixed int fds[64];
-        }
+        const int MaxMessageFileDescriptors = 16;
 
         private class ReadContext
         {
@@ -169,19 +185,27 @@ namespace Tmds.DBus.Transports
         {
             fixed (byte* buf = buffer)
             {
+                int maxRecvFds = MaxMessageFileDescriptors - fileDescriptors.Count;
+                if (maxRecvFds < 0)
+                {
+                    maxRecvFds = 0;
+                }
+                int cmsgSize = sizeof(cmsghdr) + sizeof(int) * maxRecvFds;
+                byte* cmsgBuf = stackalloc byte[cmsgSize];
+
                 do
                 {
                     IOVector iov = new IOVector ();
                     iov.Base = buf + offset;
                     iov.Length = (SizeT)count;
-                    
+
                     msghdr msg = new msghdr ();
                     msg.msg_iov = &iov;
                     msg.msg_iovlen = (SizeT)1;
 
-                    cmsg_fd cm = new cmsg_fd ();
-                    msg.msg_control = &cm;
-                    msg.msg_controllen = (SizeT)sizeof (cmsg_fd);
+                    cmsghdr* cmsgHdr = (cmsghdr*)cmsgBuf;
+                    msg.msg_control = cmsgBuf;
+                    msg.msg_controllen = (SizeT)cmsgSize;
 
                     int rv;
                     lock (_gate)
@@ -190,17 +214,23 @@ namespace Tmds.DBus.Transports
                         {
                             return -EBADF;
                         }
-                        rv = (int)Interop.recvmsg(_socketFd, new IntPtr(&msg), 0);
+                        rv = (int)Interop.recvmsg(_socketFd, new IntPtr(&msg), MSG_CMSG_CLOEXEC);
                     }
                     if (rv >= 0)
                     {
-                        if (cm.hdr.cmsg_level == SOL_SOCKET && cm.hdr.cmsg_type == SCM_RIGHTS)
+                        if ((int)msg.msg_controllen > 0 && cmsgHdr->cmsg_level == SOL_SOCKET && cmsgHdr->cmsg_type == SCM_RIGHTS)
                         {
-                            int msgFdCount = ((int)cm.hdr.cmsg_len - sizeof(cmsghdr)) / sizeof(int);
+                            int msgFdCount = ((int)cmsgHdr->cmsg_len - sizeof(cmsghdr)) / sizeof(int);
+                            int* fds = (int*)(cmsgBuf + sizeof(cmsghdr));
                             for (int i = 0; i < msgFdCount; i++)
                             {
-                                fileDescriptors.Add(new UnixFd(cm.fds[i]));
+                                fileDescriptors.Add(new UnixFd(fds[i]));
                             }
+                        }
+
+                        if ((msg.msg_flags & MSG_CTRUNC) != 0)
+                        {
+                            throw new SocketException((int)SocketError.NoBufferSpaceAvailable);
                         }
                         return rv;
                     }
@@ -344,6 +374,11 @@ namespace Tmds.DBus.Transports
 
         private unsafe Task SendMessageWithFdsAsync(Message message)
         {
+            if (message.UnixFds.Length > MaxMessageFileDescriptors)
+            {
+                throw new SocketException((int)SocketError.NoBufferSpaceAvailable);
+            }
+
             var headerBytes = message.Header.ToArray();
             fixed (byte* bufHeader = headerBytes)
             {
@@ -360,16 +395,20 @@ namespace Tmds.DBus.Transports
                     msg.msg_iov = iovs;
                     msg.msg_iovlen = (SizeT)2;
 
-                    var fdm = new cmsg_fd ();
-                    int size = sizeof(cmsghdr) + 4 * message.UnixFds.Length;
-                    msg.msg_control = &fdm;
+                    int size = sizeof(cmsghdr) + sizeof(int) * message.UnixFds.Length;
+                    byte* cmsgBuf = stackalloc byte[size];
+                    cmsghdr* hdr = (cmsghdr*)cmsgBuf;
+                    hdr->cmsg_len = (SizeT)size;
+                    hdr->cmsg_level = SOL_SOCKET;
+                    hdr->cmsg_type = SCM_RIGHTS;
+                    int* fds = (int*)(cmsgBuf + sizeof(cmsghdr));
+
+                    msg.msg_control = cmsgBuf;
                     msg.msg_controllen = (SizeT)size;
-                    fdm.hdr.cmsg_len = (SizeT)size;
-                    fdm.hdr.cmsg_level = SOL_SOCKET;
-                    fdm.hdr.cmsg_type = SCM_RIGHTS;
-                    for (int i = 0, j = 0; i < message.UnixFds.Length; i++)
+
+                    for (int i = 0; i < message.UnixFds.Length; i++)
                     {
-                        fdm.fds[j++] = message.UnixFds[i].Handle;
+                        fds[i] = message.UnixFds[i].Handle;
                     }
 
                     int rv = SendMsg(&msg, headerBytes.Length + bodyLength);

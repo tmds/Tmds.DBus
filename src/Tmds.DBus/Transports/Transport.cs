@@ -134,6 +134,13 @@ namespace Tmds.DBus.Transports
 
                 _fileDescriptors.RemoveRange(0, (int)messageHeader.NumberOfFds);
 
+                // Discard any file descriptors that were received but not claimed by the message.
+                foreach (var fd in _fileDescriptors)
+                {
+                    CloseSafeHandle.close(fd.Handle);
+                }
+                _fileDescriptors.Clear();
+
                 return msg;
             }
             catch

@@ -1,7 +1,5 @@
 namespace Tmds.DBus.Protocol;
 
-#pragma warning disable CS0618 // IMethodHandler is obsolete.
-
 /// <summary>
 /// Delegate for reading a value from a D-Bus message.
 /// </summary>

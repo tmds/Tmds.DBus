@@ -11,6 +11,10 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Treat missing XML documentation as errors -->
     <WarningsAsErrors>CS1591</WarningsAsErrors>
+    <!-- Ignore obsolete member warnings -->
+    <NoWarn>CS0618</NoWarn>
+    <!-- Disable nullability warnings for netstandard2.0 -->
+    <NoWarn Condition="'$(TargetFramework)' == 'netstandard2.0'">$(NoWarn);CS8602;CS8620;CS8604</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>

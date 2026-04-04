@@ -636,7 +636,7 @@ public class ReaderTests
             try
             {
                 reader.ReadByte();
-                Assert.False(true, "Not all data was read.");
+                Assert.Fail("Not all data was read.");
             }
             catch (DBusReadException ex)
             {

@@ -1,7 +1,5 @@
 namespace Tmds.DBus.Protocol;
 
-#pragma warning disable CS0618 // IMethodHandler is obsolete.
-
 /// <summary>
 /// Represents a client connection to a D-Bus message bus or peer.
 /// </summary>

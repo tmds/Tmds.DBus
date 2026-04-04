@@ -257,21 +257,12 @@ sealed class PathNodeDictionary : IMethodHandlerDictionary
             parent.ClearChildNames();
             if (parent.MethodHandler is null)
             {
-// Suppress netstandard2.0 nullability warnings around NetstandardExtensions.Remove.
-#if NETSTANDARD2_0
-#pragma warning disable CS8620
-#pragma warning disable CS8604
-#endif
                 // Parent is no longer needed.
                 string parentPath = GetParentPath(path)!;
                 Debug.Assert(parentPath is not null);
                 bool removed = _dictionary.Remove(parentPath, out PathNode? parentNode);
                 Debug.Assert(removed);
                 RemoveFromParent(parentPath, parentNode!);
-#if NETSTANDARD2_0
-#pragma warning restore CS8620
-#pragma warning restore CS8604
-#endif
             }
         }
         else

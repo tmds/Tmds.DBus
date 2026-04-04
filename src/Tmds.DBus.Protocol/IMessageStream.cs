@@ -6,7 +6,7 @@ interface IMessageStream
 
     void ReceiveMessages<T>(MessageReceivedHandler<T> handler, T state);
 
-    ValueTask<bool> TrySendMessageAsync(MessageBuffer message);
+    bool TrySendMessage(MessageBuffer message);
 
     void BecomeMonitor();
 

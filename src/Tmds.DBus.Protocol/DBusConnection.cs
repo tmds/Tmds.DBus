@@ -276,7 +276,7 @@ class DBusConnection : IDisposable
     {
         MyValueTaskSource<string?> vts = new();
 
-        await CallMethodAsync(
+        CallMethod(
             message: CreateHelloMessage(),
             static (Exception? exception, Message message, object? state) =>
             {
@@ -294,7 +294,7 @@ class DBusConnection : IDisposable
                 {
                     vtsState.SetResult(null);
                 }
-            }, vts).ConfigureAwait(false);
+            }, vts);
 
         return await new ValueTask<string?>(vts, token: 0).ConfigureAwait(false);
 
@@ -585,7 +585,7 @@ class DBusConnection : IDisposable
         _disconnectedTcs?.SetResult(GetWaitForDisconnectException());
     }
 
-    private ValueTask CallMethodAsync(MessageBuffer message, MessageReceivedHandler returnHandler, object? state)
+    private void CallMethod(MessageBuffer message, MessageReceivedHandler returnHandler, object? state)
     {
         MessageHandlerDelegate fn = static (Exception? exception, Message message, object? state1, object? state2, object? state3) =>
         {
@@ -593,10 +593,10 @@ class DBusConnection : IDisposable
         };
         MessageHandler handler = new(fn, returnHandler, state);
 
-        return CallMethodAsync(message, handler);
+        CallMethod(message, handler);
     }
 
-    private async ValueTask CallMethodAsync(MessageBuffer message, MessageHandler handler)
+    private void CallMethod(MessageBuffer message, MessageHandler handler)
     {
         bool messageSent = false;
         try
@@ -617,7 +617,7 @@ class DBusConnection : IDisposable
                 }
             }
 
-            messageSent = await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false);
+            messageSent = _messageStream!.TrySendMessage(message);
         }
         finally
         {
@@ -663,7 +663,7 @@ class DBusConnection : IDisposable
         MyValueTaskSource<T> vts = new();
         MessageHandler handler = new(fn, valueReader, vts, state);
 
-        await CallMethodAsync(message, handler).ConfigureAwait(false);
+        CallMethod(message, handler);
 
         return await new ValueTask<T>(vts, 0).ConfigureAwait(false);
     }
@@ -672,8 +672,7 @@ class DBusConnection : IDisposable
     {
         MyValueTaskSource<object?> vts = new();
 
-        await CallMethodAsync(message,
-            static (Exception? exception, Message message, object? state) => CompleteCallValueTaskSource(exception, message, state), vts).ConfigureAwait(false);
+        CallMethod(message, static (Exception? exception, Message message, object? state) => CompleteCallValueTaskSource(exception, message, state), vts);
 
         await new ValueTask(vts, 0).ConfigureAwait(false);
     }
@@ -855,19 +854,13 @@ class DBusConnection : IDisposable
                 };
 
                 _pendingCalls.Add(addMatchMessage.Serial, new(fn, matchMaker));
+
+                _messageStream!.TrySendMessage(addMatchMessage);
             }
         }
 
         if (subscribe)
         {
-            if (addMatchMessage is not null)
-            {
-                if (!await _messageStream!.TrySendMessageAsync(addMatchMessage).ConfigureAwait(false))
-                {
-                    addMatchMessage.ReturnToPool();
-                }
-            }
-
             try
             {
                 await matchMaker.AddMatchTask!.ConfigureAwait(false);
@@ -1007,7 +1000,6 @@ class DBusConnection : IDisposable
     private async void RemoveObserver(MatchMaker matchMaker, Observer observer)
     {
         string ruleString = matchMaker.RuleString;
-        bool sendMessage = false;
 
         lock (_gate)
         {
@@ -1019,20 +1011,13 @@ class DBusConnection : IDisposable
             if (_matchMakers.TryGetValue(ruleString, out _))
             {
                 matchMaker.Observers.Remove(observer);
-                sendMessage = matchMaker.AddMatchTcs is not null && matchMaker.HasSubscribers;
+                bool sendMessage = matchMaker.AddMatchTcs is not null && matchMaker.HasSubscribers;
                 if (sendMessage)
                 {
                     _matchMakers.Remove(ruleString);
+                    var message = CreateRemoveMatchMessage();
+                    _messageStream!.TrySendMessage(message);
                 }
-            }
-        }
-
-        if (sendMessage)
-        {
-            var message = CreateRemoveMatchMessage();
-            if (!await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false))
-            {
-                message.ReturnToPool();
             }
         }
 
@@ -1273,10 +1258,9 @@ class DBusConnection : IDisposable
 
     public MessageWriter GetMessageWriter() => _parentConnection.GetMessageWriter();
 
-    public async void SendMessage(MessageBuffer message)
+    public void SendMessage(MessageBuffer message)
     {
-        bool messageSent = await _messageStream!.TrySendMessageAsync(message).ConfigureAwait(false);
-        if (!messageSent)
+        if (!_messageStream!.TrySendMessage(message))
         {
             message.ReturnToPool();
         }

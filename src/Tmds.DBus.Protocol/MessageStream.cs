@@ -409,16 +409,8 @@ class MessageStream : IMessageStream
         }
     }
 
-    public async ValueTask<bool> TrySendMessageAsync(MessageBuffer message)
-    {
-        while (await _messageWriter.WaitToWriteAsync().ConfigureAwait(false))
-        {
-            if (_messageWriter.TryWrite(message))
-                return true;
-        }
-
-        return false;
-    }
+    public bool TrySendMessage(MessageBuffer message)
+        => _messageWriter.TryWrite(message);
 
     public void Close(Exception closeReason) => CloseCore(closeReason);
 

@@ -21,10 +21,15 @@ namespace Tmds.DBus
         /// <param name="oldOwner">The previous owner of the service.</param>
         /// <param name="newOwner">The new owner of the service.</param>
         public ServiceOwnerChangedEventArgs(string serviceName, string oldOwner, string newOwner)
+            : this(serviceName, oldOwner, newOwner, null!)
+        { }
+
+        internal ServiceOwnerChangedEventArgs(string serviceName, string oldOwner, string newOwner, DBusConnection connection)
         {
             ServiceName = serviceName;
             OldOwner = oldOwner;
             NewOwner = newOwner;
+            Connection = connection;
         }
 
         /// <summary>
@@ -41,5 +46,7 @@ namespace Tmds.DBus
         /// Local name of the new owner. <c>null</c> when there is no new owner.
         /// </summary>
         public string NewOwner { get; }
+
+        internal DBusConnection Connection { get; set; }
     }
 }

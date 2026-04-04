@@ -685,7 +685,7 @@ namespace Tmds.DBus
                     {
                         return;
                     }
-                    wrappedDisposable.Call(onError, ex, disposes: true);
+                    wrappedDisposable.Call(ownerChange.Connection, onError, ex, disposes: true);
                     return;
                 }
                 bool first = false;
@@ -710,7 +710,7 @@ namespace Tmds.DBus
                     }
                     ownerChange.OldOwner = null;
                 }
-                wrappedDisposable.Call(handler, ownerChange);
+                wrappedDisposable.Call(ownerChange.Connection, handler, ownerChange);
             };
 
             var connection = await GetConnectionTask().ConfigureAwait(false);
@@ -736,7 +736,7 @@ namespace Tmds.DBus
                             {
                                 if (currentName != null && !_emittedServices.Contains(serviceName))
                                 {
-                                    var e = new ServiceOwnerChangedEventArgs(service, null, currentName);
+                                    var e = new ServiceOwnerChangedEventArgs(service, null, currentName, connection);
                                     handleEvent(e, null);
                                 }
                             }
@@ -754,7 +754,7 @@ namespace Tmds.DBus
                     {
                         if (currentName != null && !_eventEmitted)
                         {
-                            var e = new ServiceOwnerChangedEventArgs(serviceName, null, currentName);
+                            var e = new ServiceOwnerChangedEventArgs(serviceName, null, currentName, connection);
                             handleEvent(e, null);
                         }
                     }

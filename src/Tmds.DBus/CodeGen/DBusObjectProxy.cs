@@ -28,7 +28,7 @@ namespace Tmds.DBus.CodeGen
         {
             var synchronizationContext = _connection.CaptureSynchronizationContext();
             var wrappedDisposable = new WrappedDisposable(synchronizationContext);
-            SignalHandler handler = (msg, ex) =>
+            SignalHandler handler = (conn, msg, ex) =>
             {
                 if (ex != null)
                 {
@@ -36,7 +36,7 @@ namespace Tmds.DBus.CodeGen
                     {
                         return;
                     }
-                    wrappedDisposable.Call(error, ex, disposes: true);
+                    wrappedDisposable.Call(conn, error, ex, disposes: true);
                     return;
                 }
 
@@ -55,7 +55,7 @@ namespace Tmds.DBus.CodeGen
                     reader.SetSkipNextStructPadding();
                 }
                 var value = readValue(reader);
-                wrappedDisposable.Call(action, value);
+                wrappedDisposable.Call(conn, action, value);
             };
 
             if (isPropertiesChanged)
@@ -74,7 +74,7 @@ namespace Tmds.DBus.CodeGen
         {
             var synchronizationContext = _connection.CaptureSynchronizationContext();
             var wrappedDisposable = new WrappedDisposable(synchronizationContext);
-            SignalHandler handler = (msg, ex) =>
+            SignalHandler handler = (conn, msg, ex) =>
             {
                 if (ex != null)
                 {
@@ -82,7 +82,7 @@ namespace Tmds.DBus.CodeGen
                     {
                         return;
                     }
-                    wrappedDisposable.Call(error, ex, disposes: true);
+                    wrappedDisposable.Call(conn, error, ex, disposes: true);
                     return;
                 }
 
@@ -90,7 +90,7 @@ namespace Tmds.DBus.CodeGen
                 {
                     return;
                 }
-                wrappedDisposable.Call(action);
+                wrappedDisposable.Call(conn, action);
             };
 
             wrappedDisposable.Disposable = await _connection.WatchSignalAsync(ObjectPath, iface, member, handler).ConfigureAwait(false);

@@ -6,5 +6,5 @@ using System;
 
 namespace Tmds.DBus.Protocol
 {
-    delegate void SignalHandler(Message message, Exception ex);
+    delegate void SignalHandler(DBusConnection connection, Message message, Exception ex);
 }

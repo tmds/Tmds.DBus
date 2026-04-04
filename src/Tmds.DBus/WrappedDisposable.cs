@@ -19,7 +19,7 @@ namespace Tmds.DBus
             _synchronizationContext = synchronizationContext;
         }
 
-        public void Call(Action action)
+        public void Call(DBusConnection conn, Action action)
         {
             if (_synchronizationContext != null && _synchronizationContext != SynchronizationContext.Current)
             {
@@ -29,12 +29,19 @@ namespace Tmds.DBus
                 }
                 _synchronizationContext.Post(_ =>
                 {
-                    lock (_gate)
+                    try
                     {
-                        if (!_disposed)
+                        lock (_gate)
                         {
-                            action();
+                            if (!_disposed)
+                            {
+                                action();
+                            }
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        conn.Disconnect(dispose: false, ex);
                     }
                 }, null);
             }
@@ -50,7 +57,7 @@ namespace Tmds.DBus
             }
         }
 
-        public void Call<T>(Action<T> action, T value, bool disposes = false)
+        public void Call<T>(DBusConnection conn, Action<T> action, T value, bool disposes = false)
         {
             if (_synchronizationContext != null && _synchronizationContext != SynchronizationContext.Current)
             {
@@ -60,16 +67,23 @@ namespace Tmds.DBus
                 }
                 _synchronizationContext.Post(_ =>
                 {
-                    lock (_gate)
+                    try
                     {
-                        if (!_disposed)
+                        lock (_gate)
                         {
-                            if (disposes)
+                            if (!_disposed)
                             {
-                                Dispose();
+                                if (disposes)
+                                {
+                                    Dispose();
+                                }
+                                action(value);
                             }
-                            action(value);
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        conn.Disconnect(dispose: false, ex);
                     }
                 }, null);
             }

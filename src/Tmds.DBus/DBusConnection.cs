@@ -602,7 +602,7 @@ namespace Tmds.DBus
                                         }
                                     }
                                 }
-                                watchers?.Invoke(new ServiceOwnerChangedEventArgs(serviceName, oldOwner, newOwner), null);
+                                watchers?.Invoke(new ServiceOwnerChangedEventArgs(serviceName, oldOwner, newOwner, this), null);
                                 return;
                             }
                         default:
@@ -627,7 +627,7 @@ namespace Tmds.DBus
                 {
                     try
                     {
-                        signalHandler(msg, null);
+                        signalHandler(this, msg, null);
                     }
                     catch (Exception e)
                     {
@@ -704,7 +704,7 @@ namespace Tmds.DBus
 
                 foreach (var handler in signalHandlers)
                 {
-                    handler.Value(null, createException());
+                    handler.Value(this, null, createException());
                 }
 
                 foreach (var tcs in pendingMethods.Values)

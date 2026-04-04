@@ -8,7 +8,7 @@ namespace Tmds.DBus.Protocol;
 
 class DBusConnection : IDisposable
 {
-    private delegate void MessageReceivedHandler(Exception? exception, Message message, object? state);
+    private delegate void MessageReceivedHandler(Exception? exception, Message? message, object? state);
 
     sealed class MyValueTaskSource<T> : IValueTaskSource<T>, IValueTaskSource
     {
@@ -49,7 +49,7 @@ class DBusConnection : IDisposable
         Disconnected
     }
 
-    delegate void MessageHandlerDelegate(Exception? exception, Message message, object? state1, object? state2, object? state3);
+    delegate void MessageHandlerDelegate(Exception? exception, Message? message, object? state1, object? state2, object? state3);
 
     readonly struct MessageHandler
     {
@@ -61,7 +61,7 @@ class DBusConnection : IDisposable
             _state3 = state3;
         }
 
-        public void Invoke(Exception? exception, Message message)
+        public void Invoke(Exception? exception, Message? message)
         {
             _delegate(exception, message, _state1, _state2, _state3);
         }
@@ -74,7 +74,34 @@ class DBusConnection : IDisposable
         private readonly object? _state3;
     }
 
-    delegate void MessageHandlerDelegate4(Exception? exception, Message message, object? state1, object? state2, object? state3, object? state4);
+    sealed class SenderName
+    {
+        private object? _object;
+
+        public ReadOnlySpan<byte> Name => _object as byte[];
+
+        public Task ResolveUniqueName => _object as Task ?? Task.CompletedTask;
+
+        public SenderName(byte[] name)
+        {
+            _object = name;
+        }
+
+        public SenderName()
+        { }
+
+        public void SetName(byte[] name)
+        {
+            _object = name;
+        }
+
+        internal void SetTask(Task task)
+        {
+            _object = task;
+        }
+    }
+
+    delegate void MessageHandlerDelegate4(Exception? exception, Message? message, object? state1, object? state2, object? state3, object? state4);
 
     readonly struct MessageHandler4
     {
@@ -87,7 +114,7 @@ class DBusConnection : IDisposable
             _state4 = state4;
         }
 
-        public void Invoke(Exception? exception, Message message)
+        public void Invoke(Exception? exception, Message? message)
         {
             _delegate(exception, message, _state1, _state2, _state3, _state4);
         }
@@ -105,7 +132,8 @@ class DBusConnection : IDisposable
     private readonly Connection _parentConnection;
     private readonly Dictionary<uint, MessageHandler> _pendingCalls;
     private readonly CancellationTokenSource _connectCts;
-    private readonly Dictionary<string, MatchMaker> _matchMakers;
+    private readonly Dictionary<string, Watcher> _watchers;
+    private readonly Dictionary<byte[], SenderName> _nameOwners; // maps a (well-known) name to a unique name (that owns the well-known name).
     private readonly List<Observer> _matchedObservers;
     private readonly PathNodeDictionary _pathNodes;
     private readonly string _machineId;
@@ -137,11 +165,12 @@ class DBusConnection : IDisposable
         _parentConnection = parent;
         _connectCts = new();
         _pendingCalls = new();
-        _matchMakers = new();
+        _watchers = new();
         _matchedObservers = new();
         _pathNodes = new();
         _machineId = machineId;
         _abortedCts = new();
+        _nameOwners = new(new ByteArrayComparer());
     }
 
     // For tests.
@@ -150,7 +179,7 @@ class DBusConnection : IDisposable
         _messageStream = stream;
 
         stream.ReceiveMessages(
-                    static (Exception? exception, Message message, DBusConnection connection) =>
+                    static (Exception? exception, Message? message, DBusConnection connection) =>
                         connection.HandleMessages(exception, message), this);
 
         _state = ConnectionState.Connected;
@@ -207,7 +236,7 @@ class DBusConnection : IDisposable
                 await stream.DoClientAuthAsync(guid, userId, supportsFdPassing).ConfigureAwait(false);
 
                 stream.ReceiveMessages(
-                    static (Exception? exception, Message message, DBusConnection connection) =>
+                    static (Exception? exception, Message? message, DBusConnection connection) =>
                         connection.HandleMessages(exception, message), this);
 
                 lock (_gate)
@@ -250,7 +279,7 @@ class DBusConnection : IDisposable
             await messageStream.DoClientAuthAsync(default(Guid), userId, supportsFdPassing: false).ConfigureAwait(false);
 
             messageStream.ReceiveMessages(
-                static (Exception? exception, Message message, DBusConnection connection) =>
+                static (Exception? exception, Message? message, DBusConnection connection) =>
                     connection.HandleMessages(exception, message), this);
 
             lock (_gate)
@@ -278,15 +307,17 @@ class DBusConnection : IDisposable
 
         CallMethod(
             message: CreateHelloMessage(),
-            static (Exception? exception, Message message, object? state) =>
+            static (Exception? exception, Message? message, object? state) =>
             {
                 var vtsState = (MyValueTaskSource<string?>)state!;
 
                 if (exception is not null)
                 {
                     vtsState.SetException(exception);
+                    return;
                 }
-                else if (message.MessageType == MessageType.MethodReturn)
+                Debug.Assert(message is not null);
+                if (message.MessageType == MessageType.MethodReturn)
                 {
                     vtsState.SetResult(message.GetBodyReader().ReadString());
                 }
@@ -312,7 +343,7 @@ class DBusConnection : IDisposable
         }
     }
 
-    private async void HandleMessages(Exception? exception, Message message)
+    private async void HandleMessages(Exception? exception, Message? message)
     {
         if (exception is not null)
         {
@@ -320,6 +351,7 @@ class DBusConnection : IDisposable
         }
         else
         {
+            Debug.Assert(message is not null);
             try
             {
                 bool returnMessageToPool = true;
@@ -340,16 +372,23 @@ class DBusConnection : IDisposable
 
                     if (monitor is null)
                     {
+                        if (message.MessageType == MessageType.Signal &&
+                            message.Interface.SequenceEqual("org.freedesktop.DBus"u8) &&
+                            message.Sender.SequenceEqual("org.freedesktop.DBus"u8))
+                        {
+                            HandleDBusInterfaceSignal(message);
+                        }
+
                         if (message.ReplySerial.HasValue)
                         {
                             _pendingCalls.Remove(message.ReplySerial.Value, out pendingCall);
                         }
 
-                        foreach (var matchMaker in _matchMakers.Values)
+                        foreach (var watcher in _watchers.Values)
                         {
-                            if (matchMaker.Matches(message))
+                            if (watcher.Observes(message))
                             {
-                                _matchedObservers.AddRange(matchMaker.Observers);
+                                _matchedObservers.AddRange(watcher.Observers);
                             }
                         }
 
@@ -561,17 +600,22 @@ class DBusConnection : IDisposable
             _pendingCalls.Clear();
         }
 
-        foreach (var matchMaker in _matchMakers.Values)
+        foreach (var watcher in _watchers.Values)
         {
-            foreach (var observer in matchMaker.Observers)
+            foreach (var observer in watcher.Observers)
             {
                 bool emitException = !object.ReferenceEquals(disconnectReason, Connection.DisposedException) ||
                                      observer.EmitOnConnectionDispose;
                 Exception? exception = emitException ? new DisconnectedException(disconnectReason) : null;
                 observer.Dispose(exception, removeObserver: false);
             }
+            if (watcher.SubscribeTask is not null)
+            {
+                EnsureExceptionObserved(watcher.SubscribeTask);
+            }
         }
-        _matchMakers.Clear();
+        _watchers.Clear();
+        _nameOwners.Clear();
 
         if (monitor is not null)
         {
@@ -587,7 +631,7 @@ class DBusConnection : IDisposable
 
     private void CallMethod(MessageBuffer message, MessageReceivedHandler returnHandler, object? state)
     {
-        MessageHandlerDelegate fn = static (Exception? exception, Message message, object? state1, object? state2, object? state3) =>
+        MessageHandlerDelegate fn = static (Exception? exception, Message? message, object? state1, object? state2, object? state3) =>
         {
             ((MessageReceivedHandler)state1!)(exception, message, state2);
         };
@@ -630,7 +674,7 @@ class DBusConnection : IDisposable
 
     public async Task<T> CallMethodAsync<T>(MessageBuffer message, MessageValueReader<T> valueReader, object? state = null)
     {
-        MessageHandlerDelegate fn = static (Exception? exception, Message message, object? state1, object? state2, object? state3) =>
+        MessageHandlerDelegate fn = static (Exception? exception, Message? message, object? state1, object? state2, object? state3) =>
         {
             var valueReaderState = (MessageValueReader<T>)state1!;
             var vtsState = (MyValueTaskSource<T>)state2!;
@@ -638,8 +682,10 @@ class DBusConnection : IDisposable
             if (exception is not null)
             {
                 vtsState.SetException(exception);
+                return;
             }
-            else if (message.MessageType == MessageType.MethodReturn)
+            Debug.Assert(message is not null);
+            if (message.MessageType == MessageType.MethodReturn)
             {
                 try
                 {
@@ -672,20 +718,22 @@ class DBusConnection : IDisposable
     {
         MyValueTaskSource<object?> vts = new();
 
-        CallMethod(message, static (Exception? exception, Message message, object? state) => CompleteCallValueTaskSource(exception, message, state), vts);
+        CallMethod(message, static (Exception? exception, Message? message, object? state) => CompleteCallValueTaskSource(exception, message, state), vts);
 
         await new ValueTask(vts, 0).ConfigureAwait(false);
     }
 
-    private static void CompleteCallValueTaskSource(Exception? exception, Message message, object? vts)
+    private static void CompleteCallValueTaskSource(Exception? exception, Message? message, object? vts)
     {
         var vtsState = (MyValueTaskSource<object?>)vts!;
 
         if (exception is not null)
         {
             vtsState.SetException(exception);
+            return;
         }
-        else if (message.MessageType == MessageType.MethodReturn)
+        Debug.Assert(message is not null);
+        if (message.MessageType == MessageType.MethodReturn)
         {
             vtsState.SetResult(null);
         }
@@ -724,7 +772,7 @@ class DBusConnection : IDisposable
             {
                 throw new InvalidOperationException("The remote is not a bus.");
             }
-            if (_matchMakers.Count != 0)
+            if (_watchers.Count != 0)
             {
                 throw new InvalidOperationException("The connection has observers.");
             }
@@ -781,9 +829,9 @@ class DBusConnection : IDisposable
         }
     }
 
-    public ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
+    public async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
     {
-        MessageHandlerDelegate4 fn = (Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
+        MessageHandlerDelegate4 fn = (Exception? exception, Message? message, object? reader, object? handler, object? rs, object? hs) =>
         {
             try
             {
@@ -791,13 +839,12 @@ class DBusConnection : IDisposable
                 if (exception is not null)
                 {
                     valueHandlerState(exception, default(T)!, rs, hs);
+                    return;
                 }
-                else
-                {
-                    var valueReaderState = (MessageValueReader<T>)reader!;
-                    T value = valueReaderState(message, rs);
-                    valueHandlerState(null, value, rs, hs);
-                }
+                Debug.Assert(message is not null);
+                var valueReaderState = (MessageValueReader<T>)reader!;
+                T value = valueReaderState(message, rs);
+                valueHandlerState(null, value, rs, hs);
             }
             catch (Exception ex)
             {
@@ -805,82 +852,196 @@ class DBusConnection : IDisposable
             }
         };
 
-        return AddMatchAsync(synchronizationContext, rule, new(fn, valueReader, valueHandler, readerState, handlerState), flags);
+        if (!RemoteIsBus)
+        {
+            flags |= ObserverFlags.NoSubscribe;
+        }
+
+        Observer observer = new Observer(synchronizationContext, new(fn, valueReader, valueHandler, readerState, handlerState), flags);
+        await AddWatcherUserAsync(rule.Data, observer);
+        return observer;
     }
 
-    private async ValueTask<IDisposable> AddMatchAsync(SynchronizationContext? synchronizationContext, MatchRule rule, MessageHandler4 handler, ObserverFlags flags)
+    private ValueTask<Watcher> AddWatcherUserAsync(in MatchRuleData data, Observer? observer)
     {
-        MatchRuleData data = rule.Data;
-        MatchMaker? matchMaker;
+        // When we're making a match for a (service) name we need to match it with the unique name that is currently owning that name.
+        // To do that, we need another AddMatch to watch changes for the name.
+        // This associated AddMatch is tracked with the WatchNameOwnerTask property. To that Watcher we are a non-observing subscriber.
+        // This watches for changes, we also need to get the current name.
+        // The SenderName class tracks the resolving of that name or the current value when it is known.
+        // It is stored in the _nameOwners dictionary which maps the name to the owner.
+        // Items from that dictionary are removed when the associated AddMatch is removed (or when we fail to create one).
+        Watcher? watcher;
         string ruleString;
-        Observer observer;
         MessageBuffer? addMatchMessage = null;
         bool subscribe;
-
+        Task resolveUniqueNameTask = Task.CompletedTask;
         lock (_gate)
         {
             if (_state != ConnectionState.Connected)
             {
                 throw new DisconnectedException(DisconnectReason!);
             }
-            if (!RemoteIsBus)
-            {
-                flags |= ObserverFlags.NoSubscribe;
-            }
             if (_isMonitor)
             {
                 throw new InvalidOperationException("Cannot add subscriptions on a monitor connection.");
             }
 
+            // The rest of this block doesn't throw.
+            // Throwing happens when we await after releasing the lock.
+
             ruleString = data.GetRuleString();
 
-            if (!_matchMakers.TryGetValue(ruleString, out matchMaker))
+            SenderName? sender = null;
+            if (!_watchers.TryGetValue(ruleString, out watcher))
             {
-                matchMaker = new MatchMaker(this, ruleString, data);
-                _matchMakers.Add(ruleString, matchMaker);
+                Task<Watcher>? watchNameOwnerTask = null;
+                if (data.Sender is not null)
+                {
+                    byte[] senderBytes = Encoding.UTF8.GetBytes(data.Sender);
+                    if (!RemoteIsBus)
+                    {
+                        Debug.Assert(sender == null);
+                    }
+                    // Is this a bus name we should map to a unique name for filtering.
+                    else if (senderBytes.Length > 0 && senderBytes[0] != (byte)':' && data.Sender != Connection.DBusServiceName)
+                    {
+                        watchNameOwnerTask = WatchNameOwnerAsync(this, data.Sender!);
+                        if (!TryGetSenderName(senderBytes, out sender))
+                        {
+                            sender = new SenderName();
+                            resolveUniqueNameTask = ResolveUniqueNameAsync(this, sender, data.Sender);
+                            sender.SetTask(resolveUniqueNameTask);
+                            _nameOwners[senderBytes] = sender;
+                        }
+                        else
+                        {
+                            resolveUniqueNameTask = sender.ResolveUniqueName;
+                        }
+                    }
+                    else
+                    {
+                        sender = new SenderName(senderBytes);
+                    }
+                }
+                watcher = new Watcher(this, ruleString, data, sender, watchNameOwnerTask);
+                _watchers.Add(ruleString, watcher);
+            }
+            else
+            {
+                sender = watcher.Sender;
+                if (sender is not null)
+                {
+                    resolveUniqueNameTask = sender.ResolveUniqueName;
+                }
             }
 
-            observer = new Observer(synchronizationContext, matchMaker, handler, flags);
-            matchMaker.Observers.Add(observer);
+            if (observer is not null)
+            {
+                observer.Watcher = watcher;
+                watcher.Observers.Add(observer);
+                subscribe = observer.Subscribes;
+            }
+            else
+            {
+                Debug.Assert(watcher.IsNameOwnerWatcher);
+                watcher.AddNonObserverSubscriber();
+                subscribe = true;
+            }
 
-            subscribe = observer.Subscribes;
-            bool sendMessage = subscribe && matchMaker.AddMatchTcs is null;
+            bool sendMessage = subscribe && watcher.SubscribeTask is null;
             if (sendMessage)
             {
-                addMatchMessage = CreateAddMatchMessage(matchMaker.RuleString);
-                matchMaker.AddMatchTcs = new();
-
-                MessageHandlerDelegate fn = static (Exception? exception, Message message, object? state1, object? state2, object? state3) =>
+                var subscribeTcs = new MyValueTaskSource<object?>();
+                watcher.SubscribeTask = new ValueTask<object?>(subscribeTcs, token: 0).AsTask();
+                addMatchMessage = CreateAddMatchMessage(watcher.RuleString);
+                MessageHandlerDelegate fn = static (Exception? exception, Message? message, object? state1, object? state2, object? state3) =>
                 {
-                    var mm = (MatchMaker)state1!;
-                    if (message.MessageType == MessageType.MethodReturn)
+                    var mm = (Watcher)state1!;
+                    var vtsState = (MyValueTaskSource<object?>)state2!;
+                    if (message is not null)
                     {
-                        mm.HasSubscribed = true;
+                        if (message.MessageType == MessageType.MethodReturn)
+                        {
+                            mm.HasSubscribed = true;
+                        }
                     }
-                    CompleteCallValueTaskSource(exception, message, mm.AddMatchTcs!);
+                    CompleteCallValueTaskSource(exception, message, vtsState);
                 };
-
-                _pendingCalls.Add(addMatchMessage.Serial, new(fn, matchMaker));
-
+                _pendingCalls.Add(addMatchMessage.Serial, new(fn, watcher, subscribeTcs));
                 _messageStream!.TrySendMessage(addMatchMessage);
             }
         }
 
-        if (subscribe)
+        return AwaitMatchAsync(this, watcher, resolveUniqueNameTask, subscribe, observer);
+
+        static async ValueTask<Watcher> AwaitMatchAsync(DBusConnection connection, Watcher watcher, Task resolveUniqueNameTask, bool subscribe, Observer? observer)
         {
             try
             {
-                await matchMaker.AddMatchTask!.ConfigureAwait(false);
+                // We might throw before we've awaited all tasks.
+                // For the first one (AddMatchAsyncOwnerTask) this isn't an issue.
+                // For resolveUniqueNameTask, and SubscribeTask we call the 'EnsureExceptionObserved' method to avoid unhandled exceptions from these Tasks.
+                if (watcher.AddMatchAsyncOwnerTask is not null)
+                {
+                    Debug.Assert(observer is not null); // the observer is null when we're watching an owner, and owner watchers don't have owners to watch (because they watch the bus itself).
+                    await watcher.AddMatchAsyncOwnerTask.ConfigureAwait(false);
+
+                    await resolveUniqueNameTask.ConfigureAwait(false);
+                }
+
+                if (subscribe)
+                {
+                    await watcher.SubscribeTask!.ConfigureAwait(false);
+                }
             }
             catch
             {
-                observer.Dispose(exception: null);
+                EnsureExceptionObserved(resolveUniqueNameTask);
 
-                throw;
+                if (observer is not null)
+                {
+                    bool disposedObserver = observer.Dispose(exception: null);
+                    // If something had already disposed the observer, we won't throw and just return it.
+                    // The handler took care of the exception (if ObserverFlags registered for it).
+                    if (disposedObserver)
+                    {
+                        throw;
+                    }
+                }
+                else
+                {
+                    connection.RemoveWatcherUser(watcher, null);
+                    throw;
+                }
+            }
+
+            return watcher;
+        }
+
+        static async Task ResolveUniqueNameAsync(DBusConnection connection, SenderName senderName, string name)
+        {
+            byte[] uniqueName = await connection.GetNameOwnerAsync(name).ConfigureAwait(false);
+            lock (connection._gate)
+            {
+                senderName.SetName(uniqueName);
             }
         }
 
-        return observer;
+        static Task<Watcher> WatchNameOwnerAsync(DBusConnection connection, string name)
+        {
+            Debug.Assert(Monitor.IsEntered(connection._gate));
+            Debug.Assert(name != Connection.DBusServiceName);
+            MatchRuleData data = new MatchRuleData
+            {
+                MessageType = MessageType.Signal,
+                Interface = "org.freedesktop.DBus",
+                Member = "NameOwnerChanged",
+                Sender = "org.freedesktop.DBus",
+                Arg0 = name
+            };
+            return connection.AddWatcherUserAsync(data, observer: null).AsTask();
+        }
 
         MessageBuffer CreateAddMatchMessage(string ruleString)
         {
@@ -905,7 +1066,6 @@ class DBusConnection : IDisposable
     {
         private readonly object _gate = new object();
         private readonly SynchronizationContext? _synchronizationContext;
-        private readonly MatchMaker _matchMaker;
         private readonly MessageHandler4 _messageHandler;
         private readonly ObserverFlags _flags;
         private bool _disposed;
@@ -913,12 +1073,13 @@ class DBusConnection : IDisposable
         public bool Subscribes => (_flags & ObserverFlags.NoSubscribe) == 0;
         public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionDispose) != 0;
         public bool EmitOnObserverDispose => (_flags & ObserverFlags.EmitOnObserverDispose) != 0;
-        public DBusConnection Connection => _matchMaker.Connection;
+        public DBusConnection Connection => Watcher.Connection;
 
-        public Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, ObserverFlags flags)
+        internal Watcher Watcher = null!;
+
+        public Observer(SynchronizationContext? synchronizationContext, in MessageHandler4 messageHandler, ObserverFlags flags)
         {
             _synchronizationContext = synchronizationContext;
-            _matchMaker = matchMaker;
             _messageHandler = messageHandler;
             _flags = flags;
         }
@@ -926,13 +1087,13 @@ class DBusConnection : IDisposable
         public void Dispose() =>
             Dispose(EmitOnObserverDispose ? ObserverDisposedException : null);
 
-        public void Dispose(Exception? exception, bool removeObserver = true)
+        public bool Dispose(Exception? exception, bool removeObserver = true)
         {
             lock (_gate)
             {
                 if (_disposed)
                 {
-                    return;
+                    return false;
                 }
                 _disposed = true;
             }
@@ -944,8 +1105,10 @@ class DBusConnection : IDisposable
 
             if (removeObserver)
             {
-                _matchMaker.Connection.RemoveObserver(_matchMaker, this);
+                Connection.RemoveWatcherUser(Watcher, this);
             }
+
+            return true;
         }
 
         public void Emit(Message message)
@@ -956,7 +1119,7 @@ class DBusConnection : IDisposable
             }
             else
             {
-                _matchMaker.Connection.EmitOnSynchronizationContextHelper(this, _synchronizationContext, message);
+                Connection.EmitOnSynchronizationContextHelper(this, _synchronizationContext, message);
             }
         }
 
@@ -988,7 +1151,7 @@ class DBusConnection : IDisposable
 
         internal void InvokeHandler(Message message)
         {
-            if (Subscribes && !_matchMaker.HasSubscribed)
+            if (Subscribes && !Watcher.HasSubscribed)
             {
                 return;
             }
@@ -1010,10 +1173,8 @@ class DBusConnection : IDisposable
         _parentConnection.Disconnect(ex, this);
     }
 
-    private async void RemoveObserver(MatchMaker matchMaker, Observer observer)
+    private void RemoveWatcherUser(Watcher watcher, Observer? observer)
     {
-        string ruleString = matchMaker.RuleString;
-
         lock (_gate)
         {
             if (_state == ConnectionState.Disconnected)
@@ -1021,20 +1182,53 @@ class DBusConnection : IDisposable
                 return;
             }
 
-            if (_matchMakers.TryGetValue(ruleString, out _))
+            Debug.Assert(_watchers.ContainsKey(watcher.RuleString));
+
+            if (observer is not null)
             {
-                matchMaker.Observers.Remove(observer);
-                bool sendMessage = matchMaker.AddMatchTcs is not null && matchMaker.HasSubscribers;
-                if (sendMessage)
+                watcher.Observers.Remove(observer);
+            }
+            else
+            {
+                watcher.RemoveNonObservingSubscriber();
+            }
+
+            // Also when SubscribeTask failed we make a "RemoveMatch" call.
+            // There may not be a rule, but we ignore the reply anyway.
+            bool hasNoMoreSubscribers = watcher.SubscribeTask is not null && !watcher.HasSubscribers;
+            if (hasNoMoreSubscribers)
+            {
+                EnsureExceptionObserved(watcher.SubscribeTask!);
+                watcher.SubscribeTask = null; // We need to re-subscribe.
+
+                var message = CreateRemoveMatchMessage(watcher.RuleString);
+                SendMessage(message);
+
+                if (watcher.IsNameOwnerWatcher)
                 {
-                    _matchMakers.Remove(ruleString);
-                    var message = CreateRemoveMatchMessage();
-                    _messageStream!.TrySendMessage(message);
+                    _nameOwners.Remove(watcher.Arg0!, out SenderName? sender);
+                }
+            }
+
+            if (!watcher.HasUsers)
+            {
+                _watchers.Remove(watcher.RuleString);
+                if (watcher.AddMatchAsyncOwnerTask is not null)
+                {
+                    Debug.Assert(observer is not null);
+                    // When the observer was created it awaited this task, so we don't need to observe its failure.
+                    // When it was succesfull, we need to remove ourselves as a user.
+                    watcher.AddMatchAsyncOwnerTask.ContinueWith(static (t, o) =>
+                    {
+                        Watcher nameOwnerWatcher = t.Result;
+                        DBusConnection connection = nameOwnerWatcher.Connection;
+                        connection.RemoveWatcherUser(nameOwnerWatcher, observer: null /* we are a non-observing user to the owner */);
+                    }, null, TaskContinuationOptions.OnlyOnRanToCompletion | TaskContinuationOptions.ExecuteSynchronously);
                 }
             }
         }
 
-        MessageBuffer CreateRemoveMatchMessage()
+        MessageBuffer CreateRemoveMatchMessage(string ruleString)
         {
             using var writer = GetMessageWriter();
 
@@ -1052,10 +1246,10 @@ class DBusConnection : IDisposable
         }
     }
 
-    sealed class MatchMaker
+    sealed class Watcher
     {
         private readonly MessageType? _type;
-        private readonly byte[]? _sender;
+        private readonly SenderName? _sender;
         private readonly byte[]? _interface;
         private readonly byte[]? _member;
         private readonly byte[]? _path;
@@ -1066,40 +1260,44 @@ class DBusConnection : IDisposable
         private readonly byte[]? _arg0Namespace;
         private readonly string _rule;
 
-        private MyValueTaskSource<object?>? _vts;
+        private int _nonObserverSubscribers;
 
         public List<Observer> Observers { get; } = new();
 
-        public MyValueTaskSource<object?>? AddMatchTcs
-        {
-            get => _vts;
-            set
-            {
-                _vts = value;
-                if (value != null)
-                {
-                    AddMatchTask = new ValueTask<object?>(value, token: 0).AsTask();
-                }
-            }
-        }
-
-        public Task<object?>? AddMatchTask { get; private set; }
+        public Task<object?>? SubscribeTask { get; set; } // Task for the "AddMatch" D-Bus call.
 
         public bool HasSubscribed { get; set; }
 
         public DBusConnection Connection { get; }
 
-        public MatchMaker(DBusConnection connection, string rule, in MatchRuleData data)
+        public byte[]? Arg0 => _arg0;
+
+        public bool IsNameOwnerWatcher
+            => _arg0 is not null &&
+               _type == MessageType.Signal &&
+               _interface is not null && _interface.AsSpan().SequenceEqual("org.freedesktop.DBus"u8) &&
+               _member is not null && _member.AsSpan().SequenceEqual("NameOwnerChanged"u8) &&
+               _sender is not null && _sender.Name.SequenceEqual("org.freedesktop.DBus"u8) &&
+               _path is null &&
+               _pathNamespace is null &&
+               _destination is null &&
+               _arg0Path is null &&
+               _arg0Namespace is null;
+
+        public string RuleString => _rule;
+
+        public SenderName? Sender => _sender;
+
+        // This is the AddMatchAsync call to watch for D-Bus name owner changes for the sender of this rule (so we can map it to the unique name for matching).
+        // It is not null when this Watcher watches a D-Bus registered bus name
+        public Task<Watcher>? AddMatchAsyncOwnerTask { get; private set; } // AddMatchAsync call for watching the owner changes.
+
+        public Watcher(DBusConnection connection, string rule, in MatchRuleData data, SenderName? sender, Task<Watcher>? watchNameOwnerTask)
         {
             Connection = connection;
             _rule = rule;
-
             _type = data.MessageType;
-
-            if (data.Sender is not null && data.Sender.StartsWith(":"))
-            {
-                _sender = Encoding.UTF8.GetBytes(data.Sender);
-            }
+            _sender = sender;
             if (data.Interface is not null)
             {
                 _interface = Encoding.UTF8.GetBytes(data.Interface);
@@ -1132,14 +1330,25 @@ class DBusConnection : IDisposable
             {
                 _arg0Namespace = Encoding.UTF8.GetBytes(data.Arg0Namespace);
             }
+            AddMatchAsyncOwnerTask = watchNameOwnerTask;
         }
 
-        public string RuleString => _rule;
+        public bool HasUsers
+        {
+            get
+            {
+                return _nonObserverSubscribers > 0 || Observers.Count > 0;
+            }
+        }
 
         public bool HasSubscribers
         {
             get
             {
+                if (_nonObserverSubscribers > 0)
+                {
+                    return true;
+                }
                 if (Observers.Count == 0)
                 {
                     return false;
@@ -1157,24 +1366,14 @@ class DBusConnection : IDisposable
 
         public override string ToString() => _rule;
 
-        internal bool Matches(Message message)
+        internal bool Observes(Message message)
         {
+            if (Observers.Count == 0)
+            {
+                return false;
+            }
+
             if (_type.HasValue && _type != message.MessageType)
-            {
-                return false;
-            }
-
-            if (_sender is not null && !IsEqual(_sender, message.Sender))
-            {
-                return false;
-            }
-
-            if (_interface is not null && !IsEqual(_interface, message.Interface))
-            {
-                return false;
-            }
-
-            if (_member is not null && !IsEqual(_member, message.Member))
             {
                 return false;
             }
@@ -1184,7 +1383,12 @@ class DBusConnection : IDisposable
                 return false;
             }
 
-            if (_destination is not null && !IsEqual(_destination, message.Destination))
+            if (_member is not null && !IsEqual(_member, message.Member))
+            {
+                return false;
+            }
+
+            if (_interface is not null && !IsEqual(_interface, message.Interface))
             {
                 return false;
             }
@@ -1234,6 +1438,16 @@ class DBusConnection : IDisposable
                 }
             }
 
+            if (_sender is not null && !IsEqual(_sender.Name, message.Sender))
+            {
+                return false;
+            }
+
+            if (_destination is not null && !IsEqual(_destination, message.Destination))
+            {
+                return false;
+            }
+
             return true;
         }
 
@@ -1267,6 +1481,58 @@ class DBusConnection : IDisposable
         {
             return lhs.SequenceEqual(rhs);
         }
+
+        internal void RemoveNonObservingSubscriber()
+        {
+            Debug.Assert(_nonObserverSubscribers > 0);
+            _nonObserverSubscribers--;
+        }
+
+        internal void AddNonObserverSubscriber()
+        {
+            _nonObserverSubscribers++;
+        }
+    }
+
+    private bool TryGetSenderName(ReadOnlySpan<byte> name, [NotNullWhen(true)]out SenderName? senderName)
+    {
+        Debug.Assert(Monitor.IsEntered(_gate));
+#if NET9_0_OR_GREATER
+        var lookup = _nameOwners.GetAlternateLookup<ReadOnlySpan<byte>>();
+        if (lookup.TryGetValue(name, out var entry))
+        {
+            senderName = entry;
+            return true;
+        }
+#else
+        byte[] nameKey = name.ToArray();
+        if (_nameOwners.TryGetValue(nameKey, out var entry))
+        {
+            senderName = entry;
+            return true;
+        }
+#endif
+        senderName = null;
+        return false;
+    }
+
+    private ReadOnlySpan<byte> MapNameToCurrentOwner(ReadOnlySpan<byte> name)
+    {
+        Debug.Assert(Monitor.IsEntered(_gate));
+#if NET9_0_OR_GREATER
+        var lookup = _nameOwners.GetAlternateLookup<ReadOnlySpan<byte>>();
+        if (lookup.TryGetValue(name, out var entry))
+        {
+            return entry.Name;
+        }
+#else
+        byte[] nameKey = name.ToArray();
+        if (_nameOwners.TryGetValue(nameKey, out var entry))
+        {
+            return entry.Name;
+        }
+#endif
+        return name;
     }
 
     public MessageWriter GetMessageWriter() => _parentConnection.GetMessageWriter();
@@ -1301,6 +1567,98 @@ class DBusConnection : IDisposable
     private Exception? GetWaitForDisconnectException()
         => _disconnectReason is ObjectDisposedException ? null : _disconnectReason;
 
+    private void HandleDBusInterfaceSignal(Message message)
+    {
+        Debug.Assert(message.MessageType == MessageType.Signal);
+        Debug.Assert(message.Interface.SequenceEqual("org.freedesktop.DBus"u8));
+        Debug.Assert(message.Sender.SequenceEqual("org.freedesktop.DBus"u8));
+
+        if (message.Member.SequenceEqual("NameOwnerChanged"u8))
+        {
+            var reader = message.GetBodyReader();
+            ReadOnlySpan<byte> name = reader.ReadStringAsSpan();
+
+            if (TryGetSenderName(name, out var senderName))
+            {
+                _ = reader.ReadStringAsSpan(); // old name
+                byte[] newOwner = reader.ReadStringAsSpan().ToArray();
+                senderName.SetName(newOwner);
+            }
+            return;
+        }
+
+        bool acquiredNotLost = message.Member.SequenceEqual("NameAcquired"u8);
+
+        if (acquiredNotLost || message.Member.SequenceEqual("NameLost"u8))
+        {
+            // No-op: we don't have service name registrations in this version.
+        }
+    }
+
+    private static void EnsureExceptionObserved(Task task)
+    {
+        task.ContinueWith(t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously);
+    }
+
+    private async Task<byte[]> GetNameOwnerAsync(string name)
+    {
+        MyValueTaskSource<byte[]> vts = new();
+
+        CallMethod(
+            message: CreateGetNameOwnerMessage(name),
+            static (Exception? exception, Message? message, object? state) =>
+            {
+                var vtsState = (MyValueTaskSource<byte[]>)state!;
+
+                if (exception is not null)
+                {
+                    vtsState.SetException(exception);
+                    return;
+                }
+                Debug.Assert(message is not null);
+                if (message.MessageType == MessageType.MethodReturn)
+                {
+                    try
+                    {
+                        vtsState.SetResult(message.GetBodyReader().ReadStringAsSpan().ToArray());
+                    }
+                    catch (Exception ex)
+                    {
+                        vtsState.SetException(ex);
+                    }
+                }
+                else if (message.MessageType == MessageType.Error)
+                {
+                    if (message.ErrorName.SequenceEqual("org.freedesktop.DBus.Error.NameHasNoOwner"u8))
+                    {
+                        vtsState.SetResult(Array.Empty<byte>());
+                    }
+                    else
+                    {
+                        vtsState.SetException(CreateDBusExceptionForErrorMessage(message));
+                    }
+                }
+            }, vts);
+
+        return await new ValueTask<byte[]>(vts, token: 0).ConfigureAwait(false);
+
+        MessageBuffer CreateGetNameOwnerMessage(string serviceName)
+        {
+            using var writer = GetMessageWriter();
+
+            writer.WriteMethodCallHeader(
+                destination: "org.freedesktop.DBus",
+                path: "/org/freedesktop/DBus",
+                @interface: "org.freedesktop.DBus",
+                member: "GetNameOwner",
+                signature: "s");
+
+            writer.WriteString(serviceName);
+
+            return writer.CreateMessage();
+        }
+    }
+
     private void SendErrorReplyMessage(Message methodCall, string errorName, string errorMsg)
     {
         SendMessage(CreateErrorMessage(methodCall, errorName, errorMsg));
@@ -1316,6 +1674,32 @@ class DBusConnection : IDisposable
                 errorMsg: errorMsg);
 
             return writer.CreateMessage();
+        }
+    }
+
+    private sealed class ByteArrayComparer : IEqualityComparer<byte[]>
+#if NET9_0_OR_GREATER
+    , IAlternateEqualityComparer<ReadOnlySpan<byte>, byte[]>
+#endif
+    {
+        public byte[] Create(ReadOnlySpan<byte> alternate) => alternate.ToArray();
+        public bool Equals(byte[]? x, byte[]? y) => x.AsSpan().SequenceEqual(y);
+        public bool Equals(ReadOnlySpan<byte> alternate, byte[] other) => alternate.SequenceEqual(other);
+        public int GetHashCode([DisallowNull] byte[] obj) => GetHashCode(obj.AsSpan());
+        public int GetHashCode(ReadOnlySpan<byte> alternate)
+        {
+#if NETSTANDARD2_0 || NETSTANDARD2_1
+            int hash = 17;
+            foreach (byte b in alternate)
+            {
+                hash = hash * 31 + b;
+            }
+            return hash;
+#else
+            var hash = new HashCode();
+            hash.AddBytes(alternate);
+            return hash.ToHashCode();
+#endif
         }
     }
 }

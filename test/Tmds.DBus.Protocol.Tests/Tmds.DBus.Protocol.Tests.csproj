@@ -9,6 +9,7 @@
     <AssemblyOriginatorKeyFile>..\..\sign.snk</AssemblyOriginatorKeyFile>
     <PublicSign>true</PublicSign>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <LangVersion>13</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

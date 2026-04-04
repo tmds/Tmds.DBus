@@ -287,7 +287,7 @@ class InnerConnection : IDisposable
     {
         if (exception is not null)
         {
-            _parentDBusConnection.Disconnect(exception, this);
+            Disconnect(exception);
         }
         else
         {
@@ -413,7 +413,7 @@ class InnerConnection : IDisposable
             }
             catch (Exception ex)
             {
-                _parentDBusConnection.Disconnect(ex, this);
+                Disconnect(ex);
             }
         }
     }
@@ -829,6 +829,7 @@ class InnerConnection : IDisposable
         public bool Subscribes => (_flags & ObserverFlags.NoSubscribe) == 0;
         public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionDispose) != 0;
         public bool EmitOnObserverDispose => (_flags & ObserverFlags.EmitOnObserverDispose) != 0;
+        public InnerConnection Connection => _matchMaker.DBusConnection;
 
         private Observer(SynchronizationContext? synchronizationContext, MatchMaker matchMaker, in MessageHandler4 messageHandler, ObserverFlags flags)
         {
@@ -843,16 +844,23 @@ class InnerConnection : IDisposable
         {
             MessageHandlerDelegate4 fn = static (Observer observer, Exception? exception, Message message, object? reader, object? handler, object? rs, object? hs) =>
             {
-                var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
-                if (exception is not null)
+                try
                 {
-                    valueHandlerState(exception, default(T)!, rs, hs);
+                    var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
+                    if (exception is not null)
+                    {
+                        valueHandlerState(exception, default(T)!, rs, hs);
+                    }
+                    else
+                    {
+                        var valueReaderState = (MessageValueReader<T>)reader!;
+                        T value = valueReaderState(message, rs);
+                        valueHandlerState(null, value, rs, hs);
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    var valueReaderState = (MessageValueReader<T>)reader!;
-                    T value = valueReaderState(message, rs);
-                    valueHandlerState(null, value, rs, hs);
+                    observer.Connection.Disconnect(ex);
                 }
             };
 
@@ -983,6 +991,11 @@ class InnerConnection : IDisposable
                 _messageHandler.Invoke(this, null, message);
             }
         }
+    }
+
+    private void Disconnect(Exception ex)
+    {
+        _parentDBusConnection.Disconnect(ex, this);
     }
 
     private async void RemoveObserver(MatchMaker matchMaker, Observer observer)

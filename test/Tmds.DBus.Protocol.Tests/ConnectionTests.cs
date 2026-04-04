@@ -579,5 +579,48 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.Equal("Handler error", exception.InnerException!.Message);
             Assert.Equal(2, handlerCallCount); // Called once with message, once with exception
         }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task HandlerExceptionDisconnectsConnection(bool setSynchronizationContext)
+        {
+            if (setSynchronizationContext)
+            {
+                SynchronizationContext.SetSynchronizationContext(new MySynchronizationContext());
+            }
+
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var testException = new InvalidOperationException("Test handler exception");
+            var proxy = new HelloWorld(conn1, conn2.UniqueName!);
+
+            await proxy.WatchSignalAsync<string>(
+                conn2.UniqueName!,
+                HelloWorldConstants.Interface,
+                HelloWorldConstants.Path,
+                HelloWorldConstants.OnHelloWorld,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: (Exception? ex, string msg) =>
+                {
+                    if (ex is null)
+                    {
+                        throw testException;
+                    }
+                },
+                emitOnCapturedContext: true);
+
+            // Send a signal that will trigger the handler exception
+            SendHelloWorldSignal(conn2);
+
+            // Wait for the connection to disconnect
+            var disconnectException = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+            // Verify the connection was disconnected with the handler exception
+            Assert.NotNull(disconnectException);
+            Assert.Same(testException, disconnectException);
+        }
     }
 }

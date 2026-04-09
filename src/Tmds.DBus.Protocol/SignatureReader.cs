@@ -5,8 +5,7 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Reader for D-Bus signatures.
 /// </summary>
-[Obsolete("SignatureReader will be made internal in a future version.")]
-public ref struct SignatureReader
+internal ref struct SignatureReader
 {
     private ReadOnlySpan<byte> _signature;
 

@@ -15,7 +15,6 @@ public sealed class MethodContext : IDisposable
         IsPeerInterface = 1 << 3,
         IsPropertiesInterface = 1 << 4,
         DisposesAsynchronously = 1 << 5,
-        CanDispose = 1 << 6, // Disallows Dispose when using IMethodHandler.
         NoReplyExpected = 1 << 7,
     }
 
@@ -29,7 +28,6 @@ public sealed class MethodContext : IDisposable
         _connection = connection;
         _request = request;
         _requestAborted = requestAborted;
-        _flags |= Flags.CanDispose;
         if (request is not null) // Tests pass in a null request...
         {
             _flags |= GetDBusInterfaceFlags(request.Interface);
@@ -76,21 +74,7 @@ public sealed class MethodContext : IDisposable
     /// <summary>
     /// Gets the D-Bus connection associated with this method call.
     /// </summary>
-    // TODO: When Connection is removed, make this return DBusConnection and mark DBusConnection property as [EditorBrowsable(EditorBrowsableState.Never)].
-    [Obsolete("Use DBusConnection instead.")]
-    public Connection Connection
-    {
-        get
-        {
-            // Don't throw when Disposed for accessing the connection.
-            return _connection.AsConnection();
-        }
-    }
-
-    /// <summary>
-    /// Gets the D-Bus connection associated with this method call.
-    /// </summary>
-    public DBusConnection DBusConnection
+    public DBusConnection Connection
     {
         get
         {
@@ -98,6 +82,10 @@ public sealed class MethodContext : IDisposable
             return _connection;
         }
     }
+
+    /// <inheritdoc cref="Connection" />
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public DBusConnection DBusConnection => Connection;
 
     /// <summary>
     /// Gets a cancellation token that is cancelled when the request is aborted.
@@ -138,8 +126,7 @@ public sealed class MethodContext : IDisposable
         }
         set
         {
-            // Don't throw for IsDisposed because the async dispose may have happened before this property is set.
-            ThrowIfNotCanDispose();
+            ThrowIfDisposed();
             bool currentValue = (_flags & Flags.DisposesAsynchronously) != 0;
             if (currentValue && !value)
             {
@@ -149,18 +136,6 @@ public sealed class MethodContext : IDisposable
                 _flags |= Flags.DisposesAsynchronously;
             else
                 _flags &= ~Flags.DisposesAsynchronously;
-        }
-    }
-
-    internal bool CanDispose
-    {
-        get => (_flags & Flags.CanDispose) != 0;
-        set
-        {
-            if (value)
-                _flags |= Flags.CanDispose;
-            else
-                _flags &= ~Flags.CanDispose;
         }
     }
 
@@ -189,7 +164,7 @@ public sealed class MethodContext : IDisposable
     {
         ThrowIfDisposed();
 
-        var writer = DBusConnection.GetMessageWriter();
+        var writer = Connection.GetMessageWriter();
         writer.WriteMethodReturnHeader(
             replySerial: Request.Serial,
             destination: Request.Sender,
@@ -222,7 +197,7 @@ public sealed class MethodContext : IDisposable
         }
 
         _flags |= Flags.ReplySent;
-        DBusConnection.TrySendMessage(message);
+        Connection.TrySendMessage(message);
     }
 
     /// <summary>
@@ -233,7 +208,7 @@ public sealed class MethodContext : IDisposable
     public void ReplyError(string? errorName = null,
                            string? errorMsg = null)
     {
-        using var writer = DBusConnection.GetMessageWriter();
+        using var writer = Connection.GetMessageWriter();
         writer.WriteError(
             replySerial: Request.Serial,
             destination: Request.Sender,
@@ -267,7 +242,7 @@ public sealed class MethodContext : IDisposable
             throw new InvalidOperationException($"Can not reply with introspection XML when {nameof(IsDBusIntrospectRequest)} is false.");
         }
 
-        using var writer = DBusConnection.GetMessageWriter();
+        using var writer = Connection.GetMessageWriter();
         writer.WriteMethodReturnHeader(
             replySerial: Request.Serial,
             destination: Request.Sender,
@@ -303,22 +278,14 @@ public sealed class MethodContext : IDisposable
     {
         ThrowIfDisposed();
 
-        DBusConnection.Disconnect(exception);
+        Connection.Disconnect(exception);
     }
 
     /// <summary>
     /// Disposes the method context and sends a default reply if needed.
     /// </summary>
     public void Dispose()
-        => Dispose(force: false);
-
-    internal void Dispose(bool force)
     {
-        if (!force)
-        {
-            ThrowIfNotCanDispose();
-        }
-
         if (!IsDisposed)
         {
             if (!ReplySent && !NoReplyExpected)
@@ -340,11 +307,4 @@ public sealed class MethodContext : IDisposable
         }
     }
 
-    private void ThrowIfNotCanDispose()
-    {
-        if ((_flags & Flags.CanDispose) == 0)
-        {
-            throw new InvalidOperationException($"Disposing is not supported with 'IMethodHandler'. Use {nameof(IPathMethodHandler)} instead.");
-        }
-    }
 }

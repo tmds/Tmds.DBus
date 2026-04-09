@@ -27,7 +27,7 @@ namespace Tmds.DBus.Protocol.Tests
         }
 
         [Fact]
-        public async Task DisconnectedException()
+        public async Task DBusConnectionClosedException()
         {
             var streams = PairedMessageStream.CreatePair();
             using var conn1 = new DBusConnection("conn1-address");
@@ -40,7 +40,7 @@ namespace Tmds.DBus.Protocol.Tests
             await Task.Yield();
 
             var proxy = new StringOperationsProxy(conn1, "servicename");
-            await Assert.ThrowsAsync<DisconnectedException>(() => proxy.ConcatAsync("hello ", "world"));
+            await Assert.ThrowsAsync<DBusConnectionClosedException>(() => proxy.ConcatAsync("hello ", "world"));
         }
 
         [Fact]
@@ -61,7 +61,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             conn2.Dispose();
 
-            await Assert.ThrowsAsync<DisconnectedException>(() => pendingCall);
+            await Assert.ThrowsAsync<DBusConnectionClosedException>(() => pendingCall);
 
             await handler.WaitForCancelledAsync().WaitAsync(timeout);
 
@@ -116,7 +116,7 @@ namespace Tmds.DBus.Protocol.Tests
             conn1.Dispose();
 
             var ex = await exTcs.Task;
-            Assert.IsType<DisconnectedException>(ex.Item1);
+            Assert.IsType<DBusConnectionClosedException>(ex.Item1);
             Assert.Equal(expectedSynchronizationContext, ex.Item2);
 
             static void SendHelloWorld(DBusConnection connection)
@@ -148,7 +148,7 @@ namespace Tmds.DBus.Protocol.Tests
         {
             using (var connection = new DBusConnection(address))
             {
-                await Assert.ThrowsAsync<ConnectException>(() => connection.ConnectAsync().AsTask());
+                await Assert.ThrowsAsync<DBusConnectFailedException>(() => connection.ConnectAsync().AsTask());
             }
         }
 
@@ -211,7 +211,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             if (expectedXml is null)
             {
-                await Assert.ThrowsAsync<DBusException>(() => conn1.CallMethodAsync(CreateMessage(path), (Message m, object? s) => m.GetBodyReader().ReadString(), null));
+                await Assert.ThrowsAsync<DBusErrorReplyException>(() => conn1.CallMethodAsync(CreateMessage(path), (Message m, object? s) => m.GetBodyReader().ReadString(), null));
             }
             else
             {
@@ -292,7 +292,7 @@ namespace Tmds.DBus.Protocol.Tests
             }
         }
 
-        private class IntrospectionTestMethodHandler : IMethodHandler
+        private class IntrospectionTestMethodHandler : IPathMethodHandler
         {
             private readonly string? _interfaceXml;
 
@@ -303,6 +303,8 @@ namespace Tmds.DBus.Protocol.Tests
             }
 
             public string Path { get; }
+
+            public bool HandlesChildPaths => false;
 
             public ValueTask HandleMethodAsync(MethodContext context)
             {
@@ -320,9 +322,6 @@ namespace Tmds.DBus.Protocol.Tests
 
                 return default;
             }
-
-            public bool RunMethodHandlerSynchronously(Message message)
-                => true;
         }
 
         static class HelloWorldConstants
@@ -432,46 +431,59 @@ namespace Tmds.DBus.Protocol.Tests
             }
         }
 
-        class WaitForCancellationHandler : IMethodHandler
+        class WaitForCancellationHandler : IPathMethodHandler
         {
             public string Path => "/";
+
+            public bool HandlesChildPaths => false;
 
             private readonly TaskCompletionSource _cancelled = new();
             private readonly TaskCompletionSource _requestReceived = new();
 
-            public async ValueTask HandleMethodAsync(MethodContext context)
+            public ValueTask HandleMethodAsync(MethodContext context)
             {
-                _requestReceived.TrySetResult();
+                context.DisposesAsynchronously = true;
+                _ = HandleAsync(context);
+                return default;
+            }
+
+            private async Task HandleAsync(MethodContext context)
+            {
                 try
                 {
-                    while (true)
+                    _requestReceived.TrySetResult();
+                    try
                     {
-                        await Task.Delay(int.MaxValue, context.RequestAborted);
+                        while (true)
+                        {
+                            await Task.Delay(int.MaxValue, context.RequestAborted);
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _cancelled.SetResult();
+
+                        throw;
                     }
                 }
-                catch (OperationCanceledException)
+                finally
                 {
-                    _cancelled.SetResult();
-
-                    throw;
+                    context.Dispose();
                 }
             }
 
             public Task WaitForRequestReceivedAsync() => _requestReceived.Task;
 
             public Task WaitForCancelledAsync() => _cancelled.Task;
-
-            public bool RunMethodHandlerSynchronously(Message message)
-                => true;
         }
 
-        class StringOperations : IMethodHandler
+        class StringOperations : IPathMethodHandler
         {
             public string Path => "/tmds/dbus/tests/stringoperations";
 
-            public const string ConcatMember = "Concat";
+            public bool HandlesChildPaths => false;
 
-            public bool RunMethodHandlerSynchronously(Message message) => true;
+            public const string ConcatMember = "Concat";
 
             public ValueTask HandleMethodAsync(MethodContext context)
             {
@@ -535,7 +547,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             var exception = await exceptionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-            Assert.IsType<DisconnectedException>(exception);
+            Assert.IsType<DBusConnectionClosedException>(exception);
             Assert.IsType<InvalidOperationException>(exception.InnerException);
             Assert.Equal("Reader error", exception.InnerException!.Message);
             Assert.Equal(1, handlerCallCount);
@@ -574,7 +586,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             var exception = await exceptionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-            Assert.IsType<DisconnectedException>(exception);
+            Assert.IsType<DBusConnectionClosedException>(exception);
             Assert.IsType<InvalidOperationException>(exception.InnerException);
             Assert.Equal("Handler error", exception.InnerException!.Message);
             Assert.Equal(2, handlerCallCount); // Called once with message, once with exception

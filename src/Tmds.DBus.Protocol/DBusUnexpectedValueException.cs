@@ -4,7 +4,7 @@ namespace Tmds.DBus.Protocol;
 /// Exception thrown when a received D-Bus message contains an unexpected value.
 /// This indicates the message is valid and parseable, but the content doesn't match expectations.
 /// </summary>
-public class DBusUnexpectedValueException : DBusMessageException
+public sealed class DBusUnexpectedValueException : DBusMessageException
 {
     /// <summary>
     /// Initializes a new instance of the DBusUnexpectedValueException class.

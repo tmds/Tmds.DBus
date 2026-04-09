@@ -152,11 +152,11 @@ namespace Tmds.DBus.Protocol.Tests
             }
         }
 
-        class SafeHandleOperations : IMethodHandler
+        class SafeHandleOperations : IPathMethodHandler
         {
             public string Path => "/tmds/dbus/tests/safehandleoperations";
 
-            public bool RunMethodHandlerSynchronously(Message message) => true;
+            public bool HandlesChildPaths => false;
 
             public ValueTask HandleMethodAsync(MethodContext context)
             {

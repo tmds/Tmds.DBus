@@ -190,7 +190,7 @@ class MessageStream : IMessageStream
         {
             if (guid != authenticationResult.Guid)
             {
-                throw new ConnectException("Authentication failure: Unexpected GUID");
+                throw new DBusConnectFailedException("Authentication failure: Unexpected GUID");
             }
         }
 
@@ -218,7 +218,7 @@ class MessageStream : IMessageStream
             return result;
         }
 
-        throw new ConnectException("Authentication failure");
+        throw new DBusConnectFailedException("Authentication failure");
     }
 
     private static string CreateAuthExternalCommand(string userId)
@@ -371,7 +371,7 @@ class MessageStream : IMessageStream
 
             if (buffer.Length > ProtocolConstants.MaxAuthLineLength)
             {
-                throw new ConnectException("Authentication message from server is too long.");
+                throw new DBusConnectFailedException("Authentication message from server is too long.");
             }
 
             // Need more data.
@@ -391,11 +391,11 @@ class MessageStream : IMessageStream
             span = span.Slice(0, (int)src.Length);
             if (!span.EndsWith((ReadOnlySpan<byte>)new byte[] { (byte)'\r' }))
             {
-                throw new ConnectException("Authentication messages from server must end with '\\r\\n'.");
+                throw new DBusConnectFailedException("Authentication messages from server must end with '\\r\\n'.");
             }
             if (span.Length == 1)
             {
-                throw new ConnectException("Received empty authentication message from server.");
+                throw new DBusConnectFailedException("Received empty authentication message from server.");
             }
             return span.Length - 1;
         }

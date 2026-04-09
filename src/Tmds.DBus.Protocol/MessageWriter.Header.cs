@@ -45,13 +45,7 @@ public ref partial struct MessageWriter
             WriteVariantString(member);
         }
 
-        // Destination.
-        if (destination is not null)
-        {
-            WriteStructureStart();
-            WriteByte((byte)MessageHeader.Destination);
-            WriteVariantString(destination);
-        }
+        WriteDestinationHeader(destination);
 
         // Signature.
         if (signature is not null)
@@ -194,13 +188,7 @@ public ref partial struct MessageWriter
             WriteVariantString(member);
         }
 
-        // Destination.
-        if (destination is not null)
-        {
-            WriteStructureStart();
-            WriteByte((byte)MessageHeader.Destination);
-            WriteVariantString(destination);
-        }
+        WriteDestinationHeader(destination);
 
         // Signature.
         if (signature is not null)
@@ -211,6 +199,22 @@ public ref partial struct MessageWriter
         }
 
         WriteHeaderEnd(start);
+    }
+
+    private void WriteDestinationHeader(string? destination)
+    {
+        if (destination is not null)
+        {
+            WriteStructureStart();
+            WriteByte((byte)MessageHeader.Destination);
+            ReadOnlySpan<char> msgDestination = destination.AsSpan();
+            if (BusName.TrySplitOwnerIdentifier(msgDestination, out ReadOnlySpan<char> uniqueId, out _))
+            {
+                DestinationOwner = destination;
+                msgDestination = uniqueId;
+            }
+            WriteVariantString(msgDestination);
+        }
     }
 
     private void WriteHeaderEnd(ArrayStart start)

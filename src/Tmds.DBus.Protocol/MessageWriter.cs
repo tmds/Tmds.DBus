@@ -19,6 +19,7 @@ public ref partial struct MessageWriter
     private Span<byte> _span;
     private int _offset;
     private int _buffered;
+    internal string? DestinationOwner { get; set; }
 
     /// <summary>
     /// Creates a buffer that holds the serialized message.
@@ -56,7 +57,7 @@ public ref partial struct MessageWriter
         _handles = null;
         _data = null!;
 
-        message.Init(serial, flags, handles);
+        message.Init(DestinationOwner, serial, flags, handles);
 
         return message;
     }

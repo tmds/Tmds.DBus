@@ -60,7 +60,7 @@ public ref partial struct MessageWriter
         foreach (var childName in childNames)
         {
             bytesWritten += WriteRaw(NodeNameStart);
-            bytesWritten += WriteRaw(childName);
+            bytesWritten += WriteRaw(childName.AsSpan());
             bytesWritten += WriteRaw(NodeNameEnd);
         }
         if (childNamesEnumerable is not null)
@@ -68,7 +68,7 @@ public ref partial struct MessageWriter
             foreach (var childName in childNamesEnumerable)
             {
                 bytesWritten += WriteRaw(NodeNameStart);
-                bytesWritten += WriteRaw(childName);
+                bytesWritten += WriteRaw(childName.AsSpan());
                 bytesWritten += WriteRaw(NodeNameEnd);
             }
         }

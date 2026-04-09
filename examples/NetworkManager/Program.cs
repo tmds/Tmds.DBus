@@ -1,6 +1,8 @@
 using NetworkManager.DBus;
 using Tmds.DBus.Protocol;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 string? systemBusAddress = DBusAddress.System;
 if (systemBusAddress is null)
@@ -13,33 +15,47 @@ DBusConnection connection = new DBusConnection(DBusAddress.System!);
 await connection.ConnectAsync();
 Console.WriteLine("Connected to system bus.");
 
-var service = new DBusService(connection, "org.freedesktop.NetworkManager");
-var networkManager = service.CreateNetworkManager("/org/freedesktop/NetworkManager");
+string serviceName = "org.freedesktop.NetworkManager";
+using var ownerWatcher = await connection.WatchNameOwnerAsync(serviceName);
 
-foreach (var devicePath in await networkManager.GetDevicesAsync())
+while (true)
 {
-    var device = service.CreateDevice(devicePath);
-    var interfaceName = await device.GetInterfaceAsync();
+    string owner = await ownerWatcher.WaitForOwnerAsync();
+    Console.WriteLine($"NetworkManager is running (bus name: {NameOwnerWatcher.GetOwnerBusName(owner)}).");
 
-    Console.WriteLine($"Subscribing for state changes of '{interfaceName}'.");
-    await device.WatchStateChangedAsync(
-        (Exception? ex, (DeviceState NewState, DeviceState OldState, uint Reason) change) =>
+    var service = new DBusService(connection, owner);
+    var networkManager = service.CreateNetworkManager("/org/freedesktop/NetworkManager");
+
+    try
+    {
+        foreach (var devicePath in await networkManager.GetDevicesAsync())
         {
-            if (ex is null)
-            {
-                Console.WriteLine($"Interface '{interfaceName}' changed from '{change.OldState}' to '{change.NewState}'.");
-            }
-        });
-}
+            var device = service.CreateDevice(devicePath);
+            var interfaceName = await device.GetInterfaceAsync();
 
-Exception? disconnectReason = await connection.DisconnectedAsync();
-if (disconnectReason is not null)
-{
-    Console.WriteLine("The connection was closed:");
-    Console.WriteLine(disconnectReason);
-    return 1;
+            Console.WriteLine($"Subscribing for state changes of '{interfaceName}'.");
+
+            // The observers are automatically disposed when the owner of the name changes because the sender uses the NameOwnerWatcher owner.
+            await device.WatchStateChangedAsync(
+                (Exception? ex, (DeviceState NewState, DeviceState OldState, uint Reason) change) =>
+                {
+                    if (ex is null)
+                    {
+                        Console.WriteLine($"Interface '{interfaceName}' changed from '{change.OldState}' to '{change.NewState}'.");
+                    }
+                });
+        }
+
+        // Wait until the owner changes (e.g. NetworkManager restarts).
+        CancellationToken ownerChanged = ownerWatcher.GetOwnerChangedCancellationToken(owner);
+        await Task.Delay(-1, ownerChanged).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        Console.WriteLine("NetworkManager owner changed, re-subscribing...");
+    }
+    catch (DBusMessageException) when (ownerWatcher.GetCurrentOwner() != owner)
+    {
+        Console.WriteLine("NetworkManager owner changed during setup, retrying...");
+    }
 }
-return 0;
 
 namespace NetworkManager.DBus
 {

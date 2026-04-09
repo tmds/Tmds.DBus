@@ -43,7 +43,12 @@ struct MatchRuleData
             }
         }
 
-        Append(sb, "sender", Sender);
+        string? sender = Sender;
+        if (BusName.TrySplitOwnerIdentifier(sender.AsSpan(), out _, out ReadOnlySpan<char> serviceName))
+        {
+            sender = serviceName.ToString();
+        }
+        Append(sb, "sender", sender);
         Append(sb, "interface", Interface);
         Append(sb, "member", Member);
         Append(sb, "path", Path);

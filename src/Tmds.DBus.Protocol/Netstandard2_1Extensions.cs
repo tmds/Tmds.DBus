@@ -7,7 +7,6 @@ namespace Tmds.DBus.Protocol;
 #if NETSTANDARD2_0 || NETSTANDARD2_1
 static partial class NetstandardExtensions
 {
-
     private static PropertyInfo s_safehandleProperty = typeof(Socket).GetTypeInfo().GetDeclaredProperty("SafeHandle");
 
     private const int MaxInputElementsPerIteration = 1 * 1024 * 1024;
@@ -42,6 +41,23 @@ static partial class NetstandardExtensions
 
             throw;
         }
+    }
+    public static async Task<T> WaitAsync<T>(this Task<T> task, CancellationToken cancellationToken)
+    {
+        if (task.IsCompleted || !cancellationToken.CanBeCanceled)
+        {
+            return await task.ConfigureAwait(false);
+        }
+        var cancelTcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancellationToken.Register(static s => ((TaskCompletionSource<bool>)s!).TrySetResult(true), cancelTcs))
+        {
+            if (task == await Task.WhenAny(task, cancelTcs.Task).ConfigureAwait(false))
+            {
+                return await task.ConfigureAwait(false);
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return default!; // unreachable
     }
 }
 #else

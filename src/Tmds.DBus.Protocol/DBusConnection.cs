@@ -248,6 +248,7 @@ public sealed partial class DBusConnection : IDisposable
     /// Calls a D-Bus method asynchronously without returning a response value.
     /// </summary>
     /// <param name="message">The method call message.</param>
+    /// <exception cref="DBusOwnerChangedException">The message destination uses an owner identifier from <see cref="NameOwnerWatcher"/> and the owner of the name has changed.</exception>
     public async Task CallMethodAsync(MessageBuffer message)
     {
         InnerConnection connection;
@@ -272,6 +273,7 @@ public sealed partial class DBusConnection : IDisposable
     /// <param name="reader">The delegate to read the return value from the reply.</param>
     /// <param name="readerState">Optional state passed to the reader delegate.</param>
     /// <returns>Value read from the reply.</returns>
+    /// <exception cref="DBusOwnerChangedException">The message destination uses an owner identifier from <see cref="NameOwnerWatcher"/> and the owner of the name has changed.</exception>
     public async Task<T> CallMethodAsync<T>(MessageBuffer message, MessageValueReader<T> reader, object? readerState = null)
     {
         InnerConnection connection;
@@ -478,11 +480,17 @@ public sealed partial class DBusConnection : IDisposable
     /// </summary>
     /// <param name="message">The message to send.</param>
     /// <returns><see langword="true"/> if the message was sent; <see langword="false"/> if not connected.</returns>
+    /// <remarks>Owner identifier destinations from <see cref="NameOwnerWatcher"/> are not supported by this API.</remarks>
     public bool TrySendMessage(MessageBuffer message)
     {
         bool messageSent = false;
         try
         {
+            if (message.DestinationOwnerIdentifier is not null)
+            {
+                throw new InvalidOperationException($"{nameof(TrySendMessage)} can not be used with owner identifiers.");
+            }
+
             InnerConnection? connection = GetConnection(ifConnected: true);
             if (connection is not null)
             {
@@ -539,6 +547,27 @@ public sealed partial class DBusConnection : IDisposable
 
             return _connection;
         }
+    }
+
+    /// <summary>
+    /// Watches for the owner of a D-Bus well-known name.
+    /// </summary>
+    /// <param name="name">The well-known name to watch.</param>
+    /// <returns>A <see cref="NameOwnerWatcher"/> that can be used to wait for the name owner.</returns>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is a unique connection name or an owner identifier.</exception>
+    /// <exception cref="InvalidOperationException">The connection is not connected to a bus, or <paramref name="name"/> is the D-Bus service name.</exception>
+    public async Task<NameOwnerWatcher> WatchNameOwnerAsync(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+        {
+            throw new ArgumentException("The value cannot be an empty string.", nameof(name));
+        }
+        if (name[0] == ':' || BusName.IsOwnerIdentifier(name.AsSpan()))
+        {
+            throw new ArgumentException("Cannot watch a unique connection name or owner identifier.", nameof(name));
+        }
+        InnerConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
+        return await connection.CreateNameOwnerWatcherAsync(name).ConfigureAwait(false);
     }
 
     internal uint GetNextSerial() => (uint)Interlocked.Increment(ref _nextSerial);

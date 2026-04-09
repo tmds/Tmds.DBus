@@ -14,6 +14,7 @@ public sealed class MessageBuffer
     internal MessageFlags MessageFlags { get; private set; }
 
     internal UnixFdCollection? Handles { get; private set; }
+    internal string? DestinationOwnerIdentifier { get; set; }
 
     internal MessageBuffer(MessageBufferPool messagePool, Sequence<byte> sequence)
     {
@@ -21,8 +22,9 @@ public sealed class MessageBuffer
         _data = sequence;
     }
 
-    internal void Init(uint serial, MessageFlags flags, UnixFdCollection? handles)
+    internal void Init(string? destinationOwner, uint serial, MessageFlags flags, UnixFdCollection? handles)
     {
+        DestinationOwnerIdentifier = destinationOwner;
         Serial = serial;
         MessageFlags = flags;
         Handles = handles;
@@ -39,6 +41,7 @@ public sealed class MessageBuffer
         _data.Reset();
         Handles?.Dispose();
         Handles = null;
+        DestinationOwnerIdentifier = null;
         _messagePool.Return(this);
     }
 

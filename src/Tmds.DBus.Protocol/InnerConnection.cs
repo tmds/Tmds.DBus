@@ -6,6 +6,8 @@ namespace Tmds.DBus.Protocol;
 
 class InnerConnection : IDisposable
 {
+    private static ObserverFlags StopOnOwnerChanged => (ObserverFlags)(1 << 29);
+
     private delegate void MessageReceivedHandler(Exception? exception, Message? message, object? state);
 
     sealed class MyValueTaskSource<T> : IValueTaskSource<T>, IValueTaskSource
@@ -72,30 +74,85 @@ class InnerConnection : IDisposable
         private readonly object? _state3;
     }
 
-    sealed class SenderName
+    internal sealed class ObservedName
     {
         private object? _object;
+        private string? _serviceName;
+        private string? _ownerIdentifier;
+        private List<Observer>? _ownerChangedObservers;
+        private TaskCompletionSource<string?>? _ownerChangedTcs;
 
-        public ReadOnlySpan<byte> Name => _object as byte[];
+        public ReadOnlySpan<byte> UniqueName => _object as byte[];
+        public string? OwnerIdentifier => _ownerIdentifier;
+        public string? ServiceName => _serviceName;
 
         public Task ResolveUniqueName => _object as Task ?? Task.CompletedTask;
 
-        public SenderName(byte[] name)
+        public ObservedName(string? serviceName)
         {
-            _object = name;
+            _serviceName = serviceName;
         }
 
-        public SenderName()
-        { }
-
-        public void SetName(byte[] name)
+        public (string? oldOwnerIdentifier, string? newOwnerIdentifier) SetName(byte[] uniqueName)
         {
-            _object = name;
+            string? oldOwnerIdentifier = _ownerIdentifier;
+            if (UniqueName.SequenceEqual(uniqueName))
+            {
+                return (oldOwnerIdentifier, oldOwnerIdentifier);
+            }
+
+            _object = uniqueName;
+            _ownerIdentifier = uniqueName.Length == 0 || _serviceName is null ? null : BusName.FormatOwnerIdentifier(uniqueName, _serviceName, Stopwatch.GetTimestamp());
+
+            var tcs = _ownerChangedTcs;
+            if (tcs is not null)
+            {
+                _ownerChangedTcs = null;
+                tcs.TrySetResult(_ownerIdentifier);
+            }
+
+            return (oldOwnerIdentifier, _ownerIdentifier);
         }
 
         internal void SetTask(Task task)
         {
             _object = task;
+        }
+
+        public void AddOwnerChangedObserver(Observer observer)
+        {
+            _ownerChangedObservers ??= new();
+            _ownerChangedObservers.Add(observer);
+        }
+
+        public void RemoveOwnerChangedObserver(Observer observer)
+        {
+            _ownerChangedObservers?.Remove(observer);
+        }
+
+        public List<Observer>? TakeOwnerChangedObservers()
+        {
+            var list = _ownerChangedObservers;
+            _ownerChangedObservers = null;
+            return list;
+        }
+
+        public TaskCompletionSource<string?> GetOrCreateOwnerChangedTcs()
+        {
+            _ownerChangedTcs ??= new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+            return _ownerChangedTcs;
+        }
+
+        public void OwnerChangedTcsSetDisconnected(Exception disconnectReason)
+        {
+            TakeOwnerChangedTcs()?.TrySetException(new DisconnectedException(disconnectReason));
+        }
+
+        private TaskCompletionSource<string?>? TakeOwnerChangedTcs()
+        {
+            var tcs = _ownerChangedTcs;
+            _ownerChangedTcs = null;
+            return tcs;
         }
     }
 
@@ -104,10 +161,11 @@ class InnerConnection : IDisposable
     private readonly Dictionary<uint, MessageHandler> _pendingCalls;
     private readonly CancellationTokenSource _connectCts;
     private readonly Dictionary<string, Watcher> _watchers;
-    private readonly Dictionary<byte[], SenderName> _nameOwners; // maps a (well-known) name to a unique name (that owns the well-known name).
+    private readonly Dictionary<byte[], ObservedName> _observedNames; // tracks the current owner of a service name
     private readonly List<Observer> _matchedObservers;
     private readonly PathNodeDictionary _pathNodes;
     private readonly string _machineId;
+    private readonly HashSet<string> _currentOwnerIdentifiers;
     private Dictionary<string, ServiceNameRegistration?>? _serviceNameRegistrations;
 
     private IMessageStream? _messageStream;
@@ -139,7 +197,8 @@ class InnerConnection : IDisposable
         _pathNodes = new();
         _machineId = machineId;
         _abortedCts = new();
-        _nameOwners = new(new ByteArrayComparer());
+        _observedNames = new(new ByteArrayComparer());
+        _currentOwnerIdentifiers = new();
     }
 
     // For tests.
@@ -327,6 +386,7 @@ class InnerConnection : IDisposable
                 IPathMethodHandler? methodHandler = null;
                 Action<Exception?, DisposableMessage>? monitor = null;
                 MethodContext? methodContext = null;
+                List<Observer>? ownerChangedObservers = null;
 
                 lock (_gate)
                 {
@@ -343,7 +403,7 @@ class InnerConnection : IDisposable
                             message.Interface.SequenceEqual("org.freedesktop.DBus"u8) &&
                             message.Sender.SequenceEqual("org.freedesktop.DBus"u8))
                         {
-                            HandleDBusInterfaceSignal(message);
+                            ownerChangedObservers = HandleDBusInterfaceSignal(message);
                         }
 
                         if (message.ReplySerial.HasValue)
@@ -391,6 +451,14 @@ class InnerConnection : IDisposable
                 }
                 else
                 {
+                    if (ownerChangedObservers is not null)
+                    {
+                        foreach (var observer in ownerChangedObservers)
+                        {
+                            observer.Dispose(observer.EmitOnOwnerChanged ? new DBusOwnerChangedException() : null);
+                        }
+                    }
+
                     if (_matchedObservers.Count != 0)
                     {
                         foreach (var observer in _matchedObservers)
@@ -512,7 +580,11 @@ class InnerConnection : IDisposable
             }
         }
         _watchers.Clear();
-        _nameOwners.Clear();
+        foreach (var senderName in _observedNames.Values)
+        {
+            senderName.OwnerChangedTcsSetDisconnected(disconnectReason);
+        }
+        _observedNames.Clear();
 
         if (monitor is not null)
         {
@@ -539,6 +611,7 @@ class InnerConnection : IDisposable
 
     private void CallMethod(MessageBuffer message, MessageHandler handler)
     {
+        Exception? exception = null;
         bool messageSent = false;
         try
         {
@@ -552,13 +625,25 @@ class InnerConnection : IDisposable
                 {
                     throw new InvalidOperationException("Cannot send messages on monitor connection.");
                 }
-                if ((message.MessageFlags & MessageFlags.NoReplyExpected) == 0)
+                if (message.DestinationOwnerIdentifier is not null && !MatchesCurrentOwner(message.DestinationOwnerIdentifier))
+                {
+                    exception = new DBusOwnerChangedException();
+                }
+                if (exception is null && (message.MessageFlags & MessageFlags.NoReplyExpected) == 0)
                 {
                     _pendingCalls.Add(message.Serial, handler);
                 }
             }
 
-            messageSent = _messageStream!.TrySendMessage(message);
+
+            if (exception is null)
+            {
+                messageSent = _messageStream!.TrySendMessage(message);
+            }
+            else
+            {
+                handler.Invoke(exception, null!);
+            }
         }
         finally
         {
@@ -732,16 +817,21 @@ class InnerConnection : IDisposable
 
     public async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
     {
+        if (BusName.IsOwnerIdentifier(rule.Sender.AsSpan()))
+        {
+            flags |= StopOnOwnerChanged;
+        }
         if (!RemoteIsBus)
         {
             flags |= ObserverFlags.NoSubscribe;
+            flags &= ~(ObserverFlags.EmitOnOwnerChanged | StopOnOwnerChanged);
         }
         Observer observer = Observer.Create(synchronizationContext, valueReader, valueHandler, readerState, handlerState, flags);
         await AddWatcherUserAsync(rule.Data, observer);
         return observer;
     }
 
-    private ValueTask<Watcher> AddWatcherUserAsync(in MatchRuleData data, Observer? observer)
+    private ValueTask<Watcher?> AddWatcherUserAsync(in MatchRuleData data, Observer? observer)
     {
         // When we're making a match for a (service) name we need to match it with the unique name that is currently owning that name.
         // To do that, we need another AddMatch to watch changes for the name.
@@ -750,11 +840,12 @@ class InnerConnection : IDisposable
         // The SenderName class tracks the resolving of that name or the current value when it is known.
         // It is stored in the _nameOwners dictionary which maps the name to the owner.
         // Items from that dictionary are removed when the associated AddMatch is removed (or when we fail to create one).
-        Watcher? watcher;
+        Watcher? watcher = null;
         string ruleString;
         MessageBuffer? addMatchMessage = null;
-        bool subscribe;
+        bool subscribe = false;
         Task resolveUniqueNameTask = Task.CompletedTask;
+        bool emitOwnerChanged = false;
         lock (_gate)
         {
             if (_state != DBusConnectionState.Connected)
@@ -770,8 +861,7 @@ class InnerConnection : IDisposable
             // Throwing happens when we await after releasing the lock.
 
             ruleString = data.GetRuleString();
-
-            SenderName? sender = null;
+            ObservedName? sender = null;
             if (!_watchers.TryGetValue(ruleString, out watcher))
             {
                 Task<Watcher>? watchNameOwnerTask = null;
@@ -780,27 +870,34 @@ class InnerConnection : IDisposable
                     byte[] senderBytes = Encoding.UTF8.GetBytes(data.Sender);
                     if (!RemoteIsBus)
                     {
-                        Debug.Assert(sender == null);
+                        // no sender filtering.
                     }
                     // Is this a bus name we should map to a unique name for filtering.
-                    else if (senderBytes.Length > 0 && senderBytes[0] != (byte)':' && data.Sender != DBusConnection.DBusServiceName)
+                    else if (TryGetServiceNameForObserving(data.Sender, out string? serviceName, out bool isOwnerIdentifier))
                     {
-                        watchNameOwnerTask = WatchNameOwnerAsync(this, data.Sender!);
-                        if (!TryGetSenderName(senderBytes, out sender))
+                        Debug.Assert(observer is not null);
+                        if (isOwnerIdentifier)
                         {
-                            sender = new SenderName();
-                            resolveUniqueNameTask = ResolveUniqueNameAsync(this, sender, data.Sender);
-                            sender.SetTask(resolveUniqueNameTask);
-                            _nameOwners[senderBytes] = sender;
+                            byte[] serviceNameKey = Encoding.UTF8.GetBytes(serviceName);
+                            if (!TryGetObservedName(serviceNameKey, out ObservedName? observedName))
+                            {
+                                throw new InvalidOperationException($"No NameOwnerWatcher found for '{serviceName}'.");
+                            }
+                            if (observedName.OwnerIdentifier != data.Sender)
+                            {
+                                emitOwnerChanged = true;
+                                goto exitLock;
+                            }
+                            sender = observedName;
                         }
-                        else
-                        {
-                            resolveUniqueNameTask = sender.ResolveUniqueName;
-                        }
+                        watchNameOwnerTask = WatchNameOwnerAsync(this, serviceName);
+                        sender ??= GetOrCreateObserverName(serviceName);
+                        resolveUniqueNameTask = sender.ResolveUniqueName;
                     }
                     else
                     {
-                        sender = new SenderName(senderBytes);
+                        sender = new ObservedName(serviceName: null);
+                        sender.SetName(uniqueName: senderBytes);
                     }
                 }
                 watcher = new Watcher(this, ruleString, data, sender, watchNameOwnerTask);
@@ -820,6 +917,10 @@ class InnerConnection : IDisposable
                 observer.Watcher = watcher;
                 watcher.Observers.Add(observer);
                 subscribe = observer.Subscribes;
+                if (observer.ObservesOwnerChanged && sender is not null)
+                {
+                    sender.AddOwnerChangedObserver(observer);
+                }
             }
             else
             {
@@ -850,11 +951,38 @@ class InnerConnection : IDisposable
                 _pendingCalls.Add(addMatchMessage.Serial, new(fn, watcher, subscribeTcs));
                 _messageStream!.TrySendMessage(addMatchMessage);
             }
+            exitLock:;
         }
 
-        return AwaitMatchAsync(this, watcher, resolveUniqueNameTask, subscribe, observer);
+        if (emitOwnerChanged)
+        {
+            Debug.Assert(observer is not null);
+            observer.Dispose(observer.EmitOnOwnerChanged ? new DBusOwnerChangedException() : null, removeObserver: false);
+            return new ValueTask<Watcher?>(result: null);
+        }
 
-        static async ValueTask<Watcher> AwaitMatchAsync(InnerConnection connection, Watcher watcher, Task resolveUniqueNameTask, bool subscribe, Observer? observer)
+        return AwaitMatchAsync(this, watcher!, resolveUniqueNameTask, subscribe, observer);
+
+        static bool TryGetServiceNameForObserving(string sender, [NotNullWhen(true)] out string? serviceName, out bool isOwnerIdentifier)
+        {
+            if (isOwnerIdentifier = BusName.TrySplitOwnerIdentifier(sender.AsSpan(), out ReadOnlySpan<char> uniqueIdSpan, out ReadOnlySpan<char> serviceNameSpan))
+            {
+                serviceName = serviceNameSpan.ToString();
+                return true;
+            }
+            else if (sender.Length > 0 && sender[0] != (byte)':' && sender != DBusConnection.DBusServiceName)
+            {
+                serviceName = sender;
+                return true;
+            }
+            else
+            {
+                serviceName = null;
+                return false;
+            }
+        }
+
+        static async ValueTask<Watcher?> AwaitMatchAsync(InnerConnection connection, Watcher watcher, Task resolveUniqueNameTask, bool subscribe, Observer? observer)
         {
             try
             {
@@ -898,15 +1026,6 @@ class InnerConnection : IDisposable
             return watcher;
         }
 
-        static async Task ResolveUniqueNameAsync(InnerConnection connection, SenderName senderName, string name)
-        {
-            byte[] uniqueName = await connection.GetNameOwnerAsync(name).ConfigureAwait(false);
-            lock (connection._gate)
-            {
-                senderName.SetName(uniqueName);
-            }
-        }
-
         static Task<Watcher> WatchNameOwnerAsync(InnerConnection connection, string name)
         {
             Debug.Assert(connection._gate.IsHeldByCurrentThread);
@@ -916,10 +1035,11 @@ class InnerConnection : IDisposable
                 MessageType = MessageType.Signal,
                 Interface = "org.freedesktop.DBus",
                 Member = "NameOwnerChanged",
+                Path = "/org/freedesktop/DBus",
                 Sender = "org.freedesktop.DBus",
                 Arg0 = name
             };
-            return connection.AddWatcherUserAsync(data, observer: null).AsTask();
+            return connection.AddWatcherUserAsync(data, observer: null).AsTask()!;
         }
 
         MessageBuffer CreateAddMatchMessage(string ruleString)
@@ -941,7 +1061,7 @@ class InnerConnection : IDisposable
 
     internal static readonly ObjectDisposedException ObserverDisposedException = new ObjectDisposedException(typeof(Observer).FullName);
 
-    sealed class Observer : IDisposable
+    internal sealed class Observer : IDisposable
     {
         private delegate void MessageHandlerDelegate4(Observer observer, Exception? exception, Message? message, object? state1, object? state2, object? state3, object? state4);
 
@@ -980,6 +1100,9 @@ class InnerConnection : IDisposable
         public bool Subscribes => (_flags & ObserverFlags.NoSubscribe) == 0;
         public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionDispose) != 0;
         public bool EmitOnObserverDispose => (_flags & ObserverFlags.EmitOnObserverDispose) != 0;
+        public bool EmitOnOwnerChanged => (_flags & ObserverFlags.EmitOnOwnerChanged) != 0;
+        public bool StopOnOwnerChanged => (_flags & InnerConnection.StopOnOwnerChanged) != 0;
+        public bool ObservesOwnerChanged => (_flags & (ObserverFlags.EmitOnOwnerChanged | InnerConnection.StopOnOwnerChanged)) != 0;
         public InnerConnection Connection => Watcher.DBusConnection;
 
         internal Watcher Watcher = null!;
@@ -1165,6 +1288,10 @@ class InnerConnection : IDisposable
             if (observer is not null)
             {
                 watcher.Observers.Remove(observer);
+                if (observer.ObservesOwnerChanged)
+                {
+                    watcher.Sender?.RemoveOwnerChangedObserver(observer);
+                }
             }
             else
             {
@@ -1184,7 +1311,11 @@ class InnerConnection : IDisposable
 
                 if (watcher.IsNameOwnerWatcher)
                 {
-                    _nameOwners.Remove(watcher.Arg0!, out SenderName? sender);
+                    _observedNames.Remove(watcher.Arg0!, out ObservedName? sender);
+                    if (sender?.OwnerIdentifier is not null)
+                    {
+                        _currentOwnerIdentifiers.Remove(sender.OwnerIdentifier);
+                    }
                 }
             }
 
@@ -1224,10 +1355,60 @@ class InnerConnection : IDisposable
         }
     }
 
-    sealed class Watcher
+    internal async Task<NameOwnerWatcher> CreateNameOwnerWatcherAsync(string serviceName)
+    {
+        if (!RemoteIsBus)
+        {
+            throw new InvalidOperationException("Can not watch names when there is no bus.");
+        }
+
+        if (serviceName == DBusConnection.DBusServiceName)
+        {
+            throw new InvalidOperationException($"'{DBusConnection.DBusServiceName}' can not change owners.");
+        }
+
+        MatchRuleData data = new MatchRuleData
+        {
+            MessageType = MessageType.Signal,
+            Interface = "org.freedesktop.DBus",
+            Member = "NameOwnerChanged",
+            Sender = "org.freedesktop.DBus",
+            Path = "/org/freedesktop/DBus",
+            Arg0 = serviceName
+        };
+
+        ValueTask<Watcher?> watcherTask;
+        Task resolveNameTask;
+        ObservedName observedName;
+        lock (_gate)
+        {
+            watcherTask = AddWatcherUserAsync(data, observer: null);
+            observedName = GetOrCreateObserverName(serviceName);
+            resolveNameTask = observedName.ResolveUniqueName;
+        }
+
+        NameOwnerWatcher? nameOwnerWatcher = null;
+        try
+        {
+            Watcher watcher = (await watcherTask.ConfigureAwait(false))!;
+            nameOwnerWatcher = new NameOwnerWatcher(watcher, observedName);
+            await resolveNameTask.ConfigureAwait(false);
+        }
+        catch
+        {
+            EnsureExceptionObserved(resolveNameTask);
+            nameOwnerWatcher?.Dispose(); // calls RemoveNameOwnerWatcherUser()
+
+            throw;
+        }
+
+        return nameOwnerWatcher;
+    }
+
+    internal sealed class Watcher
     {
         private readonly MessageType? _type;
-        private readonly SenderName? _sender;
+        private readonly ObservedName? _sender;
         private readonly byte[]? _interface;
         private readonly byte[]? _member;
         private readonly byte[]? _path;
@@ -1253,10 +1434,10 @@ class InnerConnection : IDisposable
         public bool IsNameOwnerWatcher
             => _arg0 is not null &&
                _type == MessageType.Signal &&
+               _path is not null && _path.AsSpan().SequenceEqual("/org/freedesktop/DBus"u8) &&
                _interface is not null && _interface.AsSpan().SequenceEqual("org.freedesktop.DBus"u8) &&
                _member is not null && _member.AsSpan().SequenceEqual("NameOwnerChanged"u8) &&
-               _sender is not null && _sender.Name.SequenceEqual("org.freedesktop.DBus"u8) &&
-               _path is null &&
+               _sender is not null && _sender.UniqueName.SequenceEqual("org.freedesktop.DBus"u8) &&
                _pathNamespace is null &&
                _destination is null &&
                _arg0Path is null &&
@@ -1264,13 +1445,13 @@ class InnerConnection : IDisposable
 
         public string RuleString => _rule;
 
-        public SenderName? Sender => _sender;
+        public ObservedName? Sender => _sender;
 
         // This is the AddMatchAsync call to watch for D-Bus name owner changes for the sender of this rule (so we can map it to the unique name for matching).
         // It is not null when this Watcher watches a D-Bus registered bus name
         public Task<Watcher>? AddMatchAsyncOwnerTask { get; private set; } // AddMatchAsync call for watching the owner changes.
 
-        public Watcher(InnerConnection connection, string rule, in MatchRuleData data, SenderName? sender, Task<Watcher>? watchNameOwnerTask)
+        public Watcher(InnerConnection connection, string rule, in MatchRuleData data, ObservedName? sender, Task<Watcher>? watchNameOwnerTask)
         {
             DBusConnection = connection;
             _rule = rule;
@@ -1417,7 +1598,7 @@ class InnerConnection : IDisposable
                 }
             }
 
-            if (_sender is not null && !IsEqual(_sender.Name, message.Sender))
+            if (_sender is not null && !IsEqual(_sender.UniqueName, message.Sender))
             {
                 return false;
             }
@@ -1472,47 +1653,145 @@ class InnerConnection : IDisposable
         {
             _nonObserverSubscribers++;
         }
+
+        internal async Task<string> WaitForOwnerAsync(ObservedName observedName, CancellationToken cancellationToken)
+        {
+            Debug.Assert(IsNameOwnerWatcher);
+            Debug.Assert(observedName.ServiceName == Encoding.UTF8.GetString(Arg0!));
+            InnerConnection connection = DBusConnection;
+
+            while (true)
+            {
+                Task<string?> task;
+                lock (connection._gate)
+                {
+                    if (connection._state == DBusConnectionState.Disconnected)
+                    {
+                        throw new DisconnectedException(connection.DisconnectReason!);
+                    }
+
+                    string? owner = observedName.OwnerIdentifier;
+                    if (owner is not null)
+                    {
+                        return owner;
+                    }
+
+                    task = observedName.GetOrCreateOwnerChangedTcs().Task;
+                }
+
+                string? newOwner = await task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                if (newOwner is not null)
+                {
+                    return newOwner;
+                }
+            }
+        }
+
+        internal string? GetCurrentOwner(ObservedName observedName)
+        {
+            Debug.Assert(IsNameOwnerWatcher);
+            Debug.Assert(observedName.ServiceName == Encoding.UTF8.GetString(Arg0!));
+            InnerConnection connection = DBusConnection;
+
+            lock (connection._gate)
+            {
+                if (connection._state == DBusConnectionState.Disconnected)
+                {
+                    return null;
+                }
+
+                return observedName.OwnerIdentifier;
+            }
+        }
+
+        internal CancellationToken GetOwnerChangedCancellationToken(ObservedName observedName, string currentOwner)
+        {
+            Debug.Assert(IsNameOwnerWatcher);
+            Debug.Assert(observedName.ServiceName == Encoding.UTF8.GetString(Arg0!));
+            InnerConnection connection = DBusConnection;
+
+            lock (connection._gate)
+            {
+                if (connection._state == DBusConnectionState.Disconnected)
+                {
+                    return new CancellationToken(true);
+                }
+
+                string? owner = observedName.OwnerIdentifier;
+                if (owner != currentOwner)
+                {
+                    return new CancellationToken(true);
+                }
+
+                var cts = new CancellationTokenSource();
+                CancellationToken token = cts.Token;
+                Task<string?> task = observedName.GetOrCreateOwnerChangedTcs().Task;
+                task.ContinueWith(static (_, state) => { var cts = (CancellationTokenSource)state!; cts.Cancel(); cts.Dispose(); }, cts, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                return token;
+            }
+        }
+
+        internal void RemoveNameOwnerWatcherUser()
+        {
+            Debug.Assert(IsNameOwnerWatcher);
+            DBusConnection.RemoveWatcherUser(this, observer: null);
+        }
     }
 
-    private bool TryGetSenderName(ReadOnlySpan<byte> name, [NotNullWhen(true)]out SenderName? senderName)
+    private ObservedName GetOrCreateObserverName(string serviceName)
+    {
+        Debug.Assert(_gate.IsHeldByCurrentThread);
+        byte[] key = Encoding.UTF8.GetBytes(serviceName);
+        if (TryGetObservedName(key, out ObservedName? observedName))
+        {
+            return observedName;
+        }
+        observedName = new ObservedName(serviceName);
+        observedName.SetTask(ResolveUniqueNameAsync());
+        _observedNames[key] = observedName;
+        return observedName;
+
+        async Task ResolveUniqueNameAsync()
+        {
+            byte[] uniqueName = await GetNameOwnerAsync(serviceName).ConfigureAwait(false);
+            lock (_gate)
+            {
+                var ownerChange = observedName.SetName(uniqueName);
+                UpdateOwner(ownerChange);
+            }
+        }
+    }
+
+    private void UpdateOwner((string? oldOwnerIdentifier, string? newOwnerIdentifier) ownerChange)
+    {
+        Debug.Assert(_gate.IsHeldByCurrentThread);
+        if (ownerChange.oldOwnerIdentifier is not null)
+        {
+            _currentOwnerIdentifiers.Remove(ownerChange.oldOwnerIdentifier);
+        }
+        if (ownerChange.newOwnerIdentifier is not null)
+        {
+            _currentOwnerIdentifiers.Add(ownerChange.newOwnerIdentifier);
+        }
+    }
+
+    private bool MatchesCurrentOwner(string ownerIdentifier)
+    {
+        Debug.Assert(_gate.IsHeldByCurrentThread);
+        Debug.Assert(BusName.IsOwnerIdentifier(ownerIdentifier.AsSpan()));
+        return _currentOwnerIdentifiers.Contains(ownerIdentifier);
+    }
+
+    private bool TryGetObservedName(ReadOnlySpan<byte> serviceName, [NotNullWhen(true)]out ObservedName? observedName)
     {
         Debug.Assert(_gate.IsHeldByCurrentThread);
 #if NET9_0_OR_GREATER
-        var lookup = _nameOwners.GetAlternateLookup<ReadOnlySpan<byte>>();
-        if (lookup.TryGetValue(name, out var entry))
-        {
-            senderName = entry;
-            return true;
-        }
+        var lookup = _observedNames.GetAlternateLookup<ReadOnlySpan<byte>>();
+        return lookup.TryGetValue(serviceName, out observedName);
 #else
-        byte[] nameKey = name.ToArray();
-        if (_nameOwners.TryGetValue(nameKey, out var entry))
-        {
-            senderName = entry;
-            return true;
-        }
+        byte[] nameKey = serviceName.ToArray();
+        return _observedNames.TryGetValue(nameKey, out observedName);
 #endif
-        senderName = null;
-        return false;
-    }
-
-    private ReadOnlySpan<byte> MapNameToCurrentOwner(ReadOnlySpan<byte> name)
-    {
-        Debug.Assert(_gate.IsHeldByCurrentThread);
-#if NET9_0_OR_GREATER
-        var lookup = _nameOwners.GetAlternateLookup<ReadOnlySpan<byte>>();
-        if (lookup.TryGetValue(name, out var entry))
-        {
-            return entry.Name;
-        }
-#else
-        byte[] nameKey = name.ToArray();
-        if (_nameOwners.TryGetValue(nameKey, out var entry))
-        {
-            return entry.Name;
-        }
-#endif
-        return name;
     }
 
     public MessageWriter GetMessageWriter() => _parentDBusConnection.GetMessageWriter();
@@ -1547,7 +1826,7 @@ class InnerConnection : IDisposable
     private Exception? GetWaitForDisconnectException()
         => _disconnectReason is ObjectDisposedException ? null : _disconnectReason;
 
-    private void HandleDBusInterfaceSignal(Message message)
+    private List<Observer>? HandleDBusInterfaceSignal(Message message)
     {
         Debug.Assert(message.MessageType == MessageType.Signal);
         Debug.Assert(message.Interface.SequenceEqual("org.freedesktop.DBus"u8));
@@ -1558,13 +1837,17 @@ class InnerConnection : IDisposable
             var reader = message.GetBodyReader();
             ReadOnlySpan<byte> name = reader.ReadStringAsSpan();
 
-            if (TryGetSenderName(name, out var senderName))
+            List<Observer>? ownerChangedObservers = null;
+            if (TryGetObservedName(name, out var senderName))
             {
                 _ = reader.ReadStringAsSpan(); // old name
                 byte[] newOwner = reader.ReadStringAsSpan().ToArray();
-                senderName.SetName(newOwner);
+                var ownerChange = senderName.SetName(newOwner);
+                UpdateOwner(ownerChange);
+
+                ownerChangedObservers = senderName.TakeOwnerChangedObservers();
             }
-            return;
+            return ownerChangedObservers;
         }
 
         bool acquiredNotLost = message.Member.SequenceEqual("NameAcquired"u8);
@@ -1608,6 +1891,8 @@ class InnerConnection : IDisposable
                 }
             }
         }
+
+        return null;
     }
 
     internal async Task<RequestNameReply> RequestNameAsync(string serviceName, RequestNameOptions flags, Action<string, object?>? onAcquired, Action<string, object?>? onLost, object? actionState, bool emitOnCapturedContext)

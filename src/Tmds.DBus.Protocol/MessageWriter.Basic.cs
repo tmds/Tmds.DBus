@@ -68,6 +68,12 @@ public ref partial struct MessageWriter
     /// Writes a string.
     /// </summary>
     /// <param name="value">The string.</param>
+    public void WriteString(scoped ReadOnlySpan<char> value) => WriteStringCore(value);
+
+    /// <summary>
+    /// Writes a string.
+    /// </summary>
+    /// <param name="value">The string.</param>
     public void WriteString(string value) => WriteStringCore(value);
 
     /// <summary>
@@ -223,6 +229,16 @@ public ref partial struct MessageWriter
     }
 
     /// <summary>
+    /// Writes a variant-wrapped string value.
+    /// </summary>
+    /// <param name="value">The string.</param>
+    public void WriteVariantString(scoped ReadOnlySpan<char> value)
+    {
+        WriteSignature(Signature.String);
+        WriteString(value);
+    }
+
+    /// <summary>
     /// Writes a variant-wrapped signature value.
     /// </summary>
     /// <param name="value">The signature.</param>
@@ -282,7 +298,7 @@ public ref partial struct MessageWriter
         WriteByte((byte)0);
     }
 
-    private void WriteStringCore(string s)
+    private void WriteStringCore(scoped ReadOnlySpan<char> s)
     {
         WritePadding(ProtocolConstants.UInt32Alignment);
         Span<byte> lengthSpan = GetSpan(4);
@@ -326,22 +342,22 @@ public ref partial struct MessageWriter
         }
     }
 
-    private int WriteRaw(string data)
+    private int WriteRaw(scoped ReadOnlySpan<char> data)
     {
         const int MaxUtf8BytesPerChar = 3;
 
         if (data.Length <= MaxSizeHint / MaxUtf8BytesPerChar)
         {
-            ReadOnlySpan<char> chars = data.AsSpan();
+            ReadOnlySpan<char> chars = data;
             int byteCount = Encoding.UTF8.GetByteCount(chars);
             var dst = GetSpan(byteCount);
-            byteCount = Encoding.UTF8.GetBytes(data.AsSpan(), dst);
+            byteCount = Encoding.UTF8.GetBytes(data, dst);
             Advance(byteCount);
             return byteCount;
         }
         else
         {
-            ReadOnlySpan<char> chars = data.AsSpan();
+            ReadOnlySpan<char> chars = data;
             Encoder encoder = Encoding.UTF8.GetEncoder();
             int totalLength = 0;
             do

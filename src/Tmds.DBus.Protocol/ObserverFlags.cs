@@ -24,6 +24,11 @@ public enum ObserverFlags
     /// Do not subscribe to the signal on the bus.
     /// </summary>
     NoSubscribe = 4,
+    /// <summary>
+    /// Emit a completion exception when the owner of the matched bus name changes.
+    /// </summary>
+    /// <remarks>Use <see cref="ObserverHandler.IsOwnerChanged"/> to check for this exception.</remarks>
+    EmitOnOwnerChanged = 8,
 
     /// <summary>
     /// Emit a completion exception when either the connection or observer is disposed.

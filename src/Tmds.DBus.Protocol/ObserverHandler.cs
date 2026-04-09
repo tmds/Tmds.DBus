@@ -33,4 +33,13 @@ public static class ObserverHandler
     /// <remarks>This exception is emitted when <see cref="ObserverFlags.EmitOnDispose"/>, <see cref="ObserverFlags.EmitOnObserverDispose"/>, or <see cref="ObserverFlags.EmitOnConnectionDispose"/> is set.</remarks>
     public static bool IsDisposed(Exception exception)
         => IsObserverDisposed(exception) || IsConnectionDisposed(exception);
+
+    /// <summary>
+    /// Checks if the exception indicates the owner of the matched bus name has changed.
+    /// </summary>
+    /// <param name="exception">The exception to check.</param>
+    /// <returns><see langword="true"/> if the exception indicates an owner change; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>This exception is emitted when <see cref="ObserverFlags.EmitOnOwnerChanged"/> is set.</remarks>
+    public static bool IsOwnerChanged(Exception exception)
+        => exception is DBusOwnerChangedException;
 }

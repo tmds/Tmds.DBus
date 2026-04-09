@@ -67,7 +67,7 @@ public sealed class NameOwnerWatcher : IDisposable
     /// <exception cref="ArgumentException">Thrown when the string is not a valid owner identifier.</exception>
     public static string GetOwnerBusName(string ownerIdentifier)
     {
-        if (!BusName.TrySplitOwnerIdentifier(ownerIdentifier, out ReadOnlySpan<char> uniqueId, out _))
+        if (!BusName.TrySplitOwnerIdentifier(ownerIdentifier.AsSpan(), out ReadOnlySpan<char> uniqueId, out _))
         {
             throw new ArgumentException("The value is not a valid owner identifier.", nameof(ownerIdentifier));
         }

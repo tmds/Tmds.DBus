@@ -74,7 +74,7 @@ public ref partial struct MessageWriter
     /// Writes a string.
     /// </summary>
     /// <param name="value">The string.</param>
-    public void WriteString(string value) => WriteStringCore(value);
+    public void WriteString(string value) => WriteStringCore(value.AsSpan());
 
     /// <summary>
     /// Writes a signature.
@@ -105,7 +105,7 @@ public ref partial struct MessageWriter
     {
         Span<byte> lengthSpan = GetSpan(1);
         Advance(1);
-        int bytesWritten = WriteRaw(s);
+        int bytesWritten = WriteRaw(s.AsSpan());
         lengthSpan[0] = (byte)bytesWritten;
         WriteByte(0);
     }
@@ -120,13 +120,13 @@ public ref partial struct MessageWriter
     /// Writes an object path.
     /// </summary>
     /// <param name="value">The object path string.</param>
-    public void WriteObjectPath(string value) => WriteStringCore(value);
+    public void WriteObjectPath(string value) => WriteStringCore(value.AsSpan());
 
     /// <summary>
     /// Writes an object path.
     /// </summary>
     /// <param name="value">The object path.</param>
-    public void WriteObjectPath(ObjectPath value) => WriteStringCore(value.ToString());
+    public void WriteObjectPath(ObjectPath value) => WriteStringCore(value.ToString().AsSpan());
 
     /// <summary>
     /// Writes a variant-wrapped boolean value.

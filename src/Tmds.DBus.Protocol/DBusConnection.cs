@@ -558,8 +558,11 @@ public sealed partial class DBusConnection : IDisposable
     /// <exception cref="InvalidOperationException">The connection is not connected to a bus, or <paramref name="name"/> is the D-Bus service name.</exception>
     public async Task<NameOwnerWatcher> WatchNameOwnerAsync(string name)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-        if (name[0] == ':' || BusName.IsOwnerIdentifier(name))
+        if (string.IsNullOrEmpty(name))
+        {
+            throw new ArgumentException("The value cannot be an empty string.", nameof(name));
+        }
+        if (name[0] == ':' || BusName.IsOwnerIdentifier(name.AsSpan()))
         {
             throw new ArgumentException("Cannot watch a unique connection name or owner identifier.", nameof(name));
         }

@@ -6,7 +6,7 @@ namespace Tmds.DBus.Protocol;
 /// <remarks>
 /// The <see cref="Exception.InnerException"/> indicates the reason for the close.
 /// </remarks>
-public class DBusConnectionClosedException : DBusConnectionException
+public sealed class DBusConnectionClosedException : DBusConnectionException
 {
     /// <summary>
     /// Initializes a new instance of the DBusConnectionClosedException class.
@@ -21,5 +21,8 @@ public class DBusConnectionClosedException : DBusConnectionException
     /// <param name="message">The error message.</param>
     /// <param name="innerException">The inner exception that caused this exception.</param>
     public DBusConnectionClosedException(string message, Exception innerException) : base(message, innerException)
+    { }
+
+    internal DBusConnectionClosedException(Exception reason) : base(reason.Message, reason)
     { }
 }

@@ -28,7 +28,7 @@ class MonitorCommand : Command
     {
         StringBuilder sb = new StringBuilder();
 
-        await foreach (DisposableMessage dmsg in Tmds.DBus.Protocol.Connection.MonitorBusAsync(address))
+        await foreach (DisposableMessage dmsg in DBusConnection.MonitorBusAsync(address))
         {
             using var _ = dmsg;
             Message msg = dmsg.Message;

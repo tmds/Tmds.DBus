@@ -145,7 +145,7 @@ class InnerConnection : IDisposable
 
         public void OwnerChangedTcsSetDisconnected(Exception disconnectReason)
         {
-            TakeOwnerChangedTcs()?.TrySetException(new DisconnectedException(disconnectReason));
+            TakeOwnerChangedTcs()?.TrySetException(new DBusConnectionClosedException(disconnectReason));
         }
 
         private TaskCompletionSource<string?>? TakeOwnerChangedTcs()
@@ -256,7 +256,7 @@ class InnerConnection : IDisposable
                 {
                     if (_state != DBusConnectionState.Connecting)
                     {
-                        throw new DisconnectedException(DisconnectReason);
+                        throw new DBusConnectionClosedException(DisconnectReason);
                     }
                     _messageStream = stream = new MessageStream(socket);
                 }
@@ -271,7 +271,7 @@ class InnerConnection : IDisposable
                 {
                     if (_state != DBusConnectionState.Connecting)
                     {
-                        throw new DisconnectedException(DisconnectReason);
+                        throw new DBusConnectionClosedException(DisconnectReason);
                     }
                     _state = DBusConnectionState.Connected;
                 }
@@ -314,7 +314,7 @@ class InnerConnection : IDisposable
             {
                 if (_state != DBusConnectionState.Connecting)
                 {
-                    throw new DisconnectedException(DisconnectReason);
+                    throw new DBusConnectionClosedException(DisconnectReason);
                 }
                 _state = DBusConnectionState.Connected;
             }
@@ -495,8 +495,7 @@ class InnerConnection : IDisposable
                         {
                             if (!methodContext.DisposesAsynchronously)
                             {
-                                methodContext.CanDispose = false; // Ensure the context is no longer disposable by the user.
-                                methodContext.Dispose(force: true);
+                                methodContext.Dispose();
                             }
                         }
                     }
@@ -560,7 +559,7 @@ class InnerConnection : IDisposable
         {
             foreach (var pendingCall in _pendingCalls.Values)
             {
-                pendingCall.Invoke(new DisconnectedException(disconnectReason), null!);
+                pendingCall.Invoke(new DBusConnectionClosedException(disconnectReason), null!);
             }
             _pendingCalls.Clear();
         }
@@ -571,7 +570,7 @@ class InnerConnection : IDisposable
             {
                 bool emitException = !object.ReferenceEquals(disconnectReason, DBusConnection.DisposedException) ||
                                      observer.EmitOnConnectionDispose;
-                Exception? exception = emitException ? new DisconnectedException(disconnectReason) : null;
+                Exception? exception = emitException ? new DBusConnectionClosedException(disconnectReason) : null;
                 observer.Dispose(exception, removeObserver: false);
             }
             if (watcher.SubscribeTask is not null)
@@ -591,7 +590,7 @@ class InnerConnection : IDisposable
             lock (monitor)
             {
                 _monitorHandler = null;
-                monitor(new DisconnectedException(disconnectReason), new DisposableMessage(null));
+                monitor(new DBusConnectionClosedException(disconnectReason), new DisposableMessage(null));
             }
         }
 
@@ -619,7 +618,7 @@ class InnerConnection : IDisposable
             {
                 if (_state != DBusConnectionState.Connected)
                 {
-                    throw new DisconnectedException(DisconnectReason!);
+                    throw new DBusConnectionClosedException(DisconnectReason!);
                 }
                 if (_isMonitor)
                 {
@@ -684,7 +683,7 @@ class InnerConnection : IDisposable
             }
             else
             {
-                vtsState.SetException(new ProtocolException($"Unexpected reply type: {message.MessageType}."));
+                vtsState.SetException(new DBusUnexpectedValueException($"Unexpected reply type: {message.MessageType}."));
             }
         };
 
@@ -725,11 +724,11 @@ class InnerConnection : IDisposable
         }
         else
         {
-            vtsState.SetException(new ProtocolException($"Unexpected reply type: {message.MessageType}."));
+            vtsState.SetException(new DBusUnexpectedValueException($"Unexpected reply type: {message.MessageType}."));
         }
     }
 
-    private static DBusException CreateDBusExceptionForErrorMessage(Message message)
+    private static DBusErrorReplyException CreateDBusExceptionForErrorMessage(Message message)
     {
         string errorName = message.ErrorNameAsString ?? "<<No ErrorName>>.";
         string errMessage = errorName;
@@ -737,7 +736,7 @@ class InnerConnection : IDisposable
         {
             errMessage = message.GetBodyReader().ReadString();
         }
-        return new DBusException(errorName, errMessage);
+        return new DBusErrorReplyException(errorName, errMessage);
     }
 
     public async Task BecomeMonitorAsync(Action<Exception?, DisposableMessage> handler, IEnumerable<MatchRule>? rules)
@@ -748,7 +747,7 @@ class InnerConnection : IDisposable
         {
             if (_state != DBusConnectionState.Connected)
             {
-                throw new DisconnectedException(DisconnectReason!);
+                throw new DBusConnectionClosedException(DisconnectReason!);
             }
             if (!RemoteIsBus)
             {
@@ -850,7 +849,7 @@ class InnerConnection : IDisposable
         {
             if (_state != DBusConnectionState.Connected)
             {
-                throw new DisconnectedException(DisconnectReason!);
+                throw new DBusConnectionClosedException(DisconnectReason!);
             }
             if (_isMonitor)
             {
@@ -1667,7 +1666,7 @@ class InnerConnection : IDisposable
                 {
                     if (connection._state == DBusConnectionState.Disconnected)
                     {
-                        throw new DisconnectedException(connection.DisconnectReason!);
+                        throw new DBusConnectionClosedException(connection.DisconnectReason!);
                     }
 
                     string? owner = observedName.OwnerIdentifier;

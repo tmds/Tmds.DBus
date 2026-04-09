@@ -159,7 +159,7 @@ public partial class DBusConnection
         if (!isOwner)
         {
             // Model DBUS_REQUEST_NAME_REPLY_EXISTS method return reply as a DBus error reply.
-            throw new DBusException("org.freedesktop.DBus.Error.NameExists", "The name already has an owner.");
+            throw new DBusErrorReplyException("org.freedesktop.DBus.Error.NameExists", "The name already has an owner.");
         }
     }
 
@@ -199,7 +199,7 @@ public partial class DBusConnection
                 throw new InvalidOperationException("Service is already registered by this connection");
             case RequestNameReply.InQueue:
             default:
-                throw new ProtocolException("Unexpected reply");
+                throw new DBusUnexpectedValueException("Unexpected reply");
         }
     }
 
@@ -236,7 +236,7 @@ public partial class DBusConnection
                 throw new InvalidOperationException("Service is already registered by this connection");
             case RequestNameReply.Exists:
             default:
-                throw new ProtocolException("Unexpected reply");
+                throw new DBusUnexpectedValueException("Unexpected reply");
         }
     }
 

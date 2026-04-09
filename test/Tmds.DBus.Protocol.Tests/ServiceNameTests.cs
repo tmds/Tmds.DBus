@@ -42,7 +42,7 @@ public class ServiceNameTests
 
             var conn2 = new DBusConnection(address!);
             await conn2.ConnectAsync();
-            await Assert.ThrowsAsync<DBusException>(() => conn2.RequestNameAsync(serviceName, RequestNameOptions.None));
+            await Assert.ThrowsAsync<DBusErrorReplyException>(() => conn2.RequestNameAsync(serviceName, RequestNameOptions.None));
         }
     }
 

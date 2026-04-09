@@ -3,7 +3,7 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Exception thrown when receiving an error message reply to a method call.
 /// </summary>
-public class DBusErrorReplyException : DBusMessageException
+public sealed class DBusErrorReplyException : DBusMessageException
 {
     /// <summary>
     /// Initializes a new instance of the DBusErrorReplyException class.

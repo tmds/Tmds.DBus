@@ -50,7 +50,6 @@ public sealed partial class DBusConnection : IDisposable
     private ConnectionState _state;
     private bool _disposed;
     private int _nextSerial;
-    private Connection? _asConnection;
 
     /// <summary>
     /// Initializes a new instance of the DBusConnection class.
@@ -106,7 +105,7 @@ public sealed partial class DBusConnection : IDisposable
                 InnerConnection? connection = _connection;
                 if (!explicitConnect && _state == ConnectionState.Disconnected && connection is not null)
                 {
-                    throw new DisconnectedException(connection.DisconnectReason);
+                    throw new DBusConnectionClosedException(connection.DisconnectReason);
                 }
 
                 if (!explicitConnect || _state != ConnectionState.Created)
@@ -159,7 +158,7 @@ public sealed partial class DBusConnection : IDisposable
                 }
                 else
                 {
-                    throw new DisconnectedException(connection.DisconnectReason);
+                    throw new DBusConnectionClosedException(connection.DisconnectReason);
                 }
             }
 
@@ -172,14 +171,14 @@ public sealed partial class DBusConnection : IDisposable
             // Prefer throwing ObjectDisposedException.
             ThrowHelper.ThrowIfDisposed(_disposed, this);
 
-            // Throw DisconnectedException or ConnectException.
+            // Throw DBusConnectionClosedException or DBusConnectFailedException.
             if (exception is DBusConnectionException)
             {
                 throw;
             }
             else
             {
-                throw new ConnectException(exception.Message, exception);
+                throw new DBusConnectFailedException(exception.Message, exception);
             }
         }
     }
@@ -407,20 +406,6 @@ public sealed partial class DBusConnection : IDisposable
     }
 
     /// <summary>
-    /// Adds an <see cref="IMethodHandler"/> to handle incoming method calls.
-    /// </summary>
-    /// <param name="methodHandler">The method handler to add.</param>
-    public void AddMethodHandler(IMethodHandler methodHandler)
-        => UpdateMethodHandlers((dictionary, handler) => dictionary.AddMethodHandler(handler.AsPathMethodHandler()), methodHandler);
-
-    /// <summary>
-    /// Adds multiple <see cref="IMethodHandler"/> instances to handle incoming method calls.
-    /// </summary>
-    /// <param name="methodHandlers">The method handlers to add.</param>
-    public void AddMethodHandlers(IReadOnlyList<IMethodHandler> methodHandlers)
-        => UpdateMethodHandlers((dictionary, handlers) => dictionary.AddMethodHandlers(handlers.Select(h => h.AsPathMethodHandler()).ToList()), methodHandlers);
-
-    /// <summary>
     /// Adds an <see cref="IPathMethodHandler"/> to handle incoming method calls.
     /// </summary>
     /// <param name="methodHandler">The method handler to add.</param>
@@ -571,10 +556,4 @@ public sealed partial class DBusConnection : IDisposable
     }
 
     internal uint GetNextSerial() => (uint)Interlocked.Increment(ref _nextSerial);
-
-    /// <summary>
-    /// Returns a Connection instance wrapping this DBusConnection.
-    /// </summary>
-    /// <returns>A Connection instance.</returns>
-    public Connection AsConnection() => _asConnection ??= new Connection(this);
 }

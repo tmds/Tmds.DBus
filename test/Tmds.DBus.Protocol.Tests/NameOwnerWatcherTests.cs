@@ -254,7 +254,7 @@ public class NameOwnerWatcherTests
     }
 
     [Fact]
-    public async Task WatchNameOwner_ConnectionDisposed_ThrowsDisconnectedException()
+    public async Task WatchNameOwner_ConnectionDisposed_ThrowsDBusConnectionClosedException()
     {
         using var dbusDaemon = new DBusDaemon();
         await dbusDaemon.StartAsync();
@@ -271,7 +271,7 @@ public class NameOwnerWatcherTests
 
         clientConnection.Dispose();
 
-        await Assert.ThrowsAsync<DisconnectedException>(() => waitTask.WaitAsync(TimeSpan.FromSeconds(5)));
+        await Assert.ThrowsAsync<DBusConnectionClosedException>(() => waitTask.WaitAsync(TimeSpan.FromSeconds(5)));
     }
 
     [Fact]
@@ -843,11 +843,11 @@ public class NameOwnerWatcherTests
         Assert.Throws<ArgumentException>(() => NameOwnerWatcher.GetOwnerBusName(ownerIdentifier));
     }
 
-    private class EchoHandler : IMethodHandler
+    private class EchoHandler : IPathMethodHandler
     {
         public string Path => "/echo";
 
-        public bool RunMethodHandlerSynchronously(Message message) => true;
+        public bool HandlesChildPaths => false;
 
         public ValueTask HandleMethodAsync(MethodContext context)
         {

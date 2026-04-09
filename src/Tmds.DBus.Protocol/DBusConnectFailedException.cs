@@ -3,7 +3,7 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// Exception thrown when a D-Bus connection cannot be established.
 /// </summary>
-public class DBusConnectFailedException : DBusConnectionException
+public sealed class DBusConnectFailedException : DBusConnectionException
 {
     /// <summary>
     /// Initializes a new instance of the DBusConnectFailedException class.

@@ -66,11 +66,11 @@ namespace Tmds.DBus.Protocol.Tests
                         Message? message = Message.TryReadMessage(pool, ref data, messageBuffer.Handles);
                         if (message is null)
                         {
-                            throw new ProtocolException("Cannot parse message.");
+                            throw new DBusUnexpectedValueException("Cannot parse message.");
                         }
                         if (data.Length != 0)
                         {
-                            throw new ProtocolException("Message buffer contains more than one message.");
+                            throw new DBusUnexpectedValueException("Message buffer contains more than one message.");
                         }
                         handler(closeReason: null, message, state);
                     }

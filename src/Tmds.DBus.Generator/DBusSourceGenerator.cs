@@ -55,6 +55,12 @@ namespace Tmds.DBus.Generator
                 }
             }
 
+            var settings = new Tool.ProtocolGeneratorSettings
+            {
+                GeneratorDescription = GetGeneratorDescription()
+            };
+            var generator = new Tool.ProtocolGenerator(settings);
+            bool generateSharedCode = false;
             // Group by namespace and generate code
             foreach (var group in xmlFiles.GroupBy(x => x.Namespace))
             {
@@ -105,17 +111,11 @@ namespace Tmds.DBus.Generator
 
                 try
                 {
-                    var settings = new Tool.ProtocolGeneratorSettings
-                    {
-                        Namespace = ns,
-                        GeneratorDescription = GetGeneratorDescription()
-                    };
-                    var generator = new Tool.ProtocolGenerator(settings);
-
-                    string sourceCode = generator.Generate(interfaces);
+                    string sourceCode = generator.Generate(ns, interfaces, true, true);
 
                     string hintName = $"{ns}.g.cs";
                     spc.AddSource(hintName, SourceText.From(sourceCode, Encoding.UTF8));
+                    generateSharedCode = true;
                 }
                 catch (Tool.InterfaceGenerationException ex)
                 {
@@ -135,6 +135,24 @@ namespace Tmds.DBus.Generator
                         DiagnosticDescriptors.CodeGenerationFailedGeneric,
                         Location.None,
                         ns,
+                        ex.ToString()));
+                }
+            }
+
+            // Generate shared code
+            if (generateSharedCode)
+            {
+                try
+                {
+                    string sharedCode = generator.GenerateShared();
+                    spc.AddSource("DBus.SourceGenerator.Common.g.cs", SourceText.From(sharedCode, Encoding.UTF8));
+                }
+                catch (Exception ex)
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.CodeGenerationFailedGeneric,
+                        Location.None,
+                        "Shared",
                         ex.ToString()));
                 }
             }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -86,9 +87,8 @@ public class CodeGenerationTests : TestsBase
         var (diagnostics, generatedSources) = RunGenerator(additionalFiles);
 
         Assert.Empty(diagnostics);
-        Assert.Single(generatedSources);
 
-        await Verify(generatedSources[0].SourceText.ToString());
+        await Verify(string.Join("\n", generatedSources.Select(s => s.SourceText.ToString())));
 
         AssertCompiles(generatedSources);
     }

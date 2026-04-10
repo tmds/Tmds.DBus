@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml.Linq;
@@ -20,8 +21,7 @@ namespace Tmds.DBus.Tool
 
     class ProtocolGeneratorSettings
     {
-        public string Namespace { get; set; } = "DBus";
-        public string ServiceName { get; set; }
+        public string? ServiceName { get; set; }
         public Accessibility TypesAccessModifier = Accessibility.NotApplicable;
         public string? GeneratorDescription { get; set; }
     }
@@ -32,7 +32,11 @@ namespace Tmds.DBus.Tool
         private readonly StringBuilder _sb = new();
         private readonly Dictionary<string, (bool, Argument[])> _messageReadMethods = new();
         private readonly Dictionary<string, string> _typeReadMethods = new();
-        private readonly Dictionary<string, string> _typeWriteMethods = new();
+        private readonly Dictionary<string, (bool, string)> _typeWriteMethods = new();
+        private readonly List<(string Namespace, string InterfaceName, string HandlerInterfaceName)> _generatedHandlers = new();
+        private readonly HashSet<string> _allInterfaces = new();
+        private readonly Dictionary<string, XElement> _interfaceXmls = new();
+        private readonly HashSet<string> _interfacesWithProperties = new();
         private int _indentation = 0;
 
         public ProtocolGenerator(ProtocolGeneratorSettings settings)
@@ -65,7 +69,140 @@ namespace Tmds.DBus.Tool
             _sb.AppendLine(line);
         }
 
-        public string Generate(IEnumerable<InterfaceDescription> interfaceDescriptions)
+        private static XElement MinimizeInterfaceXml(XElement interfaceXml)
+        {
+            // Create a minimal version of the interface XML by removing documentation and annotations
+            var minimalInterface = new XElement("interface", new XAttribute("name", interfaceXml.Attribute("name")!.Value));
+
+            foreach (var element in interfaceXml.Elements())
+            {
+                if (element.Name.LocalName == "method")
+                {
+                    var method = new XElement("method");
+                    if (element.Attribute("name") != null)
+                    {
+                        method.Add(new XAttribute("name", element.Attribute("name")!.Value));
+                    }
+
+                    // Add args
+                    foreach (var arg in element.Elements().Where(e => e.Name.LocalName == "arg"))
+                    {
+                        var minimalArg = new XElement("arg");
+                        if (arg.Attribute("type") != null) minimalArg.Add(new XAttribute("type", arg.Attribute("type")!.Value));
+                        if (arg.Attribute("name") != null) minimalArg.Add(new XAttribute("name", arg.Attribute("name")!.Value));
+                        if (arg.Attribute("direction") != null) minimalArg.Add(new XAttribute("direction", arg.Attribute("direction")!.Value));
+                        method.Add(minimalArg);
+                    }
+
+                    minimalInterface.Add(method);
+                }
+                else if (element.Name.LocalName == "property")
+                {
+                    var property = new XElement("property");
+                    if (element.Attribute("name") != null) property.Add(new XAttribute("name", element.Attribute("name")!.Value));
+                    if (element.Attribute("type") != null) property.Add(new XAttribute("type", element.Attribute("type")!.Value));
+                    if (element.Attribute("access") != null) property.Add(new XAttribute("access", element.Attribute("access")!.Value));
+                    minimalInterface.Add(property);
+                }
+                else if (element.Name.LocalName == "signal")
+                {
+                    var signal = new XElement("signal");
+                    if (element.Attribute("name") != null)
+                    {
+                        signal.Add(new XAttribute("name", element.Attribute("name")!.Value));
+                    }
+
+                    // Add args
+                    foreach (var arg in element.Elements().Where(e => e.Name.LocalName == "arg"))
+                    {
+                        var minimalArg = new XElement("arg");
+                        if (arg.Attribute("type") != null) minimalArg.Add(new XAttribute("type", arg.Attribute("type")!.Value));
+                        if (arg.Attribute("name") != null) minimalArg.Add(new XAttribute("name", arg.Attribute("name")!.Value));
+                        signal.Add(minimalArg);
+                    }
+
+                    minimalInterface.Add(signal);
+                }
+            }
+
+            return minimalInterface;
+        }
+
+        public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions, bool generateProxies, bool generateHandlers)
+        {
+            _sb.Clear();
+            _generatedHandlers.Clear(); // Clear for this namespace
+
+            if (!string.IsNullOrEmpty(_settings.GeneratorDescription))
+            {
+                AppendLine($"// Generated by {_settings.GeneratorDescription}");
+            }
+            AppendLine("// <auto-generated/>");
+            AppendLine("#nullable enable");
+
+            AppendLine($"namespace {ns}");
+            StartBlock();
+
+            AppendLine($"using System;");
+            AppendLine($"using Tmds.DBus.Protocol;");
+            AppendLine($"using System.Collections.Generic;");
+            AppendLine("using System.Threading.Tasks;");
+            AppendLine("using System.Runtime.CompilerServices;");
+
+            foreach (var interf in interfaceDescriptions)
+            {
+                try
+                {
+                    if (generateProxies)
+                    {
+                        AppendProxyForInterface(interf.Name, interf.InterfaceXml);
+                    }
+                    if (generateHandlers)
+                    {
+                        AppendHandlerForInterface(ns, interf.Name, interf.InterfaceXml);
+                    }
+                    AppendSignalsClass(interf.Name, interf.InterfaceXml);
+                }
+                catch (Exception ex)
+                {
+                    throw new InterfaceGenerationException(interf, ex);
+                }
+            }
+
+            if (generateProxies)
+            {
+                AppendServiceClass(interfaceDescriptions);
+            }
+
+            AppendReaderClass();
+            AppendMessageWriterExtensionsClass();
+
+            EndBlock();
+
+            return _sb.ToString();
+        }
+
+        private void AppendDBusHandlerExtension()
+        {
+            AppendLine("static class DBusHandlerExtensions");
+            StartBlock();
+
+            AppendLine("public static DBusHandler.DBusMethod FindMethodHandler(this DBusHandler handler, MethodContext context)");
+            StartBlock();
+            foreach (var (ns, interfaceName, handlerInterfaceName) in _generatedHandlers)
+            {
+                AppendLine($"if (handler is {ns}.{handlerInterfaceName} && context.Request.InterfaceAsString == \"{interfaceName}\")");
+                StartBlock();
+                AppendLine($"return {ns}.{handlerInterfaceName}.Helper.FindMethodHandler(context);");
+                EndBlock();
+            }
+            AppendLine("return default;");
+            EndBlock();
+
+            EndBlock();
+        }
+
+        public string GenerateShared()
         {
             _sb.Clear();
             if (!string.IsNullOrEmpty(_settings.GeneratorDescription))
@@ -75,29 +212,389 @@ namespace Tmds.DBus.Tool
             AppendLine("// <auto-generated/>");
             AppendLine("#nullable enable");
 
-            AppendLine($"namespace {_settings.Namespace}");
+            AppendLine("namespace Tmds.DBus.Protocol");
             StartBlock();
 
-            AppendLine($"using System;");
-            AppendLine($"using Tmds.DBus.Protocol;");
-            AppendLine($"using System.Collections.Generic;");
+            AppendLine("using System;");
+            AppendLine("using System.Collections.Generic;");
+            AppendLine("using System.Threading;");
             AppendLine("using System.Threading.Tasks;");
 
-            foreach (var interf in interfaceDescriptions)
+            // Add IIntrospectable to the generated handlers list for switch statement
+            // Note: IIntrospectable is now handled directly in DBusHandler, not as a separate interface
+            _generatedHandlers.Add(("Tmds.DBus.Protocol", "org.freedesktop.DBus.Introspectable", "IIntrospectable"));
+
+            AppendLine("abstract class DBusHandler : IPathMethodHandler");
+            StartBlock();
+
+            var allInterfaces = _allInterfaces.OrderBy(x => x).ToList();
+
+            // --- enum ---
+
+            // Generate DBusInterface Flags enum inside DBusHandler
+            AppendLine("// Identifies the D-Bus interfaces. Used with ShouldSkip to filter interfaces per path.");
+            AppendLine("[Flags]");
+            AppendLine("protected enum DBusInterface");
+            StartBlock();
+            // Add Introspectable interface as first item
+            AppendLine("// OrgFreedesktopDBusIntrospectable = 1,");
+            int flagValue = 2;
+            foreach (var interfaceName in allInterfaces)
             {
-                try
+                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                AppendLine($"{enumName} = {flagValue},");
+                flagValue *= 2;
+            }
+            EndBlock();
+            AppendLine("");
+
+            // Generate ReadOnlyMemory<byte> properties for introspection XML
+            foreach (var interfaceName in allInterfaces)
+            {
+                if (_interfaceXmls.TryGetValue(interfaceName, out var xml))
                 {
-                    AppendInterface(interf.Name, interf.InterfaceXml);
-                }
-                catch (Exception ex)
-                {
-                    throw new InterfaceGenerationException(interf, ex);
+                    string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                    AppendLine($"private static ReadOnlyMemory<byte> {enumName}Xml {{ get; }} =");
+                    _indentation++;
+                    AppendLine("\"\"\"");
+
+                    // Create minimal version of XML (remove annotations, docstrings, etc.)
+                    var minimalXml = MinimizeInterfaceXml(xml);
+
+                    // Write the XML content (without declaration, with nice formatting)
+                    var settings = new System.Xml.XmlWriterSettings
+                    {
+                        Indent = true,
+                        IndentChars = "  ",
+                        OmitXmlDeclaration = true,
+                        NewLineChars = "\n"
+                    };
+                    using (var stringWriter = new System.IO.StringWriter())
+                    using (var xmlWriter = System.Xml.XmlWriter.Create(stringWriter, settings))
+                    {
+                        minimalXml.WriteTo(xmlWriter);
+                        xmlWriter.Flush();
+                        var lines = stringWriter.ToString().Split('\n');
+                        foreach (var line in lines)
+                        {
+                            if (line.Length > 0)
+                            {
+                                AppendLine(line);
+                            }
+                        }
+                    }
+                    _sb.AppendLine();
+                    AppendLine("\"\"\"u8.ToArray();");
+                    _indentation--;
+                    AppendLine("");
                 }
             }
 
-            AppendServiceClass(interfaceDescriptions);
-            AppendReaderClass();
-            AppendMessageWriterExtensionsClass();
+            // --- fields ---
+
+            AppendLine("private readonly SendOrPostCallback? _postDelegate;");
+            AppendLine("");
+
+            // --- constants ---
+
+            // Add private const for OrgFreedesktopDBusIntrospectable
+            AppendLine("private const DBusInterface OrgFreedesktopDBusIntrospectable = (DBusInterface)1;");
+            AppendLine("");
+
+            // Generate InterfacesWithProperties const
+            var interfacesWithPropertiesFlags = new List<string>();
+            foreach (var interfaceName in allInterfaces)
+            {
+                if (_interfacesWithProperties.Contains(interfaceName))
+                {
+                    string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                    interfacesWithPropertiesFlags.Add($"DBusInterface.{enumName}");
+                }
+            }
+
+            if (interfacesWithPropertiesFlags.Any())
+            {
+                AppendLine($"private const DBusInterface InterfacesWithProperties = {string.Join(" | ", interfacesWithPropertiesFlags)};");
+                AppendLine("");
+            }
+            else
+            {
+                AppendLine("private const DBusInterface InterfacesWithProperties = 0;");
+                AppendLine("");
+            }
+
+            // --- properties ---
+
+            AppendLine("public string Path { get; }");
+            AppendLine("public bool HandlesChildPaths { get; }");
+            AppendLine("public DBusConnection Connection { get; }");
+            AppendLine("// The SynchronizationContext on which method handlers are invoked.");
+            AppendLine("protected SynchronizationContext? SynchronizationContext { get; }");
+            AppendLine("");
+            AppendLine("protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, bool handleOnCapturedContext = true)");
+            AppendLine("    : this(connection, path, handlesChildPaths, handleOnCapturedContext ? SynchronizationContext.Current : null)");
+            StartBlock();
+            EndBlock();
+            AppendLine("");
+            AppendLine("protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, SynchronizationContext? synchronizationContext)");
+            StartBlock();
+            AppendLine("Connection = connection;");
+            AppendLine("Path = path;");
+            AppendLine("HandlesChildPaths = handlesChildPaths;");
+            AppendLine("SynchronizationContext = synchronizationContext;");
+            AppendLine("if (synchronizationContext is not null)");
+            StartBlock();
+            AppendLine("_postDelegate = state =>");
+            StartBlock();
+            AppendLine("MethodContext context = (MethodContext)state!;");
+            AppendLine("DBusInterface dbusInterface = ParseInterface(context);");
+            AppendLine("DBusMethod method = FindMethodHandler(context, dbusInterface);");
+            AppendLine("_ = InvokeAndDisposeAsync(method, context);");
+            _indentation--;
+            AppendLine("};");
+            EndBlock();
+            EndBlock();
+
+            AppendLine("// Override to add cross-cutting logic (e.g. logging, error handling) around method invocations.");
+            AppendLine("protected virtual async ValueTask InvokeAsync(DBusMethod method, MethodContext context)");
+            StartBlock();
+            AppendLine("try");
+            StartBlock();
+            AppendLine("await method.Invoke(context).ConfigureAwait(false);");
+            EndBlock();
+            AppendLine("catch (DBusErrorReplyException ex)");
+            StartBlock();
+            AppendLine("context.ReplyError(ex.ErrorName, ex.ErrorMessage);");
+            EndBlock();
+            AppendLine("catch (ArgumentException ex)");
+            StartBlock();
+            AppendLine("context.ReplyError(\"org.freedesktop.DBus.Error.InvalidArgs\", ex.Message);");
+            EndBlock();
+            AppendLine("catch (Exception ex)");
+            StartBlock();
+            AppendLine("context.ReplyError(\"org.freedesktop.DBus.Error.Failed\", ex.Message);");
+            EndBlock();
+            EndBlock();
+            AppendLine("");
+
+            AppendLine("// Override to exclude interfaces for specific paths when the handler manages multiple paths.");
+            AppendLine("protected virtual bool ShouldSkip(DBusInterface dbusInterface, ReadOnlySpan<char> path)");
+            StartBlock();
+            AppendLine("return false;");
+            EndBlock();
+            AppendLine("");
+
+            // Add IntrospectAsync virtual method
+            AppendLine("// Override to customize introspection, e.g. to include child node names.");
+            AppendLine("protected virtual ValueTask HandleIntrospectAsync(IntrospectContext context)");
+            StartBlock();
+            AppendLine("DBusInterface interfaces = GuessInterfaces(context.MethodContext.Request.PathAsString.AsSpan());");
+            AppendLine("context.Reply(interfaces);");
+            AppendLine("return default;");
+            EndBlock();
+            AppendLine("");
+
+            // Add IntrospectContext struct
+            AppendLine("// Context for IntrospectAsync. Call Reply to send the introspection XML response.");
+            AppendLine("protected readonly struct IntrospectContext : IDisposable");
+            StartBlock();
+            AppendLine("public MethodContext MethodContext { get; }");
+            AppendLine("public IntrospectContext(MethodContext methodContext)");
+            StartBlock();
+            AppendLine("MethodContext = methodContext;");
+            EndBlock();
+            AppendLine("public void Dispose() => MethodContext.Dispose();");
+            AppendLine("public void Reply(DBusInterface interfaces, IList<string>? childNames = null)");
+            StartBlock();
+
+            // Create an array for interface XMLs (interfaces + 1 for potential DBusProperties)
+            int interfaceCount = allInterfaces.Count + 1;
+            AppendLine($"var interfaceXmls = new ReadOnlyMemory<byte>[{interfaceCount}];");
+            AppendLine("int count = 0;");
+
+            // Check each interface flag and add corresponding XML
+            foreach (var interfaceName in allInterfaces)
+            {
+                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                AppendLine($"if ((interfaces & DBusInterface.{enumName}) != 0)");
+                StartBlock();
+                AppendLine($"interfaceXmls[count++] = {enumName}Xml;");
+                EndBlock();
+            }
+
+            // Add DBusProperties if any interface has properties
+            AppendLine("if ((interfaces & InterfacesWithProperties) != 0)");
+            StartBlock();
+            AppendLine("interfaceXmls[count++] = IntrospectionXml.DBusProperties;");
+            EndBlock();
+
+            AppendLine("if (childNames is not null)");
+            StartBlock();
+            AppendLine("MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count), childNames);");
+            EndBlock();
+            AppendLine("else");
+            StartBlock();
+            AppendLine("MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count));");
+            EndBlock();
+            EndBlock();
+            EndBlock();
+            AppendLine("");
+
+            // --- internal members ---
+
+            // Generate DBusMethod struct inside DBusHandler
+            AppendLine("internal readonly struct DBusMethod");
+            StartBlock();
+            AppendLine("private readonly Func<object, MethodContext, ValueTask> _method;");
+            AppendLine("private readonly object _target;");
+            AppendLine("");
+            AppendLine("public DBusMethod(Func<object, MethodContext, ValueTask> method, object target)");
+            StartBlock();
+            AppendLine("_method = method;");
+            AppendLine("_target = target;");
+            EndBlock();
+            AppendLine("");
+            AppendLine("public bool HasValue => _method is not null;");
+            AppendLine("");
+            AppendLine("public ValueTask Invoke(MethodContext context)");
+            StartBlock();
+            AppendLine("return _method?.Invoke(_target, context) ?? default;");
+            EndBlock();
+            EndBlock();
+            AppendLine("");
+
+            // --- private methods ---
+
+            AppendLine("ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)");
+            StartBlock();
+            AppendLine("DBusInterface dbusInterface = ParseInterface(context);");
+            AppendLine("DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && ShouldSkip(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);");
+            AppendLine("if (!method.HasValue)");
+            StartBlock();
+            AppendLine("return default;");
+            EndBlock();
+            AppendLine("return HandleAsync(method, context);");
+            EndBlock();
+            AppendLine("");
+            AppendLine("private ValueTask HandleAsync(DBusMethod method, MethodContext context)");
+            StartBlock();
+            AppendLine("SynchronizationContext? synchronizationContext = SynchronizationContext;");
+            AppendLine("if (synchronizationContext is null)");
+            StartBlock();
+            AppendLine("return InvokeAsync(method, context);");
+            EndBlock();
+            AppendLine("else");
+            StartBlock();
+            AppendLine("context.DisposesAsynchronously = true;");
+            AppendLine("synchronizationContext.Post(_postDelegate!, context);");
+            AppendLine("return default;");
+            EndBlock();
+            EndBlock();
+            AppendLine("");
+            AppendLine("private async ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)");
+            StartBlock();
+            AppendLine("try");
+            StartBlock();
+            AppendLine("await InvokeAsync(method, context).ConfigureAwait(false);");
+            EndBlock();
+            AppendLine("finally");
+            StartBlock();
+            AppendLine("context.Dispose();");
+            EndBlock();
+            EndBlock();
+            AppendLine("");
+            AppendLine("private DBusMethod FindMethodHandler(MethodContext context, DBusInterface dbusInterface)");
+            StartBlock();
+            AppendLine("return dbusInterface switch");
+            StartBlock();
+            foreach (var (ns, interfaceName, handlerInterfaceName) in _generatedHandlers)
+            {
+                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                // Skip IIntrospectable as it's now handled directly in DBusHandler
+                if (handlerInterfaceName == "IIntrospectable")
+                {
+                    AppendLine($"{enumName} => FindIntrospectMethodHandler(this, context),");
+                }
+                else
+                {
+                    AppendLine($"DBusInterface.{enumName} when this is {ns}.{handlerInterfaceName} => {ns}.{handlerInterfaceName}.Helper.FindMethodHandler(this, context),");
+                }
+            }
+            AppendLine("_ => default");
+            _indentation--;
+            AppendLine("};");
+            EndBlock();
+            AppendLine("");
+
+            AppendLine("private static DBusInterface ParseInterface(MethodContext context)");
+            StartBlock();
+            AppendLine("string? dbusInterface;");
+            AppendLine("if (context.IsPropertiesInterfaceRequest)");
+            StartBlock();
+            AppendLine("Reader reader = context.Request.GetBodyReader();");
+            AppendLine("dbusInterface = reader.ReadString();");
+            EndBlock();
+            AppendLine("else");
+            StartBlock();
+            AppendLine("dbusInterface = context.Request.InterfaceAsString;");
+            EndBlock();
+            AppendLine("");
+            AppendLine("var result = dbusInterface switch");
+            StartBlock();
+            // Add Introspectable interface as first item
+            AppendLine("\"org.freedesktop.DBus.Introspectable\" => OrgFreedesktopDBusIntrospectable,");
+            foreach (var interfaceName in allInterfaces)
+            {
+                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                AppendLine($"\"{interfaceName}\" => DBusInterface.{enumName},");
+            }
+            AppendLine("_ => default");
+            _indentation--;
+            AppendLine("};");
+            AppendLine("return result;");
+            EndBlock();
+            AppendLine("");
+
+            // Add FindIntrospectMethodHandler
+            AppendLine("private static DBusMethod FindIntrospectMethodHandler(object handler, MethodContext context)");
+            StartBlock();
+            AppendLine("var request = context.Request;");
+            AppendLine("DBusMethod result = (request.MemberAsString, request.SignatureAsString) switch");
+            StartBlock();
+            AppendLine("(\"Introspect\", \"\") => new DBusMethod(static (o, c) => ((DBusHandler)o).HandleIntrospectAsync(new IntrospectContext(c)), handler),");
+            AppendLine("_ => default");
+            _indentation--;
+            AppendLine("};");
+            AppendLine("return result;");
+            EndBlock();
+            AppendLine("");
+
+            // Add GuessInterfaces method
+            AppendLine("private DBusInterface GuessInterfaces(ReadOnlySpan<char> path)");
+            StartBlock();
+            AppendLine("DBusInterface interfaces = default;");
+
+            // Add check for each generated interface
+            foreach (var (ns, interfaceName, handlerInterfaceName) in _generatedHandlers)
+            {
+                // Skip IIntrospectable since it's handled separately
+                if (handlerInterfaceName == "IIntrospectable")
+                {
+                    continue;
+                }
+
+                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                AppendLine($"if (!ShouldSkip(DBusInterface.{enumName}, path) && this is {ns}.{handlerInterfaceName})");
+                StartBlock();
+                AppendLine($"interfaces |= DBusInterface.{enumName};");
+                EndBlock();
+            }
+
+            AppendLine("return interfaces;");
+            EndBlock();
+
+            EndBlock();
+            AppendLine("");
 
             EndBlock();
 
@@ -141,7 +638,7 @@ namespace Tmds.DBus.Tool
 
             foreach (var writeMethod in _typeWriteMethods)
             {
-                AppendWriteTypeMethod(writeMethod.Key, writeMethod.Value);
+                AppendWriteTypeMethod(writeMethod.Key, writeMethod.Value.Item1, writeMethod.Value.Item2);
             }
 
             EndBlock();
@@ -232,11 +729,15 @@ namespace Tmds.DBus.Tool
             EndBlock();
         }
 
-        private void AppendWriteTypeMethod(string method, string signature)
+        private void AppendWriteTypeMethod(string method, bool variant, string signature)
         {
             string dotnetArgType = GetDotnetWriteType(signature);
             AppendLine($"public static void {method}(this ref MessageWriter writer, {dotnetArgType} value)");
             StartBlock();
+            if (variant)
+            {
+                AppendLine($"writer.WriteSignature(\"{signature}\");");
+            }
             SignatureReader reader = new SignatureReader(Encoding.UTF8.GetBytes(signature));
             if (reader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
             {
@@ -275,12 +776,20 @@ namespace Tmds.DBus.Tool
                     {
                         string dotnetItemSignature = GetSignature(itemType, itemInnerSignature);
 
-                        AppendLine($"ArrayStart arrayStart = writer.WriteArrayStart({GetDBusTypeEnumValue(itemType)});");
-                        AppendLine($"foreach (var item in value)");
-                        StartBlock();
-                        AppendLine($"{CallWriteArgumentType(dotnetItemSignature, "item")};");
-                        EndBlock();
-                        AppendLine($"writer.WriteArrayEnd(arrayStart);");
+                        // For variant mode with simple arrays, check if there's a direct WriteArray method
+                        if (variant && HasDirectWriteArrayMethod(signature))
+                        {
+                            AppendLine($"{CallWriteArgumentType(signature, "value")};");
+                        }
+                        else
+                        {
+                            AppendLine($"ArrayStart arrayStart = writer.WriteArrayStart({GetDBusTypeEnumValue(itemType)});");
+                            AppendLine($"foreach (var item in value)");
+                            StartBlock();
+                            AppendLine($"{CallWriteArgumentType(dotnetItemSignature, "item")};");
+                            EndBlock();
+                            AppendLine($"writer.WriteArrayEnd(arrayStart);");
+                        }
                     }
                 }
                 else if (type == DBusType.Struct)
@@ -297,13 +806,707 @@ namespace Tmds.DBus.Tool
                 }
                 else
                 {
-                    ThrowInvalidSignature(signature);
+                    // For variant mode, handle basic types by calling the write method directly
+                    if (variant)
+                    {
+                        AppendLine($"{CallWriteArgumentType(signature, "value")};");
+                    }
+                    else
+                    {
+                        ThrowInvalidSignature(signature);
+                    }
                 }
             }
             EndBlock();
         }
 
-        private void AppendInterface(string name, XElement interfaceXml)
+        private void AppendHandlerForInterface(string ns, string name, XElement interfaceXml)
+        {
+            string interfaceName = (string)interfaceXml.Attribute("name");
+            _allInterfaces.Add(interfaceName);
+            _interfaceXmls[interfaceName] = interfaceXml;
+
+            // Generate Property enum for readable properties (read + readwrite)
+            var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument).ToArray();
+            var readWriteProperties = ReadWriteProperties(interfaceXml).Select(ToArgument).ToArray();
+            var writeOnlyProperties = WriteOnlyProperties(interfaceXml).Select(ToArgument).ToArray();
+            var writableProperties = WritableProperties(interfaceXml).Select(ToArgument).ToArray();
+
+            // Track if this interface has any properties
+            if (readableProperties.Any() || writableProperties.Any())
+            {
+                _interfacesWithProperties.Add(interfaceName);
+            }
+
+            if (readableProperties.Any())
+            {
+                string propertyEnumName = $"{name}Property";
+                AppendLine($"enum {propertyEnumName}");
+                StartBlock();
+                AppendLine("UnknownProperty = 0,");
+                for (int i = 0; i < readableProperties.Length; i++)
+                {
+                    var property = readableProperties[i];
+                    string comma = i < readableProperties.Length - 1 ? "," : "";
+                    AppendLine($"{property.NameUpper} = {i + 1}{comma}");
+                }
+                EndBlock();
+            }
+
+            // Generate WritableProperty enum for writable properties
+            if (writableProperties.Any())
+            {
+                string writablePropertyEnumName = $"{name}WritableProperty";
+                AppendLine($"enum {writablePropertyEnumName}");
+                StartBlock();
+                AppendLine("UnknownProperty = 0,");
+
+                // First, add readwrite properties with the same values as in Property enum
+                foreach (var property in readWriteProperties)
+                {
+                    // Find the index in readableProperties to get the same value
+                    int index = Array.FindIndex(readableProperties, p => p.Name == property.Name);
+                    if (index >= 0)
+                    {
+                        AppendLine($"{property.NameUpper} = {index + 1},");
+                    }
+                }
+
+                // Then, add write-only properties starting at the next available number
+                int nextValue = readableProperties.Length + 1;
+                for (int i = 0; i < writeOnlyProperties.Length; i++)
+                {
+                    var property = writeOnlyProperties[i];
+                    string comma = i < writeOnlyProperties.Length - 1 ? "," : "";
+                    AppendLine($"{property.NameUpper} = {nextValue + i}{comma}");
+                }
+                EndBlock();
+            }
+
+            // Generate IReadableXxxProperties interface with read-only getters
+            string readablePropertiesInterfaceName = $"IReadable{name}Properties";
+            if (readableProperties.Any())
+            {
+                AppendLine($"interface {readablePropertiesInterfaceName}");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ get; }}");
+                }
+                EndBlock();
+            }
+
+            // Generate IXxxProperties interface with non-nullable typed accessors
+            if (readableProperties.Any() || writableProperties.Any())
+            {
+                string propertiesInterfaceName = $"I{name}Properties";
+                string baseInterface = readableProperties.Any() ? $" : {readablePropertiesInterfaceName}" : "";
+                AppendLine($"interface {propertiesInterfaceName}{baseInterface}");
+                StartBlock();
+
+                // Read-write properties get a setter (getter is inherited from IReadableXxxProperties)
+                foreach (var property in readableProperties)
+                {
+                    bool isWritable = writableProperties.Any(w => w.Name == property.Name);
+                    if (isWritable)
+                    {
+                        AppendLine($"new {property.DotnetReadType} {property.NameUpper} {{ get; set; }}");
+                    }
+                }
+
+                // Write-only properties get only a setter
+                foreach (var property in writeOnlyProperties)
+                {
+                    AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ set; }}");
+                }
+
+                EndBlock();
+            }
+
+            AppendLine($"interface I{name}");
+            StartBlock();
+
+            // Track this handler for the shared FindMethodHandler implementation
+            _generatedHandlers.Add((ns, interfaceName, $"I{name}"));
+
+            // Always add Helper class for all handler interfaces
+            AppendLine("internal static class Helper");
+            StartBlock();
+
+            if (readableProperties.Any() || writableProperties.Any())
+            {
+
+                // Single method that returns int for all properties
+                AppendLine("public static int GetPropertyValue(string propertyName)");
+                StartBlock();
+                AppendLine("return propertyName switch");
+                StartBlock();
+
+                // Add readable properties with their index values
+                for (int i = 0; i < readableProperties.Length; i++)
+                {
+                    var property = readableProperties[i];
+                    AppendLine($"\"{property.Name}\" => {i + 1},");
+                }
+
+                // Add write-only properties with their values
+                int nextValue = readableProperties.Length + 1;
+                for (int i = 0; i < writeOnlyProperties.Length; i++)
+                {
+                    var property = writeOnlyProperties[i];
+                    AppendLine($"\"{property.Name}\" => {nextValue + i},");
+                }
+
+                AppendLine("_ => 0");
+                _indentation--;
+                AppendLine("};");
+                EndBlock();
+            }
+
+            // Add FindMethodHandler method to Helper class
+            AppendLine($"public static DBusHandler.DBusMethod FindMethodHandler(object handler, MethodContext context)");
+            StartBlock();
+            AppendLine("var request = context.Request;");
+
+            // Handle property methods separately
+            if (readableProperties.Any() || writableProperties.Any())
+            {
+                AppendLine("if (context.IsPropertiesInterfaceRequest)");
+                StartBlock();
+                AppendLine("return (request.MemberAsString, request.SignatureAsString) switch");
+                StartBlock();
+
+                if (readableProperties.Any())
+                {
+                    AppendLine("(\"Get\", \"ss\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + name + ")o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),");
+                    AppendLine("(\"GetAll\", \"s\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + name + ")o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),");
+                }
+
+                if (writableProperties.Any())
+                {
+                    AppendLine("(\"Set\", \"ssv\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + name + ")o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),");
+                }
+
+                AppendLine("_ => default");
+                _indentation--;
+                AppendLine("};");
+                EndBlock();
+            }
+
+            // Handle regular interface methods
+            var methods = interfaceXml.Elements("method").ToArray();
+            if (methods.Any())
+            {
+                AppendLine("return (request.MemberAsString, request.SignatureAsString) switch");
+                StartBlock();
+
+                foreach (var method in methods)
+                {
+                    string dbusMethodName = (string)method.Attribute("name");
+                    string dotnetMethodName = Prettify(dbusMethodName);
+                    var inArgs = method.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
+                    string signature = string.Join("", inArgs.Select(a => a.Signature));
+
+                    AppendLine($"(\"{dbusMethodName}\", \"{signature}\") => new DBusHandler.DBusMethod(static (o, c) => Handle{dotnetMethodName}Async((I{name})o, c), handler),");
+                }
+
+                AppendLine("_ => default");
+                _indentation--;
+                AppendLine("};");
+            }
+            else
+            {
+                // No methods, just return default
+                AppendLine("return default;");
+            }
+
+            EndBlock();
+
+            // Generate static Handle methods that read args, call the interface method, and send the reply
+            foreach (var method in methods)
+            {
+                string dbusMethodName = (string)method.Attribute("name");
+                string dotnetMethodName = Prettify(dbusMethodName);
+                var inArgs = method.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
+                var outArgs = method.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").Select(ToArgument).ToArray();
+
+                AppendLine($"static async ValueTask Handle{dotnetMethodName}Async(I{name} handler, MethodContext context)");
+                StartBlock();
+
+                // Read args
+                if (inArgs.Length > 0)
+                {
+                    string readMessageName = GetReadMessageMethodName(inArgs, variant: false);
+                    if (inArgs.Length == 1)
+                    {
+                        AppendLine($"var {inArgs[0].NameLower} = MessageReader.{readMessageName}(context.Request);");
+                    }
+                    else
+                    {
+                        string destructure = string.Join(", ", inArgs.Select(a => a.NameLower));
+                        AppendLine($"var ({destructure}) = MessageReader.{readMessageName}(context.Request);");
+                    }
+                }
+
+                // Call handler method
+                string callArgs = string.Join(", ", inArgs.Select(a => a.NameLower));
+                if (outArgs.Length == 1)
+                {
+                    string outSignature = string.Join("", outArgs.Select(a => a.Signature));
+                    string resultType = outArgs[0].DotnetReadType;
+                    AppendLine($"var result = await handler.{dotnetMethodName}Async({callArgs}).ConfigureAwait(false);");
+                    AppendLine("WriteReply(context, result);");
+                    AppendLine($"static void WriteReply(MethodContext context, {resultType} result)");
+                    StartBlock();
+                    AppendLine($"var writer = context.CreateReplyWriter(\"{outSignature}\");");
+                    AppendLine($"{CallWriteArgumentType(outArgs[0].Signature, "result")};");
+                    AppendLine("context.Reply(writer.CreateMessage());");
+                    EndBlock();
+                }
+                else if (outArgs.Length > 1)
+                {
+                    string outSignature = string.Join("", outArgs.Select(a => a.Signature));
+                    string tupleType = TupleOf(outArgs.Select(a => $"{a.DotnetReadType} {a.NameUpper}"));
+                    AppendLine($"var result = await handler.{dotnetMethodName}Async({callArgs}).ConfigureAwait(false);");
+                    AppendLine("WriteReply(context, result);");
+                    AppendLine($"static void WriteReply(MethodContext context, {tupleType} result)");
+                    StartBlock();
+                    AppendLine($"var writer = context.CreateReplyWriter(\"{outSignature}\");");
+                    foreach (var outArg in outArgs)
+                    {
+                        AppendLine($"{CallWriteArgumentType(outArg.Signature, $"result.{outArg.NameUpper}")};");
+                    }
+                    AppendLine("context.Reply(writer.CreateMessage());");
+                    EndBlock();
+                }
+                else
+                {
+                    AppendLine($"await handler.{dotnetMethodName}Async({callArgs}).ConfigureAwait(false);");
+                    AppendLine("context.Reply(context.CreateReplyWriter(null).CreateMessage());");
+                }
+
+                EndBlock();
+            }
+
+            EndBlock(); // End Helper class
+
+            if (readableProperties.Any())
+            {
+                // Add HandleGetPropertyAsync method
+                AppendLine("ValueTask HandleGetPropertyAsync(GetPropertyContext context);");
+
+                // Add HandleGetAllPropertiesAsync method
+                AppendLine("ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);");
+            }
+
+            if (writableProperties.Any())
+            {
+                // Add HandleSetPropertyAsync method
+                AppendLine("ValueTask HandleSetPropertyAsync(SetPropertyContext context);");
+            }
+
+            foreach (var method in interfaceXml.Elements("method"))
+            {
+                string dbusMethodName = (string)method.Attribute("name");
+                string dotnetMethodName = Prettify(dbusMethodName);
+                var inArgs = method.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
+                var outArgs = method.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").Select(ToArgument).ToArray();
+
+                string parameters = string.Join(", ", inArgs.Select(a => $"{a.DotnetReadType} {a.NameLower}"));
+                string returnType;
+                if (outArgs.Length == 0)
+                {
+                    returnType = "ValueTask";
+                }
+                else if (outArgs.Length == 1)
+                {
+                    returnType = $"ValueTask<{outArgs[0].DotnetReadType}>";
+                }
+                else
+                {
+                    string tupleType = TupleOf(outArgs.Select(a => $"{a.DotnetReadType} {a.NameUpper}"));
+                    returnType = $"ValueTask<{tupleType}>";
+                }
+                AppendLine($"{returnType} {dotnetMethodName}Async({parameters});");
+            }
+
+            // Generate GetPropertyContext if there are readable properties
+            if (readableProperties.Any())
+            {
+                string propertyEnumName = $"{name}Property";
+                AppendLine("readonly struct GetPropertyContext : IDisposable");
+                StartBlock();
+
+                AppendLine("public MethodContext MethodContext { get; }");
+                AppendLine($"public {propertyEnumName} Property {{ get; }}");
+                AppendLine("public GetPropertyContext(MethodContext methodContext)");
+                StartBlock();
+                AppendLine("MethodContext = methodContext;");
+                AppendLine("var reader = methodContext.Request.GetBodyReader();");
+                AppendLine("reader.ReadStringAsSpan(); // Skip interface name");
+                AppendLine($"Property = ({propertyEnumName})Helper.GetPropertyValue(reader.ReadString());");
+                EndBlock();
+
+                AppendLine("public void Dispose() => MethodContext.Dispose();");
+
+                // Add strongly typed Reply methods for each readable property
+                foreach (var property in readableProperties)
+                {
+                    string writeMethodName = GetWriteTypeMethodName(property.Signature, variant: true);
+                    AppendLine($"public void Reply{property.NameUpper}({property.DotnetReadType} value)");
+                    StartBlock();
+                    AppendLine($"System.Diagnostics.Debug.Assert(Property == {propertyEnumName}.{property.NameUpper});");
+                    AppendLine("var writer = MethodContext.CreateReplyWriter(\"v\");");
+                    AppendLine($"writer.{writeMethodName}(value);");
+                    AppendLine("MethodContext.Reply(writer.CreateMessage());");
+                    EndBlock();
+                }
+
+                // Add ReplyErrorUnknownProperty method
+                AppendLine("public void ReplyErrorUnknownProperty()");
+                StartBlock();
+                AppendLine("MethodContext.ReplyError(\"org.freedesktop.DBus.Error.UnknownProperty\", $\"Unknown property: {Property}\");");
+                EndBlock();
+
+                // Handle method that reads from IReadableXxxProperties
+                AppendLine($"public ValueTask Handle(IReadable{name}Properties properties)");
+                StartBlock();
+                AppendLine("switch (Property)");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"case {propertyEnumName}.{property.NameUpper}:");
+                    _indentation++;
+                    AppendLine($"Reply{property.NameUpper}(properties.{property.NameUpper});");
+                    AppendLine("break;");
+                    _indentation--;
+                }
+                AppendLine("default:");
+                _indentation++;
+                AppendLine("ReplyErrorUnknownProperty();");
+                AppendLine("break;");
+                _indentation--;
+                EndBlock();
+                AppendLine("return default;");
+                EndBlock();
+
+                EndBlock();
+
+                // Generate GetAllPropertiesContext
+                AppendLine("readonly struct GetAllPropertiesContext : IDisposable");
+                StartBlock();
+
+                AppendLine("public MethodContext MethodContext { get; }");
+                AppendLine("public GetAllPropertiesContext(MethodContext methodContext)");
+                StartBlock();
+                AppendLine("MethodContext = methodContext;");
+                EndBlock();
+
+                AppendLine("public void Dispose() => MethodContext.Dispose();");
+
+                // Handle method that reads all properties from IReadableXxxProperties
+                AppendLine($"public ValueTask Handle(IReadable{name}Properties properties)");
+                StartBlock();
+                AppendLine("var writer = MethodContext.CreateReplyWriter(\"a{sv}\");");
+                AppendLine("var dictStart = writer.WriteDictionaryStart();");
+                foreach (var property in readableProperties)
+                {
+                    string writeMethodName = GetWriteTypeMethodName(property.Signature, variant: true);
+                    AppendLine($"writer.WriteDictionaryEntryStart();");
+                    AppendLine($"writer.WriteString(\"{property.Name}\");");
+                    AppendLine($"writer.{writeMethodName}(properties.{property.NameUpper});");
+                }
+                AppendLine("writer.WriteDictionaryEnd(dictStart);");
+                AppendLine("MethodContext.Reply(writer.CreateMessage());");
+                AppendLine("return default;");
+                EndBlock();
+
+                // Handle overload that accepts all gettable properties as nullable individual arguments (alphabetically sorted)
+                var sortedReadableProperties = readableProperties.OrderBy(p => p.NameUpper).ToArray();
+                string handleArgs = string.Join(", ", sortedReadableProperties.Select(p => $"{GetNullableDotnetWriteType(p.Signature)} {p.NameLower} = default"));
+                AppendLine($"public ValueTask Handle({handleArgs})");
+                StartBlock();
+                AppendLine("var writer = MethodContext.CreateReplyWriter(\"a{sv}\");");
+                AppendLine("var dictStart = writer.WriteDictionaryStart();");
+                foreach (var property in readableProperties)
+                {
+                    var sortedProp = sortedReadableProperties.First(p => p.Name == property.Name);
+                    string writeMethodName = GetWriteTypeMethodName(property.Signature, variant: true);
+                    string valueAccess = IsValueType(property.Signature) ? $"{sortedProp.NameLower}.Value" : sortedProp.NameLower;
+                    AppendLine($"if ({sortedProp.NameLower} is not null)");
+                    StartBlock();
+                    AppendLine($"writer.WriteDictionaryEntryStart();");
+                    AppendLine($"writer.WriteString(\"{property.Name}\");");
+                    AppendLine($"writer.{writeMethodName}({valueAccess});");
+                    EndBlock();
+                }
+                AppendLine("writer.WriteDictionaryEnd(dictStart);");
+                AppendLine("MethodContext.Reply(writer.CreateMessage());");
+                AppendLine("return default;");
+                EndBlock();
+
+                EndBlock();
+            }
+
+            // Generate SetPropertyContext if there are writable properties
+            if (writableProperties.Any())
+            {
+                string writablePropertyEnumName = $"{name}WritableProperty";
+                AppendLine("readonly struct SetPropertyContext : IDisposable");
+                StartBlock();
+
+                AppendLine("public MethodContext MethodContext { get; }");
+                AppendLine($"public {writablePropertyEnumName} Property {{ get; }}");
+                AppendLine("public SetPropertyContext(MethodContext methodContext)");
+                StartBlock();
+                AppendLine("MethodContext = methodContext;");
+                AppendLine("var reader = methodContext.Request.GetBodyReader();");
+                AppendLine("reader.ReadStringAsSpan(); // Skip interface name");
+                AppendLine($"Property = ({writablePropertyEnumName})Helper.GetPropertyValue(reader.ReadString());");
+                EndBlock();
+
+                AppendLine("public void Dispose() => MethodContext.Dispose();");
+
+                // Add Read{PropertyName} methods for each writable property
+                foreach (var property in writableProperties)
+                {
+                    string readMethodName = GetReadMessageMethodName(new[] { property }, variant: true);
+                    AppendLine($"public {property.DotnetReadType} Read{property.NameUpper}()");
+                    StartBlock();
+                    AppendLine("var reader = MethodContext.Request.GetBodyReader();");
+                    AppendLine("reader.ReadStringAsSpan(); // Skip interface name");
+                    AppendLine("reader.ReadStringAsSpan(); // Skip property name");
+                    AppendLine($"reader.ReadSignature(\"{property.Signature}\"u8);");
+                    AppendLine($"return {CallReadArgumentType(property.Signature)};");
+                    EndBlock();
+                }
+
+                // Reply method - acknowledges the set
+                AppendLine("public void Reply()");
+                StartBlock();
+                AppendLine("MethodContext.Reply(MethodContext.CreateReplyWriter(null).CreateMessage());");
+                EndBlock();
+
+                // Add ReplyErrorUnknownProperty method
+                AppendLine("public void ReplyErrorUnknownProperty()");
+                StartBlock();
+                AppendLine("MethodContext.ReplyError(\"org.freedesktop.DBus.Error.UnknownProperty\", $\"Unknown property: {Property}\");");
+                EndBlock();
+
+                // Add ReplyErrorReadOnlyProperty method
+                AppendLine("public void ReplyErrorReadOnlyProperty()");
+                StartBlock();
+                AppendLine("MethodContext.ReplyError(\"org.freedesktop.DBus.Error.PropertyReadOnly\", $\"Property is read-only: {Property}\");");
+                EndBlock();
+
+                // Handle method that sets on IXxxProperties
+                AppendLine($"public ValueTask Handle(I{name}Properties properties)");
+                StartBlock();
+                AppendLine("switch (Property)");
+                StartBlock();
+                foreach (var property in writableProperties)
+                {
+                    AppendLine($"case {writablePropertyEnumName}.{property.NameUpper}:");
+                    _indentation++;
+                    AppendLine($"properties.{property.NameUpper} = Read{property.NameUpper}();");
+                    AppendLine("Reply();");
+                    AppendLine("break;");
+                    _indentation--;
+                }
+                AppendLine($"case {writablePropertyEnumName}.UnknownProperty:");
+                _indentation++;
+                AppendLine("ReplyErrorUnknownProperty();");
+                AppendLine("break;");
+                _indentation--;
+                AppendLine("default:");
+                _indentation++;
+                AppendLine("ReplyErrorReadOnlyProperty();");
+                AppendLine("break;");
+                _indentation--;
+                EndBlock();
+                AppendLine("return default;");
+                EndBlock();
+
+                EndBlock();
+            }
+
+            EndBlock();
+        }
+
+        private void AppendSignalsClass(string name, XElement interfaceXml)
+        {
+            var signals = interfaceXml.Elements("signal").ToArray();
+            var properties = ReadableProperties(interfaceXml).ToArray();
+
+            // Only generate Signal class if there are signals or properties
+            if (!signals.Any() && !properties.Any())
+            {
+                return;
+            }
+
+            string interfaceName = (string)interfaceXml.Attribute("name");
+
+            AppendLine($"static class {name}Signal");
+            StartBlock();
+
+            // Generate methods for each signal
+            foreach (var signal in signals)
+            {
+                AppendEmitSignalMethod(interfaceName, signal);
+            }
+
+            // Generate EmitPropertiesChanged if there are properties
+            if (properties.Any())
+            {
+                AppendEmitPropertiesChangedMethod(name, interfaceName, properties.Select(ToArgument).ToArray());
+            }
+
+            EndBlock();
+        }
+
+        private void AppendEmitPropertiesChangedMethod(string name, string interfaceName, Argument[] properties)
+        {
+            string propertyEnumName = $"{name}Property";
+
+            // Helper to write the signal header
+            void AppendWriteSignalHeader()
+            {
+                AppendLine("var writer = c.GetMessageWriter();");
+                AppendLine("writer.WriteSignalHeader(");
+                AppendLine("    path: p,");
+                AppendLine("    @interface: \"org.freedesktop.DBus.Properties\",");
+                AppendLine("    signature: \"sa{sv}as\",");
+                AppendLine("    member: \"PropertiesChanged\");");
+                AppendLine($"writer.WriteString(\"{interfaceName}\");");
+            }
+
+            // Public overload: accepts IReadableXxxProperties with changed and invalidated spans
+            AppendLine($"public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, IReadable{name}Properties properties, ReadOnlySpan<{propertyEnumName}> changed, ReadOnlySpan<{propertyEnumName}> invalidated = default)");
+            StartBlock();
+            AppendWriteSignalHeader();
+
+            // Write changed properties as a{sv}
+            AppendLine("var dictStart = writer.WriteDictionaryStart();");
+            AppendLine("foreach (var property in changed)");
+            StartBlock();
+            AppendLine("switch (property)");
+            StartBlock();
+            foreach (var prop in properties)
+            {
+                string writeMethodName = GetWriteTypeMethodName(prop.Signature, variant: true);
+                AppendLine($"case {propertyEnumName}.{prop.NameUpper}:");
+                _indentation++;
+                AppendLine($"writer.WriteDictionaryEntryStart();");
+                AppendLine($"writer.WriteString(\"{prop.Name}\");");
+                AppendLine($"writer.{writeMethodName}(properties.{prop.NameUpper});");
+                AppendLine("break;");
+                _indentation--;
+            }
+            EndBlock();
+            EndBlock();
+            AppendLine("writer.WriteDictionaryEnd(dictStart);");
+
+            // Write invalidated property names as as
+            AppendLine("var arrayStart = writer.WriteArrayStart(DBusType.String);");
+            AppendLine("foreach (var property in invalidated)");
+            StartBlock();
+            AppendLine("switch (property)");
+            StartBlock();
+            foreach (var prop in properties)
+            {
+                AppendLine($"case {propertyEnumName}.{prop.NameUpper}:");
+                _indentation++;
+                AppendLine($"writer.WriteString(\"{prop.Name}\");");
+                AppendLine("break;");
+                _indentation--;
+            }
+            EndBlock();
+            EndBlock();
+            AppendLine("writer.WriteArrayEnd(arrayStart);");
+
+            AppendLine("c.TrySendMessage(writer.CreateMessage());");
+            EndBlock();
+
+            // Public overload: single changed property
+            AppendLine($"public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, IReadable{name}Properties properties, {propertyEnumName} changed)");
+            StartBlock();
+            AppendLine("EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);");
+            EndBlock();
+
+            // Overload with all properties as nullable individual arguments (alphabetically sorted)
+            var sortedProperties = properties.OrderBy(p => p.NameUpper).ToArray();
+            string emitArgs = string.Join(", ", sortedProperties.Select(p => $"{GetNullableDotnetWriteType(p.Signature)} {p.NameLower} = default"));
+            AppendLine($"public static void Emit{name}PropertiesChanged(this DBusConnection c, ObjectPath p, {emitArgs}, ReadOnlySpan<{propertyEnumName}> invalidated = default)");
+            StartBlock();
+            AppendWriteSignalHeader();
+            AppendLine("var dictStart = writer.WriteDictionaryStart();");
+            foreach (var prop in properties)
+            {
+                var sortedProp = sortedProperties.First(p => p.Name == prop.Name);
+                string writeMethodName = GetWriteTypeMethodName(prop.Signature, variant: true);
+                string valueAccess = IsValueType(prop.Signature) ? $"{sortedProp.NameLower}.Value" : sortedProp.NameLower;
+                AppendLine($"if ({sortedProp.NameLower} is not null)");
+                StartBlock();
+                AppendLine($"writer.WriteDictionaryEntryStart();");
+                AppendLine($"writer.WriteString(\"{prop.Name}\");");
+                AppendLine($"writer.{writeMethodName}({valueAccess});");
+                EndBlock();
+            }
+            AppendLine("writer.WriteDictionaryEnd(dictStart);");
+            AppendLine("var arrayStart = writer.WriteArrayStart(DBusType.String);");
+            AppendLine("foreach (var property in invalidated)");
+            StartBlock();
+            AppendLine("switch (property)");
+            StartBlock();
+            foreach (var prop in properties)
+            {
+                AppendLine($"case {propertyEnumName}.{prop.NameUpper}:");
+                _indentation++;
+                AppendLine($"writer.WriteString(\"{prop.Name}\");");
+                AppendLine("break;");
+                _indentation--;
+            }
+            EndBlock();
+            EndBlock();
+            AppendLine("writer.WriteArrayEnd(arrayStart);");
+            AppendLine("c.TrySendMessage(writer.CreateMessage());");
+            EndBlock();
+        }
+
+        private void AppendEmitSignalMethod(string interfaceName, XElement signalXml)
+        {
+            string dbusSignalName = (string)signalXml.Attribute("name");
+            var args = signalXml.Elements("arg").Select(ToArgument).ToArray();
+            string dotnetMethodName = "Emit" + Prettify(dbusSignalName);
+
+            string parameters = string.Join(", ", args.Select(arg => $"{arg.DotnetWriteType} {arg.NameLower}"));
+            if (parameters.Length > 0)
+            {
+                parameters = ", " + parameters;
+            }
+
+            string signature = string.Join("", args.Select(a => a.Signature));
+
+            AppendLine($"public static void {dotnetMethodName}(this DBusConnection c, ObjectPath p{parameters})");
+            StartBlock();
+            AppendLine("var writer = c.GetMessageWriter();");
+            AppendLine("writer.WriteSignalHeader(");
+            AppendLine("    path: p,");
+            AppendLine($"    @interface: \"{interfaceName}\",");
+            if (args.Length > 0)
+            {
+                AppendLine($"    signature: \"{signature}\",");
+            }
+            AppendLine($"    member: \"{dbusSignalName}\");");
+            foreach (var arg in args)
+            {
+                AppendLine($"{CallWriteArgumentType(arg.Signature, arg.NameLower)};");
+            }
+            AppendLine("c.TrySendMessage(writer.CreateMessage());");
+            EndBlock();
+        }
+
+        private void AppendProxyForInterface(string name, XElement interfaceXml)
         {
             var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument).ToArray();
             var writablePropertiesArray = WritableProperties(interfaceXml).Select(ToArgument).ToArray();
@@ -311,7 +1514,8 @@ namespace Tmds.DBus.Tool
 
             string propertiesClassName = $"{name}Properties";
             string propertyEnumName = $"{name}Property";
-            string propertiesInterfaceName = $"I{propertiesClassName}";
+            string nullableInterfaceName = $"INullable{propertiesClassName}";
+            string changedInterfaceName = $"IChanged{propertiesClassName}";
 
             if (readableProperties.Any())
             {
@@ -321,21 +1525,25 @@ namespace Tmds.DBus.Tool
                     throw new NotSupportedException($"Interface '{name}' has {readableProperties.Length} readable properties, but the maximum supported is 64.");
                 }
 
-                AppendLine($"interface {propertiesInterfaceName}");
+                AppendLine($"interface {nullableInterfaceName}");
                 StartBlock();
                 foreach (var property in readableProperties)
                 {
                     AppendLine($"{GetNullableType(property.DotnetReadType)} {property.NameUpper} {{ get; }}");
                 }
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"bool Has{property.NameUpper}Changed {{ get; }}");
-                }
                 AppendLine("bool AreAllPropertiesSet();");
                 AppendLine($"{propertiesClassName} EnsureAllPropertiesSet();");
                 EndBlock();
 
-                AppendLine($"sealed class {propertiesClassName} : {propertiesInterfaceName}");
+                AppendLine($"interface {changedInterfaceName} : {nullableInterfaceName}");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"bool Has{property.NameUpper}Changed {{ get; }}");
+                }
+                EndBlock();
+
+                AppendLine($"sealed class {propertiesClassName} : {changedInterfaceName}, IReadable{name}Properties");
                 StartBlock();
 
                 // Choose uint or ulong based on number of properties
@@ -393,7 +1601,7 @@ namespace Tmds.DBus.Tool
                 foreach (var property in readableProperties)
                 {
                     string nullableType = GetNullableType(property.DotnetReadType);
-                    AppendLine($"{nullableType} {propertiesInterfaceName}.{property.NameUpper}");
+                    AppendLine($"{nullableType} {nullableInterfaceName}.{property.NameUpper}");
                     _indentation++;
                     AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) ? {property.UnderscoreNameLower} : default({nullableType});");
                     _indentation--;
@@ -401,13 +1609,13 @@ namespace Tmds.DBus.Tool
 
                 foreach (var property in readableProperties)
                 {
-                    AppendLine($"bool {propertiesInterfaceName}.Has{property.NameUpper}Changed");
+                    AppendLine($"bool {changedInterfaceName}.Has{property.NameUpper}Changed");
                     _indentation++;
                     AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) || IsInvalidated({propertyEnumName}.{property.NameUpper});");
                     _indentation--;
                 }
 
-                AppendLine($"{propertiesClassName} {propertiesInterfaceName}.EnsureAllPropertiesSet()");
+                AppendLine($"{propertiesClassName} {nullableInterfaceName}.EnsureAllPropertiesSet()");
                 StartBlock();
                 AppendLine("EnsureAllPropertiesSet();");
                 AppendLine("return this;");
@@ -420,32 +1628,16 @@ namespace Tmds.DBus.Tool
                 AppendLine($"=> property != 0 && (flags & Flag(property)) != 0;");
                 _indentation--;
 
-                AppendLine($"[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-                AppendLine($"private static {propertyEnumName} ParsePropertyName(string propertyName)");
-                StartBlock();
-                AppendLine("return propertyName switch");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"\"{property.Name}\" => {propertyEnumName}.{property.NameUpper},");
-                }
-                AppendLine("_ => 0");
-                _indentation--;
-                AppendLine("};");
-                EndBlock();
+                AppendLine($"public bool IsSet({propertyEnumName} property) => HasFlag(__set, property);");
+                AppendLine($"public bool IsInvalidated({propertyEnumName} property) => HasFlag(__invalidated, property);");
 
-                AppendLine($"private bool IsSet({propertyEnumName} property) => HasFlag(__set, property);");
-                AppendLine($"private bool IsInvalidated({propertyEnumName} property) => HasFlag(__invalidated, property);");
-
-                AppendLine($"private void SetInvalidated({propertyEnumName} property)");
+                AppendLine($"public void SetInvalidated({propertyEnumName} property)");
                 StartBlock();
                 AppendLine("if (property != 0)");
                 StartBlock();
                 AppendLine("__invalidated |= Flag(property);");
                 EndBlock();
                 EndBlock();
-                AppendLine($"[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
-                AppendLine($"public void SetInvalidated(string propertyName) => SetInvalidated(ParsePropertyName(propertyName));");
 
                 AppendLine($"public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
 
@@ -457,7 +1649,7 @@ namespace Tmds.DBus.Tool
                 EndBlock();
                 EndBlock();
 
-                AppendLine($"public static {propertiesInterfaceName} ReadFrom(ref Reader reader, bool withInvalidated)");
+                AppendLine($"public static {propertiesClassName} ReadFrom(ref Reader reader, bool withInvalidated)");
                 StartBlock();
                 AppendLine($"var props = CreateUninitialized();");
                 AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
@@ -509,16 +1701,6 @@ namespace Tmds.DBus.Tool
                 AppendLine("return props;");
                 EndBlock();
 
-                AppendLine($"private enum {propertyEnumName}");
-                StartBlock();
-                AppendLine("UnknownProperty = 0,");
-                for (int i = 0; i < readableProperties.Length; i++)
-                {
-                    var property = readableProperties[i];
-                    AppendLine($"{property.NameUpper} = {i + 1}{(i < readableProperties.Length - 1 ? "," : "")}");
-                }
-                EndBlock();
-
                 EndBlock();
             }
 
@@ -539,7 +1721,7 @@ namespace Tmds.DBus.Tool
 
             foreach (var signal in interfaceXml.Elements("signal"))
             {
-                AppendSignal(name, signal);
+                AppendSignal(signal);
             }
 
             foreach (var property in writableProperties)
@@ -559,13 +1741,24 @@ namespace Tmds.DBus.Tool
                 }
 
                 // GetPropertiesAsync
-                AppendLine($"public async Task<{propertiesInterfaceName}> GetPropertiesAsync()");
+                AppendLine($"public Task<{propertiesClassName}> GetPropertiesAsync()");
                 StartBlock();
-                AppendLine($"var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);");
-                AppendLine("props.EnsureAllPropertiesSet();");
-                AppendLine("return props;");
+                AppendLine($"return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);");
 
-                AppendLine($"static {propertiesInterfaceName} ReadMessage(Message message)");
+                AppendLine($"static {propertiesClassName} ReadMessage(Message message)");
+                StartBlock();
+                AppendLine("var reader = message.GetBodyReader();");
+                AppendLine($"return {propertiesClassName}.ReadFrom(ref reader, withInvalidated: false);");
+                EndBlock(); // ReadMessage
+
+                EndBlock(); // method
+
+                // GetNullablePropertiesAsync
+                AppendLine($"public Task<{nullableInterfaceName}> GetNullablePropertiesAsync()");
+                StartBlock();
+                AppendLine($"return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);");
+
+                AppendLine($"static {nullableInterfaceName} ReadMessage(Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine($"return {propertiesClassName}.ReadFrom(ref reader, withInvalidated: false);");
@@ -574,14 +1767,14 @@ namespace Tmds.DBus.Tool
                 EndBlock(); // method
 
                 // WatchPropertiesChangedAsync simple overload
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<{propertiesInterfaceName}> handler, bool emitOnCapturedContext = true)");
-                AppendLine($"    => WatchPropertiesChangedAsync(static (Notification<{propertiesInterfaceName}> n) => ((Action<{propertiesInterfaceName}>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);");
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<{changedInterfaceName}> handler, bool emitOnCapturedContext = true)");
+                AppendLine($"    => WatchPropertiesChangedAsync(static (Notification<{changedInterfaceName}> n) => ((Action<{changedInterfaceName}>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);");
 
                 // WatchPropertiesChangedAsync with Notification
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<{propertiesInterfaceName}>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<{changedInterfaceName}>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
                 StartBlock();
                 AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);");
-                AppendLine($"static {propertiesInterfaceName} ReadMessage(Message message)");
+                AppendLine($"static {changedInterfaceName} ReadMessage(Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
@@ -655,12 +1848,21 @@ namespace Tmds.DBus.Tool
         private IEnumerable<XElement> WritableProperties(XElement interfaceXml)
             => Properties(interfaceXml).Where(p => p.Attribute("access").Value.EndsWith("write", StringComparison.Ordinal));
 
-        private void AppendSignal(string className, XElement signalXml)
+        private IEnumerable<XElement> ReadWriteProperties(XElement interfaceXml)
+            => Properties(interfaceXml).Where(p => p.Attribute("access").Value == "readwrite");
+
+        private IEnumerable<XElement> WriteOnlyProperties(XElement interfaceXml)
+            => Properties(interfaceXml).Where(p => p.Attribute("access").Value == "write");
+
+        private bool IsPropertyWritable(XElement interfaceXml, string propertyName)
+            => WritableProperties(interfaceXml).Any(p => p.Attribute("name").Value == propertyName);
+
+        private void AppendSignal(XElement signalXml)
         {
             string dbusSignalName = (string)signalXml.Attribute("name");
 
             var args = signalXml.Elements("arg").Select(ToArgument).ToArray();
-            string watchType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetReadType : TupleOf(args.Select(arg => $"{arg.DotnetReadType} {arg.NameUpper}"));
+            string? watchType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetReadType : TupleOf(args.Select(arg => $"{arg.DotnetReadType} {arg.NameUpper}"));
             string dotnetMethodName = "Watch" + Prettify(dbusSignalName) + "Async";
 
             string simpleHandlerArg = watchType == null ? "Action" : $"Action<{watchType}>";
@@ -754,18 +1956,32 @@ namespace Tmds.DBus.Tool
             }
         }
 
-        private string GetWriteTypeMethodName(string signature)
+        private string GetWriteTypeMethodName(string signature, bool variant = false)
         {
             string mangle = MangleSignatureForMethodName(signature);
+            if (variant)
+            {
+                mangle = "v_" + mangle;
+            }
             string methodName = "Write_" + mangle;
             if (!_typeWriteMethods.ContainsKey(methodName))
             {
-                _typeWriteMethods.Add(methodName, signature);
+                _typeWriteMethods.Add(methodName, (variant, signature));
 
                 // Ensure inner types are writable.
                 CallForInnerSignatures(signature, sig => CallWriteArgumentType(sig, "dummy"));
             }
             return methodName;
+        }
+
+        private static bool HasDirectWriteArrayMethod(string signature)
+        {
+            return signature switch
+            {
+                "ay" or "ab" or "an" or "aq" or "ai" or "au" or "ax" or "at" or
+                "ad" or "as" or "ao" or "ag" or "av" or "ah" => true,
+                _ => false
+            };
         }
 
         private static string MangleSignatureForMethodName(string signature)
@@ -782,7 +1998,7 @@ namespace Tmds.DBus.Tool
             string dbusMethodName = (string)methodXml.Attribute("name");
             var inArgs = methodXml.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
             var outArgs = methodXml.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").Select(ToArgument).ToArray();
-            string dotnetReturnType = outArgs.Length == 0 ? null : outArgs.Length == 1 ? outArgs[0].DotnetReadType : TupleOf(outArgs.Select(arg => $"{arg.DotnetReadType} {arg.NameUpper}"));
+            string? dotnetReturnType = outArgs.Length == 0 ? null : outArgs.Length == 1 ? outArgs[0].DotnetReadType : TupleOf(outArgs.Select(arg => $"{arg.DotnetReadType} {arg.NameUpper}"));
             string retType = dotnetReturnType == null ? "Task" : $"Task<{dotnetReturnType}>";
 
             string args = TupleOf(inArgs.Select(arg => $"{arg.DotnetWriteType} {arg.NameLower}"));
@@ -828,7 +2044,7 @@ namespace Tmds.DBus.Tool
 
         private void AppendReadMessageMethod(string name, bool variant, Argument[] args)
         {
-            string dotnetReturnType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetReadType : TupleOf(args.Select(arg => arg.DotnetReadType));
+            string? dotnetReturnType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetReadType : TupleOf(args.Select(arg => arg.DotnetReadType));
             AppendLine($"public static {dotnetReturnType} {name}(Message message)");
             StartBlock();
             string signature = string.Join("", args.Select(a => a.Signature));
@@ -1027,6 +2243,39 @@ namespace Tmds.DBus.Tool
             return type + "?";
         }
 
+        private static string GetNullableDotnetWriteType(string signature)
+        {
+            return GetDotnetWriteType(signature) + "?";
+        }
+
+        private static bool IsValueType(string signature)
+        {
+            SignatureReader reader = new SignatureReader(Encoding.UTF8.GetBytes(signature));
+            if (!reader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
+            {
+                ThrowInvalidSignature(signature);
+            }
+
+            switch (type)
+            {
+                case DBusType.Byte:
+                case DBusType.Bool:
+                case DBusType.Int16:
+                case DBusType.UInt16:
+                case DBusType.Int32:
+                case DBusType.UInt32:
+                case DBusType.Int64:
+                case DBusType.UInt64:
+                case DBusType.Double:
+                case DBusType.ObjectPath:
+                case DBusType.Signature:
+                case DBusType.Struct:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private static string GetDotnetType(string signature, bool readNotWrite)
         {
             SignatureReader reader = new SignatureReader(Encoding.UTF8.GetBytes(signature));
@@ -1178,10 +2427,6 @@ namespace Tmds.DBus.Tool
 
         private static string Prettify(string name, bool startWithUpper = true)
         {
-            if (name == null)
-            {
-                return null;
-            }
             bool upper = startWithUpper;
             var sb = new StringBuilder(name.Length);
             bool first = true;
@@ -1203,6 +2448,24 @@ namespace Tmds.DBus.Tool
                 return "@" + name;
             }
             return name;
+        }
+
+        private static string ConvertInterfaceNameToEnumName(string interfaceName)
+        {
+            var parts = interfaceName.Split('.');
+            var sb = new StringBuilder();
+            foreach (var part in parts)
+            {
+                if (part.Length > 0)
+                {
+                    sb.Append(char.ToUpper(part[0]));
+                    if (part.Length > 1)
+                    {
+                        sb.Append(part.Substring(1));
+                    }
+                }
+            }
+            return sb.ToString();
         }
 
         private static readonly string[] s_keywords = new[] {

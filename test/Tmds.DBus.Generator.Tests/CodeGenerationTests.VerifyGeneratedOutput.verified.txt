@@ -7,16 +7,20 @@ namespace TestNamespace
     using Tmds.DBus.Protocol;
     using System.Collections.Generic;
     using System.Threading.Tasks;
-    interface ICalculatorProperties
+    using System.Runtime.CompilerServices;
+    interface INullableCalculatorProperties
     {
         double? LastResult { get; }
         ObjectPath? CurrentPath { get; }
-        bool HasLastResultChanged { get; }
-        bool HasCurrentPathChanged { get; }
         bool AreAllPropertiesSet();
         CalculatorProperties EnsureAllPropertiesSet();
     }
-    sealed class CalculatorProperties : ICalculatorProperties
+    interface IChangedCalculatorProperties : INullableCalculatorProperties
+    {
+        bool HasLastResultChanged { get; }
+        bool HasCurrentPathChanged { get; }
+    }
+    sealed class CalculatorProperties : IChangedCalculatorProperties, IReadableCalculatorProperties
     {
         private uint __set;
         private uint __invalidated;
@@ -46,15 +50,15 @@ namespace TestNamespace
             get { EnsureSet(CalculatorProperty.CurrentPath); return _currentPath; }
             set { _currentPath = value; __set |= Flag(CalculatorProperty.CurrentPath); }
         }
-        double? ICalculatorProperties.LastResult
+        double? INullableCalculatorProperties.LastResult
             => IsSet(CalculatorProperty.LastResult) ? _lastResult : default(double?);
-        ObjectPath? ICalculatorProperties.CurrentPath
+        ObjectPath? INullableCalculatorProperties.CurrentPath
             => IsSet(CalculatorProperty.CurrentPath) ? _currentPath : default(ObjectPath?);
-        bool ICalculatorProperties.HasLastResultChanged
+        bool IChangedCalculatorProperties.HasLastResultChanged
             => IsSet(CalculatorProperty.LastResult) || IsInvalidated(CalculatorProperty.LastResult);
-        bool ICalculatorProperties.HasCurrentPathChanged
+        bool IChangedCalculatorProperties.HasCurrentPathChanged
             => IsSet(CalculatorProperty.CurrentPath) || IsInvalidated(CalculatorProperty.CurrentPath);
-        CalculatorProperties ICalculatorProperties.EnsureAllPropertiesSet()
+        CalculatorProperties INullableCalculatorProperties.EnsureAllPropertiesSet()
         {
             EnsureAllPropertiesSet();
             return this;
@@ -62,27 +66,15 @@ namespace TestNamespace
         public static CalculatorProperties CreateUninitialized() => new CalculatorProperties(false);
         private bool HasFlag(uint flags, CalculatorProperty property)
             => property != 0 && (flags & Flag(property)) != 0;
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private static CalculatorProperty ParsePropertyName(string propertyName)
-        {
-            return propertyName switch
-            {
-                "LastResult" => CalculatorProperty.LastResult,
-                "CurrentPath" => CalculatorProperty.CurrentPath,
-                _ => 0
-            };
-        }
-        private bool IsSet(CalculatorProperty property) => HasFlag(__set, property);
-        private bool IsInvalidated(CalculatorProperty property) => HasFlag(__invalidated, property);
-        private void SetInvalidated(CalculatorProperty property)
+        public bool IsSet(CalculatorProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(CalculatorProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(CalculatorProperty property)
         {
             if (property != 0)
             {
                 __invalidated |= Flag(property);
             }
         }
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void SetInvalidated(string propertyName) => SetInvalidated(ParsePropertyName(propertyName));
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
@@ -91,7 +83,7 @@ namespace TestNamespace
                 throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-        public static ICalculatorProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        public static CalculatorProperties ReadFrom(ref Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -128,12 +120,6 @@ namespace TestNamespace
                 }
             }
             return props;
-        }
-        private enum CalculatorProperty
-        {
-            UnknownProperty = 0,
-            LastResult = 1,
-            CurrentPath = 2
         }
     }
     sealed partial class Calculator : Tmds.DBus.Protocol.DBusObject
@@ -331,23 +317,30 @@ namespace TestNamespace
             => Connection.CallMethodAsync(CreateGetPropertyMessage("LastResult"), (Message m, object? s) => MessageReader.Read_v_d(m), this);
         public Task<ObjectPath> GetCurrentPathAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentPath"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public async Task<ICalculatorProperties> GetPropertiesAsync()
+        public Task<CalculatorProperties> GetPropertiesAsync()
         {
-            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
-            props.EnsureAllPropertiesSet();
-            return props;
-            static ICalculatorProperties ReadMessage(Message message)
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
+            static CalculatorProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 return CalculatorProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<ICalculatorProperties> handler, bool emitOnCapturedContext = true)
-            => WatchPropertiesChangedAsync(static (Notification<ICalculatorProperties> n) => ((Action<ICalculatorProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<ICalculatorProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public Task<INullableCalculatorProperties> GetNullablePropertiesAsync()
+        {
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
+            static INullableCalculatorProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return CalculatorProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<IChangedCalculatorProperties> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (Notification<IChangedCalculatorProperties> n) => ((Action<IChangedCalculatorProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<IChangedCalculatorProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
             return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
-            static ICalculatorProperties ReadMessage(Message message)
+            static IChangedCalculatorProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
@@ -380,16 +373,408 @@ namespace TestNamespace
             return writer.CreateMessage();
         }
     }
-    interface ISettingsProperties
+    enum CalculatorProperty
+    {
+        UnknownProperty = 0,
+        LastResult = 1,
+        CurrentPath = 2
+    }
+    interface IReadableCalculatorProperties
+    {
+        double LastResult { get; }
+        ObjectPath CurrentPath { get; }
+    }
+    interface ICalculatorProperties : IReadableCalculatorProperties
+    {
+    }
+    interface ICalculator
+    {
+        internal static class Helper
+        {
+            public static int GetPropertyValue(string propertyName)
+            {
+                return propertyName switch
+                {
+                    "LastResult" => 1,
+                    "CurrentPath" => 2,
+                    _ => 0
+                };
+            }
+            public static DBusHandler.DBusMethod FindMethodHandler(object handler, MethodContext context)
+            {
+                var request = context.Request;
+                if (context.IsPropertiesInterfaceRequest)
+                {
+                    return (request.MemberAsString, request.SignatureAsString) switch
+                    {
+                        ("Get", "ss") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculator)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
+                        ("GetAll", "s") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculator)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
+                        _ => default
+                    };
+                }
+                return (request.MemberAsString, request.SignatureAsString) switch
+                {
+                    ("Clear", "") => new DBusHandler.DBusMethod(static (o, c) => HandleClearAsync((ICalculator)o, c), handler),
+                    ("GetResult", "") => new DBusHandler.DBusMethod(static (o, c) => HandleGetResultAsync((ICalculator)o, c), handler),
+                    ("GetStats", "") => new DBusHandler.DBusMethod(static (o, c) => HandleGetStatsAsync((ICalculator)o, c), handler),
+                    ("Store", "d") => new DBusHandler.DBusMethod(static (o, c) => HandleStoreAsync((ICalculator)o, c), handler),
+                    ("Square", "d") => new DBusHandler.DBusMethod(static (o, c) => HandleSquareAsync((ICalculator)o, c), handler),
+                    ("DivMod", "i") => new DBusHandler.DBusMethod(static (o, c) => HandleDivModAsync((ICalculator)o, c), handler),
+                    ("LogOperation", "sd") => new DBusHandler.DBusMethod(static (o, c) => HandleLogOperationAsync((ICalculator)o, c), handler),
+                    ("Add", "dd") => new DBusHandler.DBusMethod(static (o, c) => HandleAddAsync((ICalculator)o, c), handler),
+                    ("Compare", "dd") => new DBusHandler.DBusMethod(static (o, c) => HandleCompareAsync((ICalculator)o, c), handler),
+                    ("GetEntry", "s") => new DBusHandler.DBusMethod(static (o, c) => HandleGetEntryAsync((ICalculator)o, c), handler),
+                    ("SetEntry", "(sd)") => new DBusHandler.DBusMethod(static (o, c) => HandleSetEntryAsync((ICalculator)o, c), handler),
+                    _ => default
+                };
+            }
+            static async ValueTask HandleClearAsync(ICalculator handler, MethodContext context)
+            {
+                await handler.ClearAsync().ConfigureAwait(false);
+                context.Reply(context.CreateReplyWriter(null).CreateMessage());
+            }
+            static async ValueTask HandleGetResultAsync(ICalculator handler, MethodContext context)
+            {
+                var result = await handler.GetResultAsync().ConfigureAwait(false);
+                WriteReply(context, result);
+                static void WriteReply(MethodContext context, double result)
+                {
+                    var writer = context.CreateReplyWriter("d");
+                    writer.WriteDouble(result);
+                    context.Reply(writer.CreateMessage());
+                }
+            }
+            static async ValueTask HandleGetStatsAsync(ICalculator handler, MethodContext context)
+            {
+                var result = await handler.GetStatsAsync().ConfigureAwait(false);
+                WriteReply(context, result);
+                static void WriteReply(MethodContext context, (uint Count, double Total) result)
+                {
+                    var writer = context.CreateReplyWriter("ud");
+                    writer.WriteUInt32(result.Count);
+                    writer.WriteDouble(result.Total);
+                    context.Reply(writer.CreateMessage());
+                }
+            }
+            static async ValueTask HandleStoreAsync(ICalculator handler, MethodContext context)
+            {
+                var value = MessageReader.Read_d(context.Request);
+                await handler.StoreAsync(value).ConfigureAwait(false);
+                context.Reply(context.CreateReplyWriter(null).CreateMessage());
+            }
+            static async ValueTask HandleSquareAsync(ICalculator handler, MethodContext context)
+            {
+                var input = MessageReader.Read_d(context.Request);
+                var result = await handler.SquareAsync(input).ConfigureAwait(false);
+                WriteReply(context, result);
+                static void WriteReply(MethodContext context, double result)
+                {
+                    var writer = context.CreateReplyWriter("d");
+                    writer.WriteDouble(result);
+                    context.Reply(writer.CreateMessage());
+                }
+            }
+            static async ValueTask HandleDivModAsync(ICalculator handler, MethodContext context)
+            {
+                var dividend = MessageReader.Read_i(context.Request);
+                var result = await handler.DivModAsync(dividend).ConfigureAwait(false);
+                WriteReply(context, result);
+                static void WriteReply(MethodContext context, (int Quotient, int Remainder) result)
+                {
+                    var writer = context.CreateReplyWriter("ii");
+                    writer.WriteInt32(result.Quotient);
+                    writer.WriteInt32(result.Remainder);
+                    context.Reply(writer.CreateMessage());
+                }
+            }
+            static async ValueTask HandleLogOperationAsync(ICalculator handler, MethodContext context)
+            {
+                var (operation, value) = MessageReader.Read_sd(context.Request);
+                await handler.LogOperationAsync(operation, value).ConfigureAwait(false);
+                context.Reply(context.CreateReplyWriter(null).CreateMessage());
+            }
+            static async ValueTask HandleAddAsync(ICalculator handler, MethodContext context)
+            {
+                var (a, b) = MessageReader.Read_dd(context.Request);
+                var result = await handler.AddAsync(a, b).ConfigureAwait(false);
+                WriteReply(context, result);
+                static void WriteReply(MethodContext context, double result)
+                {
+                    var writer = context.CreateReplyWriter("d");
+                    writer.WriteDouble(result);
+                    context.Reply(writer.CreateMessage());
+                }
+            }
+            static async ValueTask HandleCompareAsync(ICalculator handler, MethodContext context)
+            {
+                var (a, b) = MessageReader.Read_dd(context.Request);
+                var result = await handler.CompareAsync(a, b).ConfigureAwait(false);
+                WriteReply(context, result);
+                static void WriteReply(MethodContext context, (bool Equal, double Difference) result)
+                {
+                    var writer = context.CreateReplyWriter("bd");
+                    writer.WriteBool(result.Equal);
+                    writer.WriteDouble(result.Difference);
+                    context.Reply(writer.CreateMessage());
+                }
+            }
+            static async ValueTask HandleGetEntryAsync(ICalculator handler, MethodContext context)
+            {
+                var key = MessageReader.Read_s(context.Request);
+                var result = await handler.GetEntryAsync(key).ConfigureAwait(false);
+                WriteReply(context, result);
+                static void WriteReply(MethodContext context, (string, double) result)
+                {
+                    var writer = context.CreateReplyWriter("(sd)");
+                    writer.Write_rsdz(result);
+                    context.Reply(writer.CreateMessage());
+                }
+            }
+            static async ValueTask HandleSetEntryAsync(ICalculator handler, MethodContext context)
+            {
+                var entry = MessageReader.Read_rsdz(context.Request);
+                await handler.SetEntryAsync(entry).ConfigureAwait(false);
+                context.Reply(context.CreateReplyWriter(null).CreateMessage());
+            }
+        }
+        ValueTask HandleGetPropertyAsync(GetPropertyContext context);
+        ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);
+        ValueTask ClearAsync();
+        ValueTask<double> GetResultAsync();
+        ValueTask<(uint Count, double Total)> GetStatsAsync();
+        ValueTask StoreAsync(double value);
+        ValueTask<double> SquareAsync(double input);
+        ValueTask<(int Quotient, int Remainder)> DivModAsync(int dividend);
+        ValueTask LogOperationAsync(string operation, double value);
+        ValueTask<double> AddAsync(double a, double b);
+        ValueTask<(bool Equal, double Difference)> CompareAsync(double a, double b);
+        ValueTask<(string, double)> GetEntryAsync(string key);
+        ValueTask SetEntryAsync((string, double) entry);
+        readonly struct GetPropertyContext : IDisposable
+        {
+            public MethodContext MethodContext { get; }
+            public CalculatorProperty Property { get; }
+            public GetPropertyContext(MethodContext methodContext)
+            {
+                MethodContext = methodContext;
+                var reader = methodContext.Request.GetBodyReader();
+                reader.ReadStringAsSpan(); // Skip interface name
+                Property = (CalculatorProperty)Helper.GetPropertyValue(reader.ReadString());
+            }
+            public void Dispose() => MethodContext.Dispose();
+            public void ReplyLastResult(double value)
+            {
+                System.Diagnostics.Debug.Assert(Property == CalculatorProperty.LastResult);
+                var writer = MethodContext.CreateReplyWriter("v");
+                writer.Write_v_d(value);
+                MethodContext.Reply(writer.CreateMessage());
+            }
+            public void ReplyCurrentPath(ObjectPath value)
+            {
+                System.Diagnostics.Debug.Assert(Property == CalculatorProperty.CurrentPath);
+                var writer = MethodContext.CreateReplyWriter("v");
+                writer.Write_v_o(value);
+                MethodContext.Reply(writer.CreateMessage());
+            }
+            public void ReplyErrorUnknownProperty()
+            {
+                MethodContext.ReplyError("org.freedesktop.DBus.Error.UnknownProperty", $"Unknown property: {Property}");
+            }
+            public ValueTask Handle(IReadableCalculatorProperties properties)
+            {
+                switch (Property)
+                {
+                    case CalculatorProperty.LastResult:
+                        ReplyLastResult(properties.LastResult);
+                        break;
+                    case CalculatorProperty.CurrentPath:
+                        ReplyCurrentPath(properties.CurrentPath);
+                        break;
+                    default:
+                        ReplyErrorUnknownProperty();
+                        break;
+                }
+                return default;
+            }
+        }
+        readonly struct GetAllPropertiesContext : IDisposable
+        {
+            public MethodContext MethodContext { get; }
+            public GetAllPropertiesContext(MethodContext methodContext)
+            {
+                MethodContext = methodContext;
+            }
+            public void Dispose() => MethodContext.Dispose();
+            public ValueTask Handle(IReadableCalculatorProperties properties)
+            {
+                var writer = MethodContext.CreateReplyWriter("a{sv}");
+                var dictStart = writer.WriteDictionaryStart();
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("LastResult");
+                writer.Write_v_d(properties.LastResult);
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("CurrentPath");
+                writer.Write_v_o(properties.CurrentPath);
+                writer.WriteDictionaryEnd(dictStart);
+                MethodContext.Reply(writer.CreateMessage());
+                return default;
+            }
+            public ValueTask Handle(ObjectPath? currentPath = default, double? lastResult = default)
+            {
+                var writer = MethodContext.CreateReplyWriter("a{sv}");
+                var dictStart = writer.WriteDictionaryStart();
+                if (lastResult is not null)
+                {
+                    writer.WriteDictionaryEntryStart();
+                    writer.WriteString("LastResult");
+                    writer.Write_v_d(lastResult.Value);
+                }
+                if (currentPath is not null)
+                {
+                    writer.WriteDictionaryEntryStart();
+                    writer.WriteString("CurrentPath");
+                    writer.Write_v_o(currentPath.Value);
+                }
+                writer.WriteDictionaryEnd(dictStart);
+                MethodContext.Reply(writer.CreateMessage());
+                return default;
+            }
+        }
+    }
+    static class CalculatorSignal
+    {
+        public static void EmitReset(this DBusConnection c, ObjectPath p)
+        {
+            var writer = c.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: p,
+                @interface: "org.example.Calculator",
+                member: "Reset");
+            c.TrySendMessage(writer.CreateMessage());
+        }
+        public static void EmitError(this DBusConnection c, ObjectPath p, string message)
+        {
+            var writer = c.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: p,
+                @interface: "org.example.Calculator",
+                signature: "s",
+                member: "Error");
+            writer.WriteString(message);
+            c.TrySendMessage(writer.CreateMessage());
+        }
+        public static void EmitOperationComplete(this DBusConnection c, ObjectPath p, string operation, double result)
+        {
+            var writer = c.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: p,
+                @interface: "org.example.Calculator",
+                signature: "sd",
+                member: "OperationComplete");
+            writer.WriteString(operation);
+            writer.WriteDouble(result);
+            c.TrySendMessage(writer.CreateMessage());
+        }
+        public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, IReadableCalculatorProperties properties, ReadOnlySpan<CalculatorProperty> changed, ReadOnlySpan<CalculatorProperty> invalidated = default)
+        {
+            var writer = c.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: p,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "sa{sv}as",
+                member: "PropertiesChanged");
+            writer.WriteString("org.example.Calculator");
+            var dictStart = writer.WriteDictionaryStart();
+            foreach (var property in changed)
+            {
+                switch (property)
+                {
+                    case CalculatorProperty.LastResult:
+                        writer.WriteDictionaryEntryStart();
+                        writer.WriteString("LastResult");
+                        writer.Write_v_d(properties.LastResult);
+                        break;
+                    case CalculatorProperty.CurrentPath:
+                        writer.WriteDictionaryEntryStart();
+                        writer.WriteString("CurrentPath");
+                        writer.Write_v_o(properties.CurrentPath);
+                        break;
+                }
+            }
+            writer.WriteDictionaryEnd(dictStart);
+            var arrayStart = writer.WriteArrayStart(DBusType.String);
+            foreach (var property in invalidated)
+            {
+                switch (property)
+                {
+                    case CalculatorProperty.LastResult:
+                        writer.WriteString("LastResult");
+                        break;
+                    case CalculatorProperty.CurrentPath:
+                        writer.WriteString("CurrentPath");
+                        break;
+                }
+            }
+            writer.WriteArrayEnd(arrayStart);
+            c.TrySendMessage(writer.CreateMessage());
+        }
+        public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, IReadableCalculatorProperties properties, CalculatorProperty changed)
+        {
+            EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);
+        }
+        public static void EmitCalculatorPropertiesChanged(this DBusConnection c, ObjectPath p, ObjectPath? currentPath = default, double? lastResult = default, ReadOnlySpan<CalculatorProperty> invalidated = default)
+        {
+            var writer = c.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: p,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "sa{sv}as",
+                member: "PropertiesChanged");
+            writer.WriteString("org.example.Calculator");
+            var dictStart = writer.WriteDictionaryStart();
+            if (lastResult is not null)
+            {
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("LastResult");
+                writer.Write_v_d(lastResult.Value);
+            }
+            if (currentPath is not null)
+            {
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("CurrentPath");
+                writer.Write_v_o(currentPath.Value);
+            }
+            writer.WriteDictionaryEnd(dictStart);
+            var arrayStart = writer.WriteArrayStart(DBusType.String);
+            foreach (var property in invalidated)
+            {
+                switch (property)
+                {
+                    case CalculatorProperty.LastResult:
+                        writer.WriteString("LastResult");
+                        break;
+                    case CalculatorProperty.CurrentPath:
+                        writer.WriteString("CurrentPath");
+                        break;
+                }
+            }
+            writer.WriteArrayEnd(arrayStart);
+            c.TrySendMessage(writer.CreateMessage());
+        }
+    }
+    interface INullableSettingsProperties
     {
         string? Theme { get; }
         string? Language { get; }
-        bool HasThemeChanged { get; }
-        bool HasLanguageChanged { get; }
         bool AreAllPropertiesSet();
         SettingsProperties EnsureAllPropertiesSet();
     }
-    sealed class SettingsProperties : ISettingsProperties
+    interface IChangedSettingsProperties : INullableSettingsProperties
+    {
+        bool HasThemeChanged { get; }
+        bool HasLanguageChanged { get; }
+    }
+    sealed class SettingsProperties : IChangedSettingsProperties, IReadableSettingsProperties
     {
         private uint __set;
         private uint __invalidated;
@@ -419,15 +804,15 @@ namespace TestNamespace
             get { EnsureSet(SettingsProperty.Language); return _language; }
             set { _language = value; __set |= Flag(SettingsProperty.Language); }
         }
-        string? ISettingsProperties.Theme
+        string? INullableSettingsProperties.Theme
             => IsSet(SettingsProperty.Theme) ? _theme : default(string?);
-        string? ISettingsProperties.Language
+        string? INullableSettingsProperties.Language
             => IsSet(SettingsProperty.Language) ? _language : default(string?);
-        bool ISettingsProperties.HasThemeChanged
+        bool IChangedSettingsProperties.HasThemeChanged
             => IsSet(SettingsProperty.Theme) || IsInvalidated(SettingsProperty.Theme);
-        bool ISettingsProperties.HasLanguageChanged
+        bool IChangedSettingsProperties.HasLanguageChanged
             => IsSet(SettingsProperty.Language) || IsInvalidated(SettingsProperty.Language);
-        SettingsProperties ISettingsProperties.EnsureAllPropertiesSet()
+        SettingsProperties INullableSettingsProperties.EnsureAllPropertiesSet()
         {
             EnsureAllPropertiesSet();
             return this;
@@ -435,27 +820,15 @@ namespace TestNamespace
         public static SettingsProperties CreateUninitialized() => new SettingsProperties(false);
         private bool HasFlag(uint flags, SettingsProperty property)
             => property != 0 && (flags & Flag(property)) != 0;
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        private static SettingsProperty ParsePropertyName(string propertyName)
-        {
-            return propertyName switch
-            {
-                "Theme" => SettingsProperty.Theme,
-                "Language" => SettingsProperty.Language,
-                _ => 0
-            };
-        }
-        private bool IsSet(SettingsProperty property) => HasFlag(__set, property);
-        private bool IsInvalidated(SettingsProperty property) => HasFlag(__invalidated, property);
-        private void SetInvalidated(SettingsProperty property)
+        public bool IsSet(SettingsProperty property) => HasFlag(__set, property);
+        public bool IsInvalidated(SettingsProperty property) => HasFlag(__invalidated, property);
+        public void SetInvalidated(SettingsProperty property)
         {
             if (property != 0)
             {
                 __invalidated |= Flag(property);
             }
         }
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-        public void SetInvalidated(string propertyName) => SetInvalidated(ParsePropertyName(propertyName));
         public bool AreAllPropertiesSet() => __set == PropertiesAllSet;
         public void EnsureAllPropertiesSet()
         {
@@ -464,7 +837,7 @@ namespace TestNamespace
                 throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-        public static ISettingsProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        public static SettingsProperties ReadFrom(ref Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -501,12 +874,6 @@ namespace TestNamespace
                 }
             }
             return props;
-        }
-        private enum SettingsProperty
-        {
-            UnknownProperty = 0,
-            Theme = 1,
-            Language = 2
         }
     }
     sealed partial class Settings : Tmds.DBus.Protocol.DBusObject
@@ -575,23 +942,30 @@ namespace TestNamespace
             => Connection.CallMethodAsync(CreateGetPropertyMessage("Theme"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
         public Task<string> GetLanguageAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("Language"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public async Task<ISettingsProperties> GetPropertiesAsync()
+        public Task<SettingsProperties> GetPropertiesAsync()
         {
-            var props = await Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this).ConfigureAwait(false);
-            props.EnsureAllPropertiesSet();
-            return props;
-            static ISettingsProperties ReadMessage(Message message)
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
+            static SettingsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 return SettingsProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<ISettingsProperties> handler, bool emitOnCapturedContext = true)
-            => WatchPropertiesChangedAsync(static (Notification<ISettingsProperties> n) => ((Action<ISettingsProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<ISettingsProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public Task<INullableSettingsProperties> GetNullablePropertiesAsync()
+        {
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
+            static INullableSettingsProperties ReadMessage(Message message)
+            {
+                var reader = message.GetBodyReader();
+                return SettingsProperties.ReadFrom(ref reader, withInvalidated: false);
+            }
+        }
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<IChangedSettingsProperties> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (Notification<IChangedSettingsProperties> n) => ((Action<IChangedSettingsProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<IChangedSettingsProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
             return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
-            static ISettingsProperties ReadMessage(Message message)
+            static IChangedSettingsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
@@ -624,12 +998,339 @@ namespace TestNamespace
             return writer.CreateMessage();
         }
     }
+    enum SettingsProperty
+    {
+        UnknownProperty = 0,
+        Theme = 1,
+        Language = 2
+    }
+    enum SettingsWritableProperty
+    {
+        UnknownProperty = 0,
+        Language = 2,
+        Volume = 3
+    }
+    interface IReadableSettingsProperties
+    {
+        string Theme { get; }
+        string Language { get; }
+    }
+    interface ISettingsProperties : IReadableSettingsProperties
+    {
+        new string Language { get; set; }
+        double Volume { set; }
+    }
+    interface ISettings
+    {
+        internal static class Helper
+        {
+            public static int GetPropertyValue(string propertyName)
+            {
+                return propertyName switch
+                {
+                    "Theme" => 1,
+                    "Language" => 2,
+                    "Volume" => 3,
+                    _ => 0
+                };
+            }
+            public static DBusHandler.DBusMethod FindMethodHandler(object handler, MethodContext context)
+            {
+                var request = context.Request;
+                if (context.IsPropertiesInterfaceRequest)
+                {
+                    return (request.MemberAsString, request.SignatureAsString) switch
+                    {
+                        ("Get", "ss") => new DBusHandler.DBusMethod(static (o, c) => ((ISettings)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
+                        ("GetAll", "s") => new DBusHandler.DBusMethod(static (o, c) => ((ISettings)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
+                        ("Set", "ssv") => new DBusHandler.DBusMethod(static (o, c) => ((ISettings)o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),
+                        _ => default
+                    };
+                }
+                return (request.MemberAsString, request.SignatureAsString) switch
+                {
+                    ("Save", "") => new DBusHandler.DBusMethod(static (o, c) => HandleSaveAsync((ISettings)o, c), handler),
+                    _ => default
+                };
+            }
+            static async ValueTask HandleSaveAsync(ISettings handler, MethodContext context)
+            {
+                await handler.SaveAsync().ConfigureAwait(false);
+                context.Reply(context.CreateReplyWriter(null).CreateMessage());
+            }
+        }
+        ValueTask HandleGetPropertyAsync(GetPropertyContext context);
+        ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);
+        ValueTask HandleSetPropertyAsync(SetPropertyContext context);
+        ValueTask SaveAsync();
+        readonly struct GetPropertyContext : IDisposable
+        {
+            public MethodContext MethodContext { get; }
+            public SettingsProperty Property { get; }
+            public GetPropertyContext(MethodContext methodContext)
+            {
+                MethodContext = methodContext;
+                var reader = methodContext.Request.GetBodyReader();
+                reader.ReadStringAsSpan(); // Skip interface name
+                Property = (SettingsProperty)Helper.GetPropertyValue(reader.ReadString());
+            }
+            public void Dispose() => MethodContext.Dispose();
+            public void ReplyTheme(string value)
+            {
+                System.Diagnostics.Debug.Assert(Property == SettingsProperty.Theme);
+                var writer = MethodContext.CreateReplyWriter("v");
+                writer.Write_v_s(value);
+                MethodContext.Reply(writer.CreateMessage());
+            }
+            public void ReplyLanguage(string value)
+            {
+                System.Diagnostics.Debug.Assert(Property == SettingsProperty.Language);
+                var writer = MethodContext.CreateReplyWriter("v");
+                writer.Write_v_s(value);
+                MethodContext.Reply(writer.CreateMessage());
+            }
+            public void ReplyErrorUnknownProperty()
+            {
+                MethodContext.ReplyError("org.freedesktop.DBus.Error.UnknownProperty", $"Unknown property: {Property}");
+            }
+            public ValueTask Handle(IReadableSettingsProperties properties)
+            {
+                switch (Property)
+                {
+                    case SettingsProperty.Theme:
+                        ReplyTheme(properties.Theme);
+                        break;
+                    case SettingsProperty.Language:
+                        ReplyLanguage(properties.Language);
+                        break;
+                    default:
+                        ReplyErrorUnknownProperty();
+                        break;
+                }
+                return default;
+            }
+        }
+        readonly struct GetAllPropertiesContext : IDisposable
+        {
+            public MethodContext MethodContext { get; }
+            public GetAllPropertiesContext(MethodContext methodContext)
+            {
+                MethodContext = methodContext;
+            }
+            public void Dispose() => MethodContext.Dispose();
+            public ValueTask Handle(IReadableSettingsProperties properties)
+            {
+                var writer = MethodContext.CreateReplyWriter("a{sv}");
+                var dictStart = writer.WriteDictionaryStart();
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("Theme");
+                writer.Write_v_s(properties.Theme);
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("Language");
+                writer.Write_v_s(properties.Language);
+                writer.WriteDictionaryEnd(dictStart);
+                MethodContext.Reply(writer.CreateMessage());
+                return default;
+            }
+            public ValueTask Handle(string? language = default, string? theme = default)
+            {
+                var writer = MethodContext.CreateReplyWriter("a{sv}");
+                var dictStart = writer.WriteDictionaryStart();
+                if (theme is not null)
+                {
+                    writer.WriteDictionaryEntryStart();
+                    writer.WriteString("Theme");
+                    writer.Write_v_s(theme);
+                }
+                if (language is not null)
+                {
+                    writer.WriteDictionaryEntryStart();
+                    writer.WriteString("Language");
+                    writer.Write_v_s(language);
+                }
+                writer.WriteDictionaryEnd(dictStart);
+                MethodContext.Reply(writer.CreateMessage());
+                return default;
+            }
+        }
+        readonly struct SetPropertyContext : IDisposable
+        {
+            public MethodContext MethodContext { get; }
+            public SettingsWritableProperty Property { get; }
+            public SetPropertyContext(MethodContext methodContext)
+            {
+                MethodContext = methodContext;
+                var reader = methodContext.Request.GetBodyReader();
+                reader.ReadStringAsSpan(); // Skip interface name
+                Property = (SettingsWritableProperty)Helper.GetPropertyValue(reader.ReadString());
+            }
+            public void Dispose() => MethodContext.Dispose();
+            public double ReadVolume()
+            {
+                var reader = MethodContext.Request.GetBodyReader();
+                reader.ReadStringAsSpan(); // Skip interface name
+                reader.ReadStringAsSpan(); // Skip property name
+                reader.ReadSignature("d"u8);
+                return reader.ReadDouble();
+            }
+            public string ReadLanguage()
+            {
+                var reader = MethodContext.Request.GetBodyReader();
+                reader.ReadStringAsSpan(); // Skip interface name
+                reader.ReadStringAsSpan(); // Skip property name
+                reader.ReadSignature("s"u8);
+                return reader.ReadString();
+            }
+            public void Reply()
+            {
+                MethodContext.Reply(MethodContext.CreateReplyWriter(null).CreateMessage());
+            }
+            public void ReplyErrorUnknownProperty()
+            {
+                MethodContext.ReplyError("org.freedesktop.DBus.Error.UnknownProperty", $"Unknown property: {Property}");
+            }
+            public void ReplyErrorReadOnlyProperty()
+            {
+                MethodContext.ReplyError("org.freedesktop.DBus.Error.PropertyReadOnly", $"Property is read-only: {Property}");
+            }
+            public ValueTask Handle(ISettingsProperties properties)
+            {
+                switch (Property)
+                {
+                    case SettingsWritableProperty.Volume:
+                        properties.Volume = ReadVolume();
+                        Reply();
+                        break;
+                    case SettingsWritableProperty.Language:
+                        properties.Language = ReadLanguage();
+                        Reply();
+                        break;
+                    case SettingsWritableProperty.UnknownProperty:
+                        ReplyErrorUnknownProperty();
+                        break;
+                    default:
+                        ReplyErrorReadOnlyProperty();
+                        break;
+                }
+                return default;
+            }
+        }
+    }
+    static class SettingsSignal
+    {
+        public static void EmitChanged(this DBusConnection c, ObjectPath p)
+        {
+            var writer = c.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: p,
+                @interface: "org.example.Settings",
+                member: "Changed");
+            c.TrySendMessage(writer.CreateMessage());
+        }
+        public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, IReadableSettingsProperties properties, ReadOnlySpan<SettingsProperty> changed, ReadOnlySpan<SettingsProperty> invalidated = default)
+        {
+            var writer = c.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: p,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "sa{sv}as",
+                member: "PropertiesChanged");
+            writer.WriteString("org.example.Settings");
+            var dictStart = writer.WriteDictionaryStart();
+            foreach (var property in changed)
+            {
+                switch (property)
+                {
+                    case SettingsProperty.Theme:
+                        writer.WriteDictionaryEntryStart();
+                        writer.WriteString("Theme");
+                        writer.Write_v_s(properties.Theme);
+                        break;
+                    case SettingsProperty.Language:
+                        writer.WriteDictionaryEntryStart();
+                        writer.WriteString("Language");
+                        writer.Write_v_s(properties.Language);
+                        break;
+                }
+            }
+            writer.WriteDictionaryEnd(dictStart);
+            var arrayStart = writer.WriteArrayStart(DBusType.String);
+            foreach (var property in invalidated)
+            {
+                switch (property)
+                {
+                    case SettingsProperty.Theme:
+                        writer.WriteString("Theme");
+                        break;
+                    case SettingsProperty.Language:
+                        writer.WriteString("Language");
+                        break;
+                }
+            }
+            writer.WriteArrayEnd(arrayStart);
+            c.TrySendMessage(writer.CreateMessage());
+        }
+        public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, IReadableSettingsProperties properties, SettingsProperty changed)
+        {
+            EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);
+        }
+        public static void EmitSettingsPropertiesChanged(this DBusConnection c, ObjectPath p, string? language = default, string? theme = default, ReadOnlySpan<SettingsProperty> invalidated = default)
+        {
+            var writer = c.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: p,
+                @interface: "org.freedesktop.DBus.Properties",
+                signature: "sa{sv}as",
+                member: "PropertiesChanged");
+            writer.WriteString("org.example.Settings");
+            var dictStart = writer.WriteDictionaryStart();
+            if (theme is not null)
+            {
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("Theme");
+                writer.Write_v_s(theme);
+            }
+            if (language is not null)
+            {
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("Language");
+                writer.Write_v_s(language);
+            }
+            writer.WriteDictionaryEnd(dictStart);
+            var arrayStart = writer.WriteArrayStart(DBusType.String);
+            foreach (var property in invalidated)
+            {
+                switch (property)
+                {
+                    case SettingsProperty.Theme:
+                        writer.WriteString("Theme");
+                        break;
+                    case SettingsProperty.Language:
+                        writer.WriteString("Language");
+                        break;
+                }
+            }
+            writer.WriteArrayEnd(arrayStart);
+            c.TrySendMessage(writer.CreateMessage());
+        }
+    }
     sealed partial class Marker : Tmds.DBus.Protocol.DBusObject
     {
         public const string DBusInterfaceName = "org.example.Marker";
         public Marker(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
             : base(connection, destination, path)
         { }
+    }
+    interface IMarker
+    {
+        internal static class Helper
+        {
+            public static DBusHandler.DBusMethod FindMethodHandler(object handler, MethodContext context)
+            {
+                var request = context.Request;
+                return default;
+            }
+        }
     }
     static partial class ObjectFactory
     {
@@ -694,6 +1395,18 @@ namespace TestNamespace
             reader.ReadSignature("o"u8);
             return reader.ReadObjectPath();
         }
+        public static int Read_i(Message message)
+        {
+            var reader = message.GetBodyReader();
+            return reader.ReadInt32();
+        }
+        public static (double, double) Read_dd(Message message)
+        {
+            var reader = message.GetBodyReader();
+            var arg0 = reader.ReadDouble();
+            var arg1 = reader.ReadDouble();
+            return (arg0, arg1);
+        }
         public static string Read_v_s(Message message)
         {
             var reader = message.GetBodyReader();
@@ -713,6 +1426,328 @@ namespace TestNamespace
             writer.WriteStructureStart();
             writer.WriteString(value.Item1);
             writer.WriteDouble(value.Item2);
+        }
+        public static void Write_v_d(this ref MessageWriter writer, double value)
+        {
+            writer.WriteSignature("d");
+            writer.WriteDouble(value);
+        }
+        public static void Write_v_o(this ref MessageWriter writer, ObjectPath value)
+        {
+            writer.WriteSignature("o");
+            writer.WriteObjectPath(value);
+        }
+        public static void Write_v_s(this ref MessageWriter writer, string value)
+        {
+            writer.WriteSignature("s");
+            writer.WriteString(value);
+        }
+    }
+}
+
+// Generated by Tmds.DBus.Generator v0.92.0
+// <auto-generated/>
+#nullable enable
+namespace Tmds.DBus.Protocol
+{
+    using System;
+    using System.Collections.Generic;
+    using System.Threading;
+    using System.Threading.Tasks;
+    abstract class DBusHandler : IPathMethodHandler
+    {
+        // Identifies the D-Bus interfaces. Used with ShouldSkip to filter interfaces per path.
+        [Flags]
+        protected enum DBusInterface
+        {
+            // OrgFreedesktopDBusIntrospectable = 1,
+            OrgExampleCalculator = 2,
+            OrgExampleMarker = 4,
+            OrgExampleSettings = 8,
+        }
+        private static ReadOnlyMemory<byte> OrgExampleCalculatorXml { get; } =
+            """
+            <interface name="org.example.Calculator">
+              <method name="Clear" />
+              <method name="GetResult">
+                <arg type="d" name="result" direction="out" />
+              </method>
+              <method name="GetStats">
+                <arg type="u" name="count" direction="out" />
+                <arg type="d" name="total" direction="out" />
+              </method>
+              <method name="Store">
+                <arg type="d" name="value" direction="in" />
+              </method>
+              <method name="Square">
+                <arg type="d" name="input" direction="in" />
+                <arg type="d" name="result" direction="out" />
+              </method>
+              <method name="DivMod">
+                <arg type="i" name="dividend" direction="in" />
+                <arg type="i" name="quotient" direction="out" />
+                <arg type="i" name="remainder" direction="out" />
+              </method>
+              <method name="LogOperation">
+                <arg type="s" name="operation" direction="in" />
+                <arg type="d" name="value" direction="in" />
+              </method>
+              <method name="Add">
+                <arg type="d" name="a" direction="in" />
+                <arg type="d" name="b" direction="in" />
+                <arg type="d" name="result" direction="out" />
+              </method>
+              <method name="Compare">
+                <arg type="d" name="a" direction="in" />
+                <arg type="d" name="b" direction="in" />
+                <arg type="b" name="equal" direction="out" />
+                <arg type="d" name="difference" direction="out" />
+              </method>
+              <method name="GetEntry">
+                <arg type="s" name="key" direction="in" />
+                <arg type="(sd)" name="entry" direction="out" />
+              </method>
+              <method name="SetEntry">
+                <arg type="(sd)" name="entry" direction="in" />
+              </method>
+              <signal name="Reset" />
+              <signal name="Error">
+                <arg type="s" name="message" />
+              </signal>
+              <signal name="OperationComplete">
+                <arg type="s" name="operation" />
+                <arg type="d" name="result" />
+              </signal>
+              <property name="LastResult" type="d" access="read" />
+              <property name="CurrentPath" type="o" access="read" />
+            </interface>
+
+            """u8.ToArray();
+        private static ReadOnlyMemory<byte> OrgExampleMarkerXml { get; } =
+            """
+            <interface name="org.example.Marker" />
+
+            """u8.ToArray();
+        private static ReadOnlyMemory<byte> OrgExampleSettingsXml { get; } =
+            """
+            <interface name="org.example.Settings">
+              <method name="Save" />
+              <signal name="Changed" />
+              <property name="Theme" type="s" access="read" />
+              <property name="Volume" type="d" access="write" />
+              <property name="Language" type="s" access="readwrite" />
+            </interface>
+
+            """u8.ToArray();
+        private readonly SendOrPostCallback? _postDelegate;
+        private const DBusInterface OrgFreedesktopDBusIntrospectable = (DBusInterface)1;
+        private const DBusInterface InterfacesWithProperties = DBusInterface.OrgExampleCalculator | DBusInterface.OrgExampleSettings;
+        public string Path { get; }
+        public bool HandlesChildPaths { get; }
+        public DBusConnection Connection { get; }
+        // The SynchronizationContext on which method handlers are invoked.
+        protected SynchronizationContext? SynchronizationContext { get; }
+        protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, bool handleOnCapturedContext = true)
+            : this(connection, path, handlesChildPaths, handleOnCapturedContext ? SynchronizationContext.Current : null)
+        {
+        }
+        protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, SynchronizationContext? synchronizationContext)
+        {
+            Connection = connection;
+            Path = path;
+            HandlesChildPaths = handlesChildPaths;
+            SynchronizationContext = synchronizationContext;
+            if (synchronizationContext is not null)
+            {
+                _postDelegate = state =>
+                {
+                    MethodContext context = (MethodContext)state!;
+                    DBusInterface dbusInterface = ParseInterface(context);
+                    DBusMethod method = FindMethodHandler(context, dbusInterface);
+                    _ = InvokeAndDisposeAsync(method, context);
+                };
+            }
+        }
+        // Override to add cross-cutting logic (e.g. logging, error handling) around method invocations.
+        protected virtual async ValueTask InvokeAsync(DBusMethod method, MethodContext context)
+        {
+            try
+            {
+                await method.Invoke(context).ConfigureAwait(false);
+            }
+            catch (DBusErrorReplyException ex)
+            {
+                context.ReplyError(ex.ErrorName, ex.ErrorMessage);
+            }
+            catch (ArgumentException ex)
+            {
+                context.ReplyError("org.freedesktop.DBus.Error.InvalidArgs", ex.Message);
+            }
+            catch (Exception ex)
+            {
+                context.ReplyError("org.freedesktop.DBus.Error.Failed", ex.Message);
+            }
+        }
+        // Override to exclude interfaces for specific paths when the handler manages multiple paths.
+        protected virtual bool ShouldSkip(DBusInterface dbusInterface, ReadOnlySpan<char> path)
+        {
+            return false;
+        }
+        // Override to customize introspection, e.g. to include child node names.
+        protected virtual ValueTask HandleIntrospectAsync(IntrospectContext context)
+        {
+            DBusInterface interfaces = GuessInterfaces(context.MethodContext.Request.PathAsString.AsSpan());
+            context.Reply(interfaces);
+            return default;
+        }
+        // Context for IntrospectAsync. Call Reply to send the introspection XML response.
+        protected readonly struct IntrospectContext : IDisposable
+        {
+            public MethodContext MethodContext { get; }
+            public IntrospectContext(MethodContext methodContext)
+            {
+                MethodContext = methodContext;
+            }
+            public void Dispose() => MethodContext.Dispose();
+            public void Reply(DBusInterface interfaces, IList<string>? childNames = null)
+            {
+                var interfaceXmls = new ReadOnlyMemory<byte>[4];
+                int count = 0;
+                if ((interfaces & DBusInterface.OrgExampleCalculator) != 0)
+                {
+                    interfaceXmls[count++] = OrgExampleCalculatorXml;
+                }
+                if ((interfaces & DBusInterface.OrgExampleMarker) != 0)
+                {
+                    interfaceXmls[count++] = OrgExampleMarkerXml;
+                }
+                if ((interfaces & DBusInterface.OrgExampleSettings) != 0)
+                {
+                    interfaceXmls[count++] = OrgExampleSettingsXml;
+                }
+                if ((interfaces & InterfacesWithProperties) != 0)
+                {
+                    interfaceXmls[count++] = IntrospectionXml.DBusProperties;
+                }
+                if (childNames is not null)
+                {
+                    MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count), childNames);
+                }
+                else
+                {
+                    MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count));
+                }
+            }
+        }
+        internal readonly struct DBusMethod
+        {
+            private readonly Func<object, MethodContext, ValueTask> _method;
+            private readonly object _target;
+            public DBusMethod(Func<object, MethodContext, ValueTask> method, object target)
+            {
+                _method = method;
+                _target = target;
+            }
+            public bool HasValue => _method is not null;
+            public ValueTask Invoke(MethodContext context)
+            {
+                return _method?.Invoke(_target, context) ?? default;
+            }
+        }
+        ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)
+        {
+            DBusInterface dbusInterface = ParseInterface(context);
+            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && ShouldSkip(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);
+            if (!method.HasValue)
+            {
+                return default;
+            }
+            return HandleAsync(method, context);
+        }
+        private ValueTask HandleAsync(DBusMethod method, MethodContext context)
+        {
+            SynchronizationContext? synchronizationContext = SynchronizationContext;
+            if (synchronizationContext is null)
+            {
+                return InvokeAsync(method, context);
+            }
+            else
+            {
+                context.DisposesAsynchronously = true;
+                synchronizationContext.Post(_postDelegate!, context);
+                return default;
+            }
+        }
+        private async ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)
+        {
+            try
+            {
+                await InvokeAsync(method, context).ConfigureAwait(false);
+            }
+            finally
+            {
+                context.Dispose();
+            }
+        }
+        private DBusMethod FindMethodHandler(MethodContext context, DBusInterface dbusInterface)
+        {
+            return dbusInterface switch
+            {
+                DBusInterface.OrgExampleCalculator when this is TestNamespace.ICalculator => TestNamespace.ICalculator.Helper.FindMethodHandler(this, context),
+                DBusInterface.OrgExampleSettings when this is TestNamespace.ISettings => TestNamespace.ISettings.Helper.FindMethodHandler(this, context),
+                DBusInterface.OrgExampleMarker when this is TestNamespace.IMarker => TestNamespace.IMarker.Helper.FindMethodHandler(this, context),
+                OrgFreedesktopDBusIntrospectable => FindIntrospectMethodHandler(this, context),
+                _ => default
+            };
+        }
+        private static DBusInterface ParseInterface(MethodContext context)
+        {
+            string? dbusInterface;
+            if (context.IsPropertiesInterfaceRequest)
+            {
+                Reader reader = context.Request.GetBodyReader();
+                dbusInterface = reader.ReadString();
+            }
+            else
+            {
+                dbusInterface = context.Request.InterfaceAsString;
+            }
+            var result = dbusInterface switch
+            {
+                "org.freedesktop.DBus.Introspectable" => OrgFreedesktopDBusIntrospectable,
+                "org.example.Calculator" => DBusInterface.OrgExampleCalculator,
+                "org.example.Marker" => DBusInterface.OrgExampleMarker,
+                "org.example.Settings" => DBusInterface.OrgExampleSettings,
+                _ => default
+            };
+            return result;
+        }
+        private static DBusMethod FindIntrospectMethodHandler(object handler, MethodContext context)
+        {
+            var request = context.Request;
+            DBusMethod result = (request.MemberAsString, request.SignatureAsString) switch
+            {
+                ("Introspect", "") => new DBusMethod(static (o, c) => ((DBusHandler)o).HandleIntrospectAsync(new IntrospectContext(c)), handler),
+                _ => default
+            };
+            return result;
+        }
+        private DBusInterface GuessInterfaces(ReadOnlySpan<char> path)
+        {
+            DBusInterface interfaces = default;
+            if (!ShouldSkip(DBusInterface.OrgExampleCalculator, path) && this is TestNamespace.ICalculator)
+            {
+                interfaces |= DBusInterface.OrgExampleCalculator;
+            }
+            if (!ShouldSkip(DBusInterface.OrgExampleSettings, path) && this is TestNamespace.ISettings)
+            {
+                interfaces |= DBusInterface.OrgExampleSettings;
+            }
+            if (!ShouldSkip(DBusInterface.OrgExampleMarker, path) && this is TestNamespace.IMarker)
+            {
+                interfaces |= DBusInterface.OrgExampleMarker;
+            }
+            return interfaces;
         }
     }
 }

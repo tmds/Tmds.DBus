@@ -11,28 +11,42 @@ public enum ObserverFlags
     /// </summary>
     None = 0,
     /// <summary>
-    /// Emit a completion exception when the connection is disposed.
+    /// Emit a completion notification (<see cref="NotificationType.ConnectionClosed"/>) when the connection is disposed.
     /// </summary>
-    /// <remarks>Use <see cref="ObserverHandler.IsConnectionDisposed"/> to check for this exception.</remarks>
+    [Obsolete("Use EmitOnConnectionClosed instead.")]
     EmitOnConnectionDispose = 1,
     /// <summary>
-    /// Emit a completion exception when the observer is disposed.
+    /// Emit a completion notification (<see cref="NotificationType.ConnectionClosed"/>) when the connection is closed.
     /// </summary>
-    /// <remarks>Use <see cref="ObserverHandler.IsObserverDisposed"/> to check for this exception.</remarks>
+    EmitOnConnectionClosed = 1,
+    /// <summary>
+    /// Emit a completion notification (<see cref="NotificationType.ObserverDisposed"/>) when the observer is disposed.
+    /// </summary>
     EmitOnObserverDispose = 2,
     /// <summary>
     /// Do not subscribe to the signal on the bus.
     /// </summary>
     NoSubscribe = 4,
     /// <summary>
-    /// Emit a completion exception when the owner of the matched bus name changes.
+    /// Emit a completion notification (<see cref="NotificationType.OwnerChanged"/>) when the owner of the matched bus name changes.
     /// </summary>
-    /// <remarks>Use <see cref="ObserverHandler.IsOwnerChanged"/> to check for this exception.</remarks>
     EmitOnOwnerChanged = 8,
+    /// <summary>
+    /// Emit a completion notification (<see cref="NotificationType.ConnectionFailed"/>) when the connection fails.
+    /// </summary>
+    EmitOnConnectionFailed = 16,
+    /// <summary>
+    /// Emit a completion notification (<see cref="NotificationType.ReaderFailed"/>) when the reader fails.
+    /// </summary>
+    EmitOnReaderFailed = 32,
 
     /// <summary>
-    /// Emit a completion exception when either the connection or observer is disposed.
+    /// Emit a completion notification when either the connection or observer is disposed.
     /// </summary>
-    /// <remarks>Use <see cref="ObserverHandler.IsDisposed"/> to check for this exception.</remarks>
+    [Obsolete("Use 'EmitOnConnectionClosed | EmitOnObserverDispose' instead.")]
     EmitOnDispose = EmitOnConnectionDispose | EmitOnObserverDispose,
+    /// <summary>
+    /// Emit completion notifications for all events.
+    /// </summary>
+    EmitAll = EmitOnConnectionClosed | EmitOnObserverDispose | EmitOnOwnerChanged | EmitOnConnectionFailed | EmitOnReaderFailed,
 }

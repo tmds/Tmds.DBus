@@ -139,7 +139,15 @@ namespace Tmds.DBus.Protocol.Tests
         }
 
         sealed class MySynchronizationContext : SynchronizationContext
-        { }
+        {
+            public int PostCount;
+
+            public override void Post(SendOrPostCallback d, object? state)
+            {
+                Interlocked.Increment(ref PostCount);
+                base.Post(d, state);
+            }
+        }
 
         [InlineData("tcp:host=localhost,port=1")]
         [InlineData("unix:path=/does/not/exist")]
@@ -528,18 +536,27 @@ namespace Tmds.DBus.Protocol.Tests
             var exceptionTcs = new TaskCompletionSource<Exception?>();
             var handlerCallCount = 0;
 
-            var proxy = new HelloWorld(conn1, conn2.UniqueName!);
-            var disposable = await proxy.WatchSignalAsync<string>(
-                conn2.UniqueName!,
-                HelloWorldConstants.Interface,
-                HelloWorldConstants.Path,
-                HelloWorldConstants.OnHelloWorld,
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync<string>(
+                rule,
                 reader: (Message m, object? s) => throw new InvalidOperationException("Reader error"),
-                handler: (Exception? ex, string msg) =>
+                handler: ctx =>
                 {
                     handlerCallCount++;
-                    exceptionTcs.TrySetResult(ex);
+                    if (ctx.IsCompletion)
+                    {
+                        exceptionTcs.TrySetResult(ctx.Exception);
+                    }
                 },
+                flags: ObserverFlags.EmitOnReaderFailed,
                 emitOnCapturedContext: false);
 
             // Send a signal that will trigger the reader exception
@@ -547,49 +564,52 @@ namespace Tmds.DBus.Protocol.Tests
 
             var exception = await exceptionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-            Assert.IsType<DBusConnectionClosedException>(exception);
-            Assert.IsType<InvalidOperationException>(exception.InnerException);
-            Assert.Equal("Reader error", exception.InnerException!.Message);
-            Assert.Equal(1, handlerCallCount);
+            var readException = Assert.IsType<DBusReadException>(exception);
+            Assert.IsType<InvalidOperationException>(readException.InnerException);
+            Assert.Equal("Reader error", readException.InnerException!.Message);
         }
 
         [Fact]
-        public async Task ObserverExceptionInValueHandlerDisposesObserver()
+        public async Task ObserverExceptionInValueHandlerDisconnectsConnection()
         {
             var connections = PairedConnection.CreatePair();
             using var conn1 = connections.Item1;
             using var conn2 = connections.Item2;
 
-            var exceptionTcs = new TaskCompletionSource<Exception?>();
             var handlerCallCount = 0;
 
-            var proxy = new HelloWorld(conn1, conn2.UniqueName!);
-            var disposable = await proxy.WatchSignalAsync<string>(
-                conn2.UniqueName!,
-                HelloWorldConstants.Interface,
-                HelloWorldConstants.Path,
-                HelloWorldConstants.OnHelloWorld,
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync<string>(
+                rule,
                 reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
-                handler: (Exception? ex, string msg) =>
+                handler: ctx =>
                 {
                     handlerCallCount++;
-                    if (ex is null)
+                    if (ctx.HasValue)
                     {
                         throw new InvalidOperationException("Handler error");
                     }
-                    exceptionTcs.TrySetResult(ex);
                 },
-                emitOnCapturedContext: false);
+                emitOnCapturedContext: false,
+                flags: ObserverFlags.EmitOnConnectionFailed);
 
             // Send a signal that will trigger the handler exception
             SendHelloWorldSignal(conn2);
 
-            var exception = await exceptionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            // Wait for connection to be disconnected due to handler throwing
+            var exception = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
 
-            Assert.IsType<DBusConnectionClosedException>(exception);
-            Assert.IsType<InvalidOperationException>(exception.InnerException);
-            Assert.Equal("Handler error", exception.InnerException!.Message);
-            Assert.Equal(2, handlerCallCount); // Called once with message, once with exception
+            Assert.IsType<InvalidOperationException>(exception);
+            Assert.Equal("Handler error", exception.Message);
+            Assert.Equal(2, handlerCallCount); // Called once with message, once with disconnect notification
         }
 
         [Theory]
@@ -633,6 +653,502 @@ namespace Tmds.DBus.Protocol.Tests
             // Verify the connection was disconnected with the handler exception
             Assert.NotNull(disconnectException);
             Assert.Same(testException, disconnectException);
+        }
+
+        [Fact]
+        public async Task Notification_HasValue_WhenSignalReceived()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var tcs = new TaskCompletionSource<Notification<string>>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    tcs.TrySetResult(ctx);
+                },
+                emitOnCapturedContext: false);
+
+            SendHelloWorldSignal(conn2);
+
+            var notification = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.True(notification.HasValue);
+            Assert.False(notification.IsCompletion);
+            Assert.Equal("hello world", notification.Value);
+            Assert.Equal(NotificationType.Value, notification.Type);
+            Assert.Throws<InvalidOperationException>(() => notification.Exception);
+        }
+
+        [Fact]
+        public async Task Notification_Stop_DisposesObserver()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var callCount = 0;
+            var tcs = new TaskCompletionSource<bool>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    callCount++;
+                    if (ctx.HasValue)
+                    {
+                        ctx.Stop();
+                        tcs.TrySetResult(true);
+                    }
+                },
+                emitOnCapturedContext: false);
+
+            SendHelloWorldSignal(conn2);
+
+            await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            // Send another signal to verify observer is stopped
+            SendHelloWorldSignal(conn2);
+            await Task.Delay(100);
+
+            Assert.Equal(1, callCount);
+        }
+
+        [Fact]
+        public async Task Notification_StateObject_IsAccessible()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var expectedState = new { Data = "test-state" };
+            var tcs = new TaskCompletionSource<object?>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    tcs.TrySetResult(ctx.State);
+                },
+                state: expectedState,
+                emitOnCapturedContext: false);
+
+            SendHelloWorldSignal(conn2);
+
+            var actualState = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.Same(expectedState, actualState);
+        }
+
+        [Fact]
+        public async Task Notification_ReaderException_HasErrorContext()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var tcs = new TaskCompletionSource<Notification<string>>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync<string>(
+                rule,
+                reader: (Message m, object? s) => throw new InvalidOperationException("Reader failed"),
+                handler: ctx =>
+                {
+                    tcs.TrySetResult(ctx);
+                },
+                emitOnCapturedContext: false,
+                flags: ObserverFlags.EmitOnReaderFailed);
+
+            SendHelloWorldSignal(conn2);
+
+            var notification = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.False(notification.HasValue);
+            Assert.True(notification.IsCompletion);
+            Assert.NotNull(notification.Exception);
+            var readException = Assert.IsType<DBusReadException>(notification.Exception);
+            Assert.IsType<InvalidOperationException>(readException.InnerException);
+            Assert.Equal("Reader failed", readException.InnerException!.Message);
+            Assert.Equal(NotificationType.ReaderFailed, notification.Type);
+        }
+
+        [Fact]
+        public async Task Notification_ConnectionDisposed_HasCompletionContext()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var tcs = new TaskCompletionSource<Notification<string>>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    if (ctx.IsCompletion)
+                    {
+                        tcs.TrySetResult(ctx);
+                    }
+                },
+                flags: ObserverFlags.EmitOnConnectionClosed,
+                emitOnCapturedContext: false);
+
+            conn1.Dispose();
+
+            var notification = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.False(notification.HasValue);
+            Assert.True(notification.IsCompletion);
+            Assert.NotNull(notification.Exception);
+            Assert.Equal(NotificationType.ConnectionClosed, notification.Type);
+        }
+
+        [Fact]
+        public async Task Notification_ObserverStopped_HasCompletionContext()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var tcs = new TaskCompletionSource<Notification<string>>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            var disposable = await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    if (ctx.IsCompletion)
+                    {
+                        tcs.TrySetResult(ctx);
+                    }
+                },
+                flags: ObserverFlags.EmitOnObserverDispose,
+                emitOnCapturedContext: false);
+
+            disposable.Dispose();
+
+            var notification = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.False(notification.HasValue);
+            Assert.True(notification.IsCompletion);
+            Assert.NotNull(notification.Exception);
+            Assert.Equal(NotificationType.ObserverDisposed, notification.Type);
+        }
+
+        [Fact]
+        public async Task Notification_ConnectionFailed_HasCompletionContext()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var tcs = new TaskCompletionSource<Notification<string>>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    if (ctx.IsCompletion)
+                    {
+                        tcs.TrySetResult(ctx);
+                    }
+                },
+                flags: ObserverFlags.EmitOnConnectionFailed,
+                emitOnCapturedContext: false);
+
+            // Dispose the peer to cause the connection to fail.
+            conn2.Dispose();
+
+            var notification = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.False(notification.HasValue);
+            Assert.True(notification.IsCompletion);
+            Assert.NotNull(notification.Exception);
+            Assert.Equal(NotificationType.ConnectionFailed, notification.Type);
+        }
+
+        [Fact]
+        public async Task Notification_ThrowingHandler_DisconnectsConnection()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    if (ctx.HasValue)
+                    {
+                        throw new InvalidOperationException("Handler threw");
+                    }
+                },
+                emitOnCapturedContext: false);
+
+            SendHelloWorldSignal(conn2);
+
+            // Wait for connection to be disconnected
+            var disconnectReason = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.NotNull(disconnectReason);
+            Assert.IsType<InvalidOperationException>(disconnectReason);
+            Assert.Equal("Handler threw", disconnectReason.Message);
+        }
+
+        [Fact]
+        public async Task Notification_NonGeneric_ReceivesSignal()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var tcs = new TaskCompletionSource<Notification>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync(
+                rule,
+                handler: ctx =>
+                {
+                    if (!ctx.IsCompletion)
+                    {
+                        tcs.TrySetResult(ctx);
+                    }
+                },
+                emitOnCapturedContext: false);
+
+            SendHelloWorldSignal(conn2);
+
+            var notification = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.False(notification.IsCompletion);
+            Assert.Equal(NotificationType.Value, notification.Type);
+            Assert.Throws<InvalidOperationException>(() => notification.Exception);
+        }
+
+        [Fact]
+        public async Task Notification_ValueProperty_ThrowsWhenNoValue()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var tcs = new TaskCompletionSource<Notification<string>>();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            var disposable = await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    if (ctx.IsCompletion)
+                    {
+                        tcs.TrySetResult(ctx);
+                    }
+                },
+                flags: ObserverFlags.EmitOnObserverDispose,
+                emitOnCapturedContext: false);
+
+            disposable.Dispose();
+
+            var notification = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.False(notification.HasValue);
+            Assert.Throws<InvalidOperationException>(() => notification.Value);
+        }
+
+        [Fact]
+        public async Task Notification_DelayedCompletion_WhenDisposedDuringHandler()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var notifications = new List<Notification<string>>();
+            var completionTcs = new TaskCompletionSource<Notification<string>>();
+            IDisposable? observerDisposable = null;
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            observerDisposable = await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    notifications.Add(ctx);
+                    if (ctx.HasValue)
+                    {
+                        // Dispose the observer while the handler is executing.
+                        // The completion should be deferred until after this handler returns.
+                        observerDisposable!.Dispose();
+                    }
+                    if (ctx.IsCompletion)
+                    {
+                        completionTcs.TrySetResult(ctx);
+                    }
+                },
+                flags: ObserverFlags.EmitOnObserverDispose,
+                emitOnCapturedContext: false);
+
+            SendHelloWorldSignal(conn2);
+
+            var completion = await completionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.Equal(2, notifications.Count);
+            Assert.True(notifications[0].HasValue);
+            Assert.Equal("hello world", notifications[0].Value);
+            Assert.True(notifications[1].IsCompletion);
+            Assert.Equal(NotificationType.ObserverDisposed, notifications[1].Type);
+        }
+
+        [Fact]
+        public async Task Notification_CompletionDeliveredViaSynchronizationContext()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var tcs = new TaskCompletionSource<Notification<string>>();
+            var syncCtx = new MySynchronizationContext();
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            // Capture the sync context during AddMatchAsync.
+            SynchronizationContext.SetSynchronizationContext(syncCtx);
+
+            var disposable = await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: ctx =>
+                {
+                    if (ctx.IsCompletion)
+                    {
+                        tcs.TrySetResult(ctx);
+                    }
+                },
+                flags: ObserverFlags.EmitOnObserverDispose,
+                emitOnCapturedContext: true);
+
+            // Clear the sync context so Dispose posts through the captured one.
+            SynchronizationContext.SetSynchronizationContext(null);
+
+            disposable.Dispose();
+
+            var notification = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.True(notification.IsCompletion);
+            Assert.Equal(NotificationType.ObserverDisposed, notification.Type);
+            Assert.True(syncCtx.PostCount > 0);
         }
     }
 }

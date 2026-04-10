@@ -315,12 +315,18 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public ValueTask<IDisposable> WatchResetAsync(Action<Exception?> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Reset", handler, this, emitOnCapturedContext, flags);
-        public ValueTask<IDisposable> WatchErrorAsync(Action<Exception?, string> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Error", (Message m, object? s) => MessageReader.Read_s(m), handler, this, emitOnCapturedContext, flags);
-        public ValueTask<IDisposable> WatchOperationCompleteAsync(Action<Exception?, (string Operation, double Result)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "OperationComplete", (Message m, object? s) => MessageReader.Read_sd(m), handler, this, emitOnCapturedContext, flags);
+        public ValueTask<IDisposable> WatchResetAsync(Action handler, bool emitOnCapturedContext = true)
+            => WatchResetAsync(static (Notification n) => ((Action)n.State!)(), ObserverFlags.None, emitOnCapturedContext, handler);
+        public ValueTask<IDisposable> WatchResetAsync(Action<Notification> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Reset", handler, flags, emitOnCapturedContext, state);
+        public ValueTask<IDisposable> WatchErrorAsync(Action<string> handler, bool emitOnCapturedContext = true)
+            => WatchErrorAsync(static (Notification<string> n) => ((Action<string>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
+        public ValueTask<IDisposable> WatchErrorAsync(Action<Notification<string>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Error", (Message m, object? s) => MessageReader.Read_s(m), handler, flags, emitOnCapturedContext, state);
+        public ValueTask<IDisposable> WatchOperationCompleteAsync(Action<(string Operation, double Result)> handler, bool emitOnCapturedContext = true)
+            => WatchOperationCompleteAsync(static (Notification<(string Operation, double Result)> n) => ((Action<(string Operation, double Result)>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
+        public ValueTask<IDisposable> WatchOperationCompleteAsync(Action<Notification<(string Operation, double Result)>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "OperationComplete", (Message m, object? s) => MessageReader.Read_sd(m), handler, flags, emitOnCapturedContext, state);
         public Task<double> GetLastResultAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("LastResult"), (Message m, object? s) => MessageReader.Read_v_d(m), this);
         public Task<ObjectPath> GetCurrentPathAsync()
@@ -336,9 +342,11 @@ namespace TestNamespace
                 return CalculatorProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, ICalculatorProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<ICalculatorProperties> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (Notification<ICalculatorProperties> n) => ((Action<ICalculatorProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<ICalculatorProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
             static ICalculatorProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();
@@ -521,8 +529,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public ValueTask<IDisposable> WatchChangedAsync(Action<Exception?> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Changed", handler, this, emitOnCapturedContext, flags);
+        public ValueTask<IDisposable> WatchChangedAsync(Action handler, bool emitOnCapturedContext = true)
+            => WatchChangedAsync(static (Notification n) => ((Action)n.State!)(), ObserverFlags.None, emitOnCapturedContext, handler);
+        public ValueTask<IDisposable> WatchChangedAsync(Action<Notification> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Changed", handler, flags, emitOnCapturedContext, state);
         public Task SetVolumeAsync(double value)
         {
             return Connection.CallMethodAsync(CreateMessage());
@@ -576,9 +586,11 @@ namespace TestNamespace
                 return SettingsProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, ISettingsProperties> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<ISettingsProperties> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (Notification<ISettingsProperties> n) => ((Action<ISettingsProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
+        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<ISettingsProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
             static ISettingsProperties ReadMessage(Message message)
             {
                 var reader = message.GetBodyReader();

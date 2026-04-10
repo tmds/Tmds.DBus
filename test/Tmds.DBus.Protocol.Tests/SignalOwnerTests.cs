@@ -529,6 +529,117 @@ public class SignalOwnerTests
         }
     }
 
+    [Fact]
+    public async Task EmitOnOwnerChanged_DisposesObserverWhenOwnerChanges()
+    {
+        using var dbusDaemon = new DBusDaemon();
+        await dbusDaemon.StartAsync();
+
+        string wellKnownName = "tmds.OwnerChangeService";
+
+        using var serviceConnection = new DBusConnection(dbusDaemon.Address!);
+        await serviceConnection.ConnectAsync();
+        await serviceConnection.RequestNameAsync(wellKnownName, RequestNameOptions.AllowReplacement);
+
+        using var clientConnection = new DBusConnection(dbusDaemon.Address!);
+        await clientConnection.ConnectAsync();
+
+        var notificationTcs = new TaskCompletionSource<Notification<string>>();
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = wellKnownName,
+            Interface = "com.example.TestInterface",
+            Member = "TestSignal",
+            Path = "/com/example/Object"
+        };
+
+        await clientConnection.AddMatchAsync(rule,
+            reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+            handler: ctx =>
+            {
+                if (ctx.IsCompletion)
+                {
+                    notificationTcs.TrySetResult(ctx);
+                }
+            },
+            emitOnCapturedContext: false,
+            flags: ObserverFlags.EmitOnOwnerChanged);
+
+        // Another connection takes over the name, triggering NameOwnerChanged.
+        using var service2 = new DBusConnection(dbusDaemon.Address!);
+        await service2.ConnectAsync();
+        await service2.RequestNameAsync(wellKnownName, RequestNameOptions.ReplaceExisting);
+
+        var notification = await notificationTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.True(notification.IsCompletion);
+        Assert.False(notification.HasValue);
+        Assert.Equal(NotificationType.OwnerChanged, notification.Type);
+    }
+
+    [Fact]
+    public async Task EmitOnOwnerChanged_NotTriggeredWithoutOwnerChange()
+    {
+        using var dbusDaemon = new DBusDaemon();
+        await dbusDaemon.StartAsync();
+
+        string wellKnownName = "tmds.StableService";
+
+        using var serviceConnection = new DBusConnection(dbusDaemon.Address!);
+        await serviceConnection.ConnectAsync();
+        await serviceConnection.RequestNameAsync(wellKnownName);
+
+        using var clientConnection = new DBusConnection(dbusDaemon.Address!);
+        await clientConnection.ConnectAsync();
+
+        var signalSemaphore = new SemaphoreSlim(0);
+        var ownerChangedReceived = false;
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = wellKnownName,
+            Interface = "com.example.TestInterface",
+            Member = "TestSignal",
+            Path = "/com/example/Object"
+        };
+
+        await clientConnection.AddMatchAsync(rule,
+            reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+            handler: ctx =>
+            {
+                if (ctx.HasValue)
+                {
+                    signalSemaphore.Release();
+                }
+                if (ctx.IsCompletion)
+                {
+                    ownerChangedReceived = true;
+                }
+            },
+            emitOnCapturedContext: false,
+            flags: ObserverFlags.EmitOnOwnerChanged);
+
+        // Send signal - owner hasn't changed so EmitOnOwnerChanged should not fire.
+        SendSignal(serviceConnection);
+        await signalSemaphore.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.False(ownerChangedReceived);
+
+        static void SendSignal(DBusConnection conn)
+        {
+            using var writer = conn.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: "/com/example/Object",
+                @interface: "com.example.TestInterface",
+                member: "TestSignal",
+                signature: "s");
+            writer.WriteString("signal");
+            var buffer = writer.CreateMessage();
+            conn.TrySendMessage(buffer);
+        }
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

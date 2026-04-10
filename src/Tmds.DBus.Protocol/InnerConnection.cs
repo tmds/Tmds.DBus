@@ -6,7 +6,13 @@ namespace Tmds.DBus.Protocol;
 
 class InnerConnection : IDisposable
 {
+    private static ObserverFlags DelayedCompletion => (ObserverFlags)(1 << 31);
+    private static ObserverFlags IsExecutingHandlerFlag => (ObserverFlags)(1 << 30);
     private static ObserverFlags StopOnOwnerChanged => (ObserverFlags)(1 << 29);
+
+    private static readonly ObjectDisposedException ObserverDisposedExceptionSingleton = new ObserverDisposedException();
+    private static readonly DBusOwnerChangedException OwnerChangedExceptionSingleton = new DBusOwnerChangedException();
+    private static readonly DBusConnectionClosedException DisconnectedExceptionSingleton = new DBusConnectionClosedException("The connection was disconnected.");
 
     private delegate void MessageReceivedHandler(Exception? exception, Message? message, object? state);
 
@@ -455,7 +461,7 @@ class InnerConnection : IDisposable
                     {
                         foreach (var observer in ownerChangedObservers)
                         {
-                            observer.Dispose(observer.EmitOnOwnerChanged ? new DBusOwnerChangedException() : null);
+                            observer.Dispose(OwnerChangedExceptionSingleton, emit: observer.EmitOnOwnerChanged);
                         }
                     }
 
@@ -568,10 +574,8 @@ class InnerConnection : IDisposable
         {
             foreach (var observer in watcher.Observers)
             {
-                bool emitException = !object.ReferenceEquals(disconnectReason, DBusConnection.DisposedException) ||
-                                     observer.EmitOnConnectionDispose;
-                Exception? exception = emitException ? new DBusConnectionClosedException(disconnectReason) : null;
-                observer.Dispose(exception, removeObserver: false);
+                bool emitException = ReferenceEquals(disconnectReason, DBusConnection.DisposedException) ? observer.EmitOnConnectionDispose : observer.EmitOnConnectionFailed;
+                observer.Dispose(DisconnectedExceptionSingleton, emitException, removeObserver: false);
             }
             if (watcher.SubscribeTask is not null)
             {
@@ -814,7 +818,7 @@ class InnerConnection : IDisposable
         }
     }
 
-    public async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
+    public async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Observer, Exception?, T> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
     {
         if (BusName.IsOwnerIdentifier(rule.Sender.AsSpan()))
         {
@@ -825,7 +829,7 @@ class InnerConnection : IDisposable
             flags |= ObserverFlags.NoSubscribe;
             flags &= ~(ObserverFlags.EmitOnOwnerChanged | StopOnOwnerChanged);
         }
-        Observer observer = Observer.Create(synchronizationContext, valueReader, valueHandler, readerState, handlerState, flags);
+        Observer observer = Observer.Create(synchronizationContext, valueReader, valueHandler, readerState, state2, state3, flags);
         await AddWatcherUserAsync(rule.Data, observer);
         return observer;
     }
@@ -956,7 +960,7 @@ class InnerConnection : IDisposable
         if (emitOwnerChanged)
         {
             Debug.Assert(observer is not null);
-            observer.Dispose(observer.EmitOnOwnerChanged ? new DBusOwnerChangedException() : null, removeObserver: false);
+            observer.Dispose(OwnerChangedExceptionSingleton, emit: observer.EmitOnOwnerChanged, removeObserver: false);
             return new ValueTask<Watcher?>(result: null);
         }
 
@@ -1001,13 +1005,13 @@ class InnerConnection : IDisposable
                     await watcher.SubscribeTask!.ConfigureAwait(false);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 EnsureExceptionObserved(resolveUniqueNameTask);
 
                 if (observer is not null)
                 {
-                    bool disposedObserver = observer.Dispose(exception: null);
+                    bool disposedObserver = observer.Dispose(ex, emit: false);
                     // If something had already disposed the observer, we won't throw and just return it.
                     // The handler took care of the exception (if ObserverFlags registered for it).
                     if (disposedObserver)
@@ -1058,106 +1062,195 @@ class InnerConnection : IDisposable
         }
     }
 
-    internal static readonly ObjectDisposedException ObserverDisposedException = new ObjectDisposedException(typeof(Observer).FullName);
+    internal static NotificationType DetermineNotificationType(Exception? exception, InnerConnection? connection)
+    {
+        if (exception is null)
+        {
+            return NotificationType.Value;
+        }
+        if (exception is ObserverDisposedException)
+        {
+            return NotificationType.ObserverDisposed;
+        }
+        if (exception is DBusOwnerChangedException)
+        {
+            return NotificationType.OwnerChanged;
+        }
+        if (exception is DBusConnectionClosedException closedException)
+        {
+            Exception? innerException = closedException.InnerException;
+            if (ReferenceEquals(closedException, DisconnectedExceptionSingleton))
+            {
+                Debug.Assert(connection is not null, "DisconnectedExceptionSingleton requires a connection to distinguish closed vs failed.");
+                innerException = connection?.DisconnectReason;
+            }
+            if (ReferenceEquals(innerException, DBusConnection.DisposedException))
+            {
+                return NotificationType.ConnectionClosed;
+            }
+            return NotificationType.ConnectionFailed;
+        }
+        Debug.Assert(exception is DBusReadException);
+        return NotificationType.ReaderFailed;
+    }
 
     internal sealed class Observer : IDisposable
     {
-        private delegate void MessageHandlerDelegate4(Observer observer, Exception? exception, Message? message, object? state1, object? state2, object? state3, object? state4);
-
-        private readonly struct MessageHandler4
-        {
-            public MessageHandler4(MessageHandlerDelegate4 handler, object? state1 = null, object? state2 = null, object? state3 = null, object? state4 = null)
-            {
-                _delegate = handler;
-                _state1 = state1;
-                _state2 = state2;
-                _state3 = state3;
-                _state4 = state4;
-            }
-
-            public void Invoke(Observer observer, Exception? exception, Message? message)
-            {
-                _delegate(observer, exception, message, _state1, _state2, _state3, _state4);
-            }
-
-            public bool HasValue => _delegate is not null;
-
-            private readonly MessageHandlerDelegate4 _delegate;
-            private readonly object? _state1;
-            private readonly object? _state2;
-            private readonly object? _state3;
-            private readonly object? _state4;
-        }
-
         private readonly Lock _gate = new();
         private readonly SynchronizationContext? _synchronizationContext;
-        private readonly MessageHandler4 _messageHandler;
+        private readonly Action<Observer, Message?> _messageHandler;
         private readonly SendOrPostCallback _scMessageCallback;
-        private readonly ObserverFlags _flags;
-        private bool _disposed;
+        private ObserverFlags _flags;
+        private readonly object? _readerState;
+        private readonly object? _state2;
+        private readonly object? _state3;
+        private Exception? _disposeException;
+
+        internal bool IsDisposed => _disposeException is not null;
 
         public bool Subscribes => (_flags & ObserverFlags.NoSubscribe) == 0;
-        public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionDispose) != 0;
+        public bool EmitOnConnectionDispose => (_flags & ObserverFlags.EmitOnConnectionClosed) != 0;
+        public bool EmitOnConnectionFailed => (_flags & ObserverFlags.EmitOnConnectionFailed) != 0;
         public bool EmitOnObserverDispose => (_flags & ObserverFlags.EmitOnObserverDispose) != 0;
+        public bool EmitOnReaderFailed => (_flags & ObserverFlags.EmitOnReaderFailed) != 0;
         public bool EmitOnOwnerChanged => (_flags & ObserverFlags.EmitOnOwnerChanged) != 0;
         public bool StopOnOwnerChanged => (_flags & InnerConnection.StopOnOwnerChanged) != 0;
         public bool ObservesOwnerChanged => (_flags & (ObserverFlags.EmitOnOwnerChanged | InnerConnection.StopOnOwnerChanged)) != 0;
+        public object? ReaderState => _readerState;
+        public object? State2 => _state2;
+        public object? State3 => _state3;
         public InnerConnection Connection => Watcher.DBusConnection;
-
         internal Watcher Watcher = null!;
 
-        private Observer(SynchronizationContext? synchronizationContext, in MessageHandler4 messageHandler, ObserverFlags flags)
+        public Exception? Exception
+        {
+            get
+            {
+                // The getter lazily replaces singleton exceptions with proper instances.
+                if (ReferenceEquals(_disposeException, ObserverDisposedExceptionSingleton))
+                {
+                    _disposeException = new ObserverDisposedException();
+                }
+                else if (ReferenceEquals(_disposeException, OwnerChangedExceptionSingleton))
+                {
+                    _disposeException = new DBusOwnerChangedException();
+                }
+                else if (ReferenceEquals(_disposeException, DisconnectedExceptionSingleton))
+                {
+                    _disposeException = new DBusConnectionClosedException(Connection.DisconnectReason);
+                }
+                return _disposeException;
+            }
+        }
+
+        public NotificationType ErrorType => DetermineNotificationType(_disposeException, Connection);
+
+        private Observer(SynchronizationContext? synchronizationContext, Action<Observer, Message?> messageHandler, object? state1, object? state2, object? state3, ObserverFlags flags)
         {
             _synchronizationContext = synchronizationContext;
             _messageHandler = messageHandler;
+            _readerState = state1;
+            _state2 = state2;
+            _state3 = state3;
             _flags = flags;
             _scMessageCallback ??= EmitMessageOnSynchronizationContext;
         }
 
-        public static Observer Create<T>(SynchronizationContext? synchronizationContext, MessageValueReader<T> valueReader, Action<Exception?, T, object?, object?> valueHandler, object? readerState, object? handlerState, ObserverFlags flags)
+        internal static Observer Create<T>(SynchronizationContext? synchronizationContext, MessageValueReader<T> valueReader, Action<Observer, Exception?, T> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
         {
-            MessageHandlerDelegate4 fn = static (Observer observer, Exception? exception, Message? message, object? reader, object? handler, object? rs, object? hs) =>
+            Action<Observer, Message?> handler = (observer, message) =>
             {
                 try
                 {
-                    var valueHandlerState = (Action<Exception?, T, object?, object?>)handler!;
-                    if (exception is not null)
+                    if (message is null)
                     {
-                        valueHandlerState(exception, default(T)!, rs, hs);
-                        return;
+                        bool isExecuting = (observer._flags & IsExecutingHandlerFlag) != 0;
+                        if (isExecuting)
+                        {
+                            // Since we're holding the lock, the exception was thrown due to the executing handler doing something.
+                            // Don't re-enter the handler, we'll call it once it finished executing.
+                            observer._flags |= DelayedCompletion;
+                            return;
+                        }
+                        EmitCompletion();
                     }
-                    Debug.Assert(message is not null);
-                    var valueReaderState = (MessageValueReader<T>)reader!;
-                    T value = valueReaderState(message, rs);
-                    valueHandlerState(null, value, rs, hs);
+                    else
+                    {
+                        Debug.Assert((observer._flags & IsExecutingHandlerFlag) == 0);
+
+                        // We support passing an exception from the read delegate to the handler using EmitOnReaderFailed.
+                        // The reader is typically source-generated.
+                        // It's not expected to throw unless the sender sends something that doesn't match the expected content.
+                        T value;
+                        try
+                        {
+                            value = valueReader(message, observer.ReaderState);
+                        }
+                        catch (Exception ex) when (observer.EmitOnReaderFailed)
+                        {
+                            // Wrap the exception to ensure we preserve the stack trace if the user throws it.
+                            observer.Dispose(new DBusReadException("The handler encountered an error while reading the message.", ex), emit: true, ignoreSynchronizationContext: true);
+                            return;
+                        }
+
+                        try
+                        {
+                            observer._flags |= IsExecutingHandlerFlag;
+                            valueHandler(observer, null, value);
+                        }
+                        finally
+                        {
+                            observer._flags &= ~IsExecutingHandlerFlag;
+                        }
+                        bool hasDelayedCompletion = (observer._flags & DelayedCompletion) != 0;
+                        if (hasDelayedCompletion)
+                        {
+                            EmitCompletion();
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
                     observer.Connection.Disconnect(ex);
                 }
+
+                void EmitCompletion()
+                {
+                    Debug.Assert(observer._disposeException is not null);
+                    try
+                    {
+                        valueHandler(observer, observer._disposeException, default!);
+                    }
+                    catch (Exception ex)
+                    {
+                        observer.Connection.Disconnect(ex);
+                    }
+                }
             };
 
-            MessageHandler4 handler = new(fn, valueReader, valueHandler, readerState, handlerState);
-            return new Observer(synchronizationContext, handler, flags);
+            return new Observer(synchronizationContext, handler, readerState, state2, state3, flags);
         }
 
         public void Dispose() =>
-            Dispose(EmitOnObserverDispose ? ObserverDisposedException : null);
+            Dispose(ObserverDisposedExceptionSingleton, EmitOnObserverDispose);
 
-        public bool Dispose(Exception? exception, bool removeObserver = true, bool ignoreSynchronizationContext = false)
+        public void StopByHandler() =>
+            Dispose(ObserverDisposedExceptionSingleton, emit: false);
+
+        public bool Dispose(Exception exception, bool emit, bool removeObserver = true, bool ignoreSynchronizationContext = false)
         {
             lock (_gate)
             {
-                if (_disposed)
+                if (IsDisposed)
                 {
                     return false;
                 }
-                _disposed = true;
+                _disposeException = exception;
             }
 
-            if (exception is not null)
+            if (emit)
             {
-                Emit(exception, ignoreSynchronizationContext);
+                EmitCompletion(ignoreSynchronizationContext);
             }
 
             if (removeObserver)
@@ -1179,17 +1272,17 @@ class InnerConnection : IDisposable
             {
                 lock (_gate)
                 {
-                    if (_disposed)
+                    if (IsDisposed)
                     {
                         return;
                     }
 
-                    _messageHandler.Invoke(this, null, message);
+                    _messageHandler(this, message);
                 }
             }
             else
             {
-                if (_disposed)
+                if (IsDisposed)
                 {
                     return;
                 }
@@ -1207,11 +1300,11 @@ class InnerConnection : IDisposable
                 SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
                 lock (_gate)
                 {
-                    if (_disposed)
+                    if (IsDisposed)
                     {
                         return;
                     }
-                    _messageHandler.Invoke(this, null, message);
+                    _messageHandler(this, message);
                 }
             }
             finally
@@ -1221,27 +1314,28 @@ class InnerConnection : IDisposable
             }
         }
 
-        private void Emit(Exception exception, bool ignoreSynchronizationContext = false)
+        private void EmitCompletion(bool ignoreSynchronizationContext = false)
         {
+            Debug.Assert(_disposeException is not null);
             if (ignoreSynchronizationContext ||
                 _synchronizationContext is null ||
                 SynchronizationContext.Current == _synchronizationContext)
             {
-                _messageHandler.Invoke(this, exception, null!);
+                _messageHandler(this, null);
             }
             else
             {
-                _synchronizationContext.Post(EmitExceptionOnSynchronizationContext, exception);
+                _synchronizationContext.Post(EmitCompletionOnSynchronizationContext, null);
             }
         }
 
-        private void EmitExceptionOnSynchronizationContext(object? state)
+        private void EmitCompletionOnSynchronizationContext(object? state)
         {
             SynchronizationContext? previousContext = SynchronizationContext.Current;
             try
             {
                 SynchronizationContext.SetSynchronizationContext(_synchronizationContext);
-                _messageHandler.Invoke(this, (Exception)state!, null!);
+                _messageHandler(this, null);
             }
             finally
             {
@@ -1258,12 +1352,12 @@ class InnerConnection : IDisposable
 
             lock (_gate)
             {
-                if (_disposed)
+                if (IsDisposed)
                 {
                     return;
                 }
 
-                _messageHandler.Invoke(this, null, message);
+                _messageHandler(this, message);
             }
         }
     }
@@ -1609,7 +1703,6 @@ class InnerConnection : IDisposable
 
             return true;
         }
-
 
         private static bool IsEqualOrChildOfName(ReadOnlySpan<byte> lhs, ReadOnlySpan<byte> rhs)
         {

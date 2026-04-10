@@ -304,12 +304,13 @@ public sealed partial class DBusConnection : IDisposable
     /// <typeparam name="T">The type of value read from matched messages.</typeparam>
     /// <param name="rule">The match rule defining which messages to receive.</param>
     /// <param name="reader">Delegate to read values from matched messages.</param>
-    /// <param name="handler">Callback invoked for each matched message.</param>
+    /// <param name="handler">Callback invoked for matched messages and completion notifications.</param>
     /// <param name="flags">Observer behavior flags.</param>
     /// <param name="readerState">Optional state passed to the reader delegate.</param>
     /// <param name="handlerState">Optional state passed to the handler delegate.</param>
-    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the captured synchronization context.</param>
-    /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    [Obsolete("Use the overload that accepts Action<Notification<T>> instead.")]
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, ObserverFlags flags, object? readerState = null, object? handlerState = null, bool emitOnCapturedContext = true)
         => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext, flags);
 
@@ -319,12 +320,13 @@ public sealed partial class DBusConnection : IDisposable
     /// <typeparam name="T">The type of value read from matched messages.</typeparam>
     /// <param name="rule">The match rule defining which messages to receive.</param>
     /// <param name="reader">Delegate to read values from matched messages.</param>
-    /// <param name="handler">Callback invoked for each matched message.</param>
+    /// <param name="handler">Callback invoked for matched messages and completion notifications.</param>
     /// <param name="readerState">Optional state passed to the reader delegate.</param>
     /// <param name="handlerState">Optional state passed to the handler delegate.</param>
-    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the captured synchronization context.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
     /// <param name="flags">Observer behavior flags.</param>
-    /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    [Obsolete("Use the overload that accepts Action<Notification<T>> instead.")]
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState, object? handlerState, bool emitOnCapturedContext, ObserverFlags flags)
         => AddMatchAsync(rule, reader, handler, readerState, handlerState, emitOnCapturedContext ? SynchronizationContext.Current : null, flags);
 
@@ -334,21 +336,93 @@ public sealed partial class DBusConnection : IDisposable
     /// <typeparam name="T">The type of value read from matched messages.</typeparam>
     /// <param name="rule">The match rule defining which messages to receive.</param>
     /// <param name="reader">Delegate to read values from matched messages.</param>
-    /// <param name="handler">Callback invoked for each matched message.</param>
+    /// <param name="handler">Callback invoked for matched messages and completion notifications.</param>
     /// <param name="readerState">Optional state passed to the reader delegate.</param>
     /// <param name="handlerState">Optional state passed to the handler delegate.</param>
     /// <param name="synchronizationContext">The synchronization context to invoke the handler on.</param>
     /// <param name="flags">Observer behavior flags.</param>
-    /// <returns><see cref="IDisposable"/> that removes the observer when disposed.</returns>
-    public async ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, ObserverFlags flags)
-    {
-        InnerConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
-        return await connection.AddMatchAsync(synchronizationContext, rule, reader, handler, readerState, handlerState, flags).ConfigureAwait(false);
-    }
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    [Obsolete("Use the overload that accepts Action<Notification<T>> instead.")]
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, ObserverFlags flags)
+        => AddMatchAsync(synchronizationContext, rule, reader, static (observer, ex, value) => ((Action<Exception?, T, object?, object?>)observer.State3!)(observer.Exception, value, observer.ReaderState, observer.State2), readerState: readerState, state2: handlerState, state3: handler, flags: flags);
+
+    /// <summary>
+    /// Adds an observer to receive D-Bus messages matching the specified criteria.
+    /// </summary>
+    /// <typeparam name="T">The type of value read from matched messages.</typeparam>
+    /// <param name="rule">The match rule defining which messages to receive.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for matched messages and completion notifications.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Notification<T>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None, object? state = null)
+        => AddMatchAsync(rule, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
+    /// <summary>
+    /// Adds an observer to receive D-Bus messages matching the specified criteria.
+    /// </summary>
+    /// <typeparam name="T">The type of value read from matched messages.</typeparam>
+    /// <param name="rule">The match rule defining which messages to receive.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for matched messages and completion notifications.</param>
+    /// <param name="synchronizationContext">The synchronization context to invoke the handler on.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Notification<T>> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+        => AddMatchAsync(synchronizationContext, rule, reader, static (observer, ex, value) => ((Action<Notification<T>>)observer.State2!).Invoke(new Notification<T>(observer, value, isCompletion: ex is not null)), readerState: state, state2: handler, state3: null, flags: flags);
+
+    /// <summary>
+    /// Adds an observer to receive D-Bus messages matching the specified criteria.
+    /// </summary>
+    /// <param name="rule">The match rule defining which messages to receive.</param>
+    /// <param name="handler">Callback invoked for matched messages and completion notifications.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> AddMatchAsync(MatchRule rule, Action<Notification> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None, object? state = null)
+        => AddMatchAsync(rule, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
+    /// <summary>
+    /// Adds an observer to receive D-Bus messages matching the specified criteria.
+    /// </summary>
+    /// <param name="rule">The match rule defining which messages to receive.</param>
+    /// <param name="handler">Callback invoked for matched messages and completion notifications.</param>
+    /// <param name="synchronizationContext">The synchronization context to invoke the handler on.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> AddMatchAsync(MatchRule rule, Action<Notification> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+        => AddMatchAsync<object>(synchronizationContext, rule, (Message message, object? state) => null!, static (observer, ex, value) => ((Action<Notification>)observer.State2!).Invoke(new Notification(observer, isCompletion: ex is not null)), readerState: state, state2: handler, state3: null, flags: flags);
 
     /// <summary>
     /// Watches for property changes.
     /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="readerState">Optional state passed to the reader delegate.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    [Obsolete("Use the overload that accepts Action<Notification<T>> instead.")]
     public ValueTask<IDisposable> WatchPropertiesChangedAsync<T>(string? sender, string? path, string @interface, MessageValueReader<T> reader, Action<Exception?, T> handler, object? readerState, bool emitOnCapturedContext, ObserverFlags flags)
     {
         if (string.IsNullOrEmpty(@interface))
@@ -366,8 +440,68 @@ public sealed partial class DBusConnection : IDisposable
     }
 
     /// <summary>
+    /// Watches for property changes.
+    /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="synchronizationContext">The synchronization context to invoke the handler on.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> WatchPropertiesChangedAsync<T>(string? sender, string? path, string @interface, MessageValueReader<T> reader, Action<Notification<T>> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Interface = "org.freedesktop.DBus.Properties",
+            Member = "PropertiesChanged",
+            Arg0 = @interface
+        };
+        return AddMatchAsync(rule, reader, handler, synchronizationContext, flags, state);
+    }
+
+    /// <summary>
+    /// Watches for property changes.
+    /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> WatchPropertiesChangedAsync<T>(string? sender, string? path, string @interface, MessageValueReader<T> reader, Action<Notification<T>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        => WatchPropertiesChangedAsync(sender, path, @interface, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
+    /// <summary>
     /// Watches for a D-Bus signal.
     /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="signal">The signal name.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="readerState">Optional state passed to the reader delegate.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    [Obsolete("Use the overload that accepts Action<Notification<T>> instead.")]
     public ValueTask<IDisposable> WatchSignalAsync<T>(string? sender, string? path, string @interface, string signal, MessageValueReader<T> reader, Action<Exception?, T> handler, object? readerState, bool emitOnCapturedContext, ObserverFlags flags)
     {
         if (string.IsNullOrEmpty(@interface))
@@ -388,6 +522,118 @@ public sealed partial class DBusConnection : IDisposable
     /// <summary>
     /// Watches for a D-Bus signal.
     /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="signal">The signal name.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="synchronizationContext">The synchronization context to invoke the handler on.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> WatchSignalAsync<T>(string? sender, string? path, string @interface, string signal, MessageValueReader<T> reader, Action<Notification<T>> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        if (string.IsNullOrEmpty(signal))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(signal));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Member = signal,
+            Interface = @interface
+        };
+        return AddMatchAsync(rule, reader, handler, synchronizationContext, flags, state);
+    }
+
+    /// <summary>
+    /// Watches for a D-Bus signal.
+    /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="signal">The signal name.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="synchronizationContext">The synchronization context to invoke the handler on.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> WatchSignalAsync(string? sender, string? path, string @interface, string signal, Action<Notification> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        if (string.IsNullOrEmpty(signal))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(signal));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Member = signal,
+            Interface = @interface
+        };
+        return AddMatchAsync(rule, handler, synchronizationContext, flags, state);
+    }
+
+    /// <summary>
+    /// Watches for a D-Bus signal.
+    /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="signal">The signal name.</param>
+    /// <param name="reader">Delegate to read values from matched messages.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> WatchSignalAsync<T>(string? sender, string? path, string @interface, string signal, MessageValueReader<T> reader, Action<Notification<T>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        => WatchSignalAsync(sender, path, @interface, signal, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
+    /// <summary>
+    /// Watches for a D-Bus signal.
+    /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="signal">The signal name.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <param name="state">Optional state object.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    /// <remarks>
+    /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
+    /// </remarks>
+    public ValueTask<IDisposable> WatchSignalAsync(string? sender, string? path, string @interface, string signal, Action<Notification> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        => WatchSignalAsync(sender, path, @interface, signal, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
+    /// <summary>
+    /// Watches for a D-Bus signal.
+    /// </summary>
+    /// <param name="sender">The sender to match (optional).</param>
+    /// <param name="path">The object path to match (optional).</param>
+    /// <param name="interface">The interface name.</param>
+    /// <param name="signal">The signal name.</param>
+    /// <param name="handler">Callback invoked for matched signals and completion notifications.</param>
+    /// <param name="readerState">Optional state passed to the reader delegate.</param>
+    /// <param name="emitOnCapturedContext">Whether to invoke the handler on the current synchronization context.</param>
+    /// <param name="flags">Observer behavior flags.</param>
+    /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
+    [Obsolete("Use the overload that accepts Action<Notification> instead.")]
     public ValueTask<IDisposable> WatchSignalAsync(string? sender, string? path, string @interface, string signal, Action<Exception?> handler, object? readerState, bool emitOnCapturedContext, ObserverFlags flags)
     {
         if (string.IsNullOrEmpty(@interface))
@@ -556,4 +802,10 @@ public sealed partial class DBusConnection : IDisposable
     }
 
     internal uint GetNextSerial() => (uint)Interlocked.Increment(ref _nextSerial);
+
+    private async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<InnerConnection.Observer, Exception?, T> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
+    {
+        InnerConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
+        return await connection.AddMatchAsync(synchronizationContext, rule, valueReader, valueHandler, readerState: readerState, state2: state2, state3: state3, flags: flags).ConfigureAwait(false);
+    }
 }

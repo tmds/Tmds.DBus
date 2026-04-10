@@ -573,10 +573,14 @@ namespace Tmds.DBus.Tool
 
                 EndBlock(); // method
 
-                // WatchPropertiesChangedAsync
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Exception?, {propertiesInterfaceName}> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)");
+                // WatchPropertiesChangedAsync simple overload
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<{propertiesInterfaceName}> handler, bool emitOnCapturedContext = true)");
+                AppendLine($"    => WatchPropertiesChangedAsync(static (Notification<{propertiesInterfaceName}> n) => ((Action<{propertiesInterfaceName}>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);");
+
+                // WatchPropertiesChangedAsync with Notification
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<{propertiesInterfaceName}>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
                 StartBlock();
-                AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, this, emitOnCapturedContext, flags);");
+                AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);");
                 AppendLine($"static {propertiesInterfaceName} ReadMessage(Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
@@ -657,17 +661,22 @@ namespace Tmds.DBus.Tool
 
             var args = signalXml.Elements("arg").Select(ToArgument).ToArray();
             string watchType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetReadType : TupleOf(args.Select(arg => $"{arg.DotnetReadType} {arg.NameUpper}"));
-            string methodArg = watchType == null ? $"Action<Exception?>" : $"Action<Exception?, {watchType}>";
             string dotnetMethodName = "Watch" + Prettify(dbusSignalName) + "Async";
-            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({methodArg} handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)");
+
+            string simpleHandlerArg = watchType == null ? "Action" : $"Action<{watchType}>";
+            string simpleNotificationHandler = watchType == null ? "static (Notification n) => ((Action)n.State!)()" : $"static (Notification<{watchType}> n) => ((Action<{watchType}>)n.State!)(n.Value)";
+            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({simpleHandlerArg} handler, bool emitOnCapturedContext = true)");
+            AppendLine($"    => {dotnetMethodName}({simpleNotificationHandler}, ObserverFlags.None, emitOnCapturedContext, handler);");
+            string handlerContextMethodArg = watchType == null ? "Action<Notification>" : $"Action<Notification<{watchType}>>";
+            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({handlerContextMethodArg} handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
             if (watchType == null)
             {
-                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", handler, this, emitOnCapturedContext, flags);");
+                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", handler, flags, emitOnCapturedContext, state);");
             }
             else
             {
                 string readMessageName = GetReadMessageMethodName(args, variant: false);
-                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", (Message m, object? s) => MessageReader.{readMessageName}(m), handler, this, emitOnCapturedContext, flags);");
+                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", (Message m, object? s) => MessageReader.{readMessageName}(m), handler, flags, emitOnCapturedContext, state);");
             }
         }
 

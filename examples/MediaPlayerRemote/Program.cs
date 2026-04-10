@@ -96,13 +96,8 @@ class Player
 
         return watcher;
 
-        async void OnPropertiesChanged(Exception? ex, IPlayerProperties props)
+        async void OnPropertiesChanged(IPlayerProperties props)
         {
-            if (ex is not null)
-            {
-                return;
-            }
-
             if (props.HasMetadataChanged)
             {
                 try

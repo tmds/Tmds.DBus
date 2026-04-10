@@ -76,6 +76,18 @@ static class ThrowHelper
         throw new IOException("Connection closed by peer");
     }
 
+    [DoesNotReturn]
+    internal static void ThrowNotificationValueNotAvailable()
+    {
+        throw new InvalidOperationException("Value is not available. Check HasValue before accessing Value.");
+    }
+
+    [DoesNotReturn]
+    internal static void ThrowNotificationExceptionNotAvailable()
+    {
+        throw new InvalidOperationException("Exception is not available. Check IsCompletion before accessing Exception.");
+    }
+
     internal static string SignatureToStringNoThrow(ReadOnlySpan<byte> signature)
     {
         try

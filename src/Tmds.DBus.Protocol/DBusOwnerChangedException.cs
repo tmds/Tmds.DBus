@@ -3,7 +3,7 @@ namespace Tmds.DBus.Protocol;
 /// <summary>
 /// The exception that is thrown when the owner of a D-Bus well-known name has changed.
 /// </summary>
-public class DBusOwnerChangedException : DBusMessageException
+public sealed class DBusOwnerChangedException : DBusMessageException
 {
     /// <summary>
     /// Initializes a new instance of the DBusOwnerChangedException class.

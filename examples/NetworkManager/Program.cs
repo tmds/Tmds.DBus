@@ -34,15 +34,11 @@ while (true)
             var interfaceName = await device.GetInterfaceAsync();
 
             Console.WriteLine($"Subscribing for state changes of '{interfaceName}'.");
-
             // The observers are automatically disposed when the owner of the name changes because the sender uses the NameOwnerWatcher owner.
             await device.WatchStateChangedAsync(
-                (Exception? ex, (DeviceState NewState, DeviceState OldState, uint Reason) change) =>
+                change =>
                 {
-                    if (ex is null)
-                    {
-                        Console.WriteLine($"Interface '{interfaceName}' changed from '{change.OldState}' to '{change.NewState}'.");
-                    }
+                    Console.WriteLine($"Interface '{interfaceName}' changed from '{(DeviceState)change.OldState}' to '{(DeviceState)change.NewState}'.");
                 });
         }
 
@@ -59,8 +55,6 @@ while (true)
 
 namespace NetworkManager.DBus
 {
-    using System.Threading.Tasks;
-
     enum DeviceState : uint
     {
         Unknown = 0,
@@ -76,26 +70,5 @@ namespace NetworkManager.DBus
         Activated = 100,
         Deactivating = 110,
         Failed = 120
-    }
-
-    partial class Device
-    {
-        public ValueTask<IDisposable> WatchStateChangedAsync(Action<Exception?, (DeviceState NewState, DeviceState OldState, uint Reason)> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None)
-        {
-            return Connection.WatchSignalAsync(
-                Destination,
-                Path,
-                DBusInterfaceName,
-                "StateChanged",
-                (Message m, object? s) =>
-                {
-                    var reader = m.GetBodyReader();
-                    return ((DeviceState)reader.ReadUInt32(), (DeviceState)reader.ReadUInt32(), reader.ReadUInt32());
-                },
-                handler,
-                this,
-                emitOnCapturedContext,
-                flags);
-        }
     }
 }

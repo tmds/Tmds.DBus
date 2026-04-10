@@ -505,6 +505,10 @@ public class SignalOwnerTests
         // Verify NoSubscribe observer received the same signals as regular observers
         Assert.Equal(signals2, signals3);
 
+        // Ensure the daemon has processed the RemoveMatch messages before sending the next signal.
+        // RemoveMatch is sent with NoReplyExpected, so we make a method call to synchronize.
+        Assert.False(await clientConnection.ReleaseNameAsync("com.example.FakeName"));
+
         // Send another signal after all subscribing observers are disposed
         SendSignal(serviceConnection);
         // Make a method call to be sure all signals that came before it are processed.

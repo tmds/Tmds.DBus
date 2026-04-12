@@ -69,63 +69,6 @@ namespace Tmds.DBus.Tool
             _sb.AppendLine(line);
         }
 
-        private static XElement MinimizeInterfaceXml(XElement interfaceXml)
-        {
-            // Create a minimal version of the interface XML by removing documentation and annotations
-            var minimalInterface = new XElement("interface", new XAttribute("name", interfaceXml.Attribute("name")!.Value));
-
-            foreach (var element in interfaceXml.Elements())
-            {
-                if (element.Name.LocalName == "method")
-                {
-                    var method = new XElement("method");
-                    if (element.Attribute("name") != null)
-                    {
-                        method.Add(new XAttribute("name", element.Attribute("name")!.Value));
-                    }
-
-                    foreach (var arg in element.Elements().Where(e => e.Name.LocalName == "arg"))
-                    {
-                        var minimalArg = new XElement("arg");
-                        if (arg.Attribute("type") != null) minimalArg.Add(new XAttribute("type", arg.Attribute("type")!.Value));
-                        if (arg.Attribute("name") != null) minimalArg.Add(new XAttribute("name", arg.Attribute("name")!.Value));
-                        if (arg.Attribute("direction") != null) minimalArg.Add(new XAttribute("direction", arg.Attribute("direction")!.Value));
-                        method.Add(minimalArg);
-                    }
-
-                    minimalInterface.Add(method);
-                }
-                else if (element.Name.LocalName == "property")
-                {
-                    var property = new XElement("property");
-                    if (element.Attribute("name") != null) property.Add(new XAttribute("name", element.Attribute("name")!.Value));
-                    if (element.Attribute("type") != null) property.Add(new XAttribute("type", element.Attribute("type")!.Value));
-                    if (element.Attribute("access") != null) property.Add(new XAttribute("access", element.Attribute("access")!.Value));
-                    minimalInterface.Add(property);
-                }
-                else if (element.Name.LocalName == "signal")
-                {
-                    var signal = new XElement("signal");
-                    if (element.Attribute("name") != null)
-                    {
-                        signal.Add(new XAttribute("name", element.Attribute("name")!.Value));
-                    }
-
-                    foreach (var arg in element.Elements().Where(e => e.Name.LocalName == "arg"))
-                    {
-                        var minimalArg = new XElement("arg");
-                        if (arg.Attribute("type") != null) minimalArg.Add(new XAttribute("type", arg.Attribute("type")!.Value));
-                        if (arg.Attribute("name") != null) minimalArg.Add(new XAttribute("name", arg.Attribute("name")!.Value));
-                        signal.Add(minimalArg);
-                    }
-
-                    minimalInterface.Add(signal);
-                }
-            }
-
-            return minimalInterface;
-        }
-
         public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions, bool generateProxies, bool generateHandlers)
         {
             _sb.Clear();
@@ -181,26 +124,6 @@ namespace Tmds.DBus.Tool
             return _sb.ToString();
         }
 
-        private void AppendDBusHandlerExtension()
-        {
-            AppendLine("static class DBusHandlerExtensions");
-            StartBlock();
-
-            AppendLine("public static DBusHandler.DBusMethod FindMethodHandler(this DBusHandler handler, MethodContext context)");
-            StartBlock();
-            foreach (var (ns, interfaceName, handlerInterfaceName) in _generatedHandlers)
-            {
-                AppendLine($"if (handler is {ns}.{handlerInterfaceName} && context.Request.InterfaceAsString == \"{interfaceName}\")");
-                StartBlock();
-                AppendLine($"return {ns}.{handlerInterfaceName}.Helper.FindMethodHandler(context);");
-                EndBlock();
-            }
-            AppendLine("return default;");
-            EndBlock();
-
-            EndBlock();
-        }
-
         public string GenerateShared()
         {
             _sb.Clear();
@@ -228,8 +151,6 @@ namespace Tmds.DBus.Tool
 
             var allInterfaces = _allInterfaces.OrderBy(x => x).ToList();
 
-            // --- enum ---
-
             // Generate DBusInterface Flags enum inside DBusHandler
             AppendLine("// Identifies the D-Bus interfaces. Used with ShouldSkip to filter interfaces per path.");
             AppendLine("[Flags]");
@@ -240,7 +161,7 @@ namespace Tmds.DBus.Tool
             int flagValue = 2;
             foreach (var interfaceName in allInterfaces)
             {
-                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
+                string enumName = InterfaceNameToEnumValueName(interfaceName);
                 AppendLine($"{enumName} = {flagValue},");
                 flagValue *= 2;
             }
@@ -252,7 +173,7 @@ namespace Tmds.DBus.Tool
             {
                 if (_interfaceXmls.TryGetValue(interfaceName, out var xml))
                 {
-                    string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
+                    string enumName = InterfaceNameToEnumValueName(interfaceName);
                     AppendLine($"private static ReadOnlyMemory<byte> {enumName}Xml {{ get; }} =");
                     _indentation++;
                     AppendLine("\"\"\"");
@@ -289,12 +210,8 @@ namespace Tmds.DBus.Tool
                 }
             }
 
-            // --- fields ---
-
             AppendLine("private readonly SendOrPostCallback? _postDelegate;");
             AppendLine("");
-
-            // --- constants ---
 
             // Add private const for OrgFreedesktopDBusIntrospectable
             AppendLine("private const DBusInterface OrgFreedesktopDBusIntrospectable = (DBusInterface)1;");
@@ -306,7 +223,7 @@ namespace Tmds.DBus.Tool
             {
                 if (_interfacesWithProperties.Contains(interfaceName))
                 {
-                    string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
+                    string enumName = InterfaceNameToEnumValueName(interfaceName);
                     interfacesWithPropertiesFlags.Add($"DBusInterface.{enumName}");
                 }
             }
@@ -321,8 +238,6 @@ namespace Tmds.DBus.Tool
                 AppendLine("private const DBusInterface InterfacesWithProperties = 0;");
                 AppendLine("");
             }
-
-            // --- properties ---
 
             AppendLine("public string Path { get; }");
             AppendLine("public bool HandlesChildPaths { get; }");
@@ -414,7 +329,7 @@ namespace Tmds.DBus.Tool
             // Check each interface flag and add corresponding XML
             foreach (var interfaceName in allInterfaces)
             {
-                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
+                string enumName = InterfaceNameToEnumValueName(interfaceName);
                 AppendLine($"if ((interfaces & DBusInterface.{enumName}) != 0)");
                 StartBlock();
                 AppendLine($"interfaceXmls[count++] = {enumName}Xml;");
@@ -439,8 +354,6 @@ namespace Tmds.DBus.Tool
             EndBlock();
             AppendLine("");
 
-            // --- internal members ---
-
             // Generate DBusMethod struct inside DBusHandler
             AppendLine("internal readonly struct DBusMethod");
             StartBlock();
@@ -461,8 +374,6 @@ namespace Tmds.DBus.Tool
             EndBlock();
             EndBlock();
             AppendLine("");
-
-            // --- private methods ---
 
             AppendLine("ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)");
             StartBlock();
@@ -508,7 +419,7 @@ namespace Tmds.DBus.Tool
             StartBlock();
             foreach (var (ns, interfaceName, handlerInterfaceName) in _generatedHandlers)
             {
-                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
+                string enumName = InterfaceNameToEnumValueName(interfaceName);
                 // Skip IIntrospectable as it's now handled directly in DBusHandler
                 if (handlerInterfaceName == "IIntrospectable")
                 {
@@ -544,7 +455,7 @@ namespace Tmds.DBus.Tool
             AppendLine("\"org.freedesktop.DBus.Introspectable\" => OrgFreedesktopDBusIntrospectable,");
             foreach (var interfaceName in allInterfaces)
             {
-                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
+                string enumName = InterfaceNameToEnumValueName(interfaceName);
                 AppendLine($"\"{interfaceName}\" => DBusInterface.{enumName},");
             }
             AppendLine("_ => default");
@@ -582,7 +493,7 @@ namespace Tmds.DBus.Tool
                     continue;
                 }
 
-                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
+                string enumName = InterfaceNameToEnumValueName(interfaceName);
                 AppendLine($"if (!ShouldSkip(DBusInterface.{enumName}, path) && this is {ns}.{handlerInterfaceName})");
                 StartBlock();
                 AppendLine($"interfaces |= DBusInterface.{enumName};");
@@ -828,7 +739,6 @@ namespace Tmds.DBus.Tool
 
             if (readableProperties.Any() || writableProperties.Any())
             {
-
                 // Single method that returns int for all properties
                 AppendLine("public static int GetPropertyValue(string propertyName)");
                 StartBlock();
@@ -985,16 +895,13 @@ namespace Tmds.DBus.Tool
 
             if (readableProperties.Any())
             {
-                // Add HandleGetPropertyAsync method
                 AppendLine("ValueTask HandleGetPropertyAsync(GetPropertyContext context);");
 
-                // Add HandleGetAllPropertiesAsync method
                 AppendLine("ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);");
             }
 
             if (writableProperties.Any())
             {
-                // Add HandleSetPropertyAsync method
                 AppendLine("ValueTask HandleSetPropertyAsync(SetPropertyContext context);");
             }
 
@@ -1023,9 +930,9 @@ namespace Tmds.DBus.Tool
                 AppendLine($"{returnType} {dotnetMethodName}Async({parameters});");
             }
 
-            // Generate GetPropertyContext if there are readable properties
             if (readableProperties.Any())
             {
+                // Generate GetPropertyContext
                 string propertyEnumName = $"{name}Property";
                 AppendLine("readonly struct GetPropertyContext : IDisposable");
                 StartBlock();
@@ -1140,9 +1047,9 @@ namespace Tmds.DBus.Tool
                 EndBlock();
             }
 
-            // Generate SetPropertyContext if there are writable properties
             if (writableProperties.Any())
             {
+                // Generate SetPropertyContext
                 string writablePropertyEnumName = $"Writable{name}Property";
                 AppendLine("readonly struct SetPropertyContext : IDisposable");
                 StartBlock();
@@ -1245,7 +1152,6 @@ namespace Tmds.DBus.Tool
                 }
             }
 
-            // Property enum: needed by both proxies and handlers
             if (readableProperties.Any())
             {
                 string propertyEnumName = $"{name}Property";
@@ -1261,7 +1167,6 @@ namespace Tmds.DBus.Tool
                 EndBlock();
             }
 
-            // IReadableXxxProperties: needed by both proxies and handlers
             if (readableProperties.Any())
             {
                 AppendLine($"interface IReadable{name}Properties");
@@ -1275,7 +1180,7 @@ namespace Tmds.DBus.Tool
 
             if (generateHandlers)
             {
-                // WritableProperty enum: handler only
+                // WritableProperty enum
                 if (writableProperties.Any())
                 {
                     string writablePropertyEnumName = $"Writable{name}Property";
@@ -1302,7 +1207,7 @@ namespace Tmds.DBus.Tool
                     EndBlock();
                 }
 
-                // IXxxProperties: handler only
+                // IXxxProperties
                 if (readableProperties.Any() || writableProperties.Any())
                 {
                     string propertiesInterfaceName = $"I{name}Properties";
@@ -2234,9 +2139,6 @@ namespace Tmds.DBus.Tool
             return type + "?";
         }
 
-
-
-
         private static string GetDotnetType(string signature, bool readNotWrite)
         {
             SignatureReader reader = new SignatureReader(Encoding.UTF8.GetBytes(signature));
@@ -2411,8 +2313,65 @@ namespace Tmds.DBus.Tool
             return name;
         }
 
-        private static string ConvertInterfaceNameToEnumValueName(string interfaceName)
+        private static string InterfaceNameToEnumValueName(string interfaceName)
             => string.Concat(interfaceName.Split('.').Select(part => Prettify(part)));
+
+        private static XElement MinimizeInterfaceXml(XElement interfaceXml)
+        {
+            // Create a minimal version of the interface XML by removing documentation and annotations
+            var minimalInterface = new XElement("interface", new XAttribute("name", interfaceXml.Attribute("name")!.Value));
+
+            foreach (var element in interfaceXml.Elements())
+            {
+                if (element.Name.LocalName == "method")
+                {
+                    var method = new XElement("method");
+                    if (element.Attribute("name") != null)
+                    {
+                        method.Add(new XAttribute("name", element.Attribute("name")!.Value));
+                    }
+
+                    foreach (var arg in element.Elements().Where(e => e.Name.LocalName == "arg"))
+                    {
+                        var minimalArg = new XElement("arg");
+                        if (arg.Attribute("type") != null) minimalArg.Add(new XAttribute("type", arg.Attribute("type")!.Value));
+                        if (arg.Attribute("name") != null) minimalArg.Add(new XAttribute("name", arg.Attribute("name")!.Value));
+                        if (arg.Attribute("direction") != null) minimalArg.Add(new XAttribute("direction", arg.Attribute("direction")!.Value));
+                        method.Add(minimalArg);
+                    }
+
+                    minimalInterface.Add(method);
+                }
+                else if (element.Name.LocalName == "property")
+                {
+                    var property = new XElement("property");
+                    if (element.Attribute("name") != null) property.Add(new XAttribute("name", element.Attribute("name")!.Value));
+                    if (element.Attribute("type") != null) property.Add(new XAttribute("type", element.Attribute("type")!.Value));
+                    if (element.Attribute("access") != null) property.Add(new XAttribute("access", element.Attribute("access")!.Value));
+                    minimalInterface.Add(property);
+                }
+                else if (element.Name.LocalName == "signal")
+                {
+                    var signal = new XElement("signal");
+                    if (element.Attribute("name") != null)
+                    {
+                        signal.Add(new XAttribute("name", element.Attribute("name")!.Value));
+                    }
+
+                    foreach (var arg in element.Elements().Where(e => e.Name.LocalName == "arg"))
+                    {
+                        var minimalArg = new XElement("arg");
+                        if (arg.Attribute("type") != null) minimalArg.Add(new XAttribute("type", arg.Attribute("type")!.Value));
+                        if (arg.Attribute("name") != null) minimalArg.Add(new XAttribute("name", arg.Attribute("name")!.Value));
+                        signal.Add(minimalArg);
+                    }
+
+                    minimalInterface.Add(signal);
+                }
+            }
+
+            return minimalInterface;
+        }
 
         private static readonly string[] s_keywords = new[] {
             "yield",

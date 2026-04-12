@@ -84,7 +84,6 @@ namespace Tmds.DBus.Tool
                         method.Add(new XAttribute("name", element.Attribute("name")!.Value));
                     }
 
-                    // Add args
                     foreach (var arg in element.Elements().Where(e => e.Name.LocalName == "arg"))
                     {
                         var minimalArg = new XElement("arg");
@@ -112,7 +111,6 @@ namespace Tmds.DBus.Tool
                         signal.Add(new XAttribute("name", element.Attribute("name")!.Value));
                     }
 
-                    // Add args
                     foreach (var arg in element.Elements().Where(e => e.Name.LocalName == "arg"))
                     {
                         var minimalArg = new XElement("arg");
@@ -153,15 +151,16 @@ namespace Tmds.DBus.Tool
             {
                 try
                 {
+                    AppendPropertyTypes(interf.Name, interf.InterfaceXml, generateProxies, generateHandlers);
                     if (generateProxies)
                     {
-                        AppendProxyForInterface(interf.Name, interf.InterfaceXml);
+                        AppendProxyClass(interf.Name, interf.InterfaceXml);
                     }
                     if (generateHandlers)
                     {
-                        AppendHandlerForInterface(ns, interf.Name, interf.InterfaceXml);
+                        AppendHandlerTypesForInterface(ns, interf.Name, interf.InterfaceXml);
+                        AppendSignalsClass(interf.Name, interf.InterfaceXml);
                     }
-                    AppendSignalsClass(interf.Name, interf.InterfaceXml);
                 }
                 catch (Exception ex)
                 {
@@ -808,108 +807,14 @@ namespace Tmds.DBus.Tool
             EndBlock();
         }
 
-        private void AppendHandlerForInterface(string ns, string name, XElement interfaceXml)
+        private void AppendHandlerTypesForInterface(string ns, string name, XElement interfaceXml)
         {
             string interfaceName = (string)interfaceXml.Attribute("name");
-            _allInterfaces.Add(interfaceName);
-            _interfaceXmls[interfaceName] = interfaceXml;
 
-            // Generate Property enum for readable properties (read + readwrite)
             var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument).ToArray();
             var readWriteProperties = ReadWriteProperties(interfaceXml).Select(ToArgument).ToArray();
             var writeOnlyProperties = WriteOnlyProperties(interfaceXml).Select(ToArgument).ToArray();
             var writableProperties = WritableProperties(interfaceXml).Select(ToArgument).ToArray();
-
-            // Track if this interface has any properties
-            if (readableProperties.Any() || writableProperties.Any())
-            {
-                _interfacesWithProperties.Add(interfaceName);
-            }
-
-            if (readableProperties.Any())
-            {
-                string propertyEnumName = $"{name}Property";
-                AppendLine($"enum {propertyEnumName}");
-                StartBlock();
-                AppendLine("UnknownProperty = 0,");
-                for (int i = 0; i < readableProperties.Length; i++)
-                {
-                    var property = readableProperties[i];
-                    string comma = i < readableProperties.Length - 1 ? "," : "";
-                    AppendLine($"{property.NameUpper} = {i + 1}{comma}");
-                }
-                EndBlock();
-            }
-
-            // Generate WritableProperty enum for writable properties
-            if (writableProperties.Any())
-            {
-                string writablePropertyEnumName = $"{name}WritableProperty";
-                AppendLine($"enum {writablePropertyEnumName}");
-                StartBlock();
-                AppendLine("UnknownProperty = 0,");
-
-                // First, add readwrite properties with the same values as in Property enum
-                foreach (var property in readWriteProperties)
-                {
-                    // Find the index in readableProperties to get the same value
-                    int index = Array.FindIndex(readableProperties, p => p.Name == property.Name);
-                    if (index >= 0)
-                    {
-                        AppendLine($"{property.NameUpper} = {index + 1},");
-                    }
-                }
-
-                // Then, add write-only properties starting at the next available number
-                int nextValue = readableProperties.Length + 1;
-                for (int i = 0; i < writeOnlyProperties.Length; i++)
-                {
-                    var property = writeOnlyProperties[i];
-                    string comma = i < writeOnlyProperties.Length - 1 ? "," : "";
-                    AppendLine($"{property.NameUpper} = {nextValue + i}{comma}");
-                }
-                EndBlock();
-            }
-
-            // Generate IReadableXxxProperties interface with read-only getters
-            string readablePropertiesInterfaceName = $"IReadable{name}Properties";
-            if (readableProperties.Any())
-            {
-                AppendLine($"interface {readablePropertiesInterfaceName}");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ get; }}");
-                }
-                EndBlock();
-            }
-
-            // Generate IXxxProperties interface with non-nullable typed accessors
-            if (readableProperties.Any() || writableProperties.Any())
-            {
-                string propertiesInterfaceName = $"I{name}Properties";
-                string baseInterface = readableProperties.Any() ? $" : {readablePropertiesInterfaceName}" : "";
-                AppendLine($"interface {propertiesInterfaceName}{baseInterface}");
-                StartBlock();
-
-                // Read-write properties get a setter (getter is inherited from IReadableXxxProperties)
-                foreach (var property in readableProperties)
-                {
-                    bool isWritable = writableProperties.Any(w => w.Name == property.Name);
-                    if (isWritable)
-                    {
-                        AppendLine($"new {property.DotnetReadType} {property.NameUpper} {{ get; set; }}");
-                    }
-                }
-
-                // Write-only properties get only a setter
-                foreach (var property in writeOnlyProperties)
-                {
-                    AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ set; }}");
-                }
-
-                EndBlock();
-            }
 
             AppendLine($"interface I{name}");
             StartBlock();
@@ -1238,7 +1143,7 @@ namespace Tmds.DBus.Tool
             // Generate SetPropertyContext if there are writable properties
             if (writableProperties.Any())
             {
-                string writablePropertyEnumName = $"{name}WritableProperty";
+                string writablePropertyEnumName = $"Writable{name}Property";
                 AppendLine("readonly struct SetPropertyContext : IDisposable");
                 StartBlock();
 
@@ -1318,6 +1223,296 @@ namespace Tmds.DBus.Tool
             }
 
             EndBlock();
+        }
+
+        private void AppendPropertyTypes(string name, XElement interfaceXml, bool generateProxies, bool generateHandlers)
+        {
+            string interfaceName = (string)interfaceXml.Attribute("name");
+
+            var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument).ToArray();
+            var readWriteProperties = ReadWriteProperties(interfaceXml).Select(ToArgument).ToArray();
+            var writeOnlyProperties = WriteOnlyProperties(interfaceXml).Select(ToArgument).ToArray();
+            var writableProperties = WritableProperties(interfaceXml).Select(ToArgument).ToArray();
+
+            if (generateHandlers)
+            {
+                _allInterfaces.Add(interfaceName);
+                _interfaceXmls[interfaceName] = interfaceXml;
+
+                if (readableProperties.Any() || writableProperties.Any())
+                {
+                    _interfacesWithProperties.Add(interfaceName);
+                }
+            }
+
+            // Property enum: needed by both proxies and handlers
+            if (readableProperties.Any())
+            {
+                string propertyEnumName = $"{name}Property";
+                AppendLine($"enum {propertyEnumName}");
+                StartBlock();
+                AppendLine("UnknownProperty = 0,");
+                for (int i = 0; i < readableProperties.Length; i++)
+                {
+                    var property = readableProperties[i];
+                    string comma = i < readableProperties.Length - 1 ? "," : "";
+                    AppendLine($"{property.NameUpper} = {i + 1}{comma}");
+                }
+                EndBlock();
+            }
+
+            // IReadableXxxProperties: needed by both proxies and handlers
+            if (readableProperties.Any())
+            {
+                AppendLine($"interface IReadable{name}Properties");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ get; }}");
+                }
+                EndBlock();
+            }
+
+            if (generateHandlers)
+            {
+                // WritableProperty enum: handler only
+                if (writableProperties.Any())
+                {
+                    string writablePropertyEnumName = $"Writable{name}Property";
+                    AppendLine($"enum {writablePropertyEnumName}");
+                    StartBlock();
+                    AppendLine("UnknownProperty = 0,");
+
+                    foreach (var property in readWriteProperties)
+                    {
+                        int index = Array.FindIndex(readableProperties, p => p.Name == property.Name);
+                        if (index >= 0)
+                        {
+                            AppendLine($"{property.NameUpper} = {index + 1},");
+                        }
+                    }
+
+                    int nextValue = readableProperties.Length + 1;
+                    for (int i = 0; i < writeOnlyProperties.Length; i++)
+                    {
+                        var property = writeOnlyProperties[i];
+                        string comma = i < writeOnlyProperties.Length - 1 ? "," : "";
+                        AppendLine($"{property.NameUpper} = {nextValue + i}{comma}");
+                    }
+                    EndBlock();
+                }
+
+                // IXxxProperties: handler only
+                if (readableProperties.Any() || writableProperties.Any())
+                {
+                    string propertiesInterfaceName = $"I{name}Properties";
+                    string baseInterface = readableProperties.Any() ? $" : IReadable{name}Properties" : "";
+                    AppendLine($"interface {propertiesInterfaceName}{baseInterface}");
+                    StartBlock();
+
+                    foreach (var property in readableProperties)
+                    {
+                        bool isWritable = writableProperties.Any(w => w.Name == property.Name);
+                        if (isWritable)
+                        {
+                            AppendLine($"new {property.DotnetReadType} {property.NameUpper} {{ get; set; }}");
+                        }
+                    }
+
+                    foreach (var property in writeOnlyProperties)
+                    {
+                        AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ set; }}");
+                    }
+
+                    EndBlock();
+                }
+            }
+
+            if (generateProxies)
+            {
+                if (readableProperties.Any())
+                {
+                    string propertiesClassName = $"{name}Properties";
+                    string propertyEnumName = $"{name}Property";
+                    string nullableInterfaceName = $"INullable{propertiesClassName}";
+                    string changedInterfaceName = $"IChanged{propertiesClassName}";
+
+                    if (readableProperties.Length > 64)
+                    {
+                        throw new NotSupportedException($"Interface '{name}' has {readableProperties.Length} readable properties, but the maximum supported is 64.");
+                    }
+
+                    AppendLine($"interface {nullableInterfaceName}");
+                    StartBlock();
+                    foreach (var property in readableProperties)
+                    {
+                        AppendLine($"{GetNullableType(property.DotnetReadType)} {property.NameUpper} {{ get; }}");
+                    }
+                    AppendLine("bool AreAllPropertiesSet();");
+                    AppendLine($"{propertiesClassName} EnsureAllPropertiesSet();");
+                    EndBlock();
+
+                    AppendLine($"interface {changedInterfaceName} : {nullableInterfaceName}");
+                    StartBlock();
+                    foreach (var property in readableProperties)
+                    {
+                        AppendLine($"bool Has{property.NameUpper}Changed {{ get; }}");
+                    }
+                    EndBlock();
+
+                    AppendLine($"sealed class {propertiesClassName} : {changedInterfaceName}, IReadable{name}Properties");
+                    StartBlock();
+
+                    string flagType = readableProperties.Length <= 32 ? "uint" : "ulong";
+                    string one = readableProperties.Length <= 32 ? "1U" : "1UL";
+
+                    string allSetValue;
+                    if (readableProperties.Length <= 32)
+                    {
+                        uint value = readableProperties.Length == 32 ? uint.MaxValue : (1U << readableProperties.Length) - 1;
+                        allSetValue = $"0x{value:X}U";
+                    }
+                    else
+                    {
+                        ulong value = readableProperties.Length == 64 ? ulong.MaxValue : (1UL << readableProperties.Length) - 1;
+                        allSetValue = $"0x{value:X}UL";
+                    }
+
+                    AppendLine($"private {flagType} __set;");
+                    AppendLine($"private {flagType} __invalidated;");
+                    AppendLine($"private const {flagType} PropertiesAllSet = {allSetValue}; // {readableProperties.Length} properties");
+
+                    AppendLine($"private static {flagType} Flag({propertyEnumName} property) => property == 0 ? 0 : {one} << ((int)property - 1);");
+
+                    AppendLine($"public {propertiesClassName}() {{ }}");
+                    AppendLine("#nullable disable");
+                    AppendLine("[System.Diagnostics.CodeAnalysis.SetsRequiredMembers]");
+                    AppendLine($"private {propertiesClassName}(bool _) {{ }}");
+                    AppendLine("#nullable enable");
+
+                    AppendLine($"private void EnsureSet({propertyEnumName} property)");
+                    StartBlock();
+                    AppendLine("if (!HasFlag(__set, property))");
+                    StartBlock();
+                    AppendLine("throw new InvalidOperationException(\"Property is not set.\");");
+                    EndBlock();
+                    EndBlock();
+
+                    foreach (var property in readableProperties)
+                    {
+                        AppendLine($"private {property.DotnetReadType} {property.UnderscoreNameLower} = default!;");
+                        AppendLine($"public required {property.DotnetReadType} {property.NameUpper}");
+                        StartBlock();
+                        AppendLine($"get {{ EnsureSet({propertyEnumName}.{property.NameUpper}); return {property.UnderscoreNameLower}; }}");
+                        AppendLine($"set {{ {property.UnderscoreNameLower} = value; __set |= Flag({propertyEnumName}.{property.NameUpper}); }}");
+                        EndBlock();
+                    }
+
+                    foreach (var property in readableProperties)
+                    {
+                        string nullableType = GetNullableType(property.DotnetReadType);
+                        AppendLine($"{nullableType} {nullableInterfaceName}.{property.NameUpper}");
+                        _indentation++;
+                        AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) ? {property.UnderscoreNameLower} : default({nullableType});");
+                        _indentation--;
+                    }
+
+                    foreach (var property in readableProperties)
+                    {
+                        AppendLine($"bool {changedInterfaceName}.Has{property.NameUpper}Changed");
+                        _indentation++;
+                        AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) || IsInvalidated({propertyEnumName}.{property.NameUpper});");
+                        _indentation--;
+                    }
+
+                    AppendLine($"{propertiesClassName} {nullableInterfaceName}.EnsureAllPropertiesSet()");
+                    StartBlock();
+                    AppendLine("EnsureAllPropertiesSet();");
+                    AppendLine("return this;");
+                    EndBlock();
+
+                    AppendLine($"public static {propertiesClassName} CreateUninitialized() => new {propertiesClassName}(false);");
+
+                    AppendLine($"private bool HasFlag({flagType} flags, {propertyEnumName} property)");
+                    _indentation++;
+                    AppendLine($"=> property != 0 && (flags & Flag(property)) != 0;");
+                    _indentation--;
+
+                    AppendLine($"public bool IsSet({propertyEnumName} property) => HasFlag(__set, property);");
+                    AppendLine($"public bool IsInvalidated({propertyEnumName} property) => HasFlag(__invalidated, property);");
+
+                    AppendLine($"public void SetInvalidated({propertyEnumName} property)");
+                    StartBlock();
+                    AppendLine("if (property != 0)");
+                    StartBlock();
+                    AppendLine("__invalidated |= Flag(property);");
+                    EndBlock();
+                    EndBlock();
+
+                    AppendLine($"public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
+
+                    AppendLine("public void EnsureAllPropertiesSet()");
+                    StartBlock();
+                    AppendLine("if (!AreAllPropertiesSet())");
+                    StartBlock();
+                    AppendLine("throw new DBusUnexpectedValueException($\"Not all properties have been set (0x{__set:x}).\");");
+                    EndBlock();
+                    EndBlock();
+
+                    AppendLine($"public static {propertiesClassName} ReadFrom(ref Reader reader, bool withInvalidated)");
+                    StartBlock();
+                    AppendLine($"var props = CreateUninitialized();");
+                    AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
+                    AppendLine("while (reader.HasNext(arrayEnd))");
+                    StartBlock();
+
+                    AppendLine("var property = reader.ReadString();");
+                    AppendLine("switch (property)");
+                    StartBlock();
+
+                    foreach (var property in readableProperties)
+                    {
+                        AppendLine($"case \"{property.Name}\":");
+                        _indentation++;
+                        AppendLine($"reader.ReadSignature(\"{property.Signature}\"u8);");
+                        AppendLine($"props.{property.NameUpper} = {CallReadArgumentType(property.Signature)};");
+                        AppendLine("break;");
+                        _indentation--;
+                    }
+                    AppendLine("default:");
+                    _indentation++;
+                    AppendLine($"reader.ReadVariantValue();");
+                    AppendLine("break;");
+                    _indentation--;
+
+                    EndBlock(); // switch
+
+                    EndBlock(); // while
+
+                    AppendLine("if (withInvalidated)");
+                    StartBlock();
+                    AppendLine("ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);");
+                    AppendLine("while (reader.HasNext(invalidatedEnd))");
+                    StartBlock();
+                    AppendLine("var propertyName = reader.ReadString();");
+                    AppendLine("props.__invalidated |= propertyName switch");
+                    StartBlock();
+                    foreach (var property in readableProperties)
+                    {
+                        AppendLine($"\"{property.Name}\" => Flag({propertyEnumName}.{property.NameUpper}),");
+                    }
+                    AppendLine("_ => 0");
+                    _indentation--;
+                    AppendLine("};");
+                    EndBlock(); // while
+                    EndBlock(); // if
+
+                    AppendLine("return props;");
+                    EndBlock();
+
+                    EndBlock();
+                }
+            }
         }
 
         private void AppendSignalsClass(string name, XElement interfaceXml)
@@ -1492,7 +1687,7 @@ namespace Tmds.DBus.Tool
             EndBlock();
         }
 
-        private void AppendProxyForInterface(string name, XElement interfaceXml)
+        private void AppendProxyClass(string name, XElement interfaceXml)
         {
             var readableProperties = ReadableProperties(interfaceXml).Select(ToArgument).ToArray();
             var writablePropertiesArray = WritableProperties(interfaceXml).Select(ToArgument).ToArray();
@@ -1502,193 +1697,6 @@ namespace Tmds.DBus.Tool
             string propertyEnumName = $"{name}Property";
             string nullableInterfaceName = $"INullable{propertiesClassName}";
             string changedInterfaceName = $"IChanged{propertiesClassName}";
-
-            if (readableProperties.Any())
-            {
-                // Validate property count
-                if (readableProperties.Length > 64)
-                {
-                    throw new NotSupportedException($"Interface '{name}' has {readableProperties.Length} readable properties, but the maximum supported is 64.");
-                }
-
-                AppendLine($"interface {nullableInterfaceName}");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"{GetNullableType(property.DotnetReadType)} {property.NameUpper} {{ get; }}");
-                }
-                AppendLine("bool AreAllPropertiesSet();");
-                AppendLine($"{propertiesClassName} EnsureAllPropertiesSet();");
-                EndBlock();
-
-                AppendLine($"interface {changedInterfaceName} : {nullableInterfaceName}");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"bool Has{property.NameUpper}Changed {{ get; }}");
-                }
-                EndBlock();
-
-                AppendLine($"sealed class {propertiesClassName} : {changedInterfaceName}, IReadable{name}Properties");
-                StartBlock();
-
-                // Choose uint or ulong based on number of properties
-                string flagType = readableProperties.Length <= 32 ? "uint" : "ulong";
-                string one = readableProperties.Length <= 32 ? "1U" : "1UL";
-
-                // Calculate all properties set value
-                string allSetValue;
-                if (readableProperties.Length <= 32)
-                {
-                    uint value = readableProperties.Length == 32 ? uint.MaxValue : (1U << readableProperties.Length) - 1;
-                    allSetValue = $"0x{value:X}U";
-                }
-                else
-                {
-                    ulong value = readableProperties.Length == 64 ? ulong.MaxValue : (1UL << readableProperties.Length) - 1;
-                    allSetValue = $"0x{value:X}UL";
-                }
-
-                // Generate flags fields
-                AppendLine($"private {flagType} __set;");
-                AppendLine($"private {flagType} __invalidated;");
-                AppendLine($"private const {flagType} PropertiesAllSet = {allSetValue}; // {readableProperties.Length} properties");
-
-                // Generate static Flag method
-                AppendLine($"private static {flagType} Flag({propertyEnumName} property) => property == 0 ? 0 : {one} << ((int)property - 1);");
-
-                // Generate constructors
-                AppendLine($"public {propertiesClassName}() {{ }}");
-                AppendLine("#nullable disable");
-                AppendLine("[System.Diagnostics.CodeAnalysis.SetsRequiredMembers]");
-                AppendLine($"private {propertiesClassName}(bool _) {{ }}");
-                AppendLine("#nullable enable");
-
-                // Generate EnsureSet helper method
-                AppendLine($"private void EnsureSet({propertyEnumName} property)");
-                StartBlock();
-                AppendLine("if (!HasFlag(__set, property))");
-                StartBlock();
-                AppendLine("throw new InvalidOperationException(\"Property is not set.\");");
-                EndBlock();
-                EndBlock();
-
-                // Generate properties
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"private {property.DotnetReadType} {property.UnderscoreNameLower} = default!;");
-                    AppendLine($"public required {property.DotnetReadType} {property.NameUpper}");
-                    StartBlock();
-                    AppendLine($"get {{ EnsureSet({propertyEnumName}.{property.NameUpper}); return {property.UnderscoreNameLower}; }}");
-                    AppendLine($"set {{ {property.UnderscoreNameLower} = value; __set |= Flag({propertyEnumName}.{property.NameUpper}); }}");
-                    EndBlock();
-                }
-
-                foreach (var property in readableProperties)
-                {
-                    string nullableType = GetNullableType(property.DotnetReadType);
-                    AppendLine($"{nullableType} {nullableInterfaceName}.{property.NameUpper}");
-                    _indentation++;
-                    AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) ? {property.UnderscoreNameLower} : default({nullableType});");
-                    _indentation--;
-                }
-
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"bool {changedInterfaceName}.Has{property.NameUpper}Changed");
-                    _indentation++;
-                    AppendLine($"=> IsSet({propertyEnumName}.{property.NameUpper}) || IsInvalidated({propertyEnumName}.{property.NameUpper});");
-                    _indentation--;
-                }
-
-                AppendLine($"{propertiesClassName} {nullableInterfaceName}.EnsureAllPropertiesSet()");
-                StartBlock();
-                AppendLine("EnsureAllPropertiesSet();");
-                AppendLine("return this;");
-                EndBlock();
-
-                AppendLine($"public static {propertiesClassName} CreateUninitialized() => new {propertiesClassName}(false);");
-
-                AppendLine($"private bool HasFlag({flagType} flags, {propertyEnumName} property)");
-                _indentation++;
-                AppendLine($"=> property != 0 && (flags & Flag(property)) != 0;");
-                _indentation--;
-
-                AppendLine($"public bool IsSet({propertyEnumName} property) => HasFlag(__set, property);");
-                AppendLine($"public bool IsInvalidated({propertyEnumName} property) => HasFlag(__invalidated, property);");
-
-                AppendLine($"public void SetInvalidated({propertyEnumName} property)");
-                StartBlock();
-                AppendLine("if (property != 0)");
-                StartBlock();
-                AppendLine("__invalidated |= Flag(property);");
-                EndBlock();
-                EndBlock();
-
-                AppendLine($"public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
-
-                AppendLine("public void EnsureAllPropertiesSet()");
-                StartBlock();
-                AppendLine("if (!AreAllPropertiesSet())");
-                StartBlock();
-                AppendLine("throw new DBusUnexpectedValueException($\"Not all properties have been set (0x{__set:x}).\");");
-                EndBlock();
-                EndBlock();
-
-                AppendLine($"public static {propertiesClassName} ReadFrom(ref Reader reader, bool withInvalidated)");
-                StartBlock();
-                AppendLine($"var props = CreateUninitialized();");
-                AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
-                AppendLine("while (reader.HasNext(arrayEnd))");
-                StartBlock();
-
-                AppendLine("var property = reader.ReadString();");
-                AppendLine("switch (property)");
-                StartBlock();
-
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"case \"{property.Name}\":");
-                    _indentation++;
-                    AppendLine($"reader.ReadSignature(\"{property.Signature}\"u8);");
-                    AppendLine($"props.{property.NameUpper} = {CallReadArgumentType(property.Signature)};");
-                    AppendLine("break;");
-                    _indentation--;
-                }
-                AppendLine("default:");
-                _indentation++;
-                AppendLine($"reader.ReadVariantValue();");
-                AppendLine("break;");
-                _indentation--;
-
-                EndBlock(); // switch
-
-                EndBlock(); // while
-
-                // Read invalidated properties if requested
-                AppendLine("if (withInvalidated)");
-                StartBlock();
-                AppendLine("ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);");
-                AppendLine("while (reader.HasNext(invalidatedEnd))");
-                StartBlock();
-                AppendLine("var propertyName = reader.ReadString();");
-                AppendLine("props.__invalidated |= propertyName switch");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"\"{property.Name}\" => Flag({propertyEnumName}.{property.NameUpper}),");
-                }
-                AppendLine("_ => 0");
-                _indentation--;
-                AppendLine("};");
-                EndBlock(); // while
-                EndBlock(); // if
-
-                AppendLine("return props;");
-                EndBlock();
-
-                EndBlock();
-            }
 
             AppendLine($"sealed partial class {name} : Tmds.DBus.Protocol.DBusObject");
             StartBlock();

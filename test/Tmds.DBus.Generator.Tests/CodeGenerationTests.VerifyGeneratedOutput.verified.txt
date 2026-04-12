@@ -12,6 +12,7 @@ namespace TestNamespace
     {
         double? LastResult { get; }
         ObjectPath? CurrentPath { get; }
+        (string, double)? CurrentEntry { get; }
         bool AreAllPropertiesSet();
         CalculatorProperties EnsureAllPropertiesSet();
     }
@@ -19,12 +20,13 @@ namespace TestNamespace
     {
         bool HasLastResultChanged { get; }
         bool HasCurrentPathChanged { get; }
+        bool HasCurrentEntryChanged { get; }
     }
     sealed class CalculatorProperties : IChangedCalculatorProperties, IReadableCalculatorProperties
     {
         private uint __set;
         private uint __invalidated;
-        private const uint PropertiesAllSet = 0x3U; // 2 properties
+        private const uint PropertiesAllSet = 0x7U; // 3 properties
         private static uint Flag(CalculatorProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
         public CalculatorProperties() { }
         #nullable disable
@@ -50,14 +52,24 @@ namespace TestNamespace
             get { EnsureSet(CalculatorProperty.CurrentPath); return _currentPath; }
             set { _currentPath = value; __set |= Flag(CalculatorProperty.CurrentPath); }
         }
+        private (string, double) _currentEntry = default!;
+        public required (string, double) CurrentEntry
+        {
+            get { EnsureSet(CalculatorProperty.CurrentEntry); return _currentEntry; }
+            set { _currentEntry = value; __set |= Flag(CalculatorProperty.CurrentEntry); }
+        }
         double? INullableCalculatorProperties.LastResult
             => IsSet(CalculatorProperty.LastResult) ? _lastResult : default(double?);
         ObjectPath? INullableCalculatorProperties.CurrentPath
             => IsSet(CalculatorProperty.CurrentPath) ? _currentPath : default(ObjectPath?);
+        (string, double)? INullableCalculatorProperties.CurrentEntry
+            => IsSet(CalculatorProperty.CurrentEntry) ? _currentEntry : default((string, double)?);
         bool IChangedCalculatorProperties.HasLastResultChanged
             => IsSet(CalculatorProperty.LastResult) || IsInvalidated(CalculatorProperty.LastResult);
         bool IChangedCalculatorProperties.HasCurrentPathChanged
             => IsSet(CalculatorProperty.CurrentPath) || IsInvalidated(CalculatorProperty.CurrentPath);
+        bool IChangedCalculatorProperties.HasCurrentEntryChanged
+            => IsSet(CalculatorProperty.CurrentEntry) || IsInvalidated(CalculatorProperty.CurrentEntry);
         CalculatorProperties INullableCalculatorProperties.EnsureAllPropertiesSet()
         {
             EnsureAllPropertiesSet();
@@ -100,6 +112,10 @@ namespace TestNamespace
                         reader.ReadSignature("o"u8);
                         props.CurrentPath = reader.ReadObjectPath();
                         break;
+                    case "CurrentEntry":
+                        reader.ReadSignature("(sd)"u8);
+                        props.CurrentEntry = reader.Read_rsdz();
+                        break;
                     default:
                         reader.ReadVariantValue();
                         break;
@@ -115,6 +131,7 @@ namespace TestNamespace
                     {
                         "LastResult" => Flag(CalculatorProperty.LastResult),
                         "CurrentPath" => Flag(CalculatorProperty.CurrentPath),
+                        "CurrentEntry" => Flag(CalculatorProperty.CurrentEntry),
                         _ => 0
                     };
                 }
@@ -317,6 +334,8 @@ namespace TestNamespace
             => Connection.CallMethodAsync(CreateGetPropertyMessage("LastResult"), (Message m, object? s) => MessageReader.Read_v_d(m), this);
         public Task<ObjectPath> GetCurrentPathAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentPath"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public Task<(string, double)> GetCurrentEntryAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentEntry"), (Message m, object? s) => MessageReader.Read_v_rsdz(m), this);
         public Task<CalculatorProperties> GetPropertiesAsync()
         {
             return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
@@ -377,12 +396,14 @@ namespace TestNamespace
     {
         UnknownProperty = 0,
         LastResult = 1,
-        CurrentPath = 2
+        CurrentPath = 2,
+        CurrentEntry = 3
     }
     interface IReadableCalculatorProperties
     {
         double LastResult { get; }
         ObjectPath CurrentPath { get; }
+        (string, double) CurrentEntry { get; }
     }
     interface ICalculatorProperties : IReadableCalculatorProperties
     {
@@ -397,6 +418,7 @@ namespace TestNamespace
                 {
                     "LastResult" => 1,
                     "CurrentPath" => 2,
+                    "CurrentEntry" => 3,
                     _ => 0
                 };
             }
@@ -576,6 +598,13 @@ namespace TestNamespace
                 writer.Write_v_o(value);
                 MethodContext.Reply(writer.CreateMessage());
             }
+            public void ReplyCurrentEntry((string, double) value)
+            {
+                System.Diagnostics.Debug.Assert(Property == CalculatorProperty.CurrentEntry);
+                var writer = MethodContext.CreateReplyWriter("v");
+                writer.Write_v_rsdz(value);
+                MethodContext.Reply(writer.CreateMessage());
+            }
             public void ReplyErrorUnknownProperty()
             {
                 MethodContext.ReplyError("org.freedesktop.DBus.Error.UnknownProperty", $"Unknown property: {Property}");
@@ -589,6 +618,9 @@ namespace TestNamespace
                         break;
                     case CalculatorProperty.CurrentPath:
                         ReplyCurrentPath(properties.CurrentPath);
+                        break;
+                    case CalculatorProperty.CurrentEntry:
+                        ReplyCurrentEntry(properties.CurrentEntry);
                         break;
                     default:
                         ReplyErrorUnknownProperty();
@@ -615,11 +647,14 @@ namespace TestNamespace
                 writer.WriteDictionaryEntryStart();
                 writer.WriteString("CurrentPath");
                 writer.Write_v_o(properties.CurrentPath);
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("CurrentEntry");
+                writer.Write_v_rsdz(properties.CurrentEntry);
                 writer.WriteDictionaryEnd(dictStart);
                 MethodContext.Reply(writer.CreateMessage());
                 return default;
             }
-            public ValueTask Handle(ObjectPath? currentPath = default, double? lastResult = default)
+            public ValueTask Handle((string, double)? currentEntry = default, ObjectPath? currentPath = default, double? lastResult = default)
             {
                 var writer = MethodContext.CreateReplyWriter("a{sv}");
                 var dictStart = writer.WriteDictionaryStart();
@@ -627,13 +662,19 @@ namespace TestNamespace
                 {
                     writer.WriteDictionaryEntryStart();
                     writer.WriteString("LastResult");
-                    writer.Write_v_d(lastResult.Value);
+                    writer.Write_v_d((double)lastResult);
                 }
                 if (currentPath is not null)
                 {
                     writer.WriteDictionaryEntryStart();
                     writer.WriteString("CurrentPath");
-                    writer.Write_v_o(currentPath.Value);
+                    writer.Write_v_o((ObjectPath)currentPath);
+                }
+                if (currentEntry is not null)
+                {
+                    writer.WriteDictionaryEntryStart();
+                    writer.WriteString("CurrentEntry");
+                    writer.Write_v_rsdz(((string, double))currentEntry);
                 }
                 writer.WriteDictionaryEnd(dictStart);
                 MethodContext.Reply(writer.CreateMessage());
@@ -699,6 +740,11 @@ namespace TestNamespace
                         writer.WriteString("CurrentPath");
                         writer.Write_v_o(properties.CurrentPath);
                         break;
+                    case CalculatorProperty.CurrentEntry:
+                        writer.WriteDictionaryEntryStart();
+                        writer.WriteString("CurrentEntry");
+                        writer.Write_v_rsdz(properties.CurrentEntry);
+                        break;
                 }
             }
             writer.WriteDictionaryEnd(dictStart);
@@ -713,6 +759,9 @@ namespace TestNamespace
                     case CalculatorProperty.CurrentPath:
                         writer.WriteString("CurrentPath");
                         break;
+                    case CalculatorProperty.CurrentEntry:
+                        writer.WriteString("CurrentEntry");
+                        break;
                 }
             }
             writer.WriteArrayEnd(arrayStart);
@@ -722,7 +771,7 @@ namespace TestNamespace
         {
             EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);
         }
-        public static void EmitCalculatorPropertiesChanged(this DBusConnection c, ObjectPath p, ObjectPath? currentPath = default, double? lastResult = default, ReadOnlySpan<CalculatorProperty> invalidated = default)
+        public static void EmitCalculatorPropertiesChanged(this DBusConnection c, ObjectPath p, (string, double)? currentEntry = default, ObjectPath? currentPath = default, double? lastResult = default, ReadOnlySpan<CalculatorProperty> invalidated = default)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -736,13 +785,19 @@ namespace TestNamespace
             {
                 writer.WriteDictionaryEntryStart();
                 writer.WriteString("LastResult");
-                writer.Write_v_d(lastResult.Value);
+                writer.Write_v_d((double)lastResult);
             }
             if (currentPath is not null)
             {
                 writer.WriteDictionaryEntryStart();
                 writer.WriteString("CurrentPath");
-                writer.Write_v_o(currentPath.Value);
+                writer.Write_v_o((ObjectPath)currentPath);
+            }
+            if (currentEntry is not null)
+            {
+                writer.WriteDictionaryEntryStart();
+                writer.WriteString("CurrentEntry");
+                writer.Write_v_rsdz(((string, double))currentEntry);
             }
             writer.WriteDictionaryEnd(dictStart);
             var arrayStart = writer.WriteArrayStart(DBusType.String);
@@ -755,6 +810,9 @@ namespace TestNamespace
                         break;
                     case CalculatorProperty.CurrentPath:
                         writer.WriteString("CurrentPath");
+                        break;
+                    case CalculatorProperty.CurrentEntry:
+                        writer.WriteString("CurrentEntry");
                         break;
                 }
             }
@@ -1140,13 +1198,13 @@ namespace TestNamespace
                 {
                     writer.WriteDictionaryEntryStart();
                     writer.WriteString("Theme");
-                    writer.Write_v_s(theme);
+                    writer.Write_v_s((string)theme);
                 }
                 if (language is not null)
                 {
                     writer.WriteDictionaryEntryStart();
                     writer.WriteString("Language");
-                    writer.Write_v_s(language);
+                    writer.Write_v_s((string)language);
                 }
                 writer.WriteDictionaryEnd(dictStart);
                 MethodContext.Reply(writer.CreateMessage());
@@ -1288,13 +1346,13 @@ namespace TestNamespace
             {
                 writer.WriteDictionaryEntryStart();
                 writer.WriteString("Theme");
-                writer.Write_v_s(theme);
+                writer.Write_v_s((string)theme);
             }
             if (language is not null)
             {
                 writer.WriteDictionaryEntryStart();
                 writer.WriteString("Language");
-                writer.Write_v_s(language);
+                writer.Write_v_s((string)language);
             }
             writer.WriteDictionaryEnd(dictStart);
             var arrayStart = writer.WriteArrayStart(DBusType.String);
@@ -1395,6 +1453,12 @@ namespace TestNamespace
             reader.ReadSignature("o"u8);
             return reader.ReadObjectPath();
         }
+        public static (string, double) Read_v_rsdz(Message message)
+        {
+            var reader = message.GetBodyReader();
+            reader.ReadSignature("(sd)"u8);
+            return reader.Read_rsdz();
+        }
         public static int Read_i(Message message)
         {
             var reader = message.GetBodyReader();
@@ -1436,6 +1500,11 @@ namespace TestNamespace
         {
             writer.WriteSignature("o");
             writer.WriteObjectPath(value);
+        }
+        public static void Write_v_rsdz(this ref MessageWriter writer, (string, double) value)
+        {
+            writer.WriteSignature("(sd)");
+            writer.Write_rsdz(value);
         }
         public static void Write_v_s(this ref MessageWriter writer, string value)
         {
@@ -1520,6 +1589,7 @@ namespace Tmds.DBus.Protocol
               </signal>
               <property name="LastResult" type="d" access="read" />
               <property name="CurrentPath" type="o" access="read" />
+              <property name="CurrentEntry" type="(sd)" access="read" />
             </interface>
 
             """u8.ToArray();

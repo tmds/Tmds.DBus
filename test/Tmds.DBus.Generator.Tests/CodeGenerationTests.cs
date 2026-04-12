@@ -66,6 +66,7 @@ public class CodeGenerationTests : TestsBase
                 </signal>
                 <property name="LastResult" type="d" access="read"/>
                 <property name="CurrentPath" type="o" access="read"/>
+                <property name="CurrentEntry" type="(sd)" access="read"/>
               </interface>
               <interface name="org.example.Settings">
                 <method name="Save"/>

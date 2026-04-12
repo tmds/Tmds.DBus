@@ -241,7 +241,7 @@ namespace Tmds.DBus.Tool
             int flagValue = 2;
             foreach (var interfaceName in allInterfaces)
             {
-                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
                 AppendLine($"{enumName} = {flagValue},");
                 flagValue *= 2;
             }
@@ -253,7 +253,7 @@ namespace Tmds.DBus.Tool
             {
                 if (_interfaceXmls.TryGetValue(interfaceName, out var xml))
                 {
-                    string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                    string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
                     AppendLine($"private static ReadOnlyMemory<byte> {enumName}Xml {{ get; }} =");
                     _indentation++;
                     AppendLine("\"\"\"");
@@ -307,7 +307,7 @@ namespace Tmds.DBus.Tool
             {
                 if (_interfacesWithProperties.Contains(interfaceName))
                 {
-                    string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                    string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
                     interfacesWithPropertiesFlags.Add($"DBusInterface.{enumName}");
                 }
             }
@@ -415,7 +415,7 @@ namespace Tmds.DBus.Tool
             // Check each interface flag and add corresponding XML
             foreach (var interfaceName in allInterfaces)
             {
-                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
                 AppendLine($"if ((interfaces & DBusInterface.{enumName}) != 0)");
                 StartBlock();
                 AppendLine($"interfaceXmls[count++] = {enumName}Xml;");
@@ -509,7 +509,7 @@ namespace Tmds.DBus.Tool
             StartBlock();
             foreach (var (ns, interfaceName, handlerInterfaceName) in _generatedHandlers)
             {
-                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
                 // Skip IIntrospectable as it's now handled directly in DBusHandler
                 if (handlerInterfaceName == "IIntrospectable")
                 {
@@ -545,7 +545,7 @@ namespace Tmds.DBus.Tool
             AppendLine("\"org.freedesktop.DBus.Introspectable\" => OrgFreedesktopDBusIntrospectable,");
             foreach (var interfaceName in allInterfaces)
             {
-                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
                 AppendLine($"\"{interfaceName}\" => DBusInterface.{enumName},");
             }
             AppendLine("_ => default");
@@ -583,7 +583,7 @@ namespace Tmds.DBus.Tool
                     continue;
                 }
 
-                string enumName = ConvertInterfaceNameToEnumName(interfaceName);
+                string enumName = ConvertInterfaceNameToEnumValueName(interfaceName);
                 AppendLine($"if (!ShouldSkip(DBusInterface.{enumName}, path) && this is {ns}.{handlerInterfaceName})");
                 StartBlock();
                 AppendLine($"interfaces |= DBusInterface.{enumName};");
@@ -737,52 +737,48 @@ namespace Tmds.DBus.Tool
             if (variant)
             {
                 AppendLine($"writer.WriteSignature(\"{signature}\");");
+                AppendLine($"{CallWriteArgumentType(signature, "value")};");
             }
-            SignatureReader reader = new SignatureReader(Encoding.UTF8.GetBytes(signature));
-            if (reader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
+            else
             {
-                reader = new SignatureReader(innerSignature);
-                if (type == DBusType.Array)
+                SignatureReader reader = new SignatureReader(Encoding.UTF8.GetBytes(signature));
+                if (reader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
                 {
-                    if (!reader.TryRead(out DBusType itemType, out ReadOnlySpan<byte> itemInnerSignature))
+                    reader = new SignatureReader(innerSignature);
+                    if (type == DBusType.Array)
                     {
-                        ThrowInvalidSignature(signature);
-                    }
-                    if (itemType == DBusType.DictEntry)
-                    {
-                        reader = new SignatureReader(itemInnerSignature);
-                        if (!reader.TryRead(out DBusType keyType, out ReadOnlySpan<byte> keyInnerSignature))
+                        if (!reader.TryRead(out DBusType itemType, out ReadOnlySpan<byte> itemInnerSignature))
                         {
                             ThrowInvalidSignature(signature);
                         }
-                        if (!reader.TryRead(out DBusType valueType, out ReadOnlySpan<byte> valueInnerSignature))
+                        if (itemType == DBusType.DictEntry)
                         {
-                            ThrowInvalidSignature(signature);
-                        }
+                            reader = new SignatureReader(itemInnerSignature);
+                            if (!reader.TryRead(out DBusType keyType, out ReadOnlySpan<byte> keyInnerSignature))
+                            {
+                                ThrowInvalidSignature(signature);
+                            }
+                            if (!reader.TryRead(out DBusType valueType, out ReadOnlySpan<byte> valueInnerSignature))
+                            {
+                                ThrowInvalidSignature(signature);
+                            }
 
-                        string keyTypeSignature = GetSignature(keyType, keyInnerSignature);
-                        string valueTypeSignature = GetSignature(valueType, valueInnerSignature);
+                            string keyTypeSignature = GetSignature(keyType, keyInnerSignature);
+                            string valueTypeSignature = GetSignature(valueType, valueInnerSignature);
 
-                        AppendLine($"ArrayStart arrayStart = writer.WriteDictionaryStart();");
-                        AppendLine($"foreach (var item in value)");
-                        StartBlock();
-                        AppendLine($"writer.WriteDictionaryEntryStart();");
-                        AppendLine($"{CallWriteArgumentType(keyTypeSignature, "item.Key")};");
-                        AppendLine($"{CallWriteArgumentType(valueTypeSignature, "item.Value")};");
-                        EndBlock();
-                        AppendLine($"writer.WriteDictionaryEnd(arrayStart);");
-                    }
-                    else
-                    {
-                        string dotnetItemSignature = GetSignature(itemType, itemInnerSignature);
-
-                        // For variant mode with simple arrays, check if there's a direct WriteArray method
-                        if (variant && HasDirectWriteArrayMethod(signature))
-                        {
-                            AppendLine($"{CallWriteArgumentType(signature, "value")};");
+                            AppendLine($"ArrayStart arrayStart = writer.WriteDictionaryStart();");
+                            AppendLine($"foreach (var item in value)");
+                            StartBlock();
+                            AppendLine($"writer.WriteDictionaryEntryStart();");
+                            AppendLine($"{CallWriteArgumentType(keyTypeSignature, "item.Key")};");
+                            AppendLine($"{CallWriteArgumentType(valueTypeSignature, "item.Value")};");
+                            EndBlock();
+                            AppendLine($"writer.WriteDictionaryEnd(arrayStart);");
                         }
                         else
                         {
+                            string dotnetItemSignature = GetSignature(itemType, itemInnerSignature);
+
                             AppendLine($"ArrayStart arrayStart = writer.WriteArrayStart({GetDBusTypeEnumValue(itemType)});");
                             AppendLine($"foreach (var item in value)");
                             StartBlock();
@@ -791,25 +787,17 @@ namespace Tmds.DBus.Tool
                             AppendLine($"writer.WriteArrayEnd(arrayStart);");
                         }
                     }
-                }
-                else if (type == DBusType.Struct)
-                {
-                    AppendLine($"writer.WriteStructureStart();");
-                    int i = 1;
-                    while (reader.TryRead(out DBusType fieldType, out ReadOnlySpan<byte> fieldInnerSignature))
+                    else if (type == DBusType.Struct)
                     {
-                        string fieldSignature = GetSignature(fieldType, fieldInnerSignature);
-                        string parameterName = i < 8 ? $"value.Item{i}" : $"value.Rest.Item{1 + (i % 8)}";
-                        AppendLine($"{CallWriteArgumentType(fieldSignature, parameterName)};");
-                        i++;
-                    }
-                }
-                else
-                {
-                    // For variant mode, handle basic types by calling the write method directly
-                    if (variant)
-                    {
-                        AppendLine($"{CallWriteArgumentType(signature, "value")};");
+                        AppendLine($"writer.WriteStructureStart();");
+                        int i = 1;
+                        while (reader.TryRead(out DBusType fieldType, out ReadOnlySpan<byte> fieldInnerSignature))
+                        {
+                            string fieldSignature = GetSignature(fieldType, fieldInnerSignature);
+                            string parameterName = i < 8 ? $"value.Item{i}" : $"value.Rest.Item{1 + (i % 8)}";
+                            AppendLine($"{CallWriteArgumentType(fieldSignature, parameterName)};");
+                            i++;
+                        }
                     }
                     else
                     {
@@ -1223,7 +1211,7 @@ namespace Tmds.DBus.Tool
 
                 // Handle overload that accepts all gettable properties as nullable individual arguments (alphabetically sorted)
                 var sortedReadableProperties = readableProperties.OrderBy(p => p.NameUpper).ToArray();
-                string handleArgs = string.Join(", ", sortedReadableProperties.Select(p => $"{GetNullableDotnetWriteType(p.Signature)} {p.NameLower} = default"));
+                string handleArgs = string.Join(", ", sortedReadableProperties.Select(p => $"{GetNullableType(p.DotnetWriteType)} {p.NameLower} = default"));
                 AppendLine($"public ValueTask Handle({handleArgs})");
                 StartBlock();
                 AppendLine("var writer = MethodContext.CreateReplyWriter(\"a{sv}\");");
@@ -1232,12 +1220,11 @@ namespace Tmds.DBus.Tool
                 {
                     var sortedProp = sortedReadableProperties.First(p => p.Name == property.Name);
                     string writeMethodName = GetWriteTypeMethodName(property.Signature, variant: true);
-                    string valueAccess = IsValueType(property.Signature) ? $"{sortedProp.NameLower}.Value" : sortedProp.NameLower;
                     AppendLine($"if ({sortedProp.NameLower} is not null)");
                     StartBlock();
                     AppendLine($"writer.WriteDictionaryEntryStart();");
                     AppendLine($"writer.WriteString(\"{property.Name}\");");
-                    AppendLine($"writer.{writeMethodName}({valueAccess});");
+                    AppendLine($"writer.{writeMethodName}(({property.DotnetWriteType}){sortedProp.NameLower});");
                     EndBlock();
                 }
                 AppendLine("writer.WriteDictionaryEnd(dictStart);");
@@ -1435,7 +1422,7 @@ namespace Tmds.DBus.Tool
 
             // Overload with all properties as nullable individual arguments (alphabetically sorted)
             var sortedProperties = properties.OrderBy(p => p.NameUpper).ToArray();
-            string emitArgs = string.Join(", ", sortedProperties.Select(p => $"{GetNullableDotnetWriteType(p.Signature)} {p.NameLower} = default"));
+            string emitArgs = string.Join(", ", sortedProperties.Select(p => $"{GetNullableType(p.DotnetWriteType)} {p.NameLower} = default"));
             AppendLine($"public static void Emit{name}PropertiesChanged(this DBusConnection c, ObjectPath p, {emitArgs}, ReadOnlySpan<{propertyEnumName}> invalidated = default)");
             StartBlock();
             AppendWriteSignalHeader();
@@ -1444,12 +1431,11 @@ namespace Tmds.DBus.Tool
             {
                 var sortedProp = sortedProperties.First(p => p.Name == prop.Name);
                 string writeMethodName = GetWriteTypeMethodName(prop.Signature, variant: true);
-                string valueAccess = IsValueType(prop.Signature) ? $"{sortedProp.NameLower}.Value" : sortedProp.NameLower;
                 AppendLine($"if ({sortedProp.NameLower} is not null)");
                 StartBlock();
                 AppendLine($"writer.WriteDictionaryEntryStart();");
                 AppendLine($"writer.WriteString(\"{prop.Name}\");");
-                AppendLine($"writer.{writeMethodName}({valueAccess});");
+                AppendLine($"writer.{writeMethodName}(({prop.DotnetWriteType}){sortedProp.NameLower});");
                 EndBlock();
             }
             AppendLine("writer.WriteDictionaryEnd(dictStart);");
@@ -1970,18 +1956,15 @@ namespace Tmds.DBus.Tool
 
                 // Ensure inner types are writable.
                 CallForInnerSignatures(signature, sig => CallWriteArgumentType(sig, "dummy"));
+
+                // Variant methods delegate to the non-variant method via CallWriteArgumentType,
+                // so ensure it is registered.
+                if (variant)
+                {
+                    CallWriteArgumentType(signature, "dummy");
+                }
             }
             return methodName;
-        }
-
-        private static bool HasDirectWriteArrayMethod(string signature)
-        {
-            return signature switch
-            {
-                "ay" or "ab" or "an" or "aq" or "ai" or "au" or "ax" or "at" or
-                "ad" or "as" or "ao" or "ag" or "av" or "ah" => true,
-                _ => false
-            };
         }
 
         private static string MangleSignatureForMethodName(string signature)
@@ -2243,38 +2226,8 @@ namespace Tmds.DBus.Tool
             return type + "?";
         }
 
-        private static string GetNullableDotnetWriteType(string signature)
-        {
-            return GetDotnetWriteType(signature) + "?";
-        }
 
-        private static bool IsValueType(string signature)
-        {
-            SignatureReader reader = new SignatureReader(Encoding.UTF8.GetBytes(signature));
-            if (!reader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
-            {
-                ThrowInvalidSignature(signature);
-            }
 
-            switch (type)
-            {
-                case DBusType.Byte:
-                case DBusType.Bool:
-                case DBusType.Int16:
-                case DBusType.UInt16:
-                case DBusType.Int32:
-                case DBusType.UInt32:
-                case DBusType.Int64:
-                case DBusType.UInt64:
-                case DBusType.Double:
-                case DBusType.ObjectPath:
-                case DBusType.Signature:
-                case DBusType.Struct:
-                    return true;
-                default:
-                    return false;
-            }
-        }
 
         private static string GetDotnetType(string signature, bool readNotWrite)
         {
@@ -2450,23 +2403,8 @@ namespace Tmds.DBus.Tool
             return name;
         }
 
-        private static string ConvertInterfaceNameToEnumName(string interfaceName)
-        {
-            var parts = interfaceName.Split('.');
-            var sb = new StringBuilder();
-            foreach (var part in parts)
-            {
-                if (part.Length > 0)
-                {
-                    sb.Append(char.ToUpper(part[0]));
-                    if (part.Length > 1)
-                    {
-                        sb.Append(part.Substring(1));
-                    }
-                }
-            }
-            return sb.ToString();
-        }
+        private static string ConvertInterfaceNameToEnumValueName(string interfaceName)
+            => string.Concat(interfaceName.Split('.').Select(part => Prettify(part)));
 
         private static readonly string[] s_keywords = new[] {
             "yield",

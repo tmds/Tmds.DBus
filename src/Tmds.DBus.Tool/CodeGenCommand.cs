@@ -236,7 +236,6 @@ namespace Tmds.DBus.Tool
                 ? (IGenerator)new ProtocolGenerator(
                     new ProtocolGeneratorSettings
                     {
-                        Namespace = codeGenArguments.Namespace,
                         TypesAccessModifier = codeGenArguments.TypesAccessModifier,
                         ServiceName = codeGenArguments.ServiceName,
                         GeneratorDescription = generatorDescription
@@ -244,7 +243,6 @@ namespace Tmds.DBus.Tool
                 : new Generator(
                     new GeneratorSettings
                     {
-                        Namespace = codeGenArguments.Namespace,
                         NoInternalsVisibleTo = codeGenArguments.NoInternalsVisibleTo,
                         TypesAccessModifier = codeGenArguments.TypesAccessModifier,
                         GeneratorDescription = generatorDescription
@@ -253,7 +251,8 @@ namespace Tmds.DBus.Tool
             string code;
             try
             {
-                code = generator.Generate(descriptions);
+                // note: we only support generating handlers through the roslyn source generator. The codegen command generates proxies only.
+                code = generator.Generate(codeGenArguments.Namespace, descriptions, generateProxies: true, generateHandlers: false);
             }
             catch (InterfaceGenerationException ex)
             {

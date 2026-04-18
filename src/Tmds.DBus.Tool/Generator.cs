@@ -8,7 +8,6 @@ namespace Tmds.DBus.Tool
 {
     class GeneratorSettings
     {
-        public string Namespace { get; set; } = "DBus";
         public bool NoInternalsVisibleTo = false;
         public Accessibility TypesAccessModifier = Accessibility.NotApplicable;
         public string? GeneratorDescription { get; set; }
@@ -50,7 +49,7 @@ namespace Tmds.DBus.Tool
             _sb.AppendLine(line);
         }
 
-        public string Generate(IEnumerable<InterfaceDescription> interfaceDescriptions)
+        public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions, bool generateProxies, bool generateHandlers)
         {
             _sb.Clear();
             if (!string.IsNullOrEmpty(_settings.GeneratorDescription))
@@ -74,7 +73,7 @@ namespace Tmds.DBus.Tool
             }
 
             // Generate namespace
-            AppendLine($"namespace {_settings.Namespace}");
+            AppendLine($"namespace {ns}");
             StartBlock();
 
             foreach (var interfaceDescription in interfaceDescriptions)

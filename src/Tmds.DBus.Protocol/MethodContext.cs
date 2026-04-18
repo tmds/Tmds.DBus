@@ -233,13 +233,31 @@ public sealed class MethodContext : IDisposable
     /// Sends an introspection XML reply.
     /// </summary>
     /// <param name="interfaceXmls">The interface XML fragments to include in the introspection.</param>
-    public void ReplyIntrospectXml(ReadOnlySpan<ReadOnlyMemory<byte>> interfaceXmls)
+    /// <param name="childNames">Optional child node names to include in the introspection. When provided, IntrospectChildNames must be null.</param>
+    public void ReplyIntrospectXml(ReadOnlySpan<ReadOnlyMemory<byte>> interfaceXmls, ReadOnlySpan<string> childNames = default)
+        => ReplyIntrospectXmlCore(interfaceXmls, childNames, childNamesList: null);
+
+    /// <summary>
+    /// Sends an introspection XML reply.
+    /// </summary>
+    /// <param name="interfaceXmls">The interface XML fragments to include in the introspection.</param>
+    /// <param name="childNames">Child node names to include in the introspection.</param>
+    public void ReplyIntrospectXml(ReadOnlySpan<ReadOnlyMemory<byte>> interfaceXmls, IList<string> childNames)
+        => ReplyIntrospectXmlCore(interfaceXmls, childNames: default, childNamesList: childNames);
+
+    private void ReplyIntrospectXmlCore(ReadOnlySpan<ReadOnlyMemory<byte>> interfaceXmls, ReadOnlySpan<string> childNames, IList<string>? childNamesList)
     {
         ThrowIfDisposed();
 
         if (!IsDBusIntrospectRequest)
         {
             throw new InvalidOperationException($"Can not reply with introspection XML when {nameof(IsDBusIntrospectRequest)} is false.");
+        }
+
+        bool hasChildNames = childNames.Length > 0 || childNamesList is not null;
+        if (hasChildNames && IntrospectChildNames is not null)
+        {
+            throw new InvalidOperationException($"When childNames is provided, {nameof(IntrospectChildNames)} must be null.");
         }
 
         using var writer = Connection.GetMessageWriter();
@@ -256,16 +274,38 @@ public sealed class MethodContext : IDisposable
         bool includeBaseInterfaces = !interfaceXmls.IsEmpty;
         ReadOnlySpan<ReadOnlyMemory<byte>> baseInterfaceXmls = includeBaseInterfaces ? [ IntrospectionXml.DBusIntrospectable, IntrospectionXml.DBusPeer ] : [ ];
 
-        // Add the child names.
+        // Determine child names from the parameter or from IntrospectChildNames.
+        IEnumerable<string>? childNamesEnumerable;
 #if NET5_0_OR_GREATER
-        ReadOnlySpan<string> childNames = IntrospectChildNames;
-        IEnumerable<string>? childNamesEnumerable = null;
+        ReadOnlySpan<string> childNamesSpan;
+        if (childNames.Length > 0)
+        {
+            childNamesSpan = childNames;
+            childNamesEnumerable = null;
+        }
+        else if (childNamesList is not null)
+        {
+            childNamesSpan = default;
+            childNamesEnumerable = childNamesList;
+        }
+        else
+        {
+            childNamesSpan = IntrospectChildNames;
+            childNamesEnumerable = null;
+        }
 #else
-        ReadOnlySpan<string> childNames = default;
-        IEnumerable<string>? childNamesEnumerable = IntrospectChildNames;
+        ReadOnlySpan<string> childNamesSpan = childNames;
+        if (childNamesList is not null)
+        {
+            childNamesEnumerable = childNamesList;
+        }
+        else
+        {
+            childNamesEnumerable = childNames.Length > 0 ? null : IntrospectChildNames;
+        }
 #endif
 
-        writer.WriteIntrospectionXml(interfaceXmls, baseInterfaceXmls, childNames, childNamesEnumerable);
+        writer.WriteIntrospectionXml(interfaceXmls, baseInterfaceXmls, childNamesSpan, childNamesEnumerable);
 
         Reply(writer.CreateMessage());
     }

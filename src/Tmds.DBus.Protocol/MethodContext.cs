@@ -19,13 +19,13 @@ public sealed class MethodContext : IDisposable
     }
 
     private Flags _flags;
-    private readonly DBusConnection _connection;
+    private readonly InnerConnection _innerConnection;
     private readonly Message _request;
     private readonly CancellationToken _requestAborted;
 
-    internal MethodContext(DBusConnection connection, Message request, CancellationToken requestAborted)
+    internal MethodContext(InnerConnection innerConnection, Message request, CancellationToken requestAborted)
     {
-        _connection = connection;
+        _innerConnection = innerConnection;
         _request = request;
         _requestAborted = requestAborted;
         if (request is not null) // Tests pass in a null request...
@@ -79,7 +79,7 @@ public sealed class MethodContext : IDisposable
         get
         {
             // Don't throw when Disposed for accessing the connection.
-            return _connection;
+            return _innerConnection.Connection;
         }
     }
 
@@ -311,9 +311,23 @@ public sealed class MethodContext : IDisposable
     }
 
     /// <summary>
+    /// Performs connection handling of a method handler exception.
+    /// </summary>
+    /// <param name="exception">The exception to handle.</param>
+    /// <param name="shouldDisconnect">Whether the connection should be disconnected.</param>
+    /// <returns><c>true</c> if the connection was disconnected; otherwise, <c>false</c>.</returns>
+    public bool HandleException(Exception exception, bool shouldDisconnect = false)
+    {
+        ThrowIfDisposed();
+
+        return Connection.HandleException(exception, DBusConnection.ExceptionSource.MethodHandler, shouldDisconnect, trigger: _innerConnection);
+    }
+
+    /// <summary>
     /// Disconnects the D-Bus connection with the specified exception.
     /// </summary>
     /// <param name="exception">The exception indicating the reason for disconnection.</param>
+    [Obsolete($"Use {nameof(HandleException)}.")]
     public void Disconnect(Exception exception)
     {
         ThrowIfDisposed();

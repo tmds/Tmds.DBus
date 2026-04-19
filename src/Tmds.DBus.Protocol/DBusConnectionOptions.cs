@@ -34,6 +34,25 @@ public class DBusConnectionOptions
     internal bool IsShared { get; set; }
 
     /// <summary>
+    /// Gets or sets a handler that is called when an exception occurs during connection operation.
+    /// </summary>
+    /// <remarks>
+    /// <para>The primary use-case for this callback is logging. It may be used to override the default disconnect behavior by setting <see cref="DBusConnection.ExceptionContext.DisconnectConnection"/>.</para>
+    /// <para>The handler is called for the following exception sources:</para>
+    /// <list type="bullet">
+    /// <item><description><see cref="DBusConnection.ExceptionSource.SignalReader"/>: an exception occurred while reading a signal message. The connection disconnects by default.
+    /// When <see cref="ObserverFlags.EmitOnReaderFailed"/> is set, the exception is emitted to the observer and this handler is not called.</description></item>
+    /// <item><description><see cref="DBusConnection.ExceptionSource.SignalHandler"/>: an exception occurred in a signal handler callback. Signal handlers should not throw exceptions. The connection disconnects by default.</description></item>
+    /// <item><description><see cref="DBusConnection.ExceptionSource.MethodHandler"/>: an exception occurred in a method handler.
+    /// <see cref="IPathMethodHandler"/> implementations should call <see cref="MethodContext.HandleException(Exception, bool)"/> to report exceptions
+    /// and indicate whether the connection should be closed. By default, the connection is not closed.</description></item>
+    /// <item><description><see cref="DBusConnection.ExceptionSource.ConnectionFailed"/>: the connection failed. The connection is always disconnected.</description></item>
+    /// </list>
+    /// <para>The handler is called synchronously when the exception occurs and must not throw exceptions.</para>
+    /// </remarks>
+    public Action<DBusConnection.ExceptionContext>? OnException { get; set; }
+
+    /// <summary>
     /// Sets up the connection. This method may be overridden in a derived class.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>

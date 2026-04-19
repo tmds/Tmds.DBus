@@ -18,6 +18,16 @@ namespace Tmds.DBus.Protocol.Tests
             conn2.Connect(streams.Item2);
             return (conn1, conn2);
         }
+
+        public static (DBusConnection, DBusConnection) CreatePair(DBusConnectionOptions conn1Options, DBusConnectionOptions? conn2Options = null)
+        {
+            var streams = PairedMessageStream.CreatePair();
+            var conn1 = new DBusConnection(conn1Options);
+            conn1.Connect(streams.Item1);
+            var conn2 = new DBusConnection(conn2Options ?? new DBusConnectionOptions("conn2-address"));
+            conn2.Connect(streams.Item2);
+            return (conn1, conn2);
+        }
     }
 
     class PairedMessageStream : IMessageStream

@@ -200,7 +200,29 @@ public sealed partial class DBusConnection : IDisposable
         Disconnect(DisposedException);
     }
 
-    internal void Disconnect(Exception disconnectReason, InnerConnection? trigger = null)
+    // Returns true if the connection should be disconnected.
+    internal bool HandleException(Exception exception, ExceptionSource source, bool closeConnection, InnerConnection? trigger)
+    {
+        var handler = _connectionOptions.OnException;
+        bool disconnect;
+        if (handler is null)
+        {
+            disconnect = closeConnection;
+        }
+        else
+        {
+            var context = new ExceptionContext(exception, source, closeConnection);
+            handler(context);
+            disconnect = context.DisconnectConnection;
+        }
+        if (disconnect)
+        {
+            Disconnect(exception, trigger, reportException: false);
+        }
+        return disconnect;
+    }
+
+    internal void Disconnect(Exception disconnectReason, InnerConnection? trigger = null, bool reportException = true)
     {
         InnerConnection? connection;
         DBusConnectionOptions.SetupResult? setupResult;
@@ -232,6 +254,15 @@ public sealed partial class DBusConnection : IDisposable
             if (connection is not null)
             {
                 connection.DisconnectReason = disconnectReason;
+            }
+        }
+
+        if (reportException && !ReferenceEquals(disconnectReason, DisposedException))
+        {
+            var handler = _connectionOptions.OnException;
+            if (handler is not null)
+            {
+                handler(new ExceptionContext(disconnectReason, ExceptionSource.ConnectionFailed, disconnectConnection: true));
             }
         }
 

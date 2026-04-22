@@ -6,36 +6,18 @@ namespace Tmds.DBus.Protocol.Tests
 {
     public class ExceptionContextTests
     {
-        static class HelloWorldConstants
-        {
-            public const string Path = "/path";
-            public const string OnHelloWorld = "OnHelloWorld";
-            public const string Interface = "tmds.dbus.tests.HelloWorld";
-        }
-
-        static void SendHelloWorldSignal(DBusConnection connection)
-        {
-            using var writer = connection.GetMessageWriter();
-            writer.WriteSignalHeader(
-                path: HelloWorldConstants.Path,
-                @interface: HelloWorldConstants.Interface,
-                signature: "s",
-                member: HelloWorldConstants.OnHelloWorld);
-            writer.WriteString("hello world");
-            MessageBuffer buffer = writer.CreateMessage();
-            bool messageSent = connection.TrySendMessage(buffer);
-            Assert.True(messageSent);
-        }
-
-        [Fact]
-        public async Task SignalHandlerException_DisconnectConnectionTrue_Disconnects()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task SignalHandlerException_DisconnectConnection(bool disconnectConnection)
         {
             var exceptionHandlerTcs = new TaskCompletionSource<DBusConnection.ExceptionContext>();
             var options = new DBusConnectionOptions("conn1-address")
             {
                 OnException = ctx =>
                 {
-                    // DisconnectConnection defaults to true — leave it.
+                    Assert.True(ctx.DisconnectConnection);
+                    ctx.DisconnectConnection = disconnectConnection;
                     exceptionHandlerTcs.TrySetResult(ctx);
                 }
             };
@@ -63,7 +45,7 @@ namespace Tmds.DBus.Protocol.Tests
                     }
                 },
                 emitOnCapturedContext: false,
-                flags: ObserverFlags.EmitOnConnectionFailed);
+                flags: ObserverFlags.None);
 
             SendHelloWorldSignal(conn2);
 
@@ -71,88 +53,33 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.Equal(DBusConnection.ExceptionSource.SignalHandler, exceptionContext.Source);
             Assert.IsType<InvalidOperationException>(exceptionContext.Exception);
             Assert.Equal("Handler error", exceptionContext.Exception.Message);
+            Assert.Equal(disconnectConnection, exceptionContext.DisconnectConnection);
 
-            var disconnectException = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.IsType<InvalidOperationException>(disconnectException);
-            Assert.Equal("Handler error", disconnectException!.Message);
+            if (disconnectConnection)
+            {
+                var disconnectException = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
+                Assert.IsType<InvalidOperationException>(disconnectException);
+                Assert.Equal("Handler error", disconnectException!.Message);
+            }
+            else
+            {
+                // Does not throw.
+                await AssertConnectionWorks(conn1);
+            }
         }
 
-        [Fact]
-        public async Task SignalHandlerException_DisconnectConnectionFalse_DoesNotDisconnect()
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task SignalReaderException_DisconnectConnection(bool disconnectConnection)
         {
             var exceptionHandlerTcs = new TaskCompletionSource<DBusConnection.ExceptionContext>();
             var options = new DBusConnectionOptions("conn1-address")
             {
                 OnException = ctx =>
                 {
-                    ctx.DisconnectConnection = false;
-                    exceptionHandlerTcs.TrySetResult(ctx);
-                }
-            };
-            var connections = PairedConnection.CreatePair(options);
-            using var conn1 = connections.Item1;
-            using var conn2 = connections.Item2;
-
-            var rule = new MatchRule
-            {
-                Type = MessageType.Signal,
-                Sender = conn2.UniqueName,
-                Path = HelloWorldConstants.Path,
-                Member = HelloWorldConstants.OnHelloWorld,
-                Interface = HelloWorldConstants.Interface
-            };
-
-            await conn1.AddMatchAsync<string>(
-                rule,
-                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
-                handler: ctx =>
-                {
-                    if (ctx.HasValue)
-                    {
-                        throw new InvalidOperationException("Handler error");
-                    }
-                },
-                emitOnCapturedContext: false,
-                flags: ObserverFlags.None);
-
-            // Signal triggers the exception
-            SendHelloWorldSignal(conn2);
-
-            // Wait for the exception handler to be called
-            var exceptionContext = await exceptionHandlerTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.Equal(DBusConnection.ExceptionSource.SignalHandler, exceptionContext.Source);
-            Assert.False(exceptionContext.DisconnectConnection);
-
-            // Connection is still alive — a new observer can receive signals
-            var valueTcs = new TaskCompletionSource<string>();
-            await conn1.AddMatchAsync<string>(
-                rule,
-                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
-                handler: ctx =>
-                {
-                    if (ctx.HasValue)
-                    {
-                        valueTcs.TrySetResult(ctx.Value);
-                    }
-                },
-                emitOnCapturedContext: false,
-                flags: ObserverFlags.None);
-
-            SendHelloWorldSignal(conn2);
-
-            var value = await valueTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.Equal("hello world", value);
-        }
-
-        [Fact]
-        public async Task SignalReaderException_DisconnectConnectionFalse_DoesNotDisconnect()
-        {
-            var exceptionHandlerTcs = new TaskCompletionSource<DBusConnection.ExceptionContext>();
-            var options = new DBusConnectionOptions("conn1-address")
-            {
-                OnException = ctx =>
-                {
-                    ctx.DisconnectConnection = false;
+                    Assert.True(ctx.DisconnectConnection);
+                    ctx.DisconnectConnection = disconnectConnection;
                     exceptionHandlerTcs.TrySetResult(ctx);
                 }
             };
@@ -176,33 +103,70 @@ namespace Tmds.DBus.Protocol.Tests
                 emitOnCapturedContext: false,
                 flags: ObserverFlags.None);
 
-            // Signal triggers the reader exception
             SendHelloWorldSignal(conn2);
 
             var exceptionContext = await exceptionHandlerTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
             Assert.Equal(DBusConnection.ExceptionSource.SignalReader, exceptionContext.Source);
             Assert.IsType<InvalidOperationException>(exceptionContext.Exception);
             Assert.Equal("Reader error", exceptionContext.Exception.Message);
+            Assert.Equal(disconnectConnection, exceptionContext.DisconnectConnection);
 
-            // Connection is still alive — a new observer can receive signals
-            var valueTcs = new TaskCompletionSource<string>();
-            await conn1.AddMatchAsync<string>(
-                rule,
-                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
-                handler: ctx =>
+            if (disconnectConnection)
+            {
+                var disconnectException = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
+                Assert.IsType<InvalidOperationException>(disconnectException);
+                Assert.Equal("Reader error", disconnectException!.Message);
+            }
+            else
+            {
+                // Does not throw.
+                await AssertConnectionWorks(conn1);
+            }
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public async Task MethodHandlerException_DisconnectConnection(bool disconnectConnection)
+        {
+            var exceptionHandlerTcs = new TaskCompletionSource<DBusConnection.ExceptionContext>();
+            var options = new DBusConnectionOptions("conn1-address")
+            {
+                OnException = ctx =>
                 {
-                    if (ctx.HasValue)
-                    {
-                        valueTcs.TrySetResult(ctx.Value);
-                    }
-                },
-                emitOnCapturedContext: false,
-                flags: ObserverFlags.None);
+                    Assert.True(ctx.DisconnectConnection);
+                    ctx.DisconnectConnection = disconnectConnection;
+                    exceptionHandlerTcs.TrySetResult(ctx);
+                }
+            };
+            var connections = PairedConnection.CreatePair(options);
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
 
-            SendHelloWorldSignal(conn2);
+            conn1.AddMethodHandler(new ThrowingMethodHandler());
 
-            var value = await valueTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.Equal("hello world", value);
+            var message = CreateMethodCallMessage(conn2, "/tmds/dbus/tests/throwing", "DoSomething");
+            try { await conn2.CallMethodAsync(message); } catch { }
+
+            var exceptionContext = await exceptionHandlerTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(DBusConnection.ExceptionSource.MethodHandler, exceptionContext.Source);
+            Assert.IsType<InvalidOperationException>(exceptionContext.Exception);
+            Assert.Equal("Method handler error", exceptionContext.Exception.Message);
+            Assert.Equal(disconnectConnection, exceptionContext.DisconnectConnection);
+
+            if (disconnectConnection)
+            {
+                var disconnectException = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
+                Assert.IsType<InvalidOperationException>(disconnectException);
+            }
+            else
+            {
+                // Verify the error reply was sent back.
+                var ex = await Assert.ThrowsAsync<DBusErrorReplyException>(
+                    () => conn2.CallMethodAsync(CreateMethodCallMessage(conn2, "/tmds/dbus/tests/throwing", "DoSomething")));
+                Assert.Equal("org.freedesktop.DBus.Error.Failed", ex.ErrorName);
+                Assert.Contains("Method handler error", ex.ErrorMessage);
+            }
         }
 
         [Fact]
@@ -281,89 +245,6 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.Equal(DBusConnection.ExceptionSource.SignalHandler, firstSource);
         }
 
-        class ThrowingMethodHandler : IPathMethodHandler
-        {
-            public string Path => "/tmds/dbus/tests/throwing";
-            public bool HandlesChildPaths => false;
-
-            public ValueTask HandleMethodAsync(MethodContext context)
-            {
-                throw new InvalidOperationException("Method handler error");
-            }
-        }
-
-        static MessageBuffer CreateMethodCallMessage(DBusConnection connection, string path, string member)
-        {
-            using var writer = connection.GetMessageWriter();
-            writer.WriteMethodCallHeader(
-                path: path,
-                @interface: "tmds.dbus.tests",
-                member: member);
-            return writer.CreateMessage();
-        }
-
-        [Fact]
-        public async Task MethodHandlerException_DisconnectConnectionFalse_DoesNotDisconnect()
-        {
-            var exceptionHandlerTcs = new TaskCompletionSource<DBusConnection.ExceptionContext>();
-            var options = new DBusConnectionOptions("conn1-address")
-            {
-                OnException = ctx =>
-                {
-                    ctx.DisconnectConnection = false;
-                    exceptionHandlerTcs.TrySetResult(ctx);
-                }
-            };
-            var connections = PairedConnection.CreatePair(options);
-            using var conn1 = connections.Item1;
-            using var conn2 = connections.Item2;
-
-            conn1.AddMethodHandler(new ThrowingMethodHandler());
-
-            var message = CreateMethodCallMessage(conn2, "/tmds/dbus/tests/throwing", "DoSomething");
-            var ex = await Assert.ThrowsAsync<DBusErrorReplyException>(() => conn2.CallMethodAsync(message));
-            Assert.Equal("org.freedesktop.DBus.Error.Failed", ex.ErrorName);
-            Assert.Contains("Method handler error", ex.ErrorMessage);
-
-            var exceptionContext = await exceptionHandlerTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.Equal(DBusConnection.ExceptionSource.MethodHandler, exceptionContext.Source);
-            Assert.False(exceptionContext.DisconnectConnection);
-
-            // Connection is still alive — another method call gets a reply
-            await Assert.ThrowsAsync<DBusErrorReplyException>(
-                () => conn2.CallMethodAsync(CreateMethodCallMessage(conn2, "/tmds/dbus/tests/throwing", "DoSomething")));
-        }
-
-        [Fact]
-        public async Task MethodHandlerException_DisconnectConnectionTrue_Disconnects()
-        {
-            var exceptionHandlerTcs = new TaskCompletionSource<DBusConnection.ExceptionContext>();
-            var options = new DBusConnectionOptions("conn1-address")
-            {
-                OnException = ctx =>
-                {
-                    exceptionHandlerTcs.TrySetResult(ctx);
-                }
-            };
-            var connections = PairedConnection.CreatePair(options);
-            using var conn1 = connections.Item1;
-            using var conn2 = connections.Item2;
-
-            conn1.AddMethodHandler(new ThrowingMethodHandler());
-
-            var message = CreateMethodCallMessage(conn2, "/tmds/dbus/tests/throwing", "DoSomething");
-            try { await conn2.CallMethodAsync(message); } catch { }
-
-            var exceptionContext = await exceptionHandlerTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.Equal(DBusConnection.ExceptionSource.MethodHandler, exceptionContext.Source);
-            Assert.IsType<InvalidOperationException>(exceptionContext.Exception);
-            Assert.Equal("Method handler error", exceptionContext.Exception.Message);
-            Assert.True(exceptionContext.DisconnectConnection);
-
-            var disconnectException = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
-            Assert.IsType<InvalidOperationException>(disconnectException);
-        }
-
         [Fact]
         public async Task NoOnException_MethodHandlerException_Disconnects()
         {
@@ -381,7 +262,7 @@ namespace Tmds.DBus.Protocol.Tests
         }
 
         [Fact]
-        public async Task NoOnException_SignalHandlerException_StillDisconnects()
+        public async Task NoOnException_SignalHandlerException_Disconnects()
         {
             // Default behavior when no OnException is set
             var connections = PairedConnection.CreatePair();
@@ -414,6 +295,58 @@ namespace Tmds.DBus.Protocol.Tests
 
             var disconnectException = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
             Assert.IsType<InvalidOperationException>(disconnectException);
+        }
+
+        static class HelloWorldConstants
+        {
+            public const string Path = "/path";
+            public const string OnHelloWorld = "OnHelloWorld";
+            public const string Interface = "tmds.dbus.tests.HelloWorld";
+        }
+
+        static void SendHelloWorldSignal(DBusConnection connection)
+        {
+            using var writer = connection.GetMessageWriter();
+            writer.WriteSignalHeader(
+                path: HelloWorldConstants.Path,
+                @interface: HelloWorldConstants.Interface,
+                signature: "s",
+                member: HelloWorldConstants.OnHelloWorld);
+            writer.WriteString("hello world");
+            MessageBuffer buffer = writer.CreateMessage();
+            bool messageSent = connection.TrySendMessage(buffer);
+            Assert.True(messageSent);
+        }
+
+        class ThrowingMethodHandler : IPathMethodHandler
+        {
+            public string Path => "/tmds/dbus/tests/throwing";
+            public bool HandlesChildPaths => false;
+
+            public ValueTask HandleMethodAsync(MethodContext context)
+            {
+                throw new InvalidOperationException("Method handler error");
+            }
+        }
+
+        static MessageBuffer CreateMethodCallMessage(DBusConnection connection, string path, string member)
+        {
+            using var writer = connection.GetMessageWriter();
+            writer.WriteMethodCallHeader(
+                path: path,
+                @interface: "tmds.dbus.tests",
+                member: member);
+            return writer.CreateMessage();
+        }
+
+        static async Task AssertConnectionWorks(DBusConnection connection)
+        {
+            try
+            {
+                await connection.ReleaseNameAsync("name");
+            }
+            catch (DBusErrorReplyException)
+            { }
         }
     }
 }

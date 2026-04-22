@@ -1645,15 +1645,27 @@ namespace Tmds.DBus.Protocol
             {
                 await method.Invoke(context).ConfigureAwait(false);
             }
-            catch (DBusErrorReplyException ex)
+            catch (Exception ex)
             {
-                context.ReplyError(ex.ErrorName, ex.ErrorMessage);
+                HandleException(context, ex);
             }
-            catch (ArgumentException ex)
+        }
+        // Override to customize exception handling for method invocations.
+        protected virtual void HandleException(MethodContext context, Exception ex)
+        {
+            if (context.HandleException(ex, shouldDisconnect: false))
+            {
+                return;
+            }
+            if (ex is DBusErrorReplyException dbusEx)
+            {
+                context.ReplyError(dbusEx.ErrorName, dbusEx.ErrorMessage);
+            }
+            else if (ex is ArgumentException)
             {
                 context.ReplyError("org.freedesktop.DBus.Error.InvalidArgs", ex.Message);
             }
-            catch (Exception ex)
+            else
             {
                 context.ReplyError("org.freedesktop.DBus.Error.Failed", ex.Message);
             }

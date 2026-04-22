@@ -183,6 +183,8 @@ class InnerConnection : IDisposable
     private bool _isMonitor;
     private Action<Exception?, DisposableMessage>? _monitorHandler;
 
+    internal DBusConnection Connection => _parentDBusConnection;
+
     public string? UniqueName => _localName;
 
     public Exception DisconnectReason
@@ -428,7 +430,7 @@ class InnerConnection : IDisposable
                         if (message.MessageType == MessageType.MethodCall)
                         {
                             // This is a small object. We don't pool it to avoid re-use issues.
-                            methodContext = new MethodContext(_parentDBusConnection, message, _abortedCts.Token);
+                            methodContext = new MethodContext(this, message, _abortedCts.Token);
 
                             if (message.PathIsSet)
                             {
@@ -495,6 +497,15 @@ class InnerConnection : IDisposable
                             else if (methodContext.IntrospectChildNames is not null)
                             {
                                 methodContext.ReplyIntrospectXml(interfaceXmls: []);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Fallback for exceptions not handled by the method handler (e.g. custom IPathMethodHandler implementations).
+                            // Generated handlers catch exceptions and send typed error replies themselves.
+                            if (!HandleException(ex, DBusConnection.ExceptionSource.MethodHandler, closeConnection: true))
+                            {
+                                methodContext.ReplyError("org.freedesktop.DBus.Error.Failed", ex.Message);
                             }
                         }
                         finally
@@ -1184,12 +1195,23 @@ class InnerConnection : IDisposable
                         T value;
                         try
                         {
-                            value = valueReader(message, observer.ReaderState);
+                            try
+                            {
+                                value = valueReader(message, observer.ReaderState);
+                            }
+                            catch (Exception ex) when (observer.EmitOnReaderFailed)
+                            {
+                                // Wrap the exception to ensure we preserve the stack trace if the user throws it.
+                                observer.Dispose(new DBusReadException("The handler encountered an error while reading the message.", ex), emit: true, ignoreSynchronizationContext: true);
+                                return;
+                            }
                         }
-                        catch (Exception ex) when (observer.EmitOnReaderFailed)
+                        catch (Exception ex)
                         {
-                            // Wrap the exception to ensure we preserve the stack trace if the user throws it.
-                            observer.Dispose(new DBusReadException("The handler encountered an error while reading the message.", ex), emit: true, ignoreSynchronizationContext: true);
+                            if (!observer.Connection.HandleException(ex, DBusConnection.ExceptionSource.SignalReader, closeConnection: true))
+                            {
+                                observer.Dispose(ex, emit: false);
+                            }
                             return;
                         }
 
@@ -1211,7 +1233,10 @@ class InnerConnection : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    observer.Connection.Disconnect(ex);
+                    if (!observer.Connection.HandleException(ex, DBusConnection.ExceptionSource.SignalHandler, closeConnection: true))
+                    {
+                        observer.Dispose(ex, emit: false);
+                    }
                 }
 
                 void EmitCompletion()
@@ -1223,7 +1248,10 @@ class InnerConnection : IDisposable
                     }
                     catch (Exception ex)
                     {
-                        observer.Connection.Disconnect(ex);
+                        if (!observer.Connection.HandleException(ex, DBusConnection.ExceptionSource.SignalHandler, closeConnection: true))
+                        {
+                            observer.Dispose(ex, emit: false);
+                        }
                     }
                 }
             };
@@ -1362,9 +1390,14 @@ class InnerConnection : IDisposable
         }
     }
 
-    private void Disconnect(Exception ex)
+    private void Disconnect(Exception ex, bool reportException = true)
     {
-        _parentDBusConnection.Disconnect(ex, this);
+        _parentDBusConnection.Disconnect(ex, this, reportException);
+    }
+
+    internal bool HandleException(Exception exception, DBusConnection.ExceptionSource source, bool closeConnection)
+    {
+        return _parentDBusConnection.HandleException(exception, source, closeConnection, trigger: this);
     }
 
     private void RemoveWatcherUser(Watcher watcher, Observer? observer)

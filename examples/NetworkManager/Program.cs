@@ -11,45 +11,61 @@ if (systemBusAddress is null)
     return 1;
 }
 
-DBusConnection connection = new DBusConnection(DBusAddress.System!);
-await connection.ConnectAsync();
-Console.WriteLine("Connected to system bus.");
-
-string serviceName = "org.freedesktop.NetworkManager";
-using var ownerWatcher = await connection.WatchNameOwnerAsync(serviceName);
-
 while (true)
 {
-    string owner = await ownerWatcher.WaitForOwnerAsync();
-    Console.WriteLine($"NetworkManager is running (bus name: {NameOwnerWatcher.GetOwnerBusName(owner)}).");
-
-    var service = new DBusService(connection, owner);
-    var networkManager = service.CreateNetworkManager("/org/freedesktop/NetworkManager");
-
     try
     {
-        foreach (var devicePath in await networkManager.GetDevicesAsync())
+        using DBusConnection connection = new DBusConnection(systemBusAddress);
+        await connection.ConnectAsync();
+        Console.WriteLine("Connected to system bus.");
+
+        using var ownerWatcher = await connection.WatchNameOwnerAsync("org.freedesktop.NetworkManager");
+
+        while (true)
         {
-            var device = service.CreateDevice(devicePath);
-            var interfaceName = await device.GetInterfaceAsync();
+            string owner = await ownerWatcher.WaitForOwnerAsync();
+            Console.WriteLine($"NetworkManager is running (bus name: {NameOwnerWatcher.GetOwnerBusName(owner)}).");
 
-            Console.WriteLine($"Subscribing for state changes of '{interfaceName}'.");
-            // The observers are automatically disposed when the owner of the name changes because the sender uses the NameOwnerWatcher owner.
-            await device.WatchStateChangedAsync(
-                change =>
+            var service = new DBusService(connection, owner);
+            var networkManager = service.CreateNetworkManager("/org/freedesktop/NetworkManager");
+
+            try
+            {
+                foreach (var devicePath in await networkManager.GetDevicesAsync())
                 {
-                    Console.WriteLine($"Interface '{interfaceName}' changed from '{(DeviceState)change.OldState}' to '{(DeviceState)change.NewState}'.");
-                });
-        }
+                    var device = service.CreateDevice(devicePath);
+                    var interfaceName = await device.GetInterfaceAsync();
 
-        // Wait until the owner changes (e.g. NetworkManager restarts).
-        CancellationToken ownerChanged = ownerWatcher.GetOwnerChangedCancellationToken(owner);
-        await Task.Delay(-1, ownerChanged).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-        Console.WriteLine("NetworkManager owner changed, re-subscribing...");
+                    Console.WriteLine($"Subscribing for state changes of '{interfaceName}'.");
+                    // The observers are automatically disposed when the owner of the name changes because the sender uses the NameOwnerWatcher owner.
+                    await device.WatchStateChangedAsync(
+                        change =>
+                        {
+                            Console.WriteLine($"Interface '{interfaceName}' changed from '{(DeviceState)change.OldState}' to '{(DeviceState)change.NewState}'.");
+                        });
+                }
+
+                // Wait until the owner changes (e.g. NetworkManager restarts) or the connection is lost.
+                CancellationToken ownerChanged = ownerWatcher.GetOwnerChangedCancellationToken(owner);
+                await Task.Delay(-1, ownerChanged).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+                Console.WriteLine("NetworkManager owner changed, re-subscribing...");
+            }
+            catch (DBusMessageException) when (ownerWatcher.GetCurrentOwner() != owner)
+            {
+                Console.WriteLine("NetworkManager owner changed during setup, retrying...");
+            }
+        }
     }
-    catch (DBusMessageException) when (ownerWatcher.GetCurrentOwner() != owner)
+    catch (DBusConnectFailedException ex)
     {
-        Console.WriteLine("NetworkManager owner changed during setup, retrying...");
+        Console.WriteLine($"Failed to connect to D-Bus: {ex.Message}");
+        Console.WriteLine("Reconnecting in 5 seconds...");
+        await Task.Delay(TimeSpan.FromSeconds(5));
+    }
+    catch (DBusConnectionClosedException ex)
+    {
+        Console.WriteLine($"D-Bus connection closed: {ex.Message}");
+        Console.WriteLine("Reconnecting...");
     }
 }
 

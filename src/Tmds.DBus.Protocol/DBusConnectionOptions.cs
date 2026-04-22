@@ -34,7 +34,7 @@ public class DBusConnectionOptions
     internal bool IsShared { get; set; }
 
     /// <summary>
-    /// Gets or sets a handler that is called when an exception occurs during connection operation.
+    /// Gets or sets a handler that is called when an exception occurs.
     /// </summary>
     /// <remarks>
     /// <para>The primary use-case for this callback is logging. It may be used to override the default disconnect behavior by setting <see cref="DBusConnection.ExceptionContext.DisconnectConnection"/>.</para>

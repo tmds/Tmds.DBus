@@ -29,7 +29,7 @@ public sealed partial class DBusConnection
     }
 
     /// <summary>
-    /// Provides context about an exception that occurred during connection operation.
+    /// Provides context about an exception that occurred.
     /// </summary>
     public sealed class ExceptionContext
     {

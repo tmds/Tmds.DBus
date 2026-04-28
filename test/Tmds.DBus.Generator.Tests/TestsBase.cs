@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Tmds.DBus.Generator.Tests;
 
-public record AdditionalFile(string FileName, string Content, string? Namespace = null);
+public record AdditionalFile(string FileName, string Content, string? Namespace = null, string GenerateDBusTypes = "true", string? DBusGeneratorMode = null);
 
 public record GeneratedSourceResult(SyntaxTree Tree, SourceText SourceText, string HintName);
 
@@ -180,13 +180,13 @@ public abstract class TestsBase : VerifyBase
 
     private class InMemoryAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
     {
-        private readonly Dictionary<string, string?> _fileOptions;
+        private readonly Dictionary<string, (string? Namespace, string GenerateDBusTypes, string? DBusGeneratorMode)> _fileOptions;
         private readonly InMemoryAnalyzerConfigOptions _globalOptions;
 
         public InMemoryAnalyzerConfigOptionsProvider(List<AdditionalFile> additionalFiles)
         {
-            _fileOptions = additionalFiles.ToDictionary(f => f.FileName, f => f.Namespace);
-            _globalOptions = new InMemoryAnalyzerConfigOptions(null);
+            _fileOptions = additionalFiles.ToDictionary(f => f.FileName, f => (f.Namespace, f.GenerateDBusTypes, f.DBusGeneratorMode));
+            _globalOptions = new InMemoryAnalyzerConfigOptions(null, "false", null);
         }
 
         public override AnalyzerConfigOptions GlobalOptions => _globalOptions;
@@ -196,29 +196,41 @@ public abstract class TestsBase : VerifyBase
         public override AnalyzerConfigOptions GetOptions(AdditionalText textFile)
         {
             var fileName = System.IO.Path.GetFileName(textFile.Path);
-            _fileOptions.TryGetValue(fileName, out var ns);
-            return new InMemoryAnalyzerConfigOptions(ns);
+            if (_fileOptions.TryGetValue(fileName, out var options))
+            {
+                return new InMemoryAnalyzerConfigOptions(options.Namespace, options.GenerateDBusTypes, options.DBusGeneratorMode);
+            }
+            return new InMemoryAnalyzerConfigOptions(null, "false", null);
         }
 
         private class InMemoryAnalyzerConfigOptions : AnalyzerConfigOptions
         {
             private readonly string? _namespace;
+            private readonly string _generateDBusTypes;
+            private readonly string? _dbusGeneratorMode;
 
-            public InMemoryAnalyzerConfigOptions(string? ns)
+            public InMemoryAnalyzerConfigOptions(string? ns, string generateDBusTypes, string? dbusGeneratorMode)
             {
                 _namespace = ns;
+                _generateDBusTypes = generateDBusTypes;
+                _dbusGeneratorMode = dbusGeneratorMode;
             }
 
             public override bool TryGetValue(string key, out string? value)
             {
                 if (key == "build_metadata.AdditionalFiles.GenerateDBusTypes")
                 {
-                    value = "true";
+                    value = _generateDBusTypes;
                     return true;
                 }
                 if (key == "build_metadata.AdditionalFiles.Namespace" && _namespace != null)
                 {
                     value = _namespace;
+                    return true;
+                }
+                if (key == "build_metadata.AdditionalFiles.DBusGeneratorMode" && _dbusGeneratorMode != null)
+                {
+                    value = _dbusGeneratorMode;
                     return true;
                 }
                 value = null;

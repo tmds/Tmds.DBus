@@ -69,7 +69,7 @@ namespace Tmds.DBus.Tool
             _sb.AppendLine(line);
         }
 
-        public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions, bool generateProxies, bool generateHandlers)
+        public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions)
         {
             _sb.Clear();
             _generatedHandlers.Clear(); // Clear for this namespace
@@ -90,16 +90,18 @@ namespace Tmds.DBus.Tool
             AppendLine("using System.Threading.Tasks;");
             AppendLine("using System.Runtime.CompilerServices;");
 
+            bool anyProxies = false;
             foreach (var interf in interfaceDescriptions)
             {
                 try
                 {
-                    AppendPropertyTypes(interf.Name, interf.InterfaceXml, generateProxies, generateHandlers);
-                    if (generateProxies)
+                    AppendPropertyTypes(interf.Name, interf.InterfaceXml, interf.GenerateProxy, interf.GenerateHandler);
+                    if (interf.GenerateProxy)
                     {
                         AppendProxyClass(interf.Name, interf.InterfaceXml);
+                        anyProxies = true;
                     }
-                    if (generateHandlers)
+                    if (interf.GenerateHandler)
                     {
                         AppendHandlerTypesForInterface(ns, interf.Name, interf.InterfaceXml);
                         AppendSignalsClass(interf.Name, interf.InterfaceXml);
@@ -111,9 +113,9 @@ namespace Tmds.DBus.Tool
                 }
             }
 
-            if (generateProxies)
+            if (anyProxies)
             {
-                AppendServiceClass(interfaceDescriptions);
+                AppendServiceClass(interfaceDescriptions.Where(i => i.GenerateProxy));
             }
 
             AppendReaderClass();
@@ -154,7 +156,7 @@ namespace Tmds.DBus.Tool
             // Generate DBusInterface Flags enum inside DBusHandler
             AppendLine("// Identifies the D-Bus interfaces. Used with ShouldSkip to filter interfaces per path.");
             AppendLine("[Flags]");
-            AppendLine("protected enum DBusInterface");
+            AppendLine("public enum DBusInterface");
             StartBlock();
             // Add Introspectable interface as first item
             AppendLine("// OrgFreedesktopDBusIntrospectable = 1,");

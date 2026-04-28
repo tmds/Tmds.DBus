@@ -5,7 +5,7 @@ namespace Tmds.DBus.Tool
 {
     interface IGenerator
     {
-        public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions, bool generateProxies, bool generateHandlers);
+        public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions);
     }
 
     class InterfaceGenerationException : Exception

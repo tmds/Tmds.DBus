@@ -252,7 +252,12 @@ namespace Tmds.DBus.Tool
             try
             {
                 // note: we only support generating handlers through the roslyn source generator. The codegen command generates proxies only.
-                code = generator.Generate(codeGenArguments.Namespace, descriptions, generateProxies: true, generateHandlers: false);
+                foreach (var desc in descriptions)
+                {
+                    desc.GenerateProxy = true;
+                    desc.GenerateHandler = false;
+                }
+                code = generator.Generate(codeGenArguments.Namespace, descriptions);
             }
             catch (InterfaceGenerationException ex)
             {

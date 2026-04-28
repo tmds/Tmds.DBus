@@ -49,7 +49,7 @@ namespace Tmds.DBus.Tool
             _sb.AppendLine(line);
         }
 
-        public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions, bool generateProxies, bool generateHandlers)
+        public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions)
         {
             _sb.Clear();
             if (!string.IsNullOrEmpty(_settings.GeneratorDescription))

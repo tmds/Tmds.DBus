@@ -77,5 +77,21 @@ namespace Tmds.DBus.Generator
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor MissingGeneratorMode = new DiagnosticDescriptor(
+            id: "DBUS1011",
+            title: "Missing DBusGeneratorMode",
+            messageFormat: "The AdditionalFile '{0}' uses GenerateDBusTypes without specifying a DBusGeneratorMode. Set DBusGeneratorMode to 'Proxy' or 'Handler' and remove GenerateDBusTypes.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Warning,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InvalidGeneratorMode = new DiagnosticDescriptor(
+            id: "DBUS1012",
+            title: "Invalid DBusGeneratorMode",
+            messageFormat: "The AdditionalFile '{0}' has an invalid DBusGeneratorMode '{1}'. Valid values are 'Proxy' and 'Handler'.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

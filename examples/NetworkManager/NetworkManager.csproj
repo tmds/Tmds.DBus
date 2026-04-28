@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="../dbus-xml/org.freedesktop.NetworkManager_proxy.xml" Namespace="NetworkManager.DBus" GenerateDBusTypes="true" />
+    <AdditionalFiles Include="../dbus-xml/org.freedesktop.NetworkManager_proxy.xml" Namespace="NetworkManager.DBus" DBusGeneratorMode="Proxy" />
   </ItemGroup>
 
   <!-- This Import is only needed because we're using a ProjectReference instead of a PackageReference for the source generator. -->

@@ -16,7 +16,6 @@ namespace Tmds.DBus.Generator
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            // Find AdditionalFiles xml files that have GenerateDBusTypes set to true.
             IncrementalValuesProvider<AdditionalFile> additionalFiles =
                 context.AdditionalTextsProvider
                 .Where(static file => file.Path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))
@@ -26,13 +25,17 @@ namespace Tmds.DBus.Generator
                     var (file, options) = pair;
                     var fileOptions = options.GetOptions(file);
                     fileOptions.TryGetValue("build_metadata.AdditionalFiles.GenerateDBusTypes", out string? generateDBusTypes);
-                    if (!string.Equals(generateDBusTypes, "true", StringComparison.OrdinalIgnoreCase))
+
+                    bool enabled = string.IsNullOrEmpty(generateDBusTypes) ||
+                                   string.Equals(generateDBusTypes, "true", StringComparison.OrdinalIgnoreCase);
+                    if (!enabled)
                     {
                         return new AdditionalFile?();
                     }
 
+                    fileOptions.TryGetValue("build_metadata.AdditionalFiles.DBusGeneratorMode", out string? generatorMode);
                     fileOptions.TryGetValue("build_metadata.AdditionalFiles.Namespace", out string? ns);
-                    return new AdditionalFile(file, ns ?? string.Empty);
+                    return new AdditionalFile(file, ns, generatorMode);
                 })
                 .Where(static file => file.HasValue)
                 .Select(static (file, ct) => file!.Value);
@@ -47,7 +50,38 @@ namespace Tmds.DBus.Generator
 
             foreach (AdditionalFile additionalFile in files)
             {
-                ParsedXmlFile? parsed = ParseXmlFile(additionalFile, spc, CancellationToken.None);
+                string? generatorMode = additionalFile.GeneratorMode;
+                bool generateProxy, generateHandler;
+                if (string.IsNullOrEmpty(generatorMode))
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.MissingGeneratorMode,
+                        Location.None,
+                        System.IO.Path.GetFileName(additionalFile.Text.Path)));
+                    generateProxy = true;
+                    generateHandler = false;
+                }
+                else if (string.Equals(generatorMode, "Proxy", StringComparison.OrdinalIgnoreCase))
+                {
+                    generateProxy = true;
+                    generateHandler = false;
+                }
+                else if (string.Equals(generatorMode, "Handler", StringComparison.OrdinalIgnoreCase))
+                {
+                    generateProxy = false;
+                    generateHandler = true;
+                }
+                else
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.InvalidGeneratorMode,
+                        Location.None,
+                        System.IO.Path.GetFileName(additionalFile.Text.Path),
+                        generatorMode));
+                    continue;
+                }
+
+                ParsedXmlFile? parsed = ParseXmlFile(additionalFile, generateProxy, generateHandler, spc, CancellationToken.None);
 
                 if (parsed != null)
                 {
@@ -111,7 +145,7 @@ namespace Tmds.DBus.Generator
 
                 try
                 {
-                    string sourceCode = generator.Generate(ns, interfaces, true, true);
+                    string sourceCode = generator.Generate(ns, interfaces);
 
                     string hintName = $"{ns}.g.cs";
                     spc.AddSource(hintName, SourceText.From(sourceCode, Encoding.UTF8));
@@ -158,7 +192,7 @@ namespace Tmds.DBus.Generator
             }
         }
 
-        private static ParsedXmlFile? ParseXmlFile(AdditionalFile additionalFile, SourceProductionContext spc, CancellationToken ct)
+        private static ParsedXmlFile? ParseXmlFile(AdditionalFile additionalFile, bool generateProxy, bool generateHandler, SourceProductionContext spc, CancellationToken ct)
         {
             string fileName = System.IO.Path.GetFileName(additionalFile.Text.Path);
 
@@ -229,7 +263,9 @@ namespace Tmds.DBus.Generator
                 {
                     InterfaceXml = interfaceElement,
                     Name = className,
-                    SourceFile = additionalFile.Text.Path
+                    SourceFile = additionalFile.Text.Path,
+                    GenerateProxy = generateProxy,
+                    GenerateHandler = generateHandler
                 });
             }
 
@@ -265,6 +301,6 @@ namespace Tmds.DBus.Generator
             public List<Tool.InterfaceDescription> Interfaces { get; }
         }
 
-        private readonly record struct AdditionalFile(AdditionalText Text, string Namespace);
+        private readonly record struct AdditionalFile(AdditionalText Text, string? Namespace, string? GeneratorMode);
     }
 }

@@ -114,33 +114,10 @@ public class CodeGenerationTests : TestsBase
     [Fact]
     public async Task VerifyGeneratedOutput_ProxyAndHandlerSameNamespace()
     {
-        string proxyXml = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <node>
-              <interface name="org.example.Calculator">
-                <method name="Add">
-                  <arg name="a" direction="in" type="d"/>
-                  <arg name="b" direction="in" type="d"/>
-                  <arg name="result" direction="out" type="d"/>
-                </method>
-              </interface>
-            </node>
-            """;
-
-        string handlerXml = """
-            <?xml version="1.0" encoding="UTF-8"?>
-            <node>
-              <interface name="org.example.Settings">
-                <method name="Save"/>
-                <property name="Theme" type="s" access="read"/>
-              </interface>
-            </node>
-            """;
-
         var additionalFiles = new List<AdditionalFile>
         {
-            new("proxy.xml", proxyXml, "TestNamespace", DBusGeneratorMode: "Proxy"),
-            new("handler.xml", handlerXml, "TestNamespace", DBusGeneratorMode: "Handler")
+            new("proxy.xml", XmlContent, "TestNamespace", DBusGeneratorMode: "Proxy"),
+            new("handler.xml", XmlContent, "TestNamespace", DBusGeneratorMode: "Handler")
         };
 
         var (diagnostics, generatedSources) = RunGenerator(additionalFiles);

@@ -21,8 +21,8 @@ while (true)
 }
 
 class DBusMediaPlayer : DBusHandler,
-    IMediaPlayer2, IMediaPlayer2Properties,
-    IPlayer, IPlayerProperties
+    IMediaPlayer2Handler, IMediaPlayer2Properties,
+    IPlayerHandler, IPlayerProperties
 {
     private const string ObjectPath = "/org/mpris/MediaPlayer2";
     private const string ServiceNamePrefix = "org.mpris.MediaPlayer2";
@@ -133,96 +133,96 @@ class DBusMediaPlayer : DBusHandler,
         return name;
     }
 
-    // IMediaPlayer2 methods
-    ValueTask IMediaPlayer2.RaiseAsync()
+    // IMediaPlayer2Handler methods
+    ValueTask IMediaPlayer2Handler.RaiseAsync()
     {
         Console.WriteLine("Raise requested");
         return default;
     }
 
-    ValueTask IMediaPlayer2.QuitAsync()
+    ValueTask IMediaPlayer2Handler.QuitAsync()
     {
         Console.WriteLine("Quit requested");
         Environment.Exit(0);
         return default;
     }
 
-    // IPlayer methods
-    ValueTask IPlayer.NextAsync()
+    // IPlayerHandler methods
+    ValueTask IPlayerHandler.NextAsync()
     {
         Console.WriteLine("Next requested");
         return default;
     }
 
-    ValueTask IPlayer.PreviousAsync()
+    ValueTask IPlayerHandler.PreviousAsync()
     {
         Console.WriteLine("Previous requested");
         return default;
     }
 
-    ValueTask IPlayer.PauseAsync()
+    ValueTask IPlayerHandler.PauseAsync()
     {
         Console.WriteLine("Pause requested");
         PlaybackStatus = "Paused";
         return default;
     }
 
-    ValueTask IPlayer.PlayPauseAsync()
+    ValueTask IPlayerHandler.PlayPauseAsync()
     {
         Console.WriteLine("PlayPause requested");
         PlaybackStatus = PlaybackStatus == "Playing" ? "Paused" : "Playing";
         return default;
     }
 
-    ValueTask IPlayer.StopAsync()
+    ValueTask IPlayerHandler.StopAsync()
     {
         Console.WriteLine("Stop requested");
         PlaybackStatus = "Stopped";
         return default;
     }
 
-    ValueTask IPlayer.PlayAsync()
+    ValueTask IPlayerHandler.PlayAsync()
     {
         Console.WriteLine("Play requested");
         PlaybackStatus = "Playing";
         return default;
     }
 
-    ValueTask IPlayer.SeekAsync(long offset)
+    ValueTask IPlayerHandler.SeekAsync(long offset)
     {
         Console.WriteLine($"Seek requested: offset={offset}");
         return default;
     }
 
-    ValueTask IPlayer.SetPositionAsync(ObjectPath trackId, long position)
+    ValueTask IPlayerHandler.SetPositionAsync(ObjectPath trackId, long position)
     {
         Console.WriteLine($"SetPosition requested: trackId={trackId}, position={position}");
         return default;
     }
 
-    ValueTask IPlayer.OpenUriAsync(string uri)
+    ValueTask IPlayerHandler.OpenUriAsync(string uri)
     {
         Console.WriteLine($"OpenUri requested: {uri}");
         return default;
     }
 
-    // IMediaPlayer2 property methods
-    ValueTask IMediaPlayer2.HandleGetPropertyAsync(IMediaPlayer2.GetPropertyContext context)
+    // IMediaPlayer2Handler property methods
+    ValueTask IMediaPlayer2Handler.HandleGetPropertyAsync(IMediaPlayer2Handler.GetPropertyContext context)
         => context.Handle(this);
 
-    ValueTask IMediaPlayer2.HandleGetAllPropertiesAsync(IMediaPlayer2.GetAllPropertiesContext context)
+    ValueTask IMediaPlayer2Handler.HandleGetAllPropertiesAsync(IMediaPlayer2Handler.GetAllPropertiesContext context)
         => context.Handle(this);
 
-    ValueTask IMediaPlayer2.HandleSetPropertyAsync(IMediaPlayer2.SetPropertyContext context)
+    ValueTask IMediaPlayer2Handler.HandleSetPropertyAsync(IMediaPlayer2Handler.SetPropertyContext context)
         => context.Handle(this);
 
-    // IPlayer property methods
-    ValueTask IPlayer.HandleGetPropertyAsync(IPlayer.GetPropertyContext context)
+    // IPlayerHandler property methods
+    ValueTask IPlayerHandler.HandleGetPropertyAsync(IPlayerHandler.GetPropertyContext context)
         => context.Handle(this);
 
-    ValueTask IPlayer.HandleGetAllPropertiesAsync(IPlayer.GetAllPropertiesContext context)
+    ValueTask IPlayerHandler.HandleGetAllPropertiesAsync(IPlayerHandler.GetAllPropertiesContext context)
         => context.Handle(this);
 
-    ValueTask IPlayer.HandleSetPropertyAsync(IPlayer.SetPropertyContext context)
+    ValueTask IPlayerHandler.HandleSetPropertyAsync(IPlayerHandler.SetPropertyContext context)
         => context.Handle(this);
 }

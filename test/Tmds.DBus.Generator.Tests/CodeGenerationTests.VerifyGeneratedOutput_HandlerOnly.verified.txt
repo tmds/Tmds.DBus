@@ -24,7 +24,7 @@ namespace TestNamespace
     interface ICalculatorProperties : IReadableCalculatorProperties
     {
     }
-    interface ICalculator
+    interface ICalculatorHandler
     {
         internal static class Helper
         {
@@ -45,33 +45,33 @@ namespace TestNamespace
                 {
                     return (request.MemberAsString, request.SignatureAsString) switch
                     {
-                        ("Get", "ss") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculator)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
-                        ("GetAll", "s") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculator)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
+                        ("Get", "ss") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculatorHandler)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
+                        ("GetAll", "s") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculatorHandler)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
                         _ => default
                     };
                 }
                 return (request.MemberAsString, request.SignatureAsString) switch
                 {
-                    ("Clear", "") => new DBusHandler.DBusMethod(static (o, c) => HandleClearAsync((ICalculator)o, c), handler),
-                    ("GetResult", "") => new DBusHandler.DBusMethod(static (o, c) => HandleGetResultAsync((ICalculator)o, c), handler),
-                    ("GetStats", "") => new DBusHandler.DBusMethod(static (o, c) => HandleGetStatsAsync((ICalculator)o, c), handler),
-                    ("Store", "d") => new DBusHandler.DBusMethod(static (o, c) => HandleStoreAsync((ICalculator)o, c), handler),
-                    ("Square", "d") => new DBusHandler.DBusMethod(static (o, c) => HandleSquareAsync((ICalculator)o, c), handler),
-                    ("DivMod", "i") => new DBusHandler.DBusMethod(static (o, c) => HandleDivModAsync((ICalculator)o, c), handler),
-                    ("LogOperation", "sd") => new DBusHandler.DBusMethod(static (o, c) => HandleLogOperationAsync((ICalculator)o, c), handler),
-                    ("Add", "dd") => new DBusHandler.DBusMethod(static (o, c) => HandleAddAsync((ICalculator)o, c), handler),
-                    ("Compare", "dd") => new DBusHandler.DBusMethod(static (o, c) => HandleCompareAsync((ICalculator)o, c), handler),
-                    ("GetEntry", "s") => new DBusHandler.DBusMethod(static (o, c) => HandleGetEntryAsync((ICalculator)o, c), handler),
-                    ("SetEntry", "(sd)") => new DBusHandler.DBusMethod(static (o, c) => HandleSetEntryAsync((ICalculator)o, c), handler),
+                    ("Clear", "") => new DBusHandler.DBusMethod(static (o, c) => HandleClearAsync((ICalculatorHandler)o, c), handler),
+                    ("GetResult", "") => new DBusHandler.DBusMethod(static (o, c) => HandleGetResultAsync((ICalculatorHandler)o, c), handler),
+                    ("GetStats", "") => new DBusHandler.DBusMethod(static (o, c) => HandleGetStatsAsync((ICalculatorHandler)o, c), handler),
+                    ("Store", "d") => new DBusHandler.DBusMethod(static (o, c) => HandleStoreAsync((ICalculatorHandler)o, c), handler),
+                    ("Square", "d") => new DBusHandler.DBusMethod(static (o, c) => HandleSquareAsync((ICalculatorHandler)o, c), handler),
+                    ("DivMod", "i") => new DBusHandler.DBusMethod(static (o, c) => HandleDivModAsync((ICalculatorHandler)o, c), handler),
+                    ("LogOperation", "sd") => new DBusHandler.DBusMethod(static (o, c) => HandleLogOperationAsync((ICalculatorHandler)o, c), handler),
+                    ("Add", "dd") => new DBusHandler.DBusMethod(static (o, c) => HandleAddAsync((ICalculatorHandler)o, c), handler),
+                    ("Compare", "dd") => new DBusHandler.DBusMethod(static (o, c) => HandleCompareAsync((ICalculatorHandler)o, c), handler),
+                    ("GetEntry", "s") => new DBusHandler.DBusMethod(static (o, c) => HandleGetEntryAsync((ICalculatorHandler)o, c), handler),
+                    ("SetEntry", "(sd)") => new DBusHandler.DBusMethod(static (o, c) => HandleSetEntryAsync((ICalculatorHandler)o, c), handler),
                     _ => default
                 };
             }
-            static async ValueTask HandleClearAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleClearAsync(ICalculatorHandler handler, MethodContext context)
             {
                 await handler.ClearAsync().ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
             }
-            static async ValueTask HandleGetResultAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleGetResultAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var result = await handler.GetResultAsync().ConfigureAwait(false);
                 WriteReply(context, result);
@@ -82,7 +82,7 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleGetStatsAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleGetStatsAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var result = await handler.GetStatsAsync().ConfigureAwait(false);
                 WriteReply(context, result);
@@ -94,13 +94,13 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleStoreAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleStoreAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var value = MessageReader.Read_d(context.Request);
                 await handler.StoreAsync(value).ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
             }
-            static async ValueTask HandleSquareAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleSquareAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var input = MessageReader.Read_d(context.Request);
                 var result = await handler.SquareAsync(input).ConfigureAwait(false);
@@ -112,7 +112,7 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleDivModAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleDivModAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var dividend = MessageReader.Read_i(context.Request);
                 var result = await handler.DivModAsync(dividend).ConfigureAwait(false);
@@ -125,13 +125,13 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleLogOperationAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleLogOperationAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var (operation, value) = MessageReader.Read_sd(context.Request);
                 await handler.LogOperationAsync(operation, value).ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
             }
-            static async ValueTask HandleAddAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleAddAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var (a, b) = MessageReader.Read_dd(context.Request);
                 var result = await handler.AddAsync(a, b).ConfigureAwait(false);
@@ -143,7 +143,7 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleCompareAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleCompareAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var (a, b) = MessageReader.Read_dd(context.Request);
                 var result = await handler.CompareAsync(a, b).ConfigureAwait(false);
@@ -156,7 +156,7 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleGetEntryAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleGetEntryAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var key = MessageReader.Read_s(context.Request);
                 var result = await handler.GetEntryAsync(key).ConfigureAwait(false);
@@ -168,7 +168,7 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleSetEntryAsync(ICalculator handler, MethodContext context)
+            static async ValueTask HandleSetEntryAsync(ICalculatorHandler handler, MethodContext context)
             {
                 var entry = MessageReader.Read_rsdz(context.Request);
                 await handler.SetEntryAsync(entry).ConfigureAwait(false);
@@ -458,7 +458,7 @@ namespace TestNamespace
         new string Language { get; set; }
         double Volume { set; }
     }
-    interface ISettings
+    interface ISettingsHandler
     {
         internal static class Helper
         {
@@ -479,19 +479,19 @@ namespace TestNamespace
                 {
                     return (request.MemberAsString, request.SignatureAsString) switch
                     {
-                        ("Get", "ss") => new DBusHandler.DBusMethod(static (o, c) => ((ISettings)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
-                        ("GetAll", "s") => new DBusHandler.DBusMethod(static (o, c) => ((ISettings)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
-                        ("Set", "ssv") => new DBusHandler.DBusMethod(static (o, c) => ((ISettings)o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),
+                        ("Get", "ss") => new DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
+                        ("GetAll", "s") => new DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
+                        ("Set", "ssv") => new DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),
                         _ => default
                     };
                 }
                 return (request.MemberAsString, request.SignatureAsString) switch
                 {
-                    ("Save", "") => new DBusHandler.DBusMethod(static (o, c) => HandleSaveAsync((ISettings)o, c), handler),
+                    ("Save", "") => new DBusHandler.DBusMethod(static (o, c) => HandleSaveAsync((ISettingsHandler)o, c), handler),
                     _ => default
                 };
             }
-            static async ValueTask HandleSaveAsync(ISettings handler, MethodContext context)
+            static async ValueTask HandleSaveAsync(ISettingsHandler handler, MethodContext context)
             {
                 await handler.SaveAsync().ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
@@ -752,7 +752,7 @@ namespace TestNamespace
             c.TrySendMessage(writer.CreateMessage());
         }
     }
-    interface IMarker
+    interface IMarkerHandler
     {
         internal static class Helper
         {
@@ -1109,9 +1109,9 @@ namespace Tmds.DBus.Protocol
         {
             return dbusInterface switch
             {
-                DBusInterface.OrgExampleCalculator when this is TestNamespace.ICalculator => TestNamespace.ICalculator.Helper.FindMethodHandler(this, context),
-                DBusInterface.OrgExampleSettings when this is TestNamespace.ISettings => TestNamespace.ISettings.Helper.FindMethodHandler(this, context),
-                DBusInterface.OrgExampleMarker when this is TestNamespace.IMarker => TestNamespace.IMarker.Helper.FindMethodHandler(this, context),
+                DBusInterface.OrgExampleCalculator when this is TestNamespace.ICalculatorHandler => TestNamespace.ICalculatorHandler.Helper.FindMethodHandler(this, context),
+                DBusInterface.OrgExampleSettings when this is TestNamespace.ISettingsHandler => TestNamespace.ISettingsHandler.Helper.FindMethodHandler(this, context),
+                DBusInterface.OrgExampleMarker when this is TestNamespace.IMarkerHandler => TestNamespace.IMarkerHandler.Helper.FindMethodHandler(this, context),
                 OrgFreedesktopDBusIntrospectable => FindIntrospectMethodHandler(this, context),
                 _ => default
             };
@@ -1151,15 +1151,15 @@ namespace Tmds.DBus.Protocol
         private DBusInterface GuessInterfaces(ReadOnlySpan<char> path)
         {
             DBusInterface interfaces = default;
-            if (!ShouldSkip(DBusInterface.OrgExampleCalculator, path) && this is TestNamespace.ICalculator)
+            if (!ShouldSkip(DBusInterface.OrgExampleCalculator, path) && this is TestNamespace.ICalculatorHandler)
             {
                 interfaces |= DBusInterface.OrgExampleCalculator;
             }
-            if (!ShouldSkip(DBusInterface.OrgExampleSettings, path) && this is TestNamespace.ISettings)
+            if (!ShouldSkip(DBusInterface.OrgExampleSettings, path) && this is TestNamespace.ISettingsHandler)
             {
                 interfaces |= DBusInterface.OrgExampleSettings;
             }
-            if (!ShouldSkip(DBusInterface.OrgExampleMarker, path) && this is TestNamespace.IMarker)
+            if (!ShouldSkip(DBusInterface.OrgExampleMarker, path) && this is TestNamespace.IMarkerHandler)
             {
                 interfaces |= DBusInterface.OrgExampleMarker;
             }

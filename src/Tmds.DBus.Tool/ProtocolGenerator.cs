@@ -154,7 +154,7 @@ namespace Tmds.DBus.Tool
             var allInterfaces = _allInterfaces.OrderBy(x => x).ToList();
 
             // Generate DBusInterface Flags enum inside DBusHandler
-            AppendLine("// Identifies the D-Bus interfaces. Used with ShouldSkip to filter interfaces per path.");
+            AppendLine("// Identifies the D-Bus interfaces. Used with SupportsInterface to filter interfaces per path.");
             AppendLine("[Flags]");
             AppendLine("public enum DBusInterface");
             StartBlock();
@@ -307,10 +307,10 @@ namespace Tmds.DBus.Tool
             EndBlock();
             AppendLine("");
 
-            AppendLine("// Override to exclude interfaces for specific paths when the handler manages multiple paths.");
-            AppendLine("protected virtual bool ShouldSkip(DBusInterface dbusInterface, ReadOnlySpan<char> path)");
+            AppendLine("// Override to filter interfaces for specific paths when the handler manages multiple paths.");
+            AppendLine("protected virtual bool SupportsInterface(DBusInterface dbusInterface, ReadOnlySpan<char> path)");
             StartBlock();
-            AppendLine("return false;");
+            AppendLine("return true;");
             EndBlock();
             AppendLine("");
 
@@ -318,7 +318,7 @@ namespace Tmds.DBus.Tool
             AppendLine("// Override to customize introspection, e.g. to include child node names.");
             AppendLine("protected virtual ValueTask HandleIntrospectAsync(IntrospectContext context)");
             StartBlock();
-            AppendLine("DBusInterface interfaces = GuessInterfaces(context.MethodContext.Request.PathAsString.AsSpan());");
+            AppendLine("DBusInterface interfaces = GetSupportedInterfaces(context.MethodContext.Request.PathAsString.AsSpan());");
             AppendLine("context.Reply(interfaces);");
             AppendLine("return default;");
             EndBlock();
@@ -394,7 +394,7 @@ namespace Tmds.DBus.Tool
             AppendLine("ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)");
             StartBlock();
             AppendLine("DBusInterface dbusInterface = ParseInterface(context);");
-            AppendLine("DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && ShouldSkip(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);");
+            AppendLine("DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);");
             AppendLine("if (!method.HasValue)");
             StartBlock();
             AppendLine("return default;");
@@ -495,8 +495,7 @@ namespace Tmds.DBus.Tool
             EndBlock();
             AppendLine("");
 
-            // Add GuessInterfaces method
-            AppendLine("private DBusInterface GuessInterfaces(ReadOnlySpan<char> path)");
+            AppendLine("protected DBusInterface GetSupportedInterfaces(ReadOnlySpan<char> path)");
             StartBlock();
             AppendLine("DBusInterface interfaces = default;");
 
@@ -510,7 +509,7 @@ namespace Tmds.DBus.Tool
                 }
 
                 string enumName = InterfaceNameToEnumValueName(interfaceName);
-                AppendLine($"if (!ShouldSkip(DBusInterface.{enumName}, path) && this is {ns}.{handlerInterfaceName})");
+                AppendLine($"if (SupportsInterface(DBusInterface.{enumName}, path) && this is {ns}.{handlerInterfaceName})");
                 StartBlock();
                 AppendLine($"interfaces |= DBusInterface.{enumName};");
                 EndBlock();

@@ -103,7 +103,7 @@ namespace Tmds.DBus.Tool
                     }
                     if (interf.GenerateHandler)
                     {
-                        AppendHandlerTypesForInterface(ns, interf.Name, interf.InterfaceXml);
+                        AppendHandlerTypesForInterface(ns, interf.Name, interf.HandlerName, interf.InterfaceXml);
                         AppendSignalsClass(interf.Name, interf.InterfaceXml);
                     }
                 }
@@ -734,7 +734,7 @@ namespace Tmds.DBus.Tool
             EndBlock();
         }
 
-        private void AppendHandlerTypesForInterface(string ns, string name, XElement interfaceXml)
+        private void AppendHandlerTypesForInterface(string ns, string name, string handlerName, XElement interfaceXml)
         {
             string interfaceName = (string)interfaceXml.Attribute("name");
 
@@ -743,11 +743,11 @@ namespace Tmds.DBus.Tool
             var writeOnlyProperties = WriteOnlyProperties(interfaceXml).Select(ToArgument).ToArray();
             var writableProperties = WritableProperties(interfaceXml).Select(ToArgument).ToArray();
 
-            AppendLine($"interface I{name}");
+            AppendLine($"interface I{handlerName}");
             StartBlock();
 
             // Track this handler for the shared FindMethodHandler implementation
-            _generatedHandlers.Add((ns, interfaceName, $"I{name}"));
+            _generatedHandlers.Add((ns, interfaceName, $"I{handlerName}"));
 
             // Always add Helper class for all handler interfaces
             AppendLine("internal static class Helper");
@@ -797,13 +797,13 @@ namespace Tmds.DBus.Tool
 
                 if (readableProperties.Any())
                 {
-                    AppendLine("(\"Get\", \"ss\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + name + ")o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),");
-                    AppendLine("(\"GetAll\", \"s\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + name + ")o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),");
+                    AppendLine("(\"Get\", \"ss\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + handlerName + ")o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),");
+                    AppendLine("(\"GetAll\", \"s\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + handlerName + ")o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),");
                 }
 
                 if (writableProperties.Any())
                 {
-                    AppendLine("(\"Set\", \"ssv\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + name + ")o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),");
+                    AppendLine("(\"Set\", \"ssv\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + handlerName + ")o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),");
                 }
 
                 AppendLine("_ => default");
@@ -826,7 +826,7 @@ namespace Tmds.DBus.Tool
                     var inArgs = method.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
                     string signature = string.Join("", inArgs.Select(a => a.Signature));
 
-                    AppendLine($"(\"{dbusMethodName}\", \"{signature}\") => new DBusHandler.DBusMethod(static (o, c) => Handle{dotnetMethodName}Async((I{name})o, c), handler),");
+                    AppendLine($"(\"{dbusMethodName}\", \"{signature}\") => new DBusHandler.DBusMethod(static (o, c) => Handle{dotnetMethodName}Async((I{handlerName})o, c), handler),");
                 }
 
                 AppendLine("_ => default");
@@ -849,7 +849,7 @@ namespace Tmds.DBus.Tool
                 var inArgs = method.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
                 var outArgs = method.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").Select(ToArgument).ToArray();
 
-                AppendLine($"static async ValueTask Handle{dotnetMethodName}Async(I{name} handler, MethodContext context)");
+                AppendLine($"static async ValueTask Handle{dotnetMethodName}Async(I{handlerName} handler, MethodContext context)");
                 StartBlock();
 
                 // Read args
@@ -1170,28 +1170,12 @@ namespace Tmds.DBus.Tool
 
             if (readableProperties.Any())
             {
-                string propertyEnumName = $"{name}Property";
-                AppendLine($"enum {propertyEnumName}");
-                StartBlock();
-                AppendLine("UnknownProperty = 0,");
-                for (int i = 0; i < readableProperties.Length; i++)
-                {
-                    var property = readableProperties[i];
-                    string comma = i < readableProperties.Length - 1 ? "," : "";
-                    AppendLine($"{property.NameUpper} = {i + 1}{comma}");
-                }
-                EndBlock();
+                AppendPropertyEnum(name, readableProperties);
             }
 
             if (readableProperties.Any())
             {
-                AppendLine($"interface IReadable{name}Properties");
-                StartBlock();
-                foreach (var property in readableProperties)
-                {
-                    AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ get; }}");
-                }
-                EndBlock();
+                AppendReadableInterface($"IReadable{name}Properties", readableProperties);
             }
 
             if (generateHandlers)
@@ -1434,6 +1418,32 @@ namespace Tmds.DBus.Tool
                     EndBlock();
                 }
             }
+        }
+
+        private void AppendPropertyEnum(string name, Argument[] readableProperties)
+        {
+            string propertyEnumName = $"{name}Property";
+            AppendLine($"enum {propertyEnumName}");
+            StartBlock();
+            AppendLine("UnknownProperty = 0,");
+            for (int i = 0; i < readableProperties.Length; i++)
+            {
+                var property = readableProperties[i];
+                string comma = i < readableProperties.Length - 1 ? "," : "";
+                AppendLine($"{property.NameUpper} = {i + 1}{comma}");
+            }
+            EndBlock();
+        }
+
+        private void AppendReadableInterface(string interfaceName, Argument[] readableProperties)
+        {
+            AppendLine($"interface {interfaceName}");
+            StartBlock();
+            foreach (var property in readableProperties)
+            {
+                AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ get; }}");
+            }
+            EndBlock();
         }
 
         private void AppendSignalsClass(string name, XElement interfaceXml)

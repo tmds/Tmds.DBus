@@ -99,26 +99,48 @@ namespace Tmds.DBus.Generator
             foreach (var group in xmlFiles.GroupBy(x => x.Namespace))
             {
                 string ns = group.Key;
-                IEnumerable<Tool.InterfaceDescription> interfaces = group.SelectMany(x => x.Interfaces);
 
-                // Check for duplicate interface names within the namespace
-                var duplicateInterfaces = interfaces
-                    .GroupBy(i => i.InterfaceName)
-                    .Where(g => g.Count() > 1)
-                    .ToList();
-                if (duplicateInterfaces.Any())
+                // Group by interface name: merge complementary proxy+handler entries, flag true duplicates.
+                var interfaces = new List<Tool.InterfaceDescription>();
+                bool hasDuplicates = false;
+                foreach (var interfaceGroup in group.SelectMany(x => x.Interfaces).GroupBy(i => i.InterfaceName))
                 {
-                    foreach (var duplicate in duplicateInterfaces)
+                    Tool.InterfaceDescription? merged = null;
+                    foreach (var entry in interfaceGroup)
                     {
-                        string sourceFiles = string.Join(", ", duplicate.Select(i => i.SourceFile ?? "unknown").Distinct());
-                        spc.ReportDiagnostic(Diagnostic.Create(
-                            DiagnosticDescriptors.DuplicateInterface,
-                            Location.None,
-                            duplicate.Key,
-                            ns,
-                            sourceFiles));
+                        if (merged is null)
+                        {
+                            merged = entry;
+                        }
+                        else if (!merged.GenerateProxy && entry.GenerateProxy)
+                        {
+                            merged.GenerateProxy = true;
+                        }
+                        else if (!merged.GenerateHandler && entry.GenerateHandler)
+                        {
+                            merged.GenerateHandler = true;
+                        }
+                        else
+                        {
+                            string sourceFiles = string.Join(", ", interfaceGroup.Select(i => i.SourceFile ?? "unknown").Distinct());
+                            spc.ReportDiagnostic(Diagnostic.Create(
+                                DiagnosticDescriptors.DuplicateInterface,
+                                Location.None,
+                                interfaceGroup.Key,
+                                ns,
+                                sourceFiles));
+                            hasDuplicates = true;
+                            break;
+                        }
                     }
-                    continue; // Skip code generation for this namespace
+                    if (merged is not null)
+                    {
+                        interfaces.Add(merged);
+                    }
+                }
+                if (hasDuplicates)
+                {
+                    continue;  // Skip code generation for this namespace
                 }
 
                 // Check for duplicate class names within the namespace

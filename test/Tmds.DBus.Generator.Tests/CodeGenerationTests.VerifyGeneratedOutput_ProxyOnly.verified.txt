@@ -762,7 +762,7 @@ namespace Tmds.DBus.Protocol
     using System.Threading.Tasks;
     abstract class DBusHandler : IPathMethodHandler
     {
-        // Identifies the D-Bus interfaces. Used with ShouldSkip to filter interfaces per path.
+        // Identifies the D-Bus interfaces. Used with SupportsInterface to filter interfaces per path.
         [Flags]
         public enum DBusInterface
         {
@@ -829,15 +829,15 @@ namespace Tmds.DBus.Protocol
                 context.ReplyError("org.freedesktop.DBus.Error.Failed", ex.Message);
             }
         }
-        // Override to exclude interfaces for specific paths when the handler manages multiple paths.
-        protected virtual bool ShouldSkip(DBusInterface dbusInterface, ReadOnlySpan<char> path)
+        // Override to filter interfaces for specific paths when the handler manages multiple paths.
+        protected virtual bool SupportsInterface(DBusInterface dbusInterface, ReadOnlySpan<char> path)
         {
-            return false;
+            return true;
         }
         // Override to customize introspection, e.g. to include child node names.
         protected virtual ValueTask HandleIntrospectAsync(IntrospectContext context)
         {
-            DBusInterface interfaces = GuessInterfaces(context.MethodContext.Request.PathAsString.AsSpan());
+            DBusInterface interfaces = GetSupportedInterfaces(context.MethodContext.Request.PathAsString.AsSpan());
             context.Reply(interfaces);
             return default;
         }
@@ -886,7 +886,7 @@ namespace Tmds.DBus.Protocol
         ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)
         {
             DBusInterface dbusInterface = ParseInterface(context);
-            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && ShouldSkip(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);
+            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);
             if (!method.HasValue)
             {
                 return default;
@@ -955,7 +955,7 @@ namespace Tmds.DBus.Protocol
             };
             return result;
         }
-        private DBusInterface GuessInterfaces(ReadOnlySpan<char> path)
+        protected DBusInterface GetSupportedInterfaces(ReadOnlySpan<char> path)
         {
             DBusInterface interfaces = default;
             return interfaces;

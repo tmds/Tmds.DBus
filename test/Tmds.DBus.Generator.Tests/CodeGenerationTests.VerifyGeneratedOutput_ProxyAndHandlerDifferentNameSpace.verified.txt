@@ -93,7 +93,7 @@ namespace ProxyNamespace
             => property != 0 && (flags & Flag(property)) != 0;
         public bool IsSet(CalculatorProperty property) => HasFlag(__set, property);
         public bool IsInvalidated(CalculatorProperty property) => HasFlag(__invalidated, property);
-        public void SetInvalidated(CalculatorProperty property)
+        internal void SetInvalidated(CalculatorProperty property)
         {
             if (property != 0)
             {
@@ -108,7 +108,7 @@ namespace ProxyNamespace
                 throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-        public static CalculatorProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        internal static CalculatorProperties ReadFrom(ref Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
@@ -476,7 +476,7 @@ namespace ProxyNamespace
             => property != 0 && (flags & Flag(property)) != 0;
         public bool IsSet(SettingsProperty property) => HasFlag(__set, property);
         public bool IsInvalidated(SettingsProperty property) => HasFlag(__invalidated, property);
-        public void SetInvalidated(SettingsProperty property)
+        internal void SetInvalidated(SettingsProperty property)
         {
             if (property != 0)
             {
@@ -491,7 +491,7 @@ namespace ProxyNamespace
                 throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-        public static SettingsProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        internal static SettingsProperties ReadFrom(ref Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
             ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);

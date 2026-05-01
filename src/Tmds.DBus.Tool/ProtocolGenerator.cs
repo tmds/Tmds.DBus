@@ -1345,7 +1345,7 @@ namespace Tmds.DBus.Tool
                     AppendLine($"public bool IsSet({propertyEnumName} property) => HasFlag(__set, property);");
                     AppendLine($"public bool IsInvalidated({propertyEnumName} property) => HasFlag(__invalidated, property);");
 
-                    AppendLine($"public void SetInvalidated({propertyEnumName} property)");
+                    AppendLine($"internal void SetInvalidated({propertyEnumName} property)");
                     StartBlock();
                     AppendLine("if (property != 0)");
                     StartBlock();
@@ -1363,7 +1363,7 @@ namespace Tmds.DBus.Tool
                     EndBlock();
                     EndBlock();
 
-                    AppendLine($"public static {propertiesClassName} ReadFrom(ref Reader reader, bool withInvalidated)");
+                    AppendLine($"internal static {propertiesClassName} ReadFrom(ref Reader reader, bool withInvalidated)");
                     StartBlock();
                     AppendLine($"var props = CreateUninitialized();");
                     AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");

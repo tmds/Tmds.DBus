@@ -64,6 +64,7 @@ public class CodeGenerationTests : TestsBase
             <property name="LastResult" type="d" access="read"/>
             <property name="CurrentPath" type="o" access="read"/>
             <property name="CurrentEntry" type="(sd)" access="read"/>
+            <property name="IsActive" type="(b)" access="readwrite"/>
           </interface>
           <interface name="org.example.Settings">
             <method name="Save"/>

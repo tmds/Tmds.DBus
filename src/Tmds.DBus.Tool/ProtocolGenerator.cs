@@ -631,20 +631,19 @@ namespace Tmds.DBus.Tool
                 else if (type == DBusType.Struct)
                 {
                     AppendLine("reader.AlignStruct();");
-                    StringBuilder sb = new();
-                    sb.Append("return (");
-                    bool first = true;
+                    List<string> fields = new();
                     while (reader.TryRead(out DBusType fieldType, out ReadOnlySpan<byte> fieldInnerSignature))
                     {
-                        if (!first)
-                        {
-                            sb.Append(", ");
-                        }
-                        first = false;
-                        sb.Append(CallReadArgumentType(GetSignature(fieldType, fieldInnerSignature)));
+                        fields.Add(CallReadArgumentType(GetSignature(fieldType, fieldInnerSignature)));
                     }
-                    sb.Append(");");
-                    AppendLine(sb.ToString());
+                    if (fields.Count == 1)
+                    {
+                        AppendLine($"return new {GetDotnetReadType(signature)}({string.Join(", ", fields)});");
+                    }
+                    else
+                    {
+                        AppendLine($"return ({string.Join(", ", fields)});");
+                    }
                 }
                 else
                 {
@@ -2266,20 +2265,16 @@ namespace Tmds.DBus.Tool
                case DBusType.Struct:
                     {
                         SignatureReader reader = new SignatureReader(innerSignature);
-                        StringBuilder sb = new();
-                        sb.Append("(");
-                        bool first = true;
+                        List<string> fields = new();
                         while (reader.TryRead(out DBusType fieldType, out ReadOnlySpan<byte> fieldInnerSignature))
                         {
-                            if (!first)
-                            {
-                                sb.Append(", ");
-                            }
-                            first = false;
-                            sb.Append(GetDotnetType(fieldType, fieldInnerSignature, readNotWrite));
+                            fields.Add(GetDotnetType(fieldType, fieldInnerSignature, readNotWrite));
                         }
-                        sb.Append(")");
-                        return sb.ToString();
+                        if (fields.Count == 1)
+                        {
+                            return $"ValueTuple<{string.Join(", ", fields)}>";
+                        }
+                        return $"({string.Join(", ", fields)})";
                     }
             }
 

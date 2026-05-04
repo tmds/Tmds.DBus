@@ -13,19 +13,22 @@ namespace TestNamespace
         UnknownProperty = 0,
         LastResult = 1,
         CurrentPath = 2,
-        CurrentEntry = 3
+        CurrentEntry = 3,
+        IsActive = 4
     }
     interface IReadableCalculatorProperties
     {
         double LastResult { get; }
         ObjectPath CurrentPath { get; }
         (string, double) CurrentEntry { get; }
+        ValueTuple<bool> IsActive { get; }
     }
     interface INullableCalculatorProperties
     {
         double? LastResult { get; }
         ObjectPath? CurrentPath { get; }
         (string, double)? CurrentEntry { get; }
+        ValueTuple<bool>? IsActive { get; }
         bool AreAllPropertiesSet();
         CalculatorProperties EnsureAllPropertiesSet();
     }
@@ -34,12 +37,13 @@ namespace TestNamespace
         bool HasLastResultChanged { get; }
         bool HasCurrentPathChanged { get; }
         bool HasCurrentEntryChanged { get; }
+        bool HasIsActiveChanged { get; }
     }
     sealed class CalculatorProperties : IChangedCalculatorProperties, IReadableCalculatorProperties
     {
         private uint __set;
         private uint __invalidated;
-        private const uint PropertiesAllSet = 0x7U; // 3 properties
+        private const uint PropertiesAllSet = 0xFU; // 4 properties
         private static uint Flag(CalculatorProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
         public CalculatorProperties() { }
         #nullable disable
@@ -71,18 +75,28 @@ namespace TestNamespace
             get { EnsureSet(CalculatorProperty.CurrentEntry); return _currentEntry; }
             set { _currentEntry = value; __set |= Flag(CalculatorProperty.CurrentEntry); }
         }
+        private ValueTuple<bool> _isActive = default!;
+        public required ValueTuple<bool> IsActive
+        {
+            get { EnsureSet(CalculatorProperty.IsActive); return _isActive; }
+            set { _isActive = value; __set |= Flag(CalculatorProperty.IsActive); }
+        }
         double? INullableCalculatorProperties.LastResult
             => IsSet(CalculatorProperty.LastResult) ? _lastResult : default(double?);
         ObjectPath? INullableCalculatorProperties.CurrentPath
             => IsSet(CalculatorProperty.CurrentPath) ? _currentPath : default(ObjectPath?);
         (string, double)? INullableCalculatorProperties.CurrentEntry
             => IsSet(CalculatorProperty.CurrentEntry) ? _currentEntry : default((string, double)?);
+        ValueTuple<bool>? INullableCalculatorProperties.IsActive
+            => IsSet(CalculatorProperty.IsActive) ? _isActive : default(ValueTuple<bool>?);
         bool IChangedCalculatorProperties.HasLastResultChanged
             => IsSet(CalculatorProperty.LastResult) || IsInvalidated(CalculatorProperty.LastResult);
         bool IChangedCalculatorProperties.HasCurrentPathChanged
             => IsSet(CalculatorProperty.CurrentPath) || IsInvalidated(CalculatorProperty.CurrentPath);
         bool IChangedCalculatorProperties.HasCurrentEntryChanged
             => IsSet(CalculatorProperty.CurrentEntry) || IsInvalidated(CalculatorProperty.CurrentEntry);
+        bool IChangedCalculatorProperties.HasIsActiveChanged
+            => IsSet(CalculatorProperty.IsActive) || IsInvalidated(CalculatorProperty.IsActive);
         CalculatorProperties INullableCalculatorProperties.EnsureAllPropertiesSet()
         {
             EnsureAllPropertiesSet();
@@ -129,6 +143,10 @@ namespace TestNamespace
                         reader.ReadSignature("(sd)"u8);
                         props.CurrentEntry = reader.Read_rsdz();
                         break;
+                    case "IsActive":
+                        reader.ReadSignature("(b)"u8);
+                        props.IsActive = reader.Read_rbz();
+                        break;
                     default:
                         reader.ReadVariantValue();
                         break;
@@ -145,6 +163,7 @@ namespace TestNamespace
                         "LastResult" => Flag(CalculatorProperty.LastResult),
                         "CurrentPath" => Flag(CalculatorProperty.CurrentPath),
                         "CurrentEntry" => Flag(CalculatorProperty.CurrentEntry),
+                        "IsActive" => Flag(CalculatorProperty.IsActive),
                         _ => 0
                     };
                 }
@@ -343,12 +362,33 @@ namespace TestNamespace
             => WatchOperationCompleteAsync(static (Notification<(string Operation, double Result)> n) => ((Action<(string Operation, double Result)>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
         public ValueTask<IDisposable> WatchOperationCompleteAsync(Action<Notification<(string Operation, double Result)>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
             => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "OperationComplete", (Message m, object? s) => MessageReader.Read_sd(m), handler, flags, emitOnCapturedContext, state);
+        public Task SetIsActiveAsync(ValueTuple<bool> value)
+        {
+            return Connection.CallMethodAsync(CreateMessage());
+            MessageBuffer CreateMessage()
+            {
+                var writer = Connection.GetMessageWriter();
+                writer.WriteMethodCallHeader(
+                    destination: Destination,
+                    path: Path,
+                    @interface: "org.freedesktop.DBus.Properties",
+                    signature: "ssv",
+                    member: "Set");
+                writer.WriteString(DBusInterfaceName);
+                writer.WriteString("IsActive");
+                writer.WriteSignature("(b)");
+                writer.Write_rbz(value);
+                return writer.CreateMessage();
+            }
+        }
         public Task<double> GetLastResultAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("LastResult"), (Message m, object? s) => MessageReader.Read_v_d(m), this);
         public Task<ObjectPath> GetCurrentPathAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentPath"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
         public Task<(string, double)> GetCurrentEntryAsync()
             => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentEntry"), (Message m, object? s) => MessageReader.Read_v_rsdz(m), this);
+        public Task<ValueTuple<bool>> GetIsActiveAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("IsActive"), (Message m, object? s) => MessageReader.Read_v_rbz(m), this);
         public Task<CalculatorProperties> GetPropertiesAsync()
         {
             return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
@@ -728,6 +768,12 @@ namespace TestNamespace
             reader.ReadSignature("(sd)"u8);
             return reader.Read_rsdz();
         }
+        public static ValueTuple<bool> Read_v_rbz(Message message)
+        {
+            var reader = message.GetBodyReader();
+            reader.ReadSignature("(b)"u8);
+            return reader.Read_rbz();
+        }
         public static string Read_v_s(Message message)
         {
             var reader = message.GetBodyReader();
@@ -739,6 +785,11 @@ namespace TestNamespace
             reader.AlignStruct();
             return (reader.ReadString(), reader.ReadDouble());
         }
+        public static ValueTuple<bool> Read_rbz(this ref Reader reader)
+        {
+            reader.AlignStruct();
+            return new ValueTuple<bool>(reader.ReadBool());
+        }
     }
     file static class MessageWriterExtensions
     {
@@ -747,6 +798,11 @@ namespace TestNamespace
             writer.WriteStructureStart();
             writer.WriteString(value.Item1);
             writer.WriteDouble(value.Item2);
+        }
+        public static void Write_rbz(this ref MessageWriter writer, ValueTuple<bool> value)
+        {
+            writer.WriteStructureStart();
+            writer.WriteBool(value.Item1);
         }
     }
 }

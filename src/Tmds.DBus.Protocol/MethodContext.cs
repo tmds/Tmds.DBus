@@ -320,7 +320,7 @@ public sealed class MethodContext : IDisposable
     {
         ThrowIfDisposed();
 
-        return Connection.HandleException(exception, DBusConnection.ExceptionSource.MethodHandler, shouldDisconnect, trigger: _innerConnection);
+        return _innerConnection.HandleException(exception, DBusConnection.ExceptionSource.MethodHandler, shouldDisconnect);
     }
 
     /// <summary>

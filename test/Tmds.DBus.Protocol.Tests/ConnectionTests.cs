@@ -1105,6 +1105,91 @@ namespace Tmds.DBus.Protocol.Tests
         }
 
         [Fact]
+        public async Task AsyncHandler_DelayedCompletion_AwaitsHandlerValueTask()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var handlerOrder = new List<string>();
+            var completionTcs = new TaskCompletionSource();
+            IDisposable? observerDisposable = null;
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            observerDisposable = await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: async ctx =>
+                {
+                    if (ctx.HasValue)
+                    {
+                        handlerOrder.Add("value-start");
+                        observerDisposable!.Dispose();
+                        handlerOrder.Add("value-end");
+                    }
+                    if (ctx.IsCompletion)
+                    {
+                        handlerOrder.Add("completion");
+                        completionTcs.TrySetResult();
+                    }
+                },
+                flags: ObserverFlags.EmitOnObserverDispose,
+                emitOnCapturedContext: false);
+
+            SendHelloWorldSignal(conn2);
+
+            await completionTcs.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.Equal(new[] { "value-start", "value-end", "completion" }, handlerOrder);
+        }
+
+        [Fact]
+        public async Task AsyncHandler_AsyncException_DisconnectsConnection()
+        {
+            var connections = PairedConnection.CreatePair();
+            using var conn1 = connections.Item1;
+            using var conn2 = connections.Item2;
+
+            var rule = new MatchRule
+            {
+                Type = MessageType.Signal,
+                Sender = conn2.UniqueName,
+                Path = HelloWorldConstants.Path,
+                Member = HelloWorldConstants.OnHelloWorld,
+                Interface = HelloWorldConstants.Interface
+            };
+
+            await conn1.AddMatchAsync(
+                rule,
+                reader: (Message m, object? s) => m.GetBodyReader().ReadString(),
+                handler: async ctx =>
+                {
+                    if (ctx.HasValue)
+                    {
+                        await Task.Yield();
+                        throw new InvalidOperationException("Async handler threw after await");
+                    }
+                },
+                emitOnCapturedContext: false);
+
+            SendHelloWorldSignal(conn2);
+
+            var disconnectReason = await conn1.DisconnectedAsync().WaitAsync(TimeSpan.FromSeconds(5));
+
+            Assert.NotNull(disconnectReason);
+            Assert.IsType<InvalidOperationException>(disconnectReason);
+            Assert.Equal("Async handler threw after await", disconnectReason.Message);
+        }
+
+        [Fact]
         public async Task Notification_CompletionDeliveredViaSynchronizationContext()
         {
             var connections = PairedConnection.CreatePair();

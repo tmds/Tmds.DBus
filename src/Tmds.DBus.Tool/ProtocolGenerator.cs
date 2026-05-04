@@ -1692,9 +1692,21 @@ namespace Tmds.DBus.Tool
                 // WatchPropertiesChangedAsync simple overload
                 AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<{changedInterfaceName}> handler, bool emitOnCapturedContext = true)");
                 AppendLine($"    => WatchPropertiesChangedAsync(static (Notification<{changedInterfaceName}> n) => ((Action<{changedInterfaceName}>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);");
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<{changedInterfaceName}, ValueTask> handler, bool emitOnCapturedContext = true)");
+                AppendLine($"    => WatchPropertiesChangedAsync(static (Notification<{changedInterfaceName}> n) => ((Func<{changedInterfaceName}, ValueTask>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);");
 
                 // WatchPropertiesChangedAsync with Notification
                 AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<{changedInterfaceName}>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
+                StartBlock();
+                AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);");
+                AppendLine($"static {changedInterfaceName} ReadMessage(Message message)");
+                StartBlock();
+                AppendLine("var reader = message.GetBodyReader();");
+                AppendLine("reader.ReadString(); // interface");
+                AppendLine($"return {propertiesClassName}.ReadFrom(ref reader, withInvalidated: true);");
+                EndBlock();
+                EndBlock();
+                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<Notification<{changedInterfaceName}>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
                 StartBlock();
                 AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);");
                 AppendLine($"static {changedInterfaceName} ReadMessage(Message message)");
@@ -1792,8 +1804,23 @@ namespace Tmds.DBus.Tool
             string simpleNotificationHandler = watchType == null ? "static (Notification n) => ((Action)n.State!)()" : $"static (Notification<{watchType}> n) => ((Action<{watchType}>)n.State!)(n.Value)";
             AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({simpleHandlerArg} handler, bool emitOnCapturedContext = true)");
             AppendLine($"    => {dotnetMethodName}({simpleNotificationHandler}, ObserverFlags.None, emitOnCapturedContext, handler);");
+            string simpleFuncHandlerArg = watchType == null ? "Func<ValueTask>" : $"Func<{watchType}, ValueTask>";
+            string simpleFuncNotificationHandler = watchType == null ? "static (Notification n) => ((Func<ValueTask>)n.State!)()" : $"static (Notification<{watchType}> n) => ((Func<{watchType}, ValueTask>)n.State!)(n.Value)";
+            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({simpleFuncHandlerArg} handler, bool emitOnCapturedContext = true)");
+            AppendLine($"    => {dotnetMethodName}({simpleFuncNotificationHandler}, ObserverFlags.None, emitOnCapturedContext, handler);");
             string handlerContextMethodArg = watchType == null ? "Action<Notification>" : $"Action<Notification<{watchType}>>";
             AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({handlerContextMethodArg} handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
+            if (watchType == null)
+            {
+                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", handler, flags, emitOnCapturedContext, state);");
+            }
+            else
+            {
+                string readMessageName = GetReadMessageMethodName(args, variant: false);
+                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", (Message m, object? s) => MessageReader.{readMessageName}(m), handler, flags, emitOnCapturedContext, state);");
+            }
+            string funcHandlerContextMethodArg = watchType == null ? "Func<Notification, ValueTask>" : $"Func<Notification<{watchType}>, ValueTask>";
+            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({funcHandlerContextMethodArg} handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
             if (watchType == null)
             {
                 AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", handler, flags, emitOnCapturedContext, state);");

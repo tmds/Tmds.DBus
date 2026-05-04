@@ -829,7 +829,7 @@ class InnerConnection : IDisposable
         }
     }
 
-    public async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<Observer, Exception?, T> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
+    public async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Func<Observer, Exception?, T, ValueTask> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
     {
         if (BusName.IsOwnerIdentifier(rule.Sender.AsSpan()))
         {
@@ -1167,23 +1167,26 @@ class InnerConnection : IDisposable
             _scMessageCallback ??= EmitMessageOnSynchronizationContext;
         }
 
-        internal static Observer Create<T>(SynchronizationContext? synchronizationContext, MessageValueReader<T> valueReader, Action<Observer, Exception?, T> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
+        internal static Observer Create<T>(SynchronizationContext? synchronizationContext, MessageValueReader<T> valueReader, Func<Observer, Exception?, T, ValueTask> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
         {
-            Action<Observer, Message?> handler = (observer, message) =>
+            Action<Observer, Message?> handler = async (observer, message) =>
             {
                 try
                 {
+                    bool emitCompletion;
+                    ValueTask vt;
                     if (message is null)
                     {
                         bool isExecuting = (observer._flags & IsExecutingHandlerFlag) != 0;
-                        if (isExecuting)
+                        emitCompletion = !isExecuting;
+                        if (!emitCompletion)
                         {
                             // Since we're holding the lock, the exception was thrown due to the executing handler doing something.
                             // Don't re-enter the handler, we'll call it once it finished executing.
                             observer._flags |= DelayedCompletion;
                             return;
                         }
-                        EmitCompletion();
+                        vt = default;
                     }
                     else
                     {
@@ -1215,43 +1218,29 @@ class InnerConnection : IDisposable
                             return;
                         }
 
+                        observer._flags |= IsExecutingHandlerFlag;
                         try
                         {
-                            observer._flags |= IsExecutingHandlerFlag;
-                            valueHandler(observer, null, value);
+                            vt = valueHandler(observer, null, value);
                         }
                         finally
                         {
                             observer._flags &= ~IsExecutingHandlerFlag;
                         }
-                        bool hasDelayedCompletion = (observer._flags & DelayedCompletion) != 0;
-                        if (hasDelayedCompletion)
-                        {
-                            EmitCompletion();
-                        }
+
+                        emitCompletion = (observer._flags & DelayedCompletion) != 0;
                     }
+                    if (emitCompletion)
+                    {
+                        await valueHandler(observer, observer._disposeException, default!).ConfigureAwait(false);
+                    }
+                    await vt.ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     if (!observer.Connection.HandleException(ex, DBusConnection.ExceptionSource.SignalHandler, closeConnection: true))
                     {
                         observer.Dispose(ex, emit: false);
-                    }
-                }
-
-                void EmitCompletion()
-                {
-                    Debug.Assert(observer._disposeException is not null);
-                    try
-                    {
-                        valueHandler(observer, observer._disposeException, default!);
-                    }
-                    catch (Exception ex)
-                    {
-                        if (!observer.Connection.HandleException(ex, DBusConnection.ExceptionSource.SignalHandler, closeConnection: true))
-                        {
-                            observer.Dispose(ex, emit: false);
-                        }
                     }
                 }
             };
@@ -1397,6 +1386,11 @@ class InnerConnection : IDisposable
 
     internal bool HandleException(Exception exception, DBusConnection.ExceptionSource source, bool closeConnection)
     {
+        if (_state == DBusConnectionState.Disconnected)
+        {
+            return true;
+        }
+
         return _parentDBusConnection.HandleException(exception, source, closeConnection, trigger: this);
     }
 

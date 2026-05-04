@@ -201,7 +201,7 @@ public sealed partial class DBusConnection : IDisposable
     }
 
     // Returns true if the connection should be disconnected.
-    internal bool HandleException(Exception exception, ExceptionSource source, bool closeConnection, InnerConnection? trigger)
+    internal bool HandleException(Exception exception, ExceptionSource source, bool closeConnection, InnerConnection trigger)
     {
         var handler = _connectionOptions.OnException;
         bool disconnect;
@@ -375,7 +375,7 @@ public sealed partial class DBusConnection : IDisposable
     /// <returns><see cref="IDisposable"/> that stops the observer when disposed.</returns>
     [Obsolete("Use the overload that accepts Action<Notification<T>> instead.")]
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Exception?, T, object?, object?> handler, object? readerState , object? handlerState, SynchronizationContext? synchronizationContext, ObserverFlags flags)
-        => AddMatchAsync(synchronizationContext, rule, reader, static (observer, ex, value) => ((Action<Exception?, T, object?, object?>)observer.State3!)(observer.Exception, value, observer.ReaderState, observer.State2), readerState: readerState, state2: handlerState, state3: handler, flags: flags);
+        => AddMatchAsync(synchronizationContext, rule, reader, static (observer, ex, value) => { ((Action<Exception?, T, object?, object?>)observer.State3!)(observer.Exception, value, observer.ReaderState, observer.State2); return default; }, readerState: readerState, state2: handlerState, state3: handler, flags: flags);
 
     /// <summary>
     /// Adds an observer to receive D-Bus messages matching the specified criteria.
@@ -394,6 +394,10 @@ public sealed partial class DBusConnection : IDisposable
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Notification<T>> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None, object? state = null)
         => AddMatchAsync(rule, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
 
+    /// <inheritdoc cref="AddMatchAsync{T}(MatchRule, MessageValueReader{T}, Action{Notification{T}}, bool, ObserverFlags, object?)"/>
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Func<Notification<T>, ValueTask> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None, object? state = null)
+        => AddMatchAsync(rule, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
     /// <summary>
     /// Adds an observer to receive D-Bus messages matching the specified criteria.
     /// </summary>
@@ -409,7 +413,11 @@ public sealed partial class DBusConnection : IDisposable
     /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
     /// </remarks>
     public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Action<Notification<T>> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
-        => AddMatchAsync(synchronizationContext, rule, reader, static (observer, ex, value) => ((Action<Notification<T>>)observer.State2!).Invoke(new Notification<T>(observer, value, isCompletion: ex is not null)), readerState: state, state2: handler, state3: null, flags: flags);
+        => AddMatchAsync(synchronizationContext, rule, reader, static (observer, ex, value) => { ((Action<Notification<T>>)observer.State2!).Invoke(new Notification<T>(observer, value, isCompletion: ex is not null)); return default; }, readerState: state, state2: handler, state3: null, flags: flags);
+
+    /// <inheritdoc cref="AddMatchAsync{T}(MatchRule, MessageValueReader{T}, Action{Notification{T}}, SynchronizationContext?, ObserverFlags, object?)"/>
+    public ValueTask<IDisposable> AddMatchAsync<T>(MatchRule rule, MessageValueReader<T> reader, Func<Notification<T>, ValueTask> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+        => AddMatchAsync(synchronizationContext, rule, reader, static (observer, ex, value) => ((Func<Notification<T>, ValueTask>)observer.State2!).Invoke(new Notification<T>(observer, value, isCompletion: ex is not null)), readerState: state, state2: handler, state3: null, flags: flags);
 
     /// <summary>
     /// Adds an observer to receive D-Bus messages matching the specified criteria.
@@ -426,6 +434,10 @@ public sealed partial class DBusConnection : IDisposable
     public ValueTask<IDisposable> AddMatchAsync(MatchRule rule, Action<Notification> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None, object? state = null)
         => AddMatchAsync(rule, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
 
+    /// <inheritdoc cref="AddMatchAsync(MatchRule, Action{Notification}, bool, ObserverFlags, object?)"/>
+    public ValueTask<IDisposable> AddMatchAsync(MatchRule rule, Func<Notification, ValueTask> handler, bool emitOnCapturedContext = true, ObserverFlags flags = ObserverFlags.None, object? state = null)
+        => AddMatchAsync(rule, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
     /// <summary>
     /// Adds an observer to receive D-Bus messages matching the specified criteria.
     /// </summary>
@@ -439,7 +451,11 @@ public sealed partial class DBusConnection : IDisposable
     /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
     /// </remarks>
     public ValueTask<IDisposable> AddMatchAsync(MatchRule rule, Action<Notification> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
-        => AddMatchAsync<object>(synchronizationContext, rule, (Message message, object? state) => null!, static (observer, ex, value) => ((Action<Notification>)observer.State2!).Invoke(new Notification(observer, isCompletion: ex is not null)), readerState: state, state2: handler, state3: null, flags: flags);
+        => AddMatchAsync<object>(synchronizationContext, rule, (Message message, object? state) => null!, static (observer, ex, value) => { ((Action<Notification>)observer.State2!).Invoke(new Notification(observer, isCompletion: ex is not null)); return default; }, readerState: state, state2: handler, state3: null, flags: flags);
+
+    /// <inheritdoc cref="AddMatchAsync(MatchRule, Action{Notification}, SynchronizationContext?, ObserverFlags, object?)"/>
+    public ValueTask<IDisposable> AddMatchAsync(MatchRule rule, Func<Notification, ValueTask> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+        => AddMatchAsync<object>(synchronizationContext, rule, (Message message, object? state) => null!, static (observer, ex, value) => ((Func<Notification, ValueTask>)observer.State2!).Invoke(new Notification(observer, isCompletion: ex is not null)), readerState: state, state2: handler, state3: null, flags: flags);
 
     /// <summary>
     /// Watches for property changes.
@@ -501,6 +517,23 @@ public sealed partial class DBusConnection : IDisposable
         return AddMatchAsync(rule, reader, handler, synchronizationContext, flags, state);
     }
 
+    /// <inheritdoc cref="WatchPropertiesChangedAsync{T}(string?, string?, string, MessageValueReader{T}, Action{Notification{T}}, SynchronizationContext?, ObserverFlags, object?)"/>
+    public ValueTask<IDisposable> WatchPropertiesChangedAsync<T>(string? sender, string? path, string @interface, MessageValueReader<T> reader, Func<Notification<T>, ValueTask> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Interface = "org.freedesktop.DBus.Properties",
+            Member = "PropertiesChanged",
+            Arg0 = @interface
+        };
+        return AddMatchAsync(rule, reader, handler, synchronizationContext, flags, state);
+    }
+
     /// <summary>
     /// Watches for property changes.
     /// </summary>
@@ -517,6 +550,10 @@ public sealed partial class DBusConnection : IDisposable
     /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
     /// </remarks>
     public ValueTask<IDisposable> WatchPropertiesChangedAsync<T>(string? sender, string? path, string @interface, MessageValueReader<T> reader, Action<Notification<T>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        => WatchPropertiesChangedAsync(sender, path, @interface, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
+    /// <inheritdoc cref="WatchPropertiesChangedAsync{T}(string?, string?, string, MessageValueReader{T}, Action{Notification{T}}, ObserverFlags, bool, object?)"/>
+    public ValueTask<IDisposable> WatchPropertiesChangedAsync<T>(string? sender, string? path, string @interface, MessageValueReader<T> reader, Func<Notification<T>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         => WatchPropertiesChangedAsync(sender, path, @interface, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
 
     /// <summary>
@@ -583,6 +620,24 @@ public sealed partial class DBusConnection : IDisposable
         return AddMatchAsync(rule, reader, handler, synchronizationContext, flags, state);
     }
 
+    /// <inheritdoc cref="WatchSignalAsync{T}(string?, string?, string, string, MessageValueReader{T}, Action{Notification{T}}, SynchronizationContext?, ObserverFlags, object?)"/>
+    public ValueTask<IDisposable> WatchSignalAsync<T>(string? sender, string? path, string @interface, string signal, MessageValueReader<T> reader, Func<Notification<T>, ValueTask> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        if (string.IsNullOrEmpty(signal))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(signal));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Member = signal,
+            Interface = @interface
+        };
+        return AddMatchAsync(rule, reader, handler, synchronizationContext, flags, state);
+    }
+
     /// <summary>
     /// Watches for a D-Bus signal.
     /// </summary>
@@ -599,6 +654,24 @@ public sealed partial class DBusConnection : IDisposable
     /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
     /// </remarks>
     public ValueTask<IDisposable> WatchSignalAsync(string? sender, string? path, string @interface, string signal, Action<Notification> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
+    {
+        if (string.IsNullOrEmpty(@interface))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
+        if (string.IsNullOrEmpty(signal))
+            throw new ArgumentException("Value cannot be null or empty.", nameof(signal));
+        var rule = new MatchRule
+        {
+            Type = MessageType.Signal,
+            Sender = sender,
+            Path = path,
+            Member = signal,
+            Interface = @interface
+        };
+        return AddMatchAsync(rule, handler, synchronizationContext, flags, state);
+    }
+
+    /// <inheritdoc cref="WatchSignalAsync(string?, string?, string, string, Action{Notification}, SynchronizationContext?, ObserverFlags, object?)"/>
+    public ValueTask<IDisposable> WatchSignalAsync(string? sender, string? path, string @interface, string signal, Func<Notification, ValueTask> handler, SynchronizationContext? synchronizationContext, ObserverFlags flags, object? state)
     {
         if (string.IsNullOrEmpty(@interface))
             throw new ArgumentException("Value cannot be null or empty.", nameof(@interface));
@@ -634,6 +707,10 @@ public sealed partial class DBusConnection : IDisposable
     public ValueTask<IDisposable> WatchSignalAsync<T>(string? sender, string? path, string @interface, string signal, MessageValueReader<T> reader, Action<Notification<T>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         => WatchSignalAsync(sender, path, @interface, signal, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
 
+    /// <inheritdoc cref="WatchSignalAsync{T}(string?, string?, string, string, MessageValueReader{T}, Action{Notification{T}}, ObserverFlags, bool, object?)"/>
+    public ValueTask<IDisposable> WatchSignalAsync<T>(string? sender, string? path, string @interface, string signal, MessageValueReader<T> reader, Func<Notification<T>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        => WatchSignalAsync(sender, path, @interface, signal, reader, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
     /// <summary>
     /// Watches for a D-Bus signal.
     /// </summary>
@@ -650,6 +727,10 @@ public sealed partial class DBusConnection : IDisposable
     /// The handler must not throw exceptions. If the handler throws, the connection will be disconnected.
     /// </remarks>
     public ValueTask<IDisposable> WatchSignalAsync(string? sender, string? path, string @interface, string signal, Action<Notification> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        => WatchSignalAsync(sender, path, @interface, signal, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
+
+    /// <inheritdoc cref="WatchSignalAsync(string?, string?, string, string, Action{Notification}, ObserverFlags, bool, object?)"/>
+    public ValueTask<IDisposable> WatchSignalAsync(string? sender, string? path, string @interface, string signal, Func<Notification, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         => WatchSignalAsync(sender, path, @interface, signal, handler, emitOnCapturedContext ? SynchronizationContext.Current : null, flags, state);
 
     /// <summary>
@@ -834,7 +915,7 @@ public sealed partial class DBusConnection : IDisposable
 
     internal uint GetNextSerial() => (uint)Interlocked.Increment(ref _nextSerial);
 
-    private async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Action<InnerConnection.Observer, Exception?, T> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
+    private async ValueTask<IDisposable> AddMatchAsync<T>(SynchronizationContext? synchronizationContext, MatchRule rule, MessageValueReader<T> valueReader, Func<InnerConnection.Observer, Exception?, T, ValueTask> valueHandler, object? readerState, object? state2, object? state3, ObserverFlags flags)
     {
         InnerConnection connection = await ConnectCoreAsync().ConfigureAwait(false);
         return await connection.AddMatchAsync(synchronizationContext, rule, valueReader, valueHandler, readerState: readerState, state2: state2, state3: state3, flags: flags).ConfigureAwait(false);

@@ -8,7 +8,10 @@ using Mpris.DBus;
 Console.WriteLine("MediaPlayerRemote Sample");
 
 // Connect to the session bus.
-using var connection = new DBusConnection(DBusAddress.Session!);
+using var connection = new DBusConnection(new DBusConnectionOptions(DBusAddress.Session!)
+{
+    OnException = ctx => Console.WriteLine($"error: exception occurred in D-Bus ({ctx.Source}): {ctx.Exception.Message}")
+});
 await connection.ConnectAsync();
 
 // Find all players.
@@ -88,29 +91,20 @@ class Player
         string? CurrentTitle = null;
 
         // Subscribe for changes.
-        IDisposable watcher = await _player.WatchPropertiesChangedAsync(OnPropertiesChanged, emitOnCapturedContext).ConfigureAwait(emitOnCapturedContext);
+        IDisposable watcher = await _player.WatchPropertiesChangedAsync(async props =>
+        {
+            if (props.HasMetadataChanged)
+            {
+                Dictionary<string, VariantValue> metadata = props.Metadata ?? await _player.GetMetadataAsync();
+                UpdateCurrentTitle(metadata);
+            }
+        }, emitOnCapturedContext).ConfigureAwait(emitOnCapturedContext);
 
         // Get the current title.
         var metadata = await _player.GetMetadataAsync().ConfigureAwait(emitOnCapturedContext);
         UpdateCurrentTitle(metadata, initial: true);
 
         return watcher;
-
-        async void OnPropertiesChanged(IChangedPlayerProperties props)
-        {
-            if (props.HasMetadataChanged)
-            {
-                try
-                {
-                    Dictionary<string, VariantValue> metadata = props.Metadata ?? await _player.GetMetadataAsync();
-                    UpdateCurrentTitle(metadata);
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine($"Error while handling player properties changed: {e}");
-                }
-            }
-        }
 
         void UpdateCurrentTitle(Dictionary<string, VariantValue> metadata, bool initial = false)
         {

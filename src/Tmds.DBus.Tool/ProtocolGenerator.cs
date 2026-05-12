@@ -982,8 +982,7 @@ namespace Tmds.DBus.Tool
                 AppendLine("MethodContext.ReplyError(\"org.freedesktop.DBus.Error.UnknownProperty\", $\"Unknown property: {Property}\");");
                 EndBlock();
 
-                // Handle method that reads from IReadableXxxProperties
-                AppendLine($"public ValueTask Handle(IReadable{name}Properties properties)");
+                AppendLine($"public ValueTask Handle(I{name}Properties properties)");
                 StartBlock();
                 AppendLine("switch (Property)");
                 StartBlock();
@@ -1018,8 +1017,7 @@ namespace Tmds.DBus.Tool
 
                 AppendLine("public void Dispose() => MethodContext.Dispose();");
 
-                // Handle method that reads all properties from IReadableXxxProperties
-                AppendLine($"public ValueTask Handle(IReadable{name}Properties properties)");
+                AppendLine($"public ValueTask Handle(I{name}Properties properties)");
                 StartBlock();
                 AppendLine("var writer = MethodContext.CreateReplyWriter(\"a{sv}\");");
                 AppendLine("var dictStart = writer.WriteDictionaryStart();");
@@ -1171,9 +1169,27 @@ namespace Tmds.DBus.Tool
                 AppendPropertyEnum(name, readableProperties);
             }
 
-            if (readableProperties.Any())
+            if (readableProperties.Any() || writableProperties.Any())
             {
-                AppendReadableInterface($"IReadable{name}Properties", readableProperties);
+                AppendLine($"interface I{name}Properties");
+                StartBlock();
+                foreach (var property in readableProperties)
+                {
+                    bool isWritable = writableProperties.Any(w => w.Name == property.Name);
+                    if (isWritable)
+                    {
+                        AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ get; set; }}");
+                    }
+                    else
+                    {
+                        AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ get; }}");
+                    }
+                }
+                foreach (var property in writeOnlyProperties)
+                {
+                    AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ set; }}");
+                }
+                EndBlock();
             }
 
             if (generateHandlers)
@@ -1202,31 +1218,6 @@ namespace Tmds.DBus.Tool
                         string comma = i < writeOnlyProperties.Length - 1 ? "," : "";
                         AppendLine($"{property.NameUpper} = {nextValue + i}{comma}");
                     }
-                    EndBlock();
-                }
-
-                // IXxxProperties
-                if (readableProperties.Any() || writableProperties.Any())
-                {
-                    string propertiesInterfaceName = $"I{name}Properties";
-                    string baseInterface = readableProperties.Any() ? $" : IReadable{name}Properties" : "";
-                    AppendLine($"interface {propertiesInterfaceName}{baseInterface}");
-                    StartBlock();
-
-                    foreach (var property in readableProperties)
-                    {
-                        bool isWritable = writableProperties.Any(w => w.Name == property.Name);
-                        if (isWritable)
-                        {
-                            AppendLine($"new {property.DotnetReadType} {property.NameUpper} {{ get; set; }}");
-                        }
-                    }
-
-                    foreach (var property in writeOnlyProperties)
-                    {
-                        AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ set; }}");
-                    }
-
                     EndBlock();
                 }
             }
@@ -1263,7 +1254,7 @@ namespace Tmds.DBus.Tool
                     }
                     EndBlock();
 
-                    AppendLine($"sealed class {propertiesClassName} : {changedInterfaceName}, IReadable{name}Properties");
+                    AppendLine($"sealed class {propertiesClassName} : {changedInterfaceName}, I{name}Properties");
                     StartBlock();
 
                     string flagType = readableProperties.Length <= 32 ? "uint" : "ulong";
@@ -1413,6 +1404,11 @@ namespace Tmds.DBus.Tool
                     AppendLine("return props;");
                     EndBlock();
 
+                    foreach (var property in writeOnlyProperties)
+                    {
+                        AppendLine($"{property.DotnetReadType} I{name}Properties.{property.NameUpper} {{ set {{ }} }}");
+                    }
+
                     EndBlock();
                 }
             }
@@ -1429,17 +1425,6 @@ namespace Tmds.DBus.Tool
                 var property = readableProperties[i];
                 string comma = i < readableProperties.Length - 1 ? "," : "";
                 AppendLine($"{property.NameUpper} = {i + 1}{comma}");
-            }
-            EndBlock();
-        }
-
-        private void AppendReadableInterface(string interfaceName, Argument[] readableProperties)
-        {
-            AppendLine($"interface {interfaceName}");
-            StartBlock();
-            foreach (var property in readableProperties)
-            {
-                AppendLine($"{property.DotnetReadType} {property.NameUpper} {{ get; }}");
             }
             EndBlock();
         }
@@ -1491,8 +1476,7 @@ namespace Tmds.DBus.Tool
                 AppendLine($"writer.WriteString(\"{interfaceName}\");");
             }
 
-            // Public overload: accepts IReadableXxxProperties with changed and invalidated spans
-            AppendLine($"public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, IReadable{name}Properties properties, ReadOnlySpan<{propertyEnumName}> changed, ReadOnlySpan<{propertyEnumName}> invalidated = default)");
+            AppendLine($"public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, I{name}Properties properties, ReadOnlySpan<{propertyEnumName}> changed, ReadOnlySpan<{propertyEnumName}> invalidated = default)");
             StartBlock();
             AppendWriteSignalHeader();
 
@@ -1539,7 +1523,7 @@ namespace Tmds.DBus.Tool
             EndBlock();
 
             // Public overload: single changed property
-            AppendLine($"public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, IReadable{name}Properties properties, {propertyEnumName} changed)");
+            AppendLine($"public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, I{name}Properties properties, {propertyEnumName} changed)");
             StartBlock();
             AppendLine("EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);");
             EndBlock();

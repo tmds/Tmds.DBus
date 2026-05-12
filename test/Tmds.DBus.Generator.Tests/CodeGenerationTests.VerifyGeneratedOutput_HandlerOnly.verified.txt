@@ -16,21 +16,17 @@ namespace TestNamespace
         CurrentEntry = 3,
         IsActive = 4
     }
-    interface IReadableCalculatorProperties
+    interface ICalculatorProperties
     {
         double LastResult { get; }
         ObjectPath CurrentPath { get; }
         (string, double) CurrentEntry { get; }
-        ValueTuple<bool> IsActive { get; }
+        ValueTuple<bool> IsActive { get; set; }
     }
     enum WritableCalculatorProperty
     {
         UnknownProperty = 0,
         IsActive = 4,
-    }
-    interface ICalculatorProperties : IReadableCalculatorProperties
-    {
-        new ValueTuple<bool> IsActive { get; set; }
     }
     interface ICalculatorHandler
     {
@@ -243,7 +239,7 @@ namespace TestNamespace
             {
                 MethodContext.ReplyError("org.freedesktop.DBus.Error.UnknownProperty", $"Unknown property: {Property}");
             }
-            public ValueTask Handle(IReadableCalculatorProperties properties)
+            public ValueTask Handle(ICalculatorProperties properties)
             {
                 switch (Property)
                 {
@@ -274,7 +270,7 @@ namespace TestNamespace
                 MethodContext = methodContext;
             }
             public void Dispose() => MethodContext.Dispose();
-            public ValueTask Handle(IReadableCalculatorProperties properties)
+            public ValueTask Handle(ICalculatorProperties properties)
             {
                 var writer = MethodContext.CreateReplyWriter("a{sv}");
                 var dictStart = writer.WriteDictionaryStart();
@@ -412,7 +408,7 @@ namespace TestNamespace
             writer.WriteDouble(result);
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, IReadableCalculatorProperties properties, ReadOnlySpan<CalculatorProperty> changed, ReadOnlySpan<CalculatorProperty> invalidated = default)
+        public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, ICalculatorProperties properties, ReadOnlySpan<CalculatorProperty> changed, ReadOnlySpan<CalculatorProperty> invalidated = default)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -471,7 +467,7 @@ namespace TestNamespace
             writer.WriteArrayEnd(arrayStart);
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, IReadableCalculatorProperties properties, CalculatorProperty changed)
+        public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, ICalculatorProperties properties, CalculatorProperty changed)
         {
             EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);
         }
@@ -539,21 +535,17 @@ namespace TestNamespace
         Theme = 1,
         Language = 2
     }
-    interface IReadableSettingsProperties
+    interface ISettingsProperties
     {
         string Theme { get; }
-        string Language { get; }
+        string Language { get; set; }
+        double Volume { set; }
     }
     enum WritableSettingsProperty
     {
         UnknownProperty = 0,
         Language = 2,
         Volume = 3
-    }
-    interface ISettingsProperties : IReadableSettingsProperties
-    {
-        new string Language { get; set; }
-        double Volume { set; }
     }
     interface ISettingsHandler
     {
@@ -628,7 +620,7 @@ namespace TestNamespace
             {
                 MethodContext.ReplyError("org.freedesktop.DBus.Error.UnknownProperty", $"Unknown property: {Property}");
             }
-            public ValueTask Handle(IReadableSettingsProperties properties)
+            public ValueTask Handle(ISettingsProperties properties)
             {
                 switch (Property)
                 {
@@ -653,7 +645,7 @@ namespace TestNamespace
                 MethodContext = methodContext;
             }
             public void Dispose() => MethodContext.Dispose();
-            public ValueTask Handle(IReadableSettingsProperties properties)
+            public ValueTask Handle(ISettingsProperties properties)
             {
                 var writer = MethodContext.CreateReplyWriter("a{sv}");
                 var dictStart = writer.WriteDictionaryStart();
@@ -762,7 +754,7 @@ namespace TestNamespace
                 member: "Changed");
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, IReadableSettingsProperties properties, ReadOnlySpan<SettingsProperty> changed, ReadOnlySpan<SettingsProperty> invalidated = default)
+        public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, ISettingsProperties properties, ReadOnlySpan<SettingsProperty> changed, ReadOnlySpan<SettingsProperty> invalidated = default)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -805,7 +797,7 @@ namespace TestNamespace
             writer.WriteArrayEnd(arrayStart);
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, IReadableSettingsProperties properties, SettingsProperty changed)
+        public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, ISettingsProperties properties, SettingsProperty changed)
         {
             EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);
         }

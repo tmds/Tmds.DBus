@@ -16,12 +16,12 @@ namespace TestNamespace
         CurrentEntry = 3,
         IsActive = 4
     }
-    interface IReadableCalculatorProperties
+    interface ICalculatorProperties
     {
         double LastResult { get; }
         ObjectPath CurrentPath { get; }
         (string, double) CurrentEntry { get; }
-        ValueTuple<bool> IsActive { get; }
+        ValueTuple<bool> IsActive { get; set; }
     }
     interface INullableCalculatorProperties
     {
@@ -39,7 +39,7 @@ namespace TestNamespace
         bool HasCurrentEntryChanged { get; }
         bool HasIsActiveChanged { get; }
     }
-    sealed class CalculatorProperties : IChangedCalculatorProperties, IReadableCalculatorProperties
+    sealed class CalculatorProperties : IChangedCalculatorProperties, ICalculatorProperties
     {
         private uint __set;
         private uint __invalidated;
@@ -475,10 +475,11 @@ namespace TestNamespace
         Theme = 1,
         Language = 2
     }
-    interface IReadableSettingsProperties
+    interface ISettingsProperties
     {
         string Theme { get; }
-        string Language { get; }
+        string Language { get; set; }
+        double Volume { set; }
     }
     interface INullableSettingsProperties
     {
@@ -492,7 +493,7 @@ namespace TestNamespace
         bool HasThemeChanged { get; }
         bool HasLanguageChanged { get; }
     }
-    sealed class SettingsProperties : IChangedSettingsProperties, IReadableSettingsProperties
+    sealed class SettingsProperties : IChangedSettingsProperties, ISettingsProperties
     {
         private uint __set;
         private uint __invalidated;
@@ -593,6 +594,7 @@ namespace TestNamespace
             }
             return props;
         }
+        double ISettingsProperties.Volume { set { } }
     }
     sealed partial class Settings : Tmds.DBus.Protocol.DBusObject
     {

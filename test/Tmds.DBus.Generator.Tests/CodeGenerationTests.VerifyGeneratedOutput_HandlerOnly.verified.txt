@@ -1229,11 +1229,18 @@ namespace Tmds.DBus.Protocol
         }
         private static DBusInterface ParseInterface(MethodContext context)
         {
-            string? dbusInterface;
+            string? dbusInterface = null;
             if (context.IsPropertiesInterfaceRequest)
             {
-                Reader reader = context.Request.GetBodyReader();
-                dbusInterface = reader.ReadString();
+                if (context.Request.Signature.Length > 0 && context.Request.Signature[0] == (byte)'s')
+                {
+                    try
+                    {
+                        Reader reader = context.Request.GetBodyReader();
+                        dbusInterface = reader.ReadString();
+                    }
+                    catch { }
+                }
             }
             else
             {

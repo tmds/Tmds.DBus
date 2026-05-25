@@ -462,6 +462,7 @@ public class SignalOwnerTests
 
         // Add third observer with NoSubscribe
         var signals3 = 0;
+        var semaphore3 = new SemaphoreSlim(0);
         var observer3 = await clientConnection.AddMatchAsync(rule,
             (Message m, object? s) => m.GetBodyReader().ReadString(),
             (Exception? ex, string msg, object? rs, object? hs) =>
@@ -469,6 +470,7 @@ public class SignalOwnerTests
                 if (ex == null)
                 {
                     Interlocked.Increment(ref signals3);
+                    semaphore3.Release();
                 }
             },
             null, null, false, ObserverFlags.NoSubscribe);
@@ -481,9 +483,11 @@ public class SignalOwnerTests
         SendSignal(serviceConnection);
         await semaphore1.WaitAsync(TimeSpan.FromSeconds(5));
         await semaphore2.WaitAsync(TimeSpan.FromSeconds(5));
+        await semaphore3.WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.Equal(1, signals1);
         Assert.Equal(1, signals2);
+        Assert.Equal(1, signals3);
 
         // Remove first observer - name owner watch should still exist
         observer1.Dispose();
@@ -493,6 +497,7 @@ public class SignalOwnerTests
 
         SendSignal(serviceConnection);
         await semaphore2.WaitAsync(TimeSpan.FromSeconds(5));
+        await semaphore3.WaitAsync(TimeSpan.FromSeconds(5));
 
         Assert.Equal(1, signals1); // Unchanged (observer disposed)
         Assert.Equal(2, signals2); // Incremented

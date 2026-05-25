@@ -27,8 +27,22 @@ public class DBusConnectionOptions
     }
 
     /// <summary>
-    /// Gets or sets a whether to automatically connect when the connection is first used.
+    /// Gets or sets whether to automatically connect when the connection is used.
     /// </summary>
+    /// <remarks>
+    /// <para>Auto-connect connections establish a connection when used rather than requiring an explicit call to <see cref="DBusConnection.ConnectAsync"/>. A new connection is established each time the connection is used after a disconnect. This setting is useful for proxy (consumer) use-cases such as calling methods, watching signals, and monitoring property changes. For exposing services (handler side), use an explicit connection.</para>
+    /// <para>The following members are not supported on auto-connect connections and will throw <see cref="InvalidOperationException"/>:</para>
+    /// <list type="bullet">
+    /// <item><description><see cref="DBusConnection.UniqueName"/></description></item>
+    /// <item><description><see cref="DBusConnection.TrySendMessage(MessageBuffer)"/></description></item>
+    /// <item><description><see cref="DBusConnection.DisconnectedAsync"/></description></item>
+    /// <item><description><see cref="DBusConnection.RequestNameAsync(string, RequestNameOptions)"/></description></item>
+    /// <item><description><see cref="DBusConnection.TryRequestNameAsync(string, RequestNameOptions, Action{string, object?}?, object?, bool)"/></description></item>
+    /// <item><description><see cref="DBusConnection.QueueNameRequestAsync(string, RequestNameOptions)"/></description></item>
+    /// <item><description><see cref="DBusConnection.ReleaseNameAsync(string)"/></description></item>
+    /// </list>
+    /// <para>Signal and property watches (added via <c>AddMatchAsync</c>, <c>WatchSignalAsync</c>, or <c>WatchPropertiesChangedAsync</c>) are not re-established after a reconnect. When the connection drops, existing observers receive a completion notification and are disposed. New watches must be set up after reconnecting.</para>
+    /// </remarks>
     public bool AutoConnect { get; set; }
 
     internal bool IsShared { get; set; }

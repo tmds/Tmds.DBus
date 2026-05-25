@@ -454,11 +454,18 @@ namespace Tmds.DBus.Tool
 
             AppendLine("private static DBusInterface ParseInterface(MethodContext context)");
             StartBlock();
-            AppendLine("string? dbusInterface;");
+            AppendLine("string? dbusInterface = null;");
             AppendLine("if (context.IsPropertiesInterfaceRequest)");
+            StartBlock();
+            AppendLine("if (context.Request.Signature.Length > 0 && context.Request.Signature[0] == (byte)'s')");
+            StartBlock();
+            AppendLine("try");
             StartBlock();
             AppendLine("Reader reader = context.Request.GetBodyReader();");
             AppendLine("dbusInterface = reader.ReadString();");
+            EndBlock();
+            AppendLine("catch { }");
+            EndBlock();
             EndBlock();
             AppendLine("else");
             StartBlock();

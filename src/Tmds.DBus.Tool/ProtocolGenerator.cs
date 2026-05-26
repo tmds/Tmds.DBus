@@ -72,7 +72,6 @@ namespace Tmds.DBus.Tool
         public string Generate(string ns, IEnumerable<InterfaceDescription> interfaceDescriptions)
         {
             _sb.Clear();
-            _generatedHandlers.Clear(); // Clear for this namespace
 
             if (!string.IsNullOrEmpty(_settings.GeneratorDescription))
             {

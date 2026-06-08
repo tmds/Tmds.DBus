@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -137,6 +138,34 @@ public class CodeGenerationTests : TestsBase
         {
             new("proxy.xml", XmlContent, "ProxyNamespace", DBusGeneratorMode: "Proxy"),
             new("handler.xml", XmlContent, "HandlerNamespace", DBusGeneratorMode: "Handler")
+        };
+
+        var (diagnostics, generatedSources) = RunGenerator(additionalFiles);
+
+        Assert.Empty(diagnostics);
+
+        await Verify(string.Join("\n", generatedSources.Select(s => s.SourceText.ToString())));
+
+        AssertCompiles(generatedSources);
+    }
+
+    [Fact]
+    public async Task VerifyGeneratedOutput_ManyProperties()
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("""<?xml version="1.0" encoding="UTF-8"?>""");
+        sb.AppendLine("<node>");
+        sb.AppendLine("""  <interface name="org.example.ManyProperties">""");
+        for (int i = 1; i <= 65; i++)
+        {
+            sb.AppendLine($"""    <property name="Prop{i}" type="s" access="read"/>""");
+        }
+        sb.AppendLine("  </interface>");
+        sb.AppendLine("</node>");
+
+        var additionalFiles = new List<AdditionalFile>
+        {
+            new("interfaces.xml", sb.ToString(), "TestNamespace", DBusGeneratorMode: "Proxy")
         };
 
         var (diagnostics, generatedSources) = RunGenerator(additionalFiles);

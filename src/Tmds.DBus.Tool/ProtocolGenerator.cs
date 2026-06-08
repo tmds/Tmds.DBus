@@ -1237,10 +1237,7 @@ namespace Tmds.DBus.Tool
                     string nullableInterfaceName = $"INullable{propertiesClassName}";
                     string changedInterfaceName = $"IChanged{propertiesClassName}";
 
-                    if (readableProperties.Length > 64)
-                    {
-                        throw new NotSupportedException($"Interface '{name}' has {readableProperties.Length} readable properties, but the maximum supported is 64.");
-                    }
+                    bool useByteArray = readableProperties.Length > 64;
 
                     AppendLine($"interface {nullableInterfaceName}");
                     StartBlock();
@@ -1263,26 +1260,45 @@ namespace Tmds.DBus.Tool
                     AppendLine($"sealed class {propertiesClassName} : {changedInterfaceName}, I{name}Properties");
                     StartBlock();
 
-                    string flagType = readableProperties.Length <= 32 ? "uint" : "ulong";
-                    string one = readableProperties.Length <= 32 ? "1U" : "1UL";
-
-                    string allSetValue;
-                    if (readableProperties.Length <= 32)
+                    if (useByteArray)
                     {
-                        uint value = readableProperties.Length == 32 ? uint.MaxValue : (1U << readableProperties.Length) - 1;
-                        allSetValue = $"0x{value:X}U";
+                        int byteCount = (readableProperties.Length + 7) / 8;
+                        var allSetBytes = new byte[byteCount];
+                        for (int i = 0; i < byteCount - 1; i++)
+                            allSetBytes[i] = 0xFF;
+                        int remainder = readableProperties.Length % 8;
+                        allSetBytes[byteCount - 1] = remainder == 0 ? (byte)0xFF : (byte)((1 << remainder) - 1);
+                        string allSetLiteral = string.Join(", ", allSetBytes.Select(b => $"0x{b:X2}"));
+
+                        AppendLine($"private byte[] __set = new byte[{byteCount}];");
+                        AppendLine($"private byte[] __invalidated = new byte[{byteCount}];");
+                        AppendLine($"private static ReadOnlySpan<byte> PropertiesAllSet => new byte[] {{ {allSetLiteral} }}; // {readableProperties.Length} properties");
+                        AppendLine($"private static int FlagIndex({propertyEnumName} property) => ((int)property - 1) / 8;");
+                        AppendLine($"private static byte FlagMask({propertyEnumName} property) => (byte)(1 << (((int)property - 1) % 8));");
                     }
                     else
                     {
-                        ulong value = readableProperties.Length == 64 ? ulong.MaxValue : (1UL << readableProperties.Length) - 1;
-                        allSetValue = $"0x{value:X}UL";
+                        string flagType = readableProperties.Length <= 32 ? "uint" : "ulong";
+                        string one = readableProperties.Length <= 32 ? "1U" : "1UL";
+
+                        string allSetValue;
+                        if (readableProperties.Length <= 32)
+                        {
+                            uint value = readableProperties.Length == 32 ? uint.MaxValue : (1U << readableProperties.Length) - 1;
+                            allSetValue = $"0x{value:X}U";
+                        }
+                        else
+                        {
+                            ulong value = readableProperties.Length == 64 ? ulong.MaxValue : (1UL << readableProperties.Length) - 1;
+                            allSetValue = $"0x{value:X}UL";
+                        }
+
+                        AppendLine($"private {flagType} __set;");
+                        AppendLine($"private {flagType} __invalidated;");
+                        AppendLine($"private const {flagType} PropertiesAllSet = {allSetValue}; // {readableProperties.Length} properties");
+
+                        AppendLine($"private static {flagType} Flag({propertyEnumName} property) => property == 0 ? 0 : {one} << ((int)property - 1);");
                     }
-
-                    AppendLine($"private {flagType} __set;");
-                    AppendLine($"private {flagType} __invalidated;");
-                    AppendLine($"private const {flagType} PropertiesAllSet = {allSetValue}; // {readableProperties.Length} properties");
-
-                    AppendLine($"private static {flagType} Flag({propertyEnumName} property) => property == 0 ? 0 : {one} << ((int)property - 1);");
 
                     AppendLine($"public {propertiesClassName}() {{ }}");
                     AppendLine("#nullable disable");
@@ -1304,7 +1320,14 @@ namespace Tmds.DBus.Tool
                         AppendLine($"public required {property.DotnetReadType} {property.NameUpper}");
                         StartBlock();
                         AppendLine($"get {{ EnsureSet({propertyEnumName}.{property.NameUpper}); return {property.UnderscoreNameLower}; }}");
-                        AppendLine($"set {{ {property.UnderscoreNameLower} = value; __set |= Flag({propertyEnumName}.{property.NameUpper}); }}");
+                        if (useByteArray)
+                        {
+                            AppendLine($"set {{ {property.UnderscoreNameLower} = value; __set[FlagIndex({propertyEnumName}.{property.NameUpper})] |= FlagMask({propertyEnumName}.{property.NameUpper}); }}");
+                        }
+                        else
+                        {
+                            AppendLine($"set {{ {property.UnderscoreNameLower} = value; __set |= Flag({propertyEnumName}.{property.NameUpper}); }}");
+                        }
                         EndBlock();
                     }
 
@@ -1333,10 +1356,21 @@ namespace Tmds.DBus.Tool
 
                     AppendLine($"public static {propertiesClassName} CreateUninitialized() => new {propertiesClassName}(false);");
 
-                    AppendLine($"private bool HasFlag({flagType} flags, {propertyEnumName} property)");
-                    _indentation++;
-                    AppendLine($"=> property != 0 && (flags & Flag(property)) != 0;");
-                    _indentation--;
+                    if (useByteArray)
+                    {
+                        AppendLine($"private bool HasFlag(byte[] flags, {propertyEnumName} property)");
+                        _indentation++;
+                        AppendLine($"=> property != 0 && (flags[FlagIndex(property)] & FlagMask(property)) != 0;");
+                        _indentation--;
+                    }
+                    else
+                    {
+                        string flagType = readableProperties.Length <= 32 ? "uint" : "ulong";
+                        AppendLine($"private bool HasFlag({flagType} flags, {propertyEnumName} property)");
+                        _indentation++;
+                        AppendLine($"=> property != 0 && (flags & Flag(property)) != 0;");
+                        _indentation--;
+                    }
 
                     AppendLine($"public bool IsSet({propertyEnumName} property) => HasFlag(__set, property);");
                     AppendLine($"public bool IsInvalidated({propertyEnumName} property) => HasFlag(__invalidated, property);");
@@ -1345,17 +1379,38 @@ namespace Tmds.DBus.Tool
                     StartBlock();
                     AppendLine("if (property != 0)");
                     StartBlock();
-                    AppendLine("__invalidated |= Flag(property);");
+                    if (useByteArray)
+                    {
+                        AppendLine("__invalidated[FlagIndex(property)] |= FlagMask(property);");
+                    }
+                    else
+                    {
+                        AppendLine("__invalidated |= Flag(property);");
+                    }
                     EndBlock();
                     EndBlock();
 
-                    AppendLine($"public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
+                    if (useByteArray)
+                    {
+                        AppendLine($"public bool AreAllPropertiesSet() => __set.AsSpan().SequenceEqual(PropertiesAllSet);");
+                    }
+                    else
+                    {
+                        AppendLine($"public bool AreAllPropertiesSet() => __set == PropertiesAllSet;");
+                    }
 
                     AppendLine("public void EnsureAllPropertiesSet()");
                     StartBlock();
                     AppendLine("if (!AreAllPropertiesSet())");
                     StartBlock();
-                    AppendLine("throw new DBusUnexpectedValueException($\"Not all properties have been set (0x{__set:x}).\");");
+                    if (useByteArray)
+                    {
+                        AppendLine("throw new DBusUnexpectedValueException($\"Not all properties have been set ({BitConverter.ToString(__set)}).\");");
+                    }
+                    else
+                    {
+                        AppendLine("throw new DBusUnexpectedValueException($\"Not all properties have been set (0x{__set:x}).\");");
+                    }
                     EndBlock();
                     EndBlock();
 
@@ -1395,15 +1450,32 @@ namespace Tmds.DBus.Tool
                     AppendLine("while (reader.HasNext(invalidatedEnd))");
                     StartBlock();
                     AppendLine("var propertyName = reader.ReadString();");
-                    AppendLine("props.__invalidated |= propertyName switch");
-                    StartBlock();
-                    foreach (var property in readableProperties)
+                    if (useByteArray)
                     {
-                        AppendLine($"\"{property.Name}\" => Flag({propertyEnumName}.{property.NameUpper}),");
+                        AppendLine("switch (propertyName)");
+                        StartBlock();
+                        foreach (var property in readableProperties)
+                        {
+                            AppendLine($"case \"{property.Name}\":");
+                            _indentation++;
+                            AppendLine($"props.__invalidated[FlagIndex({propertyEnumName}.{property.NameUpper})] |= FlagMask({propertyEnumName}.{property.NameUpper});");
+                            AppendLine("break;");
+                            _indentation--;
+                        }
+                        EndBlock();
                     }
-                    AppendLine("_ => 0");
-                    _indentation--;
-                    AppendLine("};");
+                    else
+                    {
+                        AppendLine("props.__invalidated |= propertyName switch");
+                        StartBlock();
+                        foreach (var property in readableProperties)
+                        {
+                            AppendLine($"\"{property.Name}\" => Flag({propertyEnumName}.{property.NameUpper}),");
+                        }
+                        AppendLine("_ => 0");
+                        _indentation--;
+                        AppendLine("};");
+                    }
                     EndBlock(); // while
                     EndBlock(); // if
 

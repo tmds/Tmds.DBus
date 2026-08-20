@@ -3,11 +3,6 @@
 #nullable enable
 namespace TestNamespace
 {
-    using System;
-    using Tmds.DBus.Protocol;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using System.Runtime.CompilerServices;
     enum CalculatorProperty
     {
         UnknownProperty = 0,
@@ -19,16 +14,16 @@ namespace TestNamespace
     interface ICalculatorProperties
     {
         double LastResult { get; }
-        ObjectPath CurrentPath { get; }
+        global::Tmds.DBus.Protocol.ObjectPath CurrentPath { get; }
         (string, double) CurrentEntry { get; }
-        ValueTuple<bool> IsActive { get; set; }
+        global::System.ValueTuple<bool> IsActive { get; set; }
     }
     interface INullableCalculatorProperties
     {
         double? LastResult { get; }
-        ObjectPath? CurrentPath { get; }
+        global::Tmds.DBus.Protocol.ObjectPath? CurrentPath { get; }
         (string, double)? CurrentEntry { get; }
-        ValueTuple<bool>? IsActive { get; }
+        global::System.ValueTuple<bool>? IsActive { get; }
         bool AreAllPropertiesSet();
         CalculatorProperties EnsureAllPropertiesSet();
     }
@@ -47,14 +42,14 @@ namespace TestNamespace
         private static uint Flag(CalculatorProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
         public CalculatorProperties() { }
         #nullable disable
-        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
         private CalculatorProperties(bool _) { }
         #nullable enable
         private void EnsureSet(CalculatorProperty property)
         {
             if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property is not set.");
+                throw new global::System.InvalidOperationException("Property is not set.");
             }
         }
         private double _lastResult = default!;
@@ -63,8 +58,8 @@ namespace TestNamespace
             get { EnsureSet(CalculatorProperty.LastResult); return _lastResult; }
             set { _lastResult = value; __set |= Flag(CalculatorProperty.LastResult); }
         }
-        private ObjectPath _currentPath = default!;
-        public required ObjectPath CurrentPath
+        private global::Tmds.DBus.Protocol.ObjectPath _currentPath = default!;
+        public required global::Tmds.DBus.Protocol.ObjectPath CurrentPath
         {
             get { EnsureSet(CalculatorProperty.CurrentPath); return _currentPath; }
             set { _currentPath = value; __set |= Flag(CalculatorProperty.CurrentPath); }
@@ -75,20 +70,20 @@ namespace TestNamespace
             get { EnsureSet(CalculatorProperty.CurrentEntry); return _currentEntry; }
             set { _currentEntry = value; __set |= Flag(CalculatorProperty.CurrentEntry); }
         }
-        private ValueTuple<bool> _isActive = default!;
-        public required ValueTuple<bool> IsActive
+        private global::System.ValueTuple<bool> _isActive = default!;
+        public required global::System.ValueTuple<bool> IsActive
         {
             get { EnsureSet(CalculatorProperty.IsActive); return _isActive; }
             set { _isActive = value; __set |= Flag(CalculatorProperty.IsActive); }
         }
         double? INullableCalculatorProperties.LastResult
             => IsSet(CalculatorProperty.LastResult) ? _lastResult : default(double?);
-        ObjectPath? INullableCalculatorProperties.CurrentPath
-            => IsSet(CalculatorProperty.CurrentPath) ? _currentPath : default(ObjectPath?);
+        global::Tmds.DBus.Protocol.ObjectPath? INullableCalculatorProperties.CurrentPath
+            => IsSet(CalculatorProperty.CurrentPath) ? _currentPath : default(global::Tmds.DBus.Protocol.ObjectPath?);
         (string, double)? INullableCalculatorProperties.CurrentEntry
             => IsSet(CalculatorProperty.CurrentEntry) ? _currentEntry : default((string, double)?);
-        ValueTuple<bool>? INullableCalculatorProperties.IsActive
-            => IsSet(CalculatorProperty.IsActive) ? _isActive : default(ValueTuple<bool>?);
+        global::System.ValueTuple<bool>? INullableCalculatorProperties.IsActive
+            => IsSet(CalculatorProperty.IsActive) ? _isActive : default(global::System.ValueTuple<bool>?);
         bool IChangedCalculatorProperties.HasLastResultChanged
             => IsSet(CalculatorProperty.LastResult) || IsInvalidated(CalculatorProperty.LastResult);
         bool IChangedCalculatorProperties.HasCurrentPathChanged
@@ -119,13 +114,13 @@ namespace TestNamespace
         {
             if (!AreAllPropertiesSet())
             {
-                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
+                throw new global::Tmds.DBus.Protocol.DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-        public static CalculatorProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        public static CalculatorProperties ReadFrom(ref global::Tmds.DBus.Protocol.Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            global::Tmds.DBus.Protocol.ArrayEnd arrayEnd = reader.ReadArrayStart(global::Tmds.DBus.Protocol.DBusType.Struct);
             while (reader.HasNext(arrayEnd))
             {
                 var property = reader.ReadString();
@@ -154,7 +149,7 @@ namespace TestNamespace
             }
             if (withInvalidated)
             {
-                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                global::Tmds.DBus.Protocol.ArrayEnd invalidatedEnd = reader.ReadArrayStart(global::Tmds.DBus.Protocol.DBusType.String);
                 while (reader.HasNext(invalidatedEnd))
                 {
                     var propertyName = reader.ReadString();
@@ -171,16 +166,16 @@ namespace TestNamespace
             return props;
         }
     }
-    sealed partial class Calculator : Tmds.DBus.Protocol.DBusObject
+    sealed partial class Calculator : global::Tmds.DBus.Protocol.DBusObject
     {
         public const string DBusInterfaceName = "org.example.Calculator";
-        public Calculator(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+        public Calculator(global::Tmds.DBus.Protocol.DBusConnection connection, string destination, global::Tmds.DBus.Protocol.ObjectPath path)
             : base(connection, destination, path)
         { }
-        public Task ClearAsync()
+        public global::System.Threading.Tasks.Task ClearAsync()
         {
             return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -191,10 +186,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<double> GetResultAsync()
+        public global::System.Threading.Tasks.Task<double> GetResultAsync()
         {
-            return Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => MessageReader.Read_d(m), this);
-            MessageBuffer CreateMessage()
+            return Connection.CallMethodAsync(CreateMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_d(m), this);
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -205,10 +200,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<(uint Count, double Total)> GetStatsAsync()
+        public global::System.Threading.Tasks.Task<(uint Count, double Total)> GetStatsAsync()
         {
-            return Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => MessageReader.Read_ud(m), this);
-            MessageBuffer CreateMessage()
+            return Connection.CallMethodAsync(CreateMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_ud(m), this);
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -219,10 +214,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task StoreAsync(double value)
+        public global::System.Threading.Tasks.Task StoreAsync(double value)
         {
             return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -235,10 +230,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<double> SquareAsync(double input)
+        public global::System.Threading.Tasks.Task<double> SquareAsync(double input)
         {
-            return Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => MessageReader.Read_d(m), this);
-            MessageBuffer CreateMessage()
+            return Connection.CallMethodAsync(CreateMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_d(m), this);
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -251,10 +246,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<(int Quotient, int Remainder)> DivModAsync(int dividend)
+        public global::System.Threading.Tasks.Task<(int Quotient, int Remainder)> DivModAsync(int dividend)
         {
-            return Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => MessageReader.Read_ii(m), this);
-            MessageBuffer CreateMessage()
+            return Connection.CallMethodAsync(CreateMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_ii(m), this);
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -267,10 +262,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task LogOperationAsync(string operation, double value)
+        public global::System.Threading.Tasks.Task LogOperationAsync(string operation, double value)
         {
             return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -284,10 +279,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<double> AddAsync(double a, double b)
+        public global::System.Threading.Tasks.Task<double> AddAsync(double a, double b)
         {
-            return Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => MessageReader.Read_d(m), this);
-            MessageBuffer CreateMessage()
+            return Connection.CallMethodAsync(CreateMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_d(m), this);
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -301,10 +296,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<(bool Equal, double Difference)> CompareAsync(double a, double b)
+        public global::System.Threading.Tasks.Task<(bool Equal, double Difference)> CompareAsync(double a, double b)
         {
-            return Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => MessageReader.Read_bd(m), this);
-            MessageBuffer CreateMessage()
+            return Connection.CallMethodAsync(CreateMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_bd(m), this);
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -318,10 +313,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<(string, double)> GetEntryAsync(string key)
+        public global::System.Threading.Tasks.Task<(string, double)> GetEntryAsync(string key)
         {
-            return Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => MessageReader.Read_rsdz(m), this);
-            MessageBuffer CreateMessage()
+            return Connection.CallMethodAsync(CreateMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_rsdz(m), this);
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -334,10 +329,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task SetEntryAsync((string, double) entry)
+        public global::System.Threading.Tasks.Task SetEntryAsync((string, double) entry)
         {
             return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -350,34 +345,34 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public ValueTask<IDisposable> WatchResetAsync(Action handler, bool emitOnCapturedContext = true)
-            => WatchResetAsync(static (Notification n) => ((Action)n.State!)(), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchResetAsync(Func<ValueTask> handler, bool emitOnCapturedContext = true)
-            => WatchResetAsync(static (Notification n) => ((Func<ValueTask>)n.State!)(), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchResetAsync(Action<Notification> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchResetAsync(global::System.Action handler, bool emitOnCapturedContext = true)
+            => WatchResetAsync(static (global::Tmds.DBus.Protocol.Notification n) => ((global::System.Action)n.State!)(), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchResetAsync(global::System.Func<global::System.Threading.Tasks.ValueTask> handler, bool emitOnCapturedContext = true)
+            => WatchResetAsync(static (global::Tmds.DBus.Protocol.Notification n) => ((global::System.Func<global::System.Threading.Tasks.ValueTask>)n.State!)(), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchResetAsync(global::System.Action<global::Tmds.DBus.Protocol.Notification> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
             => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Reset", handler, flags, emitOnCapturedContext, state);
-        public ValueTask<IDisposable> WatchResetAsync(Func<Notification, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchResetAsync(global::System.Func<global::Tmds.DBus.Protocol.Notification, global::System.Threading.Tasks.ValueTask> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
             => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Reset", handler, flags, emitOnCapturedContext, state);
-        public ValueTask<IDisposable> WatchErrorAsync(Action<string> handler, bool emitOnCapturedContext = true)
-            => WatchErrorAsync(static (Notification<string> n) => ((Action<string>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchErrorAsync(Func<string, ValueTask> handler, bool emitOnCapturedContext = true)
-            => WatchErrorAsync(static (Notification<string> n) => ((Func<string, ValueTask>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchErrorAsync(Action<Notification<string>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Error", (Message m, object? s) => MessageReader.Read_s(m), handler, flags, emitOnCapturedContext, state);
-        public ValueTask<IDisposable> WatchErrorAsync(Func<Notification<string>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Error", (Message m, object? s) => MessageReader.Read_s(m), handler, flags, emitOnCapturedContext, state);
-        public ValueTask<IDisposable> WatchOperationCompleteAsync(Action<(string Operation, double Result)> handler, bool emitOnCapturedContext = true)
-            => WatchOperationCompleteAsync(static (Notification<(string Operation, double Result)> n) => ((Action<(string Operation, double Result)>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchOperationCompleteAsync(Func<(string Operation, double Result), ValueTask> handler, bool emitOnCapturedContext = true)
-            => WatchOperationCompleteAsync(static (Notification<(string Operation, double Result)> n) => ((Func<(string Operation, double Result), ValueTask>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchOperationCompleteAsync(Action<Notification<(string Operation, double Result)>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "OperationComplete", (Message m, object? s) => MessageReader.Read_sd(m), handler, flags, emitOnCapturedContext, state);
-        public ValueTask<IDisposable> WatchOperationCompleteAsync(Func<Notification<(string Operation, double Result)>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
-            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "OperationComplete", (Message m, object? s) => MessageReader.Read_sd(m), handler, flags, emitOnCapturedContext, state);
-        public Task SetIsActiveAsync(ValueTuple<bool> value)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchErrorAsync(global::System.Action<string> handler, bool emitOnCapturedContext = true)
+            => WatchErrorAsync(static (global::Tmds.DBus.Protocol.Notification<string> n) => ((global::System.Action<string>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchErrorAsync(global::System.Func<string, global::System.Threading.Tasks.ValueTask> handler, bool emitOnCapturedContext = true)
+            => WatchErrorAsync(static (global::Tmds.DBus.Protocol.Notification<string> n) => ((global::System.Func<string, global::System.Threading.Tasks.ValueTask>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchErrorAsync(global::System.Action<global::Tmds.DBus.Protocol.Notification<string>> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Error", (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_s(m), handler, flags, emitOnCapturedContext, state);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchErrorAsync(global::System.Func<global::Tmds.DBus.Protocol.Notification<string>, global::System.Threading.Tasks.ValueTask> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Error", (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_s(m), handler, flags, emitOnCapturedContext, state);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchOperationCompleteAsync(global::System.Action<(string Operation, double Result)> handler, bool emitOnCapturedContext = true)
+            => WatchOperationCompleteAsync(static (global::Tmds.DBus.Protocol.Notification<(string Operation, double Result)> n) => ((global::System.Action<(string Operation, double Result)>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchOperationCompleteAsync(global::System.Func<(string Operation, double Result), global::System.Threading.Tasks.ValueTask> handler, bool emitOnCapturedContext = true)
+            => WatchOperationCompleteAsync(static (global::Tmds.DBus.Protocol.Notification<(string Operation, double Result)> n) => ((global::System.Func<(string Operation, double Result), global::System.Threading.Tasks.ValueTask>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchOperationCompleteAsync(global::System.Action<global::Tmds.DBus.Protocol.Notification<(string Operation, double Result)>> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "OperationComplete", (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_sd(m), handler, flags, emitOnCapturedContext, state);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchOperationCompleteAsync(global::System.Func<global::Tmds.DBus.Protocol.Notification<(string Operation, double Result)>, global::System.Threading.Tasks.ValueTask> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+            => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "OperationComplete", (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_sd(m), handler, flags, emitOnCapturedContext, state);
+        public global::System.Threading.Tasks.Task SetIsActiveAsync(global::System.ValueTuple<bool> value)
         {
             return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -393,57 +388,57 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<double> GetLastResultAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("LastResult"), (Message m, object? s) => MessageReader.Read_v_d(m), this);
-        public Task<ObjectPath> GetCurrentPathAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentPath"), (Message m, object? s) => MessageReader.Read_v_o(m), this);
-        public Task<(string, double)> GetCurrentEntryAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentEntry"), (Message m, object? s) => MessageReader.Read_v_rsdz(m), this);
-        public Task<ValueTuple<bool>> GetIsActiveAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("IsActive"), (Message m, object? s) => MessageReader.Read_v_rbz(m), this);
-        public Task<CalculatorProperties> GetPropertiesAsync()
+        public global::System.Threading.Tasks.Task<double> GetLastResultAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("LastResult"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_d(m), this);
+        public global::System.Threading.Tasks.Task<global::Tmds.DBus.Protocol.ObjectPath> GetCurrentPathAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentPath"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_o(m), this);
+        public global::System.Threading.Tasks.Task<(string, double)> GetCurrentEntryAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("CurrentEntry"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_rsdz(m), this);
+        public global::System.Threading.Tasks.Task<global::System.ValueTuple<bool>> GetIsActiveAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("IsActive"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_rbz(m), this);
+        public global::System.Threading.Tasks.Task<CalculatorProperties> GetPropertiesAsync()
         {
-            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
-            static CalculatorProperties ReadMessage(Message message)
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), this);
+            static CalculatorProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 return CalculatorProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public Task<INullableCalculatorProperties> GetNullablePropertiesAsync()
+        public global::System.Threading.Tasks.Task<INullableCalculatorProperties> GetNullablePropertiesAsync()
         {
-            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
-            static INullableCalculatorProperties ReadMessage(Message message)
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), this);
+            static INullableCalculatorProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 return CalculatorProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<IChangedCalculatorProperties> handler, bool emitOnCapturedContext = true)
-            => WatchPropertiesChangedAsync(static (Notification<IChangedCalculatorProperties> n) => ((Action<IChangedCalculatorProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<IChangedCalculatorProperties, ValueTask> handler, bool emitOnCapturedContext = true)
-            => WatchPropertiesChangedAsync(static (Notification<IChangedCalculatorProperties> n) => ((Func<IChangedCalculatorProperties, ValueTask>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<IChangedCalculatorProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Action<IChangedCalculatorProperties> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (global::Tmds.DBus.Protocol.Notification<IChangedCalculatorProperties> n) => ((global::System.Action<IChangedCalculatorProperties>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Func<IChangedCalculatorProperties, global::System.Threading.Tasks.ValueTask> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (global::Tmds.DBus.Protocol.Notification<IChangedCalculatorProperties> n) => ((global::System.Func<IChangedCalculatorProperties, global::System.Threading.Tasks.ValueTask>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Action<global::Tmds.DBus.Protocol.Notification<IChangedCalculatorProperties>> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
-            static IChangedCalculatorProperties ReadMessage(Message message)
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
+            static IChangedCalculatorProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
                 return CalculatorProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<Notification<IChangedCalculatorProperties>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Func<global::Tmds.DBus.Protocol.Notification<IChangedCalculatorProperties>, global::System.Threading.Tasks.ValueTask> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
-            static IChangedCalculatorProperties ReadMessage(Message message)
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
+            static IChangedCalculatorProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
                 return CalculatorProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
-        private MessageBuffer CreateGetPropertyMessage(string property)
+        private global::Tmds.DBus.Protocol.MessageBuffer CreateGetPropertyMessage(string property)
         {
             var writer = Connection.GetMessageWriter();
             writer.WriteMethodCallHeader(
@@ -456,7 +451,7 @@ namespace TestNamespace
             writer.WriteString(property);
             return writer.CreateMessage();
         }
-        private MessageBuffer CreateGetAllPropertiesMessage()
+        private global::Tmds.DBus.Protocol.MessageBuffer CreateGetAllPropertiesMessage()
         {
             var writer = Connection.GetMessageWriter();
             writer.WriteMethodCallHeader(
@@ -501,14 +496,14 @@ namespace TestNamespace
         private static uint Flag(SettingsProperty property) => property == 0 ? 0 : 1U << ((int)property - 1);
         public SettingsProperties() { }
         #nullable disable
-        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
         private SettingsProperties(bool _) { }
         #nullable enable
         private void EnsureSet(SettingsProperty property)
         {
             if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property is not set.");
+                throw new global::System.InvalidOperationException("Property is not set.");
             }
         }
         private string _theme = default!;
@@ -553,13 +548,13 @@ namespace TestNamespace
         {
             if (!AreAllPropertiesSet())
             {
-                throw new DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
+                throw new global::Tmds.DBus.Protocol.DBusUnexpectedValueException($"Not all properties have been set (0x{__set:x}).");
             }
         }
-        public static SettingsProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        public static SettingsProperties ReadFrom(ref global::Tmds.DBus.Protocol.Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            global::Tmds.DBus.Protocol.ArrayEnd arrayEnd = reader.ReadArrayStart(global::Tmds.DBus.Protocol.DBusType.Struct);
             while (reader.HasNext(arrayEnd))
             {
                 var property = reader.ReadString();
@@ -580,7 +575,7 @@ namespace TestNamespace
             }
             if (withInvalidated)
             {
-                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                global::Tmds.DBus.Protocol.ArrayEnd invalidatedEnd = reader.ReadArrayStart(global::Tmds.DBus.Protocol.DBusType.String);
                 while (reader.HasNext(invalidatedEnd))
                 {
                     var propertyName = reader.ReadString();
@@ -596,16 +591,16 @@ namespace TestNamespace
         }
         double ISettingsProperties.Volume { set { } }
     }
-    sealed partial class Settings : Tmds.DBus.Protocol.DBusObject
+    sealed partial class Settings : global::Tmds.DBus.Protocol.DBusObject
     {
         public const string DBusInterfaceName = "org.example.Settings";
-        public Settings(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+        public Settings(global::Tmds.DBus.Protocol.DBusConnection connection, string destination, global::Tmds.DBus.Protocol.ObjectPath path)
             : base(connection, destination, path)
         { }
-        public Task SaveAsync()
+        public global::System.Threading.Tasks.Task SaveAsync()
         {
             return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -616,18 +611,18 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public ValueTask<IDisposable> WatchChangedAsync(Action handler, bool emitOnCapturedContext = true)
-            => WatchChangedAsync(static (Notification n) => ((Action)n.State!)(), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchChangedAsync(Func<ValueTask> handler, bool emitOnCapturedContext = true)
-            => WatchChangedAsync(static (Notification n) => ((Func<ValueTask>)n.State!)(), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchChangedAsync(Action<Notification> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchChangedAsync(global::System.Action handler, bool emitOnCapturedContext = true)
+            => WatchChangedAsync(static (global::Tmds.DBus.Protocol.Notification n) => ((global::System.Action)n.State!)(), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchChangedAsync(global::System.Func<global::System.Threading.Tasks.ValueTask> handler, bool emitOnCapturedContext = true)
+            => WatchChangedAsync(static (global::Tmds.DBus.Protocol.Notification n) => ((global::System.Func<global::System.Threading.Tasks.ValueTask>)n.State!)(), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchChangedAsync(global::System.Action<global::Tmds.DBus.Protocol.Notification> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
             => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Changed", handler, flags, emitOnCapturedContext, state);
-        public ValueTask<IDisposable> WatchChangedAsync(Func<Notification, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchChangedAsync(global::System.Func<global::Tmds.DBus.Protocol.Notification, global::System.Threading.Tasks.ValueTask> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
             => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, "Changed", handler, flags, emitOnCapturedContext, state);
-        public Task SetVolumeAsync(double value)
+        public global::System.Threading.Tasks.Task SetVolumeAsync(double value)
         {
             return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -643,10 +638,10 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task SetLanguageAsync(string value)
+        public global::System.Threading.Tasks.Task SetLanguageAsync(string value)
         {
             return Connection.CallMethodAsync(CreateMessage());
-            MessageBuffer CreateMessage()
+            global::Tmds.DBus.Protocol.MessageBuffer CreateMessage()
             {
                 var writer = Connection.GetMessageWriter();
                 writer.WriteMethodCallHeader(
@@ -662,53 +657,53 @@ namespace TestNamespace
                 return writer.CreateMessage();
             }
         }
-        public Task<string> GetThemeAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Theme"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetLanguageAsync()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Language"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<SettingsProperties> GetPropertiesAsync()
+        public global::System.Threading.Tasks.Task<string> GetThemeAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Theme"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetLanguageAsync()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Language"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<SettingsProperties> GetPropertiesAsync()
         {
-            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
-            static SettingsProperties ReadMessage(Message message)
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), this);
+            static SettingsProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 return SettingsProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public Task<INullableSettingsProperties> GetNullablePropertiesAsync()
+        public global::System.Threading.Tasks.Task<INullableSettingsProperties> GetNullablePropertiesAsync()
         {
-            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
-            static INullableSettingsProperties ReadMessage(Message message)
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), this);
+            static INullableSettingsProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 return SettingsProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<IChangedSettingsProperties> handler, bool emitOnCapturedContext = true)
-            => WatchPropertiesChangedAsync(static (Notification<IChangedSettingsProperties> n) => ((Action<IChangedSettingsProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<IChangedSettingsProperties, ValueTask> handler, bool emitOnCapturedContext = true)
-            => WatchPropertiesChangedAsync(static (Notification<IChangedSettingsProperties> n) => ((Func<IChangedSettingsProperties, ValueTask>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<IChangedSettingsProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Action<IChangedSettingsProperties> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (global::Tmds.DBus.Protocol.Notification<IChangedSettingsProperties> n) => ((global::System.Action<IChangedSettingsProperties>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Func<IChangedSettingsProperties, global::System.Threading.Tasks.ValueTask> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (global::Tmds.DBus.Protocol.Notification<IChangedSettingsProperties> n) => ((global::System.Func<IChangedSettingsProperties, global::System.Threading.Tasks.ValueTask>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Action<global::Tmds.DBus.Protocol.Notification<IChangedSettingsProperties>> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
-            static IChangedSettingsProperties ReadMessage(Message message)
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
+            static IChangedSettingsProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
                 return SettingsProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<Notification<IChangedSettingsProperties>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Func<global::Tmds.DBus.Protocol.Notification<IChangedSettingsProperties>, global::System.Threading.Tasks.ValueTask> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
-            static IChangedSettingsProperties ReadMessage(Message message)
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
+            static IChangedSettingsProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
                 return SettingsProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
-        private MessageBuffer CreateGetPropertyMessage(string property)
+        private global::Tmds.DBus.Protocol.MessageBuffer CreateGetPropertyMessage(string property)
         {
             var writer = Connection.GetMessageWriter();
             writer.WriteMethodCallHeader(
@@ -721,7 +716,7 @@ namespace TestNamespace
             writer.WriteString(property);
             return writer.CreateMessage();
         }
-        private MessageBuffer CreateGetAllPropertiesMessage()
+        private global::Tmds.DBus.Protocol.MessageBuffer CreateGetAllPropertiesMessage()
         {
             var writer = Connection.GetMessageWriter();
             writer.WriteMethodCallHeader(
@@ -734,114 +729,114 @@ namespace TestNamespace
             return writer.CreateMessage();
         }
     }
-    sealed partial class Marker : Tmds.DBus.Protocol.DBusObject
+    sealed partial class Marker : global::Tmds.DBus.Protocol.DBusObject
     {
         public const string DBusInterfaceName = "org.example.Marker";
-        public Marker(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+        public Marker(global::Tmds.DBus.Protocol.DBusConnection connection, string destination, global::Tmds.DBus.Protocol.ObjectPath path)
             : base(connection, destination, path)
         { }
     }
     static partial class ObjectFactory
     {
-        public static Calculator CreateCalculator(this DBusService service, ObjectPath path) => new Calculator(service.Connection, service.Name, path);
-        public static Settings CreateSettings(this DBusService service, ObjectPath path) => new Settings(service.Connection, service.Name, path);
-        public static Marker CreateMarker(this DBusService service, ObjectPath path) => new Marker(service.Connection, service.Name, path);
+        public static Calculator CreateCalculator(this global::Tmds.DBus.Protocol.DBusService service, global::Tmds.DBus.Protocol.ObjectPath path) => new Calculator(service.Connection, service.Name, path);
+        public static Settings CreateSettings(this global::Tmds.DBus.Protocol.DBusService service, global::Tmds.DBus.Protocol.ObjectPath path) => new Settings(service.Connection, service.Name, path);
+        public static Marker CreateMarker(this global::Tmds.DBus.Protocol.DBusService service, global::Tmds.DBus.Protocol.ObjectPath path) => new Marker(service.Connection, service.Name, path);
     }
     file static class MessageReader
     {
-        public static double Read_d(Message message)
+        public static double Read_d(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             return reader.ReadDouble();
         }
-        public static (uint, double) Read_ud(Message message)
+        public static (uint, double) Read_ud(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadUInt32();
             var arg1 = reader.ReadDouble();
             return (arg0, arg1);
         }
-        public static (int, int) Read_ii(Message message)
+        public static (int, int) Read_ii(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadInt32();
             var arg1 = reader.ReadInt32();
             return (arg0, arg1);
         }
-        public static (bool, double) Read_bd(Message message)
+        public static (bool, double) Read_bd(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadBool();
             var arg1 = reader.ReadDouble();
             return (arg0, arg1);
         }
-        public static (string, double) Read_rsdz(Message message)
+        public static (string, double) Read_rsdz(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             return reader.Read_rsdz();
         }
-        public static string Read_s(Message message)
+        public static string Read_s(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             return reader.ReadString();
         }
-        public static (string, double) Read_sd(Message message)
+        public static (string, double) Read_sd(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadString();
             var arg1 = reader.ReadDouble();
             return (arg0, arg1);
         }
-        public static double Read_v_d(Message message)
+        public static double Read_v_d(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("d"u8);
             return reader.ReadDouble();
         }
-        public static ObjectPath Read_v_o(Message message)
+        public static global::Tmds.DBus.Protocol.ObjectPath Read_v_o(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("o"u8);
             return reader.ReadObjectPath();
         }
-        public static (string, double) Read_v_rsdz(Message message)
+        public static (string, double) Read_v_rsdz(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("(sd)"u8);
             return reader.Read_rsdz();
         }
-        public static ValueTuple<bool> Read_v_rbz(Message message)
+        public static global::System.ValueTuple<bool> Read_v_rbz(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("(b)"u8);
             return reader.Read_rbz();
         }
-        public static string Read_v_s(Message message)
+        public static string Read_v_s(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("s"u8);
             return reader.ReadString();
         }
-        public static (string, double) Read_rsdz(this ref Reader reader)
+        public static (string, double) Read_rsdz(this ref global::Tmds.DBus.Protocol.Reader reader)
         {
             reader.AlignStruct();
             return (reader.ReadString(), reader.ReadDouble());
         }
-        public static ValueTuple<bool> Read_rbz(this ref Reader reader)
+        public static global::System.ValueTuple<bool> Read_rbz(this ref global::Tmds.DBus.Protocol.Reader reader)
         {
             reader.AlignStruct();
-            return new ValueTuple<bool>(reader.ReadBool());
+            return new global::System.ValueTuple<bool>(reader.ReadBool());
         }
     }
     file static class MessageWriterExtensions
     {
-        public static void Write_rsdz(this ref MessageWriter writer, (string, double) value)
+        public static void Write_rsdz(this ref global::Tmds.DBus.Protocol.MessageWriter writer, (string, double) value)
         {
             writer.WriteStructureStart();
             writer.WriteString(value.Item1);
             writer.WriteDouble(value.Item2);
         }
-        public static void Write_rbz(this ref MessageWriter writer, ValueTuple<bool> value)
+        public static void Write_rbz(this ref global::Tmds.DBus.Protocol.MessageWriter writer, global::System.ValueTuple<bool> value)
         {
             writer.WriteStructureStart();
             writer.WriteBool(value.Item1);
@@ -854,31 +849,27 @@ namespace TestNamespace
 #nullable enable
 namespace Tmds.DBus.Protocol
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.Threading.Tasks;
     abstract class DBusHandler : IPathMethodHandler
     {
         // Identifies the D-Bus interfaces. Used with SupportsInterface to filter interfaces per path.
-        [Flags]
+        [global::System.Flags]
         public enum DBusInterface
         {
             // OrgFreedesktopDBusIntrospectable = 1,
         }
-        private readonly SendOrPostCallback? _postDelegate;
+        private readonly global::System.Threading.SendOrPostCallback? _postDelegate;
         private const DBusInterface OrgFreedesktopDBusIntrospectable = (DBusInterface)1;
         private const DBusInterface InterfacesWithProperties = 0;
         public string Path { get; }
         public bool HandlesChildPaths { get; }
         public DBusConnection Connection { get; }
         // The SynchronizationContext on which method handlers are invoked.
-        protected SynchronizationContext? SynchronizationContext { get; }
+        protected global::System.Threading.SynchronizationContext? SynchronizationContext { get; }
         protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, bool handleOnCapturedContext = true)
-            : this(connection, path, handlesChildPaths, handleOnCapturedContext ? SynchronizationContext.Current : null)
+            : this(connection, path, handlesChildPaths, handleOnCapturedContext ? global::System.Threading.SynchronizationContext.Current : null)
         {
         }
-        protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, SynchronizationContext? synchronizationContext)
+        protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, global::System.Threading.SynchronizationContext? synchronizationContext)
         {
             Connection = connection;
             Path = path;
@@ -896,19 +887,19 @@ namespace Tmds.DBus.Protocol
             }
         }
         // Override to add cross-cutting logic (e.g. logging, error handling) around method invocations.
-        protected virtual async ValueTask InvokeAsync(DBusMethod method, MethodContext context)
+        protected virtual async global::System.Threading.Tasks.ValueTask InvokeAsync(DBusMethod method, MethodContext context)
         {
             try
             {
                 await method.Invoke(context).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (global::System.Exception ex)
             {
                 HandleException(context, ex);
             }
         }
         // Override to customize exception handling for method invocations.
-        protected virtual void HandleException(MethodContext context, Exception ex)
+        protected virtual void HandleException(MethodContext context, global::System.Exception ex)
         {
             if (context.HandleException(ex, shouldDisconnect: false))
             {
@@ -918,7 +909,7 @@ namespace Tmds.DBus.Protocol
             {
                 context.ReplyError(dbusEx.ErrorName, dbusEx.ErrorMessage);
             }
-            else if (ex is ArgumentException)
+            else if (ex is global::System.ArgumentException)
             {
                 context.ReplyError("org.freedesktop.DBus.Error.InvalidArgs", ex.Message);
             }
@@ -928,19 +919,19 @@ namespace Tmds.DBus.Protocol
             }
         }
         // Override to filter interfaces for specific paths when the handler manages multiple paths.
-        protected virtual bool SupportsInterface(DBusInterface dbusInterface, ReadOnlySpan<char> path)
+        protected virtual bool SupportsInterface(DBusInterface dbusInterface, global::System.ReadOnlySpan<char> path)
         {
             return true;
         }
         // Override to customize introspection, e.g. to include child node names.
-        protected virtual ValueTask HandleIntrospectAsync(IntrospectContext context)
+        protected virtual global::System.Threading.Tasks.ValueTask HandleIntrospectAsync(IntrospectContext context)
         {
-            DBusInterface interfaces = GetSupportedInterfaces(context.MethodContext.Request.PathAsString.AsSpan());
+            DBusInterface interfaces = GetSupportedInterfaces(global::System.MemoryExtensions.AsSpan(context.MethodContext.Request.PathAsString));
             context.Reply(interfaces);
             return default;
         }
         // Context for IntrospectAsync. Call Reply to send the introspection XML response.
-        protected readonly struct IntrospectContext : IDisposable
+        protected readonly struct IntrospectContext : global::System.IDisposable
         {
             public MethodContext MethodContext { get; }
             public IntrospectContext(MethodContext methodContext)
@@ -948,9 +939,9 @@ namespace Tmds.DBus.Protocol
                 MethodContext = methodContext;
             }
             public void Dispose() => MethodContext.Dispose();
-            public void Reply(DBusInterface interfaces, IList<string>? childNames = null)
+            public void Reply(DBusInterface interfaces, global::System.Collections.Generic.IList<string>? childNames = null)
             {
-                var interfaceXmls = new ReadOnlyMemory<byte>[1];
+                var interfaceXmls = new global::System.ReadOnlyMemory<byte>[1];
                 int count = 0;
                 if ((interfaces & InterfacesWithProperties) != 0)
                 {
@@ -958,42 +949,42 @@ namespace Tmds.DBus.Protocol
                 }
                 if (childNames is not null)
                 {
-                    MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count), childNames);
+                    MethodContext.ReplyIntrospectXml(global::System.MemoryExtensions.AsSpan(interfaceXmls, 0, count), childNames);
                 }
                 else
                 {
-                    MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count));
+                    MethodContext.ReplyIntrospectXml(global::System.MemoryExtensions.AsSpan(interfaceXmls, 0, count));
                 }
             }
         }
         internal readonly struct DBusMethod
         {
-            private readonly Func<object, MethodContext, ValueTask> _method;
+            private readonly global::System.Func<object, MethodContext, global::System.Threading.Tasks.ValueTask> _method;
             private readonly object _target;
-            public DBusMethod(Func<object, MethodContext, ValueTask> method, object target)
+            public DBusMethod(global::System.Func<object, MethodContext, global::System.Threading.Tasks.ValueTask> method, object target)
             {
                 _method = method;
                 _target = target;
             }
             public bool HasValue => _method is not null;
-            public ValueTask Invoke(MethodContext context)
+            public global::System.Threading.Tasks.ValueTask Invoke(MethodContext context)
             {
                 return _method?.Invoke(_target, context) ?? default;
             }
         }
-        ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)
+        global::System.Threading.Tasks.ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)
         {
             DBusInterface dbusInterface = ParseInterface(context);
-            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);
+            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, global::System.MemoryExtensions.AsSpan(context.Request.PathAsString))) ? default : FindMethodHandler(context, dbusInterface);
             if (!method.HasValue)
             {
                 return default;
             }
             return HandleAsync(method, context);
         }
-        private ValueTask HandleAsync(DBusMethod method, MethodContext context)
+        private global::System.Threading.Tasks.ValueTask HandleAsync(DBusMethod method, MethodContext context)
         {
-            SynchronizationContext? synchronizationContext = SynchronizationContext;
+            global::System.Threading.SynchronizationContext? synchronizationContext = SynchronizationContext;
             if (synchronizationContext is null)
             {
                 return InvokeAsync(method, context);
@@ -1005,7 +996,7 @@ namespace Tmds.DBus.Protocol
                 return default;
             }
         }
-        private async ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)
+        private async global::System.Threading.Tasks.ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)
         {
             try
             {
@@ -1060,7 +1051,7 @@ namespace Tmds.DBus.Protocol
             };
             return result;
         }
-        protected DBusInterface GetSupportedInterfaces(ReadOnlySpan<char> path)
+        protected DBusInterface GetSupportedInterfaces(global::System.ReadOnlySpan<char> path)
         {
             DBusInterface interfaces = default;
             return interfaces;

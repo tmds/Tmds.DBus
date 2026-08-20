@@ -39,6 +39,15 @@ namespace Tmds.DBus.Tool
         private readonly HashSet<string> _interfacesWithProperties = new();
         private int _indentation = 0;
 
+        // Fully-qualified name prefixes for generated code.
+        private const string _proto = "global::Tmds.DBus.Protocol";
+        private const string _task = "global::System.Threading.Tasks.Task";
+        private const string _vtask = "global::System.Threading.Tasks.ValueTask";
+        private const string _action = "global::System.Action";
+        private const string _func = "global::System.Func";
+        private const string _idisposable = "global::System.IDisposable";
+        private const string _syncCtx = "global::System.Threading.SynchronizationContext";
+
         public ProtocolGenerator(ProtocolGeneratorSettings settings)
         {
             _settings = settings;
@@ -82,12 +91,6 @@ namespace Tmds.DBus.Tool
 
             AppendLine($"namespace {ns}");
             StartBlock();
-
-            AppendLine($"using System;");
-            AppendLine($"using Tmds.DBus.Protocol;");
-            AppendLine($"using System.Collections.Generic;");
-            AppendLine("using System.Threading.Tasks;");
-            AppendLine("using System.Runtime.CompilerServices;");
 
             bool anyProxies = false;
             foreach (var interf in interfaceDescriptions)
@@ -138,11 +141,6 @@ namespace Tmds.DBus.Tool
             AppendLine("namespace Tmds.DBus.Protocol");
             StartBlock();
 
-            AppendLine("using System;");
-            AppendLine("using System.Collections.Generic;");
-            AppendLine("using System.Threading;");
-            AppendLine("using System.Threading.Tasks;");
-
             // Add IIntrospectable to the generated handlers list for switch statement
             // Note: IIntrospectable is now handled directly in DBusHandler, not as a separate interface
             _generatedHandlers.Add(("Tmds.DBus.Protocol", "org.freedesktop.DBus.Introspectable", "IIntrospectable"));
@@ -154,7 +152,7 @@ namespace Tmds.DBus.Tool
 
             // Generate DBusInterface Flags enum inside DBusHandler
             AppendLine("// Identifies the D-Bus interfaces. Used with SupportsInterface to filter interfaces per path.");
-            AppendLine("[Flags]");
+            AppendLine("[global::System.Flags]");
             AppendLine("public enum DBusInterface");
             StartBlock();
             // Add Introspectable interface as first item
@@ -175,7 +173,7 @@ namespace Tmds.DBus.Tool
                 if (_interfaceXmls.TryGetValue(interfaceName, out var xml))
                 {
                     string enumName = InterfaceNameToEnumValueName(interfaceName);
-                    AppendLine($"private static ReadOnlyMemory<byte> {enumName}Xml {{ get; }} =");
+                    AppendLine($"private static global::System.ReadOnlyMemory<byte> {enumName}Xml {{ get; }} =");
                     _indentation++;
                     AppendLine("\"\"\"");
 
@@ -211,7 +209,7 @@ namespace Tmds.DBus.Tool
                 }
             }
 
-            AppendLine("private readonly SendOrPostCallback? _postDelegate;");
+            AppendLine("private readonly global::System.Threading.SendOrPostCallback? _postDelegate;");
             AppendLine("");
 
             // Add private const for OrgFreedesktopDBusIntrospectable
@@ -244,14 +242,14 @@ namespace Tmds.DBus.Tool
             AppendLine("public bool HandlesChildPaths { get; }");
             AppendLine("public DBusConnection Connection { get; }");
             AppendLine("// The SynchronizationContext on which method handlers are invoked.");
-            AppendLine("protected SynchronizationContext? SynchronizationContext { get; }");
+            AppendLine($"protected {_syncCtx}? SynchronizationContext {{ get; }}");
             AppendLine("");
             AppendLine("protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, bool handleOnCapturedContext = true)");
-            AppendLine("    : this(connection, path, handlesChildPaths, handleOnCapturedContext ? SynchronizationContext.Current : null)");
+            AppendLine($"    : this(connection, path, handlesChildPaths, handleOnCapturedContext ? {_syncCtx}.Current : null)");
             StartBlock();
             EndBlock();
             AppendLine("");
-            AppendLine("protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, SynchronizationContext? synchronizationContext)");
+            AppendLine($"protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, {_syncCtx}? synchronizationContext)");
             StartBlock();
             AppendLine("Connection = connection;");
             AppendLine("Path = path;");
@@ -271,13 +269,13 @@ namespace Tmds.DBus.Tool
             EndBlock();
 
             AppendLine("// Override to add cross-cutting logic (e.g. logging, error handling) around method invocations.");
-            AppendLine("protected virtual async ValueTask InvokeAsync(DBusMethod method, MethodContext context)");
+            AppendLine($"protected virtual async {_vtask} InvokeAsync(DBusMethod method, MethodContext context)");
             StartBlock();
             AppendLine("try");
             StartBlock();
             AppendLine("await method.Invoke(context).ConfigureAwait(false);");
             EndBlock();
-            AppendLine("catch (Exception ex)");
+            AppendLine("catch (global::System.Exception ex)");
             StartBlock();
             AppendLine("HandleException(context, ex);");
             EndBlock();
@@ -285,7 +283,7 @@ namespace Tmds.DBus.Tool
             AppendLine("");
 
             AppendLine("// Override to customize exception handling for method invocations.");
-            AppendLine("protected virtual void HandleException(MethodContext context, Exception ex)");
+            AppendLine("protected virtual void HandleException(MethodContext context, global::System.Exception ex)");
             StartBlock();
             AppendLine("if (context.HandleException(ex, shouldDisconnect: false))");
             StartBlock();
@@ -295,7 +293,7 @@ namespace Tmds.DBus.Tool
             StartBlock();
             AppendLine("context.ReplyError(dbusEx.ErrorName, dbusEx.ErrorMessage);");
             EndBlock();
-            AppendLine("else if (ex is ArgumentException)");
+            AppendLine("else if (ex is global::System.ArgumentException)");
             StartBlock();
             AppendLine("context.ReplyError(\"org.freedesktop.DBus.Error.InvalidArgs\", ex.Message);");
             EndBlock();
@@ -307,7 +305,7 @@ namespace Tmds.DBus.Tool
             AppendLine("");
 
             AppendLine("// Override to filter interfaces for specific paths when the handler manages multiple paths.");
-            AppendLine("protected virtual bool SupportsInterface(DBusInterface dbusInterface, ReadOnlySpan<char> path)");
+            AppendLine("protected virtual bool SupportsInterface(DBusInterface dbusInterface, global::System.ReadOnlySpan<char> path)");
             StartBlock();
             AppendLine("return true;");
             EndBlock();
@@ -315,9 +313,9 @@ namespace Tmds.DBus.Tool
 
             // Add IntrospectAsync virtual method
             AppendLine("// Override to customize introspection, e.g. to include child node names.");
-            AppendLine("protected virtual ValueTask HandleIntrospectAsync(IntrospectContext context)");
+            AppendLine($"protected virtual {_vtask} HandleIntrospectAsync(IntrospectContext context)");
             StartBlock();
-            AppendLine("DBusInterface interfaces = GetSupportedInterfaces(context.MethodContext.Request.PathAsString.AsSpan());");
+            AppendLine("DBusInterface interfaces = GetSupportedInterfaces(global::System.MemoryExtensions.AsSpan(context.MethodContext.Request.PathAsString));");
             AppendLine("context.Reply(interfaces);");
             AppendLine("return default;");
             EndBlock();
@@ -325,7 +323,7 @@ namespace Tmds.DBus.Tool
 
             // Add IntrospectContext struct
             AppendLine("// Context for IntrospectAsync. Call Reply to send the introspection XML response.");
-            AppendLine("protected readonly struct IntrospectContext : IDisposable");
+            AppendLine($"protected readonly struct IntrospectContext : {_idisposable}");
             StartBlock();
             AppendLine("public MethodContext MethodContext { get; }");
             AppendLine("public IntrospectContext(MethodContext methodContext)");
@@ -333,12 +331,12 @@ namespace Tmds.DBus.Tool
             AppendLine("MethodContext = methodContext;");
             EndBlock();
             AppendLine("public void Dispose() => MethodContext.Dispose();");
-            AppendLine("public void Reply(DBusInterface interfaces, IList<string>? childNames = null)");
+            AppendLine("public void Reply(DBusInterface interfaces, global::System.Collections.Generic.IList<string>? childNames = null)");
             StartBlock();
 
             // Create an array for interface XMLs (interfaces + 1 for potential DBusProperties)
             int interfaceCount = allInterfaces.Count + 1;
-            AppendLine($"var interfaceXmls = new ReadOnlyMemory<byte>[{interfaceCount}];");
+            AppendLine($"var interfaceXmls = new global::System.ReadOnlyMemory<byte>[{interfaceCount}];");
             AppendLine("int count = 0;");
 
             // Check each interface flag and add corresponding XML
@@ -359,11 +357,11 @@ namespace Tmds.DBus.Tool
 
             AppendLine("if (childNames is not null)");
             StartBlock();
-            AppendLine("MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count), childNames);");
+            AppendLine("MethodContext.ReplyIntrospectXml(global::System.MemoryExtensions.AsSpan(interfaceXmls, 0, count), childNames);");
             EndBlock();
             AppendLine("else");
             StartBlock();
-            AppendLine("MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count));");
+            AppendLine("MethodContext.ReplyIntrospectXml(global::System.MemoryExtensions.AsSpan(interfaceXmls, 0, count));");
             EndBlock();
             EndBlock();
             EndBlock();
@@ -372,10 +370,10 @@ namespace Tmds.DBus.Tool
             // Generate DBusMethod struct inside DBusHandler
             AppendLine("internal readonly struct DBusMethod");
             StartBlock();
-            AppendLine("private readonly Func<object, MethodContext, ValueTask> _method;");
+            AppendLine($"private readonly {_func}<object, MethodContext, {_vtask}> _method;");
             AppendLine("private readonly object _target;");
             AppendLine("");
-            AppendLine("public DBusMethod(Func<object, MethodContext, ValueTask> method, object target)");
+            AppendLine($"public DBusMethod({_func}<object, MethodContext, {_vtask}> method, object target)");
             StartBlock();
             AppendLine("_method = method;");
             AppendLine("_target = target;");
@@ -383,17 +381,17 @@ namespace Tmds.DBus.Tool
             AppendLine("");
             AppendLine("public bool HasValue => _method is not null;");
             AppendLine("");
-            AppendLine("public ValueTask Invoke(MethodContext context)");
+            AppendLine($"public {_vtask} Invoke(MethodContext context)");
             StartBlock();
             AppendLine("return _method?.Invoke(_target, context) ?? default;");
             EndBlock();
             EndBlock();
             AppendLine("");
 
-            AppendLine("ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)");
+            AppendLine($"{_vtask} IPathMethodHandler.HandleMethodAsync(MethodContext context)");
             StartBlock();
             AppendLine("DBusInterface dbusInterface = ParseInterface(context);");
-            AppendLine("DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);");
+            AppendLine("DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, global::System.MemoryExtensions.AsSpan(context.Request.PathAsString))) ? default : FindMethodHandler(context, dbusInterface);");
             AppendLine("if (!method.HasValue)");
             StartBlock();
             AppendLine("return default;");
@@ -401,9 +399,9 @@ namespace Tmds.DBus.Tool
             AppendLine("return HandleAsync(method, context);");
             EndBlock();
             AppendLine("");
-            AppendLine("private ValueTask HandleAsync(DBusMethod method, MethodContext context)");
+            AppendLine($"private {_vtask} HandleAsync(DBusMethod method, MethodContext context)");
             StartBlock();
-            AppendLine("SynchronizationContext? synchronizationContext = SynchronizationContext;");
+            AppendLine($"{_syncCtx}? synchronizationContext = SynchronizationContext;");
             AppendLine("if (synchronizationContext is null)");
             StartBlock();
             AppendLine("return InvokeAsync(method, context);");
@@ -416,7 +414,7 @@ namespace Tmds.DBus.Tool
             EndBlock();
             EndBlock();
             AppendLine("");
-            AppendLine("private async ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)");
+            AppendLine($"private async {_vtask} InvokeAndDisposeAsync(DBusMethod method, MethodContext context)");
             StartBlock();
             AppendLine("try");
             StartBlock();
@@ -501,7 +499,7 @@ namespace Tmds.DBus.Tool
             EndBlock();
             AppendLine("");
 
-            AppendLine("protected DBusInterface GetSupportedInterfaces(ReadOnlySpan<char> path)");
+            AppendLine("protected DBusInterface GetSupportedInterfaces(global::System.ReadOnlySpan<char> path)");
             StartBlock();
             AppendLine("DBusInterface interfaces = default;");
 
@@ -539,7 +537,7 @@ namespace Tmds.DBus.Tool
             foreach (var interf in interfaceDescriptions)
             {
                 string interfaceName = interf.Name;
-                AppendLine($"public static {interfaceName} Create{interfaceName}(this DBusService service, ObjectPath path) => new {interfaceName}(service.Connection, service.Name, path);");
+                AppendLine($"public static {interfaceName} Create{interfaceName}(this {_proto}.DBusService service, {_proto}.ObjectPath path) => new {interfaceName}(service.Connection, service.Name, path);");
             }
             EndBlock();
         }
@@ -578,7 +576,7 @@ namespace Tmds.DBus.Tool
         private void AppendReadTypeMethod(string method, string signature)
         {
             string dotnetReturnType = GetDotnetReadType(signature);
-            AppendLine($"public static {dotnetReturnType} {method}(this ref Reader reader)");
+            AppendLine($"public static {dotnetReturnType} {method}(this ref {_proto}.Reader reader)");
             StartBlock();
             SignatureReader reader = new SignatureReader(Encoding.UTF8.GetBytes(signature));
             if (reader.TryRead(out DBusType type, out ReadOnlySpan<byte> innerSignature))
@@ -607,8 +605,8 @@ namespace Tmds.DBus.Tool
                         string keyTypeSignature = GetSignature(keyType, keyInnerSignature);
                         string valueTypeSignature = GetSignature(valueType, valueInnerSignature);
 
-                        AppendLine($"Dictionary<{dotnetKeyType}, {dotnetValueType}> dictionary = new();");
-                        AppendLine($"ArrayEnd dictEnd = reader.ReadDictionaryStart();");
+                        AppendLine($"global::System.Collections.Generic.Dictionary<{dotnetKeyType}, {dotnetValueType}> dictionary = new();");
+                        AppendLine($"{_proto}.ArrayEnd dictEnd = reader.ReadDictionaryStart();");
 
                         AppendLine($"while (reader.HasNext(dictEnd))");
                         StartBlock();
@@ -623,8 +621,8 @@ namespace Tmds.DBus.Tool
                     {
                         string dotnetItemType = GetDotnetReadType(itemType, itemInnerSignature);
 
-                        AppendLine($"List<{dotnetItemType}> list = new();");
-                        AppendLine($"ArrayEnd arrayEnd = reader.ReadArrayStart({GetDBusTypeEnumValue(itemType)});");
+                        AppendLine($"global::System.Collections.Generic.List<{dotnetItemType}> list = new();");
+                        AppendLine($"{_proto}.ArrayEnd arrayEnd = reader.ReadArrayStart({GetDBusTypeEnumValue(itemType)});");
 
                         AppendLine($"while (reader.HasNext(arrayEnd))");
                         StartBlock();
@@ -662,7 +660,7 @@ namespace Tmds.DBus.Tool
         private void AppendWriteTypeMethod(string method, bool variant, string signature)
         {
             string dotnetArgType = GetDotnetWriteType(signature);
-            AppendLine($"public static void {method}(this ref MessageWriter writer, {dotnetArgType} value)");
+            AppendLine($"public static void {method}(this ref {_proto}.MessageWriter writer, {dotnetArgType} value)");
             StartBlock();
             if (variant)
             {
@@ -696,7 +694,7 @@ namespace Tmds.DBus.Tool
                             string keyTypeSignature = GetSignature(keyType, keyInnerSignature);
                             string valueTypeSignature = GetSignature(valueType, valueInnerSignature);
 
-                            AppendLine($"ArrayStart arrayStart = writer.WriteDictionaryStart();");
+                            AppendLine($"{_proto}.ArrayStart arrayStart = writer.WriteDictionaryStart();");
                             AppendLine($"foreach (var item in value)");
                             StartBlock();
                             AppendLine($"writer.WriteDictionaryEntryStart();");
@@ -709,7 +707,7 @@ namespace Tmds.DBus.Tool
                         {
                             string dotnetItemSignature = GetSignature(itemType, itemInnerSignature);
 
-                            AppendLine($"ArrayStart arrayStart = writer.WriteArrayStart({GetDBusTypeEnumValue(itemType)});");
+                            AppendLine($"{_proto}.ArrayStart arrayStart = writer.WriteArrayStart({GetDBusTypeEnumValue(itemType)});");
                             AppendLine($"foreach (var item in value)");
                             StartBlock();
                             AppendLine($"{CallWriteArgumentType(dotnetItemSignature, "item")};");
@@ -787,7 +785,7 @@ namespace Tmds.DBus.Tool
             }
 
             // Add FindMethodHandler method to Helper class
-            AppendLine($"public static DBusHandler.DBusMethod FindMethodHandler(object handler, MethodContext context)");
+            AppendLine($"public static {_proto}.DBusHandler.DBusMethod FindMethodHandler(object handler, {_proto}.MethodContext context)");
             StartBlock();
             AppendLine("var request = context.Request;");
 
@@ -801,13 +799,13 @@ namespace Tmds.DBus.Tool
 
                 if (readableProperties.Any())
                 {
-                    AppendLine("(\"Get\", \"ss\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + handlerName + ")o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),");
-                    AppendLine("(\"GetAll\", \"s\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + handlerName + ")o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),");
+                    AppendLine($"(\"Get\", \"ss\") => new {_proto}.DBusHandler.DBusMethod(static (o, c) => ((I{handlerName})o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),");
+                    AppendLine($"(\"GetAll\", \"s\") => new {_proto}.DBusHandler.DBusMethod(static (o, c) => ((I{handlerName})o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),");
                 }
 
                 if (writableProperties.Any())
                 {
-                    AppendLine("(\"Set\", \"ssv\") => new DBusHandler.DBusMethod(static (o, c) => ((I" + handlerName + ")o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),");
+                    AppendLine($"(\"Set\", \"ssv\") => new {_proto}.DBusHandler.DBusMethod(static (o, c) => ((I{handlerName})o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),");
                 }
 
                 AppendLine("_ => default");
@@ -830,7 +828,7 @@ namespace Tmds.DBus.Tool
                     var inArgs = method.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
                     string signature = string.Join("", inArgs.Select(a => a.Signature));
 
-                    AppendLine($"(\"{dbusMethodName}\", \"{signature}\") => new DBusHandler.DBusMethod(static (o, c) => Handle{dotnetMethodName}Async((I{handlerName})o, c), handler),");
+                    AppendLine($"(\"{dbusMethodName}\", \"{signature}\") => new {_proto}.DBusHandler.DBusMethod(static (o, c) => Handle{dotnetMethodName}Async((I{handlerName})o, c), handler),");
                 }
 
                 AppendLine("_ => default");
@@ -853,7 +851,7 @@ namespace Tmds.DBus.Tool
                 var inArgs = method.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
                 var outArgs = method.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").Select(ToArgument).ToArray();
 
-                AppendLine($"static async ValueTask Handle{dotnetMethodName}Async(I{handlerName} handler, MethodContext context)");
+                AppendLine($"static async {_vtask} Handle{dotnetMethodName}Async(I{handlerName} handler, {_proto}.MethodContext context)");
                 StartBlock();
 
                 // Read args
@@ -879,7 +877,7 @@ namespace Tmds.DBus.Tool
                     string resultType = outArgs[0].DotnetReadType;
                     AppendLine($"var result = await handler.{dotnetMethodName}Async({callArgs}).ConfigureAwait(false);");
                     AppendLine("WriteReply(context, result);");
-                    AppendLine($"static void WriteReply(MethodContext context, {resultType} result)");
+                    AppendLine($"static void WriteReply({_proto}.MethodContext context, {resultType} result)");
                     StartBlock();
                     AppendLine($"var writer = context.CreateReplyWriter(\"{outSignature}\");");
                     AppendLine($"{CallWriteArgumentType(outArgs[0].Signature, "result")};");
@@ -892,7 +890,7 @@ namespace Tmds.DBus.Tool
                     string tupleType = TupleOf(outArgs.Select(a => $"{a.DotnetReadType} {a.NameUpper}"));
                     AppendLine($"var result = await handler.{dotnetMethodName}Async({callArgs}).ConfigureAwait(false);");
                     AppendLine("WriteReply(context, result);");
-                    AppendLine($"static void WriteReply(MethodContext context, {tupleType} result)");
+                    AppendLine($"static void WriteReply({_proto}.MethodContext context, {tupleType} result)");
                     StartBlock();
                     AppendLine($"var writer = context.CreateReplyWriter(\"{outSignature}\");");
                     foreach (var outArg in outArgs)
@@ -915,14 +913,14 @@ namespace Tmds.DBus.Tool
 
             if (readableProperties.Any())
             {
-                AppendLine("ValueTask HandleGetPropertyAsync(GetPropertyContext context);");
+                AppendLine($"{_vtask} HandleGetPropertyAsync(GetPropertyContext context);");
 
-                AppendLine("ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);");
+                AppendLine($"{_vtask} HandleGetAllPropertiesAsync(GetAllPropertiesContext context);");
             }
 
             if (writableProperties.Any())
             {
-                AppendLine("ValueTask HandleSetPropertyAsync(SetPropertyContext context);");
+                AppendLine($"{_vtask} HandleSetPropertyAsync(SetPropertyContext context);");
             }
 
             foreach (var method in interfaceXml.Elements("method"))
@@ -936,16 +934,16 @@ namespace Tmds.DBus.Tool
                 string returnType;
                 if (outArgs.Length == 0)
                 {
-                    returnType = "ValueTask";
+                    returnType = _vtask;
                 }
                 else if (outArgs.Length == 1)
                 {
-                    returnType = $"ValueTask<{outArgs[0].DotnetReadType}>";
+                    returnType = $"{_vtask}<{outArgs[0].DotnetReadType}>";
                 }
                 else
                 {
                     string tupleType = TupleOf(outArgs.Select(a => $"{a.DotnetReadType} {a.NameUpper}"));
-                    returnType = $"ValueTask<{tupleType}>";
+                    returnType = $"{_vtask}<{tupleType}>";
                 }
                 AppendLine($"{returnType} {dotnetMethodName}Async({parameters});");
             }
@@ -954,12 +952,12 @@ namespace Tmds.DBus.Tool
             {
                 // Generate GetPropertyContext
                 string propertyEnumName = $"{name}Property";
-                AppendLine("readonly struct GetPropertyContext : IDisposable");
+                AppendLine($"readonly struct GetPropertyContext : {_idisposable}");
                 StartBlock();
 
-                AppendLine("public MethodContext MethodContext { get; }");
+                AppendLine($"public {_proto}.MethodContext MethodContext {{ get; }}");
                 AppendLine($"public {propertyEnumName} Property {{ get; }}");
-                AppendLine("public GetPropertyContext(MethodContext methodContext)");
+                AppendLine($"public GetPropertyContext({_proto}.MethodContext methodContext)");
                 StartBlock();
                 AppendLine("MethodContext = methodContext;");
                 AppendLine("var reader = methodContext.Request.GetBodyReader();");
@@ -975,7 +973,7 @@ namespace Tmds.DBus.Tool
                     string writeMethodName = GetWriteTypeMethodName(property.Signature, variant: true);
                     AppendLine($"public void Reply{property.NameUpper}({property.DotnetReadType} value)");
                     StartBlock();
-                    AppendLine($"System.Diagnostics.Debug.Assert(Property == {propertyEnumName}.{property.NameUpper});");
+                    AppendLine($"global::System.Diagnostics.Debug.Assert(Property == {propertyEnumName}.{property.NameUpper});");
                     AppendLine("var writer = MethodContext.CreateReplyWriter(\"v\");");
                     AppendLine($"writer.{writeMethodName}(value);");
                     AppendLine("MethodContext.Reply(writer.CreateMessage());");
@@ -988,7 +986,7 @@ namespace Tmds.DBus.Tool
                 AppendLine("MethodContext.ReplyError(\"org.freedesktop.DBus.Error.UnknownProperty\", $\"Unknown property: {Property}\");");
                 EndBlock();
 
-                AppendLine($"public ValueTask Handle(I{name}Properties properties)");
+                AppendLine($"public {_vtask} Handle(I{name}Properties properties)");
                 StartBlock();
                 AppendLine("switch (Property)");
                 StartBlock();
@@ -1012,18 +1010,18 @@ namespace Tmds.DBus.Tool
                 EndBlock();
 
                 // Generate GetAllPropertiesContext
-                AppendLine("readonly struct GetAllPropertiesContext : IDisposable");
+                AppendLine($"readonly struct GetAllPropertiesContext : {_idisposable}");
                 StartBlock();
 
-                AppendLine("public MethodContext MethodContext { get; }");
-                AppendLine("public GetAllPropertiesContext(MethodContext methodContext)");
+                AppendLine($"public {_proto}.MethodContext MethodContext {{ get; }}");
+                AppendLine($"public GetAllPropertiesContext({_proto}.MethodContext methodContext)");
                 StartBlock();
                 AppendLine("MethodContext = methodContext;");
                 EndBlock();
 
                 AppendLine("public void Dispose() => MethodContext.Dispose();");
 
-                AppendLine($"public ValueTask Handle(I{name}Properties properties)");
+                AppendLine($"public {_vtask} Handle(I{name}Properties properties)");
                 StartBlock();
                 AppendLine("var writer = MethodContext.CreateReplyWriter(\"a{sv}\");");
                 AppendLine("var dictStart = writer.WriteDictionaryStart();");
@@ -1042,7 +1040,7 @@ namespace Tmds.DBus.Tool
                 // Handle overload that accepts all gettable properties as nullable individual arguments (alphabetically sorted)
                 var sortedReadableProperties = readableProperties.OrderBy(p => p.NameUpper).ToArray();
                 string handleArgs = string.Join(", ", sortedReadableProperties.Select(p => $"{GetNullableType(p.DotnetWriteType)} {p.NameLower} = default"));
-                AppendLine($"public ValueTask Handle({handleArgs})");
+                AppendLine($"public {_vtask} Handle({handleArgs})");
                 StartBlock();
                 AppendLine("var writer = MethodContext.CreateReplyWriter(\"a{sv}\");");
                 AppendLine("var dictStart = writer.WriteDictionaryStart();");
@@ -1069,12 +1067,12 @@ namespace Tmds.DBus.Tool
             {
                 // Generate SetPropertyContext
                 string writablePropertyEnumName = $"Writable{name}Property";
-                AppendLine("readonly struct SetPropertyContext : IDisposable");
+                AppendLine($"readonly struct SetPropertyContext : {_idisposable}");
                 StartBlock();
 
-                AppendLine("public MethodContext MethodContext { get; }");
+                AppendLine($"public {_proto}.MethodContext MethodContext {{ get; }}");
                 AppendLine($"public {writablePropertyEnumName} Property {{ get; }}");
-                AppendLine("public SetPropertyContext(MethodContext methodContext)");
+                AppendLine($"public SetPropertyContext({_proto}.MethodContext methodContext)");
                 StartBlock();
                 AppendLine("MethodContext = methodContext;");
                 AppendLine("var reader = methodContext.Request.GetBodyReader();");
@@ -1117,7 +1115,7 @@ namespace Tmds.DBus.Tool
                 EndBlock();
 
                 // Handle method that sets on IXxxProperties
-                AppendLine($"public ValueTask Handle(I{name}Properties properties)");
+                AppendLine($"public {_vtask} Handle(I{name}Properties properties)");
                 StartBlock();
                 AppendLine("switch (Property)");
                 StartBlock();
@@ -1272,7 +1270,7 @@ namespace Tmds.DBus.Tool
 
                         AppendLine($"private byte[] __set = new byte[{byteCount}];");
                         AppendLine($"private byte[] __invalidated = new byte[{byteCount}];");
-                        AppendLine($"private static ReadOnlySpan<byte> PropertiesAllSet => new byte[] {{ {allSetLiteral} }}; // {readableProperties.Length} properties");
+                        AppendLine($"private static global::System.ReadOnlySpan<byte> PropertiesAllSet => new byte[] {{ {allSetLiteral} }}; // {readableProperties.Length} properties");
                         AppendLine($"private static int FlagIndex({propertyEnumName} property) => ((int)property - 1) / 8;");
                         AppendLine($"private static byte FlagMask({propertyEnumName} property) => (byte)(1 << (((int)property - 1) % 8));");
                     }
@@ -1302,7 +1300,7 @@ namespace Tmds.DBus.Tool
 
                     AppendLine($"public {propertiesClassName}() {{ }}");
                     AppendLine("#nullable disable");
-                    AppendLine("[System.Diagnostics.CodeAnalysis.SetsRequiredMembers]");
+                    AppendLine("[global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]");
                     AppendLine($"private {propertiesClassName}(bool _) {{ }}");
                     AppendLine("#nullable enable");
 
@@ -1310,7 +1308,7 @@ namespace Tmds.DBus.Tool
                     StartBlock();
                     AppendLine("if (!HasFlag(__set, property))");
                     StartBlock();
-                    AppendLine("throw new InvalidOperationException(\"Property is not set.\");");
+                    AppendLine("throw new global::System.InvalidOperationException(\"Property is not set.\");");
                     EndBlock();
                     EndBlock();
 
@@ -1392,7 +1390,7 @@ namespace Tmds.DBus.Tool
 
                     if (useByteArray)
                     {
-                        AppendLine($"public bool AreAllPropertiesSet() => __set.AsSpan().SequenceEqual(PropertiesAllSet);");
+                        AppendLine($"public bool AreAllPropertiesSet() => global::System.MemoryExtensions.SequenceEqual(PropertiesAllSet, __set);");
                     }
                     else
                     {
@@ -1405,19 +1403,19 @@ namespace Tmds.DBus.Tool
                     StartBlock();
                     if (useByteArray)
                     {
-                        AppendLine("throw new DBusUnexpectedValueException($\"Not all properties have been set ({BitConverter.ToString(__set)}).\");");
+                        AppendLine($"throw new {_proto}.DBusUnexpectedValueException(\"Not all properties have been set (\" + global::System.BitConverter.ToString(__set) + \").\");");
                     }
                     else
                     {
-                        AppendLine("throw new DBusUnexpectedValueException($\"Not all properties have been set (0x{__set:x}).\");");
+                        AppendLine($"throw new {_proto}.DBusUnexpectedValueException($\"Not all properties have been set (0x{{__set:x}}).\");");
                     }
                     EndBlock();
                     EndBlock();
 
-                    AppendLine($"public static {propertiesClassName} ReadFrom(ref Reader reader, bool withInvalidated)");
+                    AppendLine($"public static {propertiesClassName} ReadFrom(ref {_proto}.Reader reader, bool withInvalidated)");
                     StartBlock();
                     AppendLine($"var props = CreateUninitialized();");
-                    AppendLine("ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);");
+                    AppendLine($"{_proto}.ArrayEnd arrayEnd = reader.ReadArrayStart({GetDBusTypeEnumValue(DBusType.Struct)});");
                     AppendLine("while (reader.HasNext(arrayEnd))");
                     StartBlock();
 
@@ -1446,7 +1444,7 @@ namespace Tmds.DBus.Tool
 
                     AppendLine("if (withInvalidated)");
                     StartBlock();
-                    AppendLine("ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);");
+                    AppendLine($"{_proto}.ArrayEnd invalidatedEnd = reader.ReadArrayStart({GetDBusTypeEnumValue(DBusType.String)});");
                     AppendLine("while (reader.HasNext(invalidatedEnd))");
                     StartBlock();
                     AppendLine("var propertyName = reader.ReadString();");
@@ -1554,7 +1552,7 @@ namespace Tmds.DBus.Tool
                 AppendLine($"writer.WriteString(\"{interfaceName}\");");
             }
 
-            AppendLine($"public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, I{name}Properties properties, ReadOnlySpan<{propertyEnumName}> changed, ReadOnlySpan<{propertyEnumName}> invalidated = default)");
+            AppendLine($"public static void EmitPropertiesChanged(this {_proto}.DBusConnection c, {_proto}.ObjectPath p, I{name}Properties properties, global::System.ReadOnlySpan<{propertyEnumName}> changed, global::System.ReadOnlySpan<{propertyEnumName}> invalidated = default)");
             StartBlock();
             AppendWriteSignalHeader();
 
@@ -1580,7 +1578,7 @@ namespace Tmds.DBus.Tool
             AppendLine("writer.WriteDictionaryEnd(dictStart);");
 
             // Write invalidated property names as as
-            AppendLine("var arrayStart = writer.WriteArrayStart(DBusType.String);");
+            AppendLine($"var arrayStart = writer.WriteArrayStart({GetDBusTypeEnumValue(DBusType.String)});");
             AppendLine("foreach (var property in invalidated)");
             StartBlock();
             AppendLine("switch (property)");
@@ -1601,7 +1599,7 @@ namespace Tmds.DBus.Tool
             EndBlock();
 
             // Public overload: single changed property
-            AppendLine($"public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, I{name}Properties properties, {propertyEnumName} changed)");
+            AppendLine($"public static void EmitPropertyChanged(this {_proto}.DBusConnection c, {_proto}.ObjectPath p, I{name}Properties properties, {propertyEnumName} changed)");
             StartBlock();
             AppendLine("EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);");
             EndBlock();
@@ -1609,7 +1607,7 @@ namespace Tmds.DBus.Tool
             // Overload with all properties as nullable individual arguments (alphabetically sorted)
             var sortedProperties = properties.OrderBy(p => p.NameUpper).ToArray();
             string emitArgs = string.Join(", ", sortedProperties.Select(p => $"{GetNullableType(p.DotnetWriteType)} {p.NameLower} = default"));
-            AppendLine($"public static void Emit{name}PropertiesChanged(this DBusConnection c, ObjectPath p, {emitArgs}, ReadOnlySpan<{propertyEnumName}> invalidated = default)");
+            AppendLine($"public static void Emit{name}PropertiesChanged(this {_proto}.DBusConnection c, {_proto}.ObjectPath p, {emitArgs}, global::System.ReadOnlySpan<{propertyEnumName}> invalidated = default)");
             StartBlock();
             AppendWriteSignalHeader();
             AppendLine("var dictStart = writer.WriteDictionaryStart();");
@@ -1625,7 +1623,7 @@ namespace Tmds.DBus.Tool
                 EndBlock();
             }
             AppendLine("writer.WriteDictionaryEnd(dictStart);");
-            AppendLine("var arrayStart = writer.WriteArrayStart(DBusType.String);");
+            AppendLine($"var arrayStart = writer.WriteArrayStart({GetDBusTypeEnumValue(DBusType.String)});");
             AppendLine("foreach (var property in invalidated)");
             StartBlock();
             AppendLine("switch (property)");
@@ -1659,7 +1657,7 @@ namespace Tmds.DBus.Tool
 
             string signature = string.Join("", args.Select(a => a.Signature));
 
-            AppendLine($"public static void {dotnetMethodName}(this DBusConnection c, ObjectPath p{parameters})");
+            AppendLine($"public static void {dotnetMethodName}(this {_proto}.DBusConnection c, {_proto}.ObjectPath p{parameters})");
             StartBlock();
             AppendLine("var writer = c.GetMessageWriter();");
             AppendLine("writer.WriteSignalHeader(");
@@ -1689,13 +1687,13 @@ namespace Tmds.DBus.Tool
             string nullableInterfaceName = $"INullable{propertiesClassName}";
             string changedInterfaceName = $"IChanged{propertiesClassName}";
 
-            AppendLine($"sealed partial class {name} : Tmds.DBus.Protocol.DBusObject");
+            AppendLine($"sealed partial class {name} : {_proto}.DBusObject");
             StartBlock();
 
             string interfaceName = (string)interfaceXml.Attribute("name");
             AppendLine($"public const string DBusInterfaceName = \"{interfaceName}\";");
 
-            AppendLine($"public {name}(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)");
+            AppendLine($"public {name}({_proto}.DBusConnection connection, string destination, {_proto}.ObjectPath path)");
             AppendLine("    : base(connection, destination, path)");
             AppendLine("{ }");
 
@@ -1718,19 +1716,19 @@ namespace Tmds.DBus.Tool
             {
                 foreach (var property in readableProperties)
                 {
-                    AppendLine($"public Task<{property.DotnetReadType}> Get{property.NameUpper}Async()");
+                    AppendLine($"public {_task}<{property.DotnetReadType}> Get{property.NameUpper}Async()");
                     _indentation++;
                     string readMessageName = GetReadMessageMethodName(new[] { property }, variant: true);
-                    AppendLine($"=> Connection.CallMethodAsync(CreateGetPropertyMessage(\"{property.Name}\"), (Message m, object? s) => MessageReader.{readMessageName}(m), this);");
+                    AppendLine($"=> Connection.CallMethodAsync(CreateGetPropertyMessage(\"{property.Name}\"), ({_proto}.Message m, object? s) => MessageReader.{readMessageName}(m), this);");
                     _indentation--;
                 }
 
                 // GetPropertiesAsync
-                AppendLine($"public Task<{propertiesClassName}> GetPropertiesAsync()");
+                AppendLine($"public {_task}<{propertiesClassName}> GetPropertiesAsync()");
                 StartBlock();
-                AppendLine($"return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);");
+                AppendLine($"return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), ({_proto}.Message m, object? s) => ReadMessage(m), this);");
 
-                AppendLine($"static {propertiesClassName} ReadMessage(Message message)");
+                AppendLine($"static {propertiesClassName} ReadMessage({_proto}.Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine($"return {propertiesClassName}.ReadFrom(ref reader, withInvalidated: false);");
@@ -1739,11 +1737,11 @@ namespace Tmds.DBus.Tool
                 EndBlock(); // method
 
                 // GetNullablePropertiesAsync
-                AppendLine($"public Task<{nullableInterfaceName}> GetNullablePropertiesAsync()");
+                AppendLine($"public {_task}<{nullableInterfaceName}> GetNullablePropertiesAsync()");
                 StartBlock();
-                AppendLine($"return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);");
+                AppendLine($"return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), ({_proto}.Message m, object? s) => ReadMessage(m), this);");
 
-                AppendLine($"static {nullableInterfaceName} ReadMessage(Message message)");
+                AppendLine($"static {nullableInterfaceName} ReadMessage({_proto}.Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine($"return {propertiesClassName}.ReadFrom(ref reader, withInvalidated: false);");
@@ -1752,26 +1750,26 @@ namespace Tmds.DBus.Tool
                 EndBlock(); // method
 
                 // WatchPropertiesChangedAsync simple overload
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<{changedInterfaceName}> handler, bool emitOnCapturedContext = true)");
-                AppendLine($"    => WatchPropertiesChangedAsync(static (Notification<{changedInterfaceName}> n) => ((Action<{changedInterfaceName}>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);");
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<{changedInterfaceName}, ValueTask> handler, bool emitOnCapturedContext = true)");
-                AppendLine($"    => WatchPropertiesChangedAsync(static (Notification<{changedInterfaceName}> n) => ((Func<{changedInterfaceName}, ValueTask>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);");
+                AppendLine($"public {_vtask}<{_idisposable}> WatchPropertiesChangedAsync({_action}<{changedInterfaceName}> handler, bool emitOnCapturedContext = true)");
+                AppendLine($"    => WatchPropertiesChangedAsync(static ({_proto}.Notification<{changedInterfaceName}> n) => (({_action}<{changedInterfaceName}>)n.State!)(n.Value), {_proto}.ObserverFlags.None, emitOnCapturedContext, handler);");
+                AppendLine($"public {_vtask}<{_idisposable}> WatchPropertiesChangedAsync({_func}<{changedInterfaceName}, {_vtask}> handler, bool emitOnCapturedContext = true)");
+                AppendLine($"    => WatchPropertiesChangedAsync(static ({_proto}.Notification<{changedInterfaceName}> n) => (({_func}<{changedInterfaceName}, {_vtask}>)n.State!)(n.Value), {_proto}.ObserverFlags.None, emitOnCapturedContext, handler);");
 
                 // WatchPropertiesChangedAsync with Notification
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<{changedInterfaceName}>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
+                AppendLine($"public {_vtask}<{_idisposable}> WatchPropertiesChangedAsync({_action}<{_proto}.Notification<{changedInterfaceName}>> handler, {_proto}.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
                 StartBlock();
-                AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);");
-                AppendLine($"static {changedInterfaceName} ReadMessage(Message message)");
+                AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, ({_proto}.Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);");
+                AppendLine($"static {changedInterfaceName} ReadMessage({_proto}.Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
                 AppendLine($"return {propertiesClassName}.ReadFrom(ref reader, withInvalidated: true);");
                 EndBlock();
                 EndBlock();
-                AppendLine($"public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<Notification<{changedInterfaceName}>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
+                AppendLine($"public {_vtask}<{_idisposable}> WatchPropertiesChangedAsync({_func}<{_proto}.Notification<{changedInterfaceName}>, {_vtask}> handler, {_proto}.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
                 StartBlock();
-                AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);");
-                AppendLine($"static {changedInterfaceName} ReadMessage(Message message)");
+                AppendLine($"return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, ({_proto}.Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);");
+                AppendLine($"static {changedInterfaceName} ReadMessage({_proto}.Message message)");
                 StartBlock();
                 AppendLine("var reader = message.GetBodyReader();");
                 AppendLine("reader.ReadString(); // interface");
@@ -1780,7 +1778,7 @@ namespace Tmds.DBus.Tool
                 EndBlock();
 
                 // CreateGetPropertyMessage helper
-                AppendLine("private MessageBuffer CreateGetPropertyMessage(string property)");
+                AppendLine($"private {_proto}.MessageBuffer CreateGetPropertyMessage(string property)");
                 StartBlock();
                 AppendLine("var writer = Connection.GetMessageWriter();");
                 AppendLine("writer.WriteMethodCallHeader(");
@@ -1795,7 +1793,7 @@ namespace Tmds.DBus.Tool
                 EndBlock();
 
                 // CreateGetAllPropertiesMessage helper
-                AppendLine("private MessageBuffer CreateGetAllPropertiesMessage()");
+                AppendLine($"private {_proto}.MessageBuffer CreateGetAllPropertiesMessage()");
                 StartBlock();
                 AppendLine("var writer = Connection.GetMessageWriter();");
                 AppendLine("writer.WriteMethodCallHeader(");
@@ -1815,10 +1813,10 @@ namespace Tmds.DBus.Tool
         private void AppendPropertySetMethod(Argument property)
         {
             string methodName = $"Set{property.NameUpper}Async";
-            AppendLine($"public Task {methodName}({property.DotnetWriteType} value)");
+            AppendLine($"public {_task} {methodName}({property.DotnetWriteType} value)");
             StartBlock();
             AppendLine($"return Connection.CallMethodAsync(CreateMessage());");
-            AppendLine("MessageBuffer CreateMessage()");
+            AppendLine($"{_proto}.MessageBuffer CreateMessage()");
             StartBlock();
             AppendLine("var writer = Connection.GetMessageWriter();");
             AppendLine("writer.WriteMethodCallHeader(");
@@ -1862,16 +1860,16 @@ namespace Tmds.DBus.Tool
             string? watchType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetReadType : TupleOf(args.Select(arg => $"{arg.DotnetReadType} {arg.NameUpper}"));
             string dotnetMethodName = "Watch" + Prettify(dbusSignalName) + "Async";
 
-            string simpleHandlerArg = watchType == null ? "Action" : $"Action<{watchType}>";
-            string simpleNotificationHandler = watchType == null ? "static (Notification n) => ((Action)n.State!)()" : $"static (Notification<{watchType}> n) => ((Action<{watchType}>)n.State!)(n.Value)";
-            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({simpleHandlerArg} handler, bool emitOnCapturedContext = true)");
-            AppendLine($"    => {dotnetMethodName}({simpleNotificationHandler}, ObserverFlags.None, emitOnCapturedContext, handler);");
-            string simpleFuncHandlerArg = watchType == null ? "Func<ValueTask>" : $"Func<{watchType}, ValueTask>";
-            string simpleFuncNotificationHandler = watchType == null ? "static (Notification n) => ((Func<ValueTask>)n.State!)()" : $"static (Notification<{watchType}> n) => ((Func<{watchType}, ValueTask>)n.State!)(n.Value)";
-            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({simpleFuncHandlerArg} handler, bool emitOnCapturedContext = true)");
-            AppendLine($"    => {dotnetMethodName}({simpleFuncNotificationHandler}, ObserverFlags.None, emitOnCapturedContext, handler);");
-            string handlerContextMethodArg = watchType == null ? "Action<Notification>" : $"Action<Notification<{watchType}>>";
-            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({handlerContextMethodArg} handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
+            string simpleHandlerArg = watchType == null ? _action : $"{_action}<{watchType}>";
+            string simpleNotificationHandler = watchType == null ? $"static ({_proto}.Notification n) => (({_action})n.State!)()" : $"static ({_proto}.Notification<{watchType}> n) => (({_action}<{watchType}>)n.State!)(n.Value)";
+            AppendLine($"public {_vtask}<{_idisposable}> {dotnetMethodName}({simpleHandlerArg} handler, bool emitOnCapturedContext = true)");
+            AppendLine($"    => {dotnetMethodName}({simpleNotificationHandler}, {_proto}.ObserverFlags.None, emitOnCapturedContext, handler);");
+            string simpleFuncHandlerArg = watchType == null ? $"{_func}<{_vtask}>" : $"{_func}<{watchType}, {_vtask}>";
+            string simpleFuncNotificationHandler = watchType == null ? $"static ({_proto}.Notification n) => (({_func}<{_vtask}>)n.State!)()" : $"static ({_proto}.Notification<{watchType}> n) => (({_func}<{watchType}, {_vtask}>)n.State!)(n.Value)";
+            AppendLine($"public {_vtask}<{_idisposable}> {dotnetMethodName}({simpleFuncHandlerArg} handler, bool emitOnCapturedContext = true)");
+            AppendLine($"    => {dotnetMethodName}({simpleFuncNotificationHandler}, {_proto}.ObserverFlags.None, emitOnCapturedContext, handler);");
+            string handlerContextMethodArg = watchType == null ? $"{_action}<{_proto}.Notification>" : $"{_action}<{_proto}.Notification<{watchType}>>";
+            AppendLine($"public {_vtask}<{_idisposable}> {dotnetMethodName}({handlerContextMethodArg} handler, {_proto}.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
             if (watchType == null)
             {
                 AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", handler, flags, emitOnCapturedContext, state);");
@@ -1879,10 +1877,10 @@ namespace Tmds.DBus.Tool
             else
             {
                 string readMessageName = GetReadMessageMethodName(args, variant: false);
-                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", (Message m, object? s) => MessageReader.{readMessageName}(m), handler, flags, emitOnCapturedContext, state);");
+                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", ({_proto}.Message m, object? s) => MessageReader.{readMessageName}(m), handler, flags, emitOnCapturedContext, state);");
             }
-            string funcHandlerContextMethodArg = watchType == null ? "Func<Notification, ValueTask>" : $"Func<Notification<{watchType}>, ValueTask>";
-            AppendLine($"public ValueTask<IDisposable> {dotnetMethodName}({funcHandlerContextMethodArg} handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
+            string funcHandlerContextMethodArg = watchType == null ? $"{_func}<{_proto}.Notification, {_vtask}>" : $"{_func}<{_proto}.Notification<{watchType}>, {_vtask}>";
+            AppendLine($"public {_vtask}<{_idisposable}> {dotnetMethodName}({funcHandlerContextMethodArg} handler, {_proto}.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)");
             if (watchType == null)
             {
                 AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", handler, flags, emitOnCapturedContext, state);");
@@ -1890,7 +1888,7 @@ namespace Tmds.DBus.Tool
             else
             {
                 string readMessageName = GetReadMessageMethodName(args, variant: false);
-                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", (Message m, object? s) => MessageReader.{readMessageName}(m), handler, flags, emitOnCapturedContext, state);");
+                AppendLine($"    => Connection.WatchSignalAsync(Destination, Path, DBusInterfaceName, \"{dbusSignalName}\", ({_proto}.Message m, object? s) => MessageReader.{readMessageName}(m), handler, flags, emitOnCapturedContext, state);");
             }
         }
 
@@ -2008,7 +2006,7 @@ namespace Tmds.DBus.Tool
             var inArgs = methodXml.Elements("arg").Where(arg => (arg.Attribute("direction")?.Value ?? "in") == "in").Select(ToArgument).ToArray();
             var outArgs = methodXml.Elements("arg").Where(arg => arg.Attribute("direction")?.Value == "out").Select(ToArgument).ToArray();
             string? dotnetReturnType = outArgs.Length == 0 ? null : outArgs.Length == 1 ? outArgs[0].DotnetReadType : TupleOf(outArgs.Select(arg => $"{arg.DotnetReadType} {arg.NameUpper}"));
-            string retType = dotnetReturnType == null ? "Task" : $"Task<{dotnetReturnType}>";
+            string retType = dotnetReturnType == null ? _task : $"{_task}<{dotnetReturnType}>";
 
             string args = TupleOf(inArgs.Select(arg => $"{arg.DotnetWriteType} {arg.NameLower}"));
 
@@ -2018,14 +2016,14 @@ namespace Tmds.DBus.Tool
             if (dotnetReturnType != null)
             {
                 string readMessageName = GetReadMessageMethodName(outArgs, variant: false);
-                AppendLine($"return Connection.CallMethodAsync(CreateMessage(), (Message m, object? s) => MessageReader.{readMessageName}(m), this);");
+                AppendLine($"return Connection.CallMethodAsync(CreateMessage(), ({_proto}.Message m, object? s) => MessageReader.{readMessageName}(m), this);");
             }
             else
             {
                 AppendLine($"return Connection.CallMethodAsync(CreateMessage());");
             }
 
-            AppendLine("MessageBuffer CreateMessage()");
+            AppendLine($"{_proto}.MessageBuffer CreateMessage()");
             StartBlock();
             AppendLine("var writer = Connection.GetMessageWriter();");
             AppendLine("writer.WriteMethodCallHeader(");
@@ -2054,7 +2052,7 @@ namespace Tmds.DBus.Tool
         private void AppendReadMessageMethod(string name, bool variant, Argument[] args)
         {
             string? dotnetReturnType = args.Length == 0 ? null : args.Length == 1 ? args[0].DotnetReadType : TupleOf(args.Select(arg => arg.DotnetReadType));
-            AppendLine($"public static {dotnetReturnType} {name}(Message message)");
+            AppendLine($"public static {dotnetReturnType} {name}({_proto}.Message message)");
             StartBlock();
             string signature = string.Join("", args.Select(a => a.Signature));
             AppendLine("var reader = message.GetBodyReader();");
@@ -2079,25 +2077,26 @@ namespace Tmds.DBus.Tool
 
         private static string GetDBusTypeEnumValue(DBusType type)
         {
+            string fqn = $"{_proto}.DBusType";
             return type switch
             {
-                DBusType.Byte => $"{nameof(DBusType)}.{nameof(DBusType.Byte)}",
-                DBusType.Bool => $"{nameof(DBusType)}.{nameof(DBusType.Bool)}",
-                DBusType.Int16 => $"{nameof(DBusType)}.{nameof(DBusType.Int16)}",
-                DBusType.UInt16 => $"{nameof(DBusType)}.{nameof(DBusType.UInt16)}",
-                DBusType.Int32 => $"{nameof(DBusType)}.{nameof(DBusType.Int32)}",
-                DBusType.UInt32 => $"{nameof(DBusType)}.{nameof(DBusType.UInt32)}",
-                DBusType.Int64 => $"{nameof(DBusType)}.{nameof(DBusType.Int64)}",
-                DBusType.UInt64 => $"{nameof(DBusType)}.{nameof(DBusType.UInt64)}",
-                DBusType.Double => $"{nameof(DBusType)}.{nameof(DBusType.Double)}",
-                DBusType.String => $"{nameof(DBusType)}.{nameof(DBusType.String)}",
-                DBusType.ObjectPath => $"{nameof(DBusType)}.{nameof(DBusType.ObjectPath)}",
-                DBusType.Signature => $"{nameof(DBusType)}.{nameof(DBusType.Signature)}",
-                DBusType.Array => $"{nameof(DBusType)}.{nameof(DBusType.Array)}",
-                DBusType.Struct => $"{nameof(DBusType)}.{nameof(DBusType.Struct)}",
-                DBusType.Variant => $"{nameof(DBusType)}.{nameof(DBusType.Variant)}",
-                DBusType.DictEntry => $"{nameof(DBusType)}.{nameof(DBusType.DictEntry)}",
-                DBusType.UnixFd => $"{nameof(DBusType)}.{nameof(DBusType.UnixFd)}",
+                DBusType.Byte => $"{fqn}.{nameof(DBusType.Byte)}",
+                DBusType.Bool => $"{fqn}.{nameof(DBusType.Bool)}",
+                DBusType.Int16 => $"{fqn}.{nameof(DBusType.Int16)}",
+                DBusType.UInt16 => $"{fqn}.{nameof(DBusType.UInt16)}",
+                DBusType.Int32 => $"{fqn}.{nameof(DBusType.Int32)}",
+                DBusType.UInt32 => $"{fqn}.{nameof(DBusType.UInt32)}",
+                DBusType.Int64 => $"{fqn}.{nameof(DBusType.Int64)}",
+                DBusType.UInt64 => $"{fqn}.{nameof(DBusType.UInt64)}",
+                DBusType.Double => $"{fqn}.{nameof(DBusType.Double)}",
+                DBusType.String => $"{fqn}.{nameof(DBusType.String)}",
+                DBusType.ObjectPath => $"{fqn}.{nameof(DBusType.ObjectPath)}",
+                DBusType.Signature => $"{fqn}.{nameof(DBusType.Signature)}",
+                DBusType.Array => $"{fqn}.{nameof(DBusType.Array)}",
+                DBusType.Struct => $"{fqn}.{nameof(DBusType.Struct)}",
+                DBusType.Variant => $"{fqn}.{nameof(DBusType.Variant)}",
+                DBusType.DictEntry => $"{fqn}.{nameof(DBusType.DictEntry)}",
+                DBusType.UnixFd => $"{fqn}.{nameof(DBusType.UnixFd)}",
                 _ => throw new ArgumentOutOfRangeException(type.ToString())
             };
         }
@@ -2202,7 +2201,7 @@ namespace Tmds.DBus.Tool
                 case "v":
                     return $"reader.{nameof(Reader.ReadVariantValue)}()";
                 case "h":
-                    return $"reader.{nameof(Reader.ReadHandle)}<{typeof(SafeFileHandle).FullName}>()";
+                    return $"reader.{nameof(Reader.ReadHandle)}<global::{typeof(SafeFileHandle).FullName}>()";
 
                 case "ay":
                     return $"reader.{nameof(Reader.ReadArrayOfByte)}()";
@@ -2231,7 +2230,7 @@ namespace Tmds.DBus.Tool
                 case "av":
                     return $"reader.{nameof(Reader.ReadArrayOfVariantValue)}()";
                 case "ah":
-                    return $"reader.{nameof(Reader.ReadArrayOfHandle)}<{typeof(SafeFileHandle).FullName}>()";
+                    return $"reader.{nameof(Reader.ReadArrayOfHandle)}<global::{typeof(SafeFileHandle).FullName}>()";
 
                 case "a{sv}":
                     return $"reader.{nameof(Reader.ReadDictionaryOfStringToVariantValue)}()";
@@ -2314,13 +2313,13 @@ namespace Tmds.DBus.Tool
                case DBusType.String:
                     return "string";
                case DBusType.ObjectPath:
-                   return "ObjectPath";
+                   return $"{_proto}.ObjectPath";
                case DBusType.Signature:
-                   return "Signature";
+                   return $"{_proto}.Signature";
                case DBusType.Variant:
-                   return "VariantValue";
+                   return $"{_proto}.VariantValue";
                case DBusType.UnixFd:
-                   return typeof(SafeHandle).FullName;
+                   return $"global::{typeof(SafeHandle).FullName}";
 
                case DBusType.Array:
                     {
@@ -2343,7 +2342,7 @@ namespace Tmds.DBus.Tool
                             }
                             string dotnetKeyType = GetDotnetType(keyType, keyInnerSignature, readNotWrite);
                             string dotnetValueType = GetDotnetType(valueType, valueInnerSignature, readNotWrite);
-                            return $"Dictionary<{dotnetKeyType}, {dotnetValueType}>";
+                            return $"global::System.Collections.Generic.Dictionary<{dotnetKeyType}, {dotnetValueType}>";
                         }
                         else
                         {
@@ -2361,7 +2360,7 @@ namespace Tmds.DBus.Tool
                         }
                         if (fields.Count == 1)
                         {
-                            return $"ValueTuple<{string.Join(", ", fields)}>";
+                            return $"global::System.ValueTuple<{string.Join(", ", fields)}>";
                         }
                         return $"({string.Join(", ", fields)})";
                     }

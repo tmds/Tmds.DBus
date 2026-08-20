@@ -3,11 +3,6 @@
 #nullable enable
 namespace TestNamespace
 {
-    using System;
-    using Tmds.DBus.Protocol;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using System.Runtime.CompilerServices;
     enum ManyPropertiesProperty
     {
         UnknownProperty = 0,
@@ -287,19 +282,19 @@ namespace TestNamespace
     {
         private byte[] __set = new byte[9];
         private byte[] __invalidated = new byte[9];
-        private static ReadOnlySpan<byte> PropertiesAllSet => new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01 }; // 65 properties
+        private static global::System.ReadOnlySpan<byte> PropertiesAllSet => new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01 }; // 65 properties
         private static int FlagIndex(ManyPropertiesProperty property) => ((int)property - 1) / 8;
         private static byte FlagMask(ManyPropertiesProperty property) => (byte)(1 << (((int)property - 1) % 8));
         public ManyPropertiesProperties() { }
         #nullable disable
-        [System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
+        [global::System.Diagnostics.CodeAnalysis.SetsRequiredMembers]
         private ManyPropertiesProperties(bool _) { }
         #nullable enable
         private void EnsureSet(ManyPropertiesProperty property)
         {
             if (!HasFlag(__set, property))
             {
-                throw new InvalidOperationException("Property is not set.");
+                throw new global::System.InvalidOperationException("Property is not set.");
             }
         }
         private string _prop1 = default!;
@@ -969,18 +964,18 @@ namespace TestNamespace
                 __invalidated[FlagIndex(property)] |= FlagMask(property);
             }
         }
-        public bool AreAllPropertiesSet() => __set.AsSpan().SequenceEqual(PropertiesAllSet);
+        public bool AreAllPropertiesSet() => global::System.MemoryExtensions.SequenceEqual(PropertiesAllSet, __set);
         public void EnsureAllPropertiesSet()
         {
             if (!AreAllPropertiesSet())
             {
-                throw new DBusUnexpectedValueException($"Not all properties have been set ({BitConverter.ToString(__set)}).");
+                throw new global::Tmds.DBus.Protocol.DBusUnexpectedValueException("Not all properties have been set (" + global::System.BitConverter.ToString(__set) + ").");
             }
         }
-        public static ManyPropertiesProperties ReadFrom(ref Reader reader, bool withInvalidated)
+        public static ManyPropertiesProperties ReadFrom(ref global::Tmds.DBus.Protocol.Reader reader, bool withInvalidated)
         {
             var props = CreateUninitialized();
-            ArrayEnd arrayEnd = reader.ReadArrayStart(DBusType.Struct);
+            global::Tmds.DBus.Protocol.ArrayEnd arrayEnd = reader.ReadArrayStart(global::Tmds.DBus.Protocol.DBusType.Struct);
             while (reader.HasNext(arrayEnd))
             {
                 var property = reader.ReadString();
@@ -1253,7 +1248,7 @@ namespace TestNamespace
             }
             if (withInvalidated)
             {
-                ArrayEnd invalidatedEnd = reader.ReadArrayStart(DBusType.String);
+                global::Tmds.DBus.Protocol.ArrayEnd invalidatedEnd = reader.ReadArrayStart(global::Tmds.DBus.Protocol.DBusType.String);
                 while (reader.HasNext(invalidatedEnd))
                 {
                     var propertyName = reader.ReadString();
@@ -1460,185 +1455,185 @@ namespace TestNamespace
             return props;
         }
     }
-    sealed partial class ManyProperties : Tmds.DBus.Protocol.DBusObject
+    sealed partial class ManyProperties : global::Tmds.DBus.Protocol.DBusObject
     {
         public const string DBusInterfaceName = "org.example.ManyProperties";
-        public ManyProperties(Tmds.DBus.Protocol.DBusConnection connection, string destination, ObjectPath path)
+        public ManyProperties(global::Tmds.DBus.Protocol.DBusConnection connection, string destination, global::Tmds.DBus.Protocol.ObjectPath path)
             : base(connection, destination, path)
         { }
-        public Task<string> GetProp1Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop1"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp2Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop2"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp3Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop3"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp4Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop4"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp5Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop5"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp6Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop6"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp7Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop7"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp8Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop8"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp9Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop9"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp10Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop10"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp11Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop11"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp12Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop12"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp13Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop13"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp14Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop14"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp15Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop15"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp16Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop16"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp17Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop17"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp18Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop18"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp19Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop19"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp20Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop20"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp21Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop21"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp22Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop22"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp23Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop23"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp24Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop24"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp25Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop25"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp26Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop26"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp27Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop27"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp28Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop28"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp29Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop29"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp30Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop30"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp31Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop31"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp32Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop32"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp33Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop33"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp34Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop34"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp35Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop35"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp36Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop36"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp37Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop37"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp38Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop38"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp39Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop39"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp40Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop40"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp41Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop41"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp42Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop42"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp43Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop43"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp44Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop44"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp45Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop45"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp46Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop46"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp47Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop47"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp48Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop48"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp49Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop49"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp50Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop50"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp51Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop51"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp52Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop52"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp53Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop53"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp54Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop54"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp55Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop55"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp56Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop56"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp57Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop57"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp58Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop58"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp59Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop59"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp60Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop60"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp61Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop61"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp62Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop62"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp63Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop63"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp64Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop64"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<string> GetProp65Async()
-            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop65"), (Message m, object? s) => MessageReader.Read_v_s(m), this);
-        public Task<ManyPropertiesProperties> GetPropertiesAsync()
+        public global::System.Threading.Tasks.Task<string> GetProp1Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop1"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp2Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop2"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp3Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop3"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp4Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop4"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp5Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop5"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp6Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop6"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp7Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop7"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp8Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop8"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp9Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop9"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp10Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop10"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp11Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop11"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp12Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop12"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp13Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop13"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp14Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop14"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp15Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop15"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp16Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop16"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp17Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop17"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp18Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop18"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp19Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop19"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp20Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop20"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp21Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop21"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp22Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop22"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp23Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop23"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp24Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop24"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp25Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop25"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp26Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop26"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp27Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop27"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp28Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop28"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp29Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop29"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp30Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop30"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp31Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop31"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp32Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop32"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp33Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop33"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp34Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop34"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp35Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop35"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp36Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop36"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp37Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop37"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp38Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop38"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp39Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop39"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp40Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop40"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp41Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop41"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp42Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop42"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp43Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop43"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp44Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop44"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp45Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop45"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp46Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop46"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp47Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop47"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp48Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop48"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp49Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop49"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp50Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop50"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp51Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop51"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp52Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop52"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp53Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop53"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp54Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop54"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp55Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop55"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp56Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop56"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp57Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop57"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp58Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop58"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp59Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop59"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp60Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop60"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp61Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop61"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp62Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop62"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp63Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop63"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp64Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop64"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<string> GetProp65Async()
+            => Connection.CallMethodAsync(CreateGetPropertyMessage("Prop65"), (global::Tmds.DBus.Protocol.Message m, object? s) => MessageReader.Read_v_s(m), this);
+        public global::System.Threading.Tasks.Task<ManyPropertiesProperties> GetPropertiesAsync()
         {
-            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
-            static ManyPropertiesProperties ReadMessage(Message message)
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), this);
+            static ManyPropertiesProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 return ManyPropertiesProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public Task<INullableManyPropertiesProperties> GetNullablePropertiesAsync()
+        public global::System.Threading.Tasks.Task<INullableManyPropertiesProperties> GetNullablePropertiesAsync()
         {
-            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (Message m, object? s) => ReadMessage(m), this);
-            static INullableManyPropertiesProperties ReadMessage(Message message)
+            return Connection.CallMethodAsync(CreateGetAllPropertiesMessage(), (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), this);
+            static INullableManyPropertiesProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 return ManyPropertiesProperties.ReadFrom(ref reader, withInvalidated: false);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<IChangedManyPropertiesProperties> handler, bool emitOnCapturedContext = true)
-            => WatchPropertiesChangedAsync(static (Notification<IChangedManyPropertiesProperties> n) => ((Action<IChangedManyPropertiesProperties>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<IChangedManyPropertiesProperties, ValueTask> handler, bool emitOnCapturedContext = true)
-            => WatchPropertiesChangedAsync(static (Notification<IChangedManyPropertiesProperties> n) => ((Func<IChangedManyPropertiesProperties, ValueTask>)n.State!)(n.Value), ObserverFlags.None, emitOnCapturedContext, handler);
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Action<Notification<IChangedManyPropertiesProperties>> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Action<IChangedManyPropertiesProperties> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (global::Tmds.DBus.Protocol.Notification<IChangedManyPropertiesProperties> n) => ((global::System.Action<IChangedManyPropertiesProperties>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Func<IChangedManyPropertiesProperties, global::System.Threading.Tasks.ValueTask> handler, bool emitOnCapturedContext = true)
+            => WatchPropertiesChangedAsync(static (global::Tmds.DBus.Protocol.Notification<IChangedManyPropertiesProperties> n) => ((global::System.Func<IChangedManyPropertiesProperties, global::System.Threading.Tasks.ValueTask>)n.State!)(n.Value), global::Tmds.DBus.Protocol.ObserverFlags.None, emitOnCapturedContext, handler);
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Action<global::Tmds.DBus.Protocol.Notification<IChangedManyPropertiesProperties>> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
-            static IChangedManyPropertiesProperties ReadMessage(Message message)
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
+            static IChangedManyPropertiesProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
                 return ManyPropertiesProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
-        public ValueTask<IDisposable> WatchPropertiesChangedAsync(Func<Notification<IChangedManyPropertiesProperties>, ValueTask> handler, ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
+        public global::System.Threading.Tasks.ValueTask<global::System.IDisposable> WatchPropertiesChangedAsync(global::System.Func<global::Tmds.DBus.Protocol.Notification<IChangedManyPropertiesProperties>, global::System.Threading.Tasks.ValueTask> handler, global::Tmds.DBus.Protocol.ObserverFlags flags, bool emitOnCapturedContext = true, object? state = null)
         {
-            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
-            static IChangedManyPropertiesProperties ReadMessage(Message message)
+            return Connection.WatchPropertiesChangedAsync(Destination, Path, DBusInterfaceName, (global::Tmds.DBus.Protocol.Message m, object? s) => ReadMessage(m), handler, flags, emitOnCapturedContext, state);
+            static IChangedManyPropertiesProperties ReadMessage(global::Tmds.DBus.Protocol.Message message)
             {
                 var reader = message.GetBodyReader();
                 reader.ReadString(); // interface
                 return ManyPropertiesProperties.ReadFrom(ref reader, withInvalidated: true);
             }
         }
-        private MessageBuffer CreateGetPropertyMessage(string property)
+        private global::Tmds.DBus.Protocol.MessageBuffer CreateGetPropertyMessage(string property)
         {
             var writer = Connection.GetMessageWriter();
             writer.WriteMethodCallHeader(
@@ -1651,7 +1646,7 @@ namespace TestNamespace
             writer.WriteString(property);
             return writer.CreateMessage();
         }
-        private MessageBuffer CreateGetAllPropertiesMessage()
+        private global::Tmds.DBus.Protocol.MessageBuffer CreateGetAllPropertiesMessage()
         {
             var writer = Connection.GetMessageWriter();
             writer.WriteMethodCallHeader(
@@ -1666,11 +1661,11 @@ namespace TestNamespace
     }
     static partial class ObjectFactory
     {
-        public static ManyProperties CreateManyProperties(this DBusService service, ObjectPath path) => new ManyProperties(service.Connection, service.Name, path);
+        public static ManyProperties CreateManyProperties(this global::Tmds.DBus.Protocol.DBusService service, global::Tmds.DBus.Protocol.ObjectPath path) => new ManyProperties(service.Connection, service.Name, path);
     }
     file static class MessageReader
     {
-        public static string Read_v_s(Message message)
+        public static string Read_v_s(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("s"u8);
@@ -1687,31 +1682,27 @@ namespace TestNamespace
 #nullable enable
 namespace Tmds.DBus.Protocol
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.Threading.Tasks;
     abstract class DBusHandler : IPathMethodHandler
     {
         // Identifies the D-Bus interfaces. Used with SupportsInterface to filter interfaces per path.
-        [Flags]
+        [global::System.Flags]
         public enum DBusInterface
         {
             // OrgFreedesktopDBusIntrospectable = 1,
         }
-        private readonly SendOrPostCallback? _postDelegate;
+        private readonly global::System.Threading.SendOrPostCallback? _postDelegate;
         private const DBusInterface OrgFreedesktopDBusIntrospectable = (DBusInterface)1;
         private const DBusInterface InterfacesWithProperties = 0;
         public string Path { get; }
         public bool HandlesChildPaths { get; }
         public DBusConnection Connection { get; }
         // The SynchronizationContext on which method handlers are invoked.
-        protected SynchronizationContext? SynchronizationContext { get; }
+        protected global::System.Threading.SynchronizationContext? SynchronizationContext { get; }
         protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, bool handleOnCapturedContext = true)
-            : this(connection, path, handlesChildPaths, handleOnCapturedContext ? SynchronizationContext.Current : null)
+            : this(connection, path, handlesChildPaths, handleOnCapturedContext ? global::System.Threading.SynchronizationContext.Current : null)
         {
         }
-        protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, SynchronizationContext? synchronizationContext)
+        protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, global::System.Threading.SynchronizationContext? synchronizationContext)
         {
             Connection = connection;
             Path = path;
@@ -1729,19 +1720,19 @@ namespace Tmds.DBus.Protocol
             }
         }
         // Override to add cross-cutting logic (e.g. logging, error handling) around method invocations.
-        protected virtual async ValueTask InvokeAsync(DBusMethod method, MethodContext context)
+        protected virtual async global::System.Threading.Tasks.ValueTask InvokeAsync(DBusMethod method, MethodContext context)
         {
             try
             {
                 await method.Invoke(context).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (global::System.Exception ex)
             {
                 HandleException(context, ex);
             }
         }
         // Override to customize exception handling for method invocations.
-        protected virtual void HandleException(MethodContext context, Exception ex)
+        protected virtual void HandleException(MethodContext context, global::System.Exception ex)
         {
             if (context.HandleException(ex, shouldDisconnect: false))
             {
@@ -1751,7 +1742,7 @@ namespace Tmds.DBus.Protocol
             {
                 context.ReplyError(dbusEx.ErrorName, dbusEx.ErrorMessage);
             }
-            else if (ex is ArgumentException)
+            else if (ex is global::System.ArgumentException)
             {
                 context.ReplyError("org.freedesktop.DBus.Error.InvalidArgs", ex.Message);
             }
@@ -1761,19 +1752,19 @@ namespace Tmds.DBus.Protocol
             }
         }
         // Override to filter interfaces for specific paths when the handler manages multiple paths.
-        protected virtual bool SupportsInterface(DBusInterface dbusInterface, ReadOnlySpan<char> path)
+        protected virtual bool SupportsInterface(DBusInterface dbusInterface, global::System.ReadOnlySpan<char> path)
         {
             return true;
         }
         // Override to customize introspection, e.g. to include child node names.
-        protected virtual ValueTask HandleIntrospectAsync(IntrospectContext context)
+        protected virtual global::System.Threading.Tasks.ValueTask HandleIntrospectAsync(IntrospectContext context)
         {
-            DBusInterface interfaces = GetSupportedInterfaces(context.MethodContext.Request.PathAsString.AsSpan());
+            DBusInterface interfaces = GetSupportedInterfaces(global::System.MemoryExtensions.AsSpan(context.MethodContext.Request.PathAsString));
             context.Reply(interfaces);
             return default;
         }
         // Context for IntrospectAsync. Call Reply to send the introspection XML response.
-        protected readonly struct IntrospectContext : IDisposable
+        protected readonly struct IntrospectContext : global::System.IDisposable
         {
             public MethodContext MethodContext { get; }
             public IntrospectContext(MethodContext methodContext)
@@ -1781,9 +1772,9 @@ namespace Tmds.DBus.Protocol
                 MethodContext = methodContext;
             }
             public void Dispose() => MethodContext.Dispose();
-            public void Reply(DBusInterface interfaces, IList<string>? childNames = null)
+            public void Reply(DBusInterface interfaces, global::System.Collections.Generic.IList<string>? childNames = null)
             {
-                var interfaceXmls = new ReadOnlyMemory<byte>[1];
+                var interfaceXmls = new global::System.ReadOnlyMemory<byte>[1];
                 int count = 0;
                 if ((interfaces & InterfacesWithProperties) != 0)
                 {
@@ -1791,42 +1782,42 @@ namespace Tmds.DBus.Protocol
                 }
                 if (childNames is not null)
                 {
-                    MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count), childNames);
+                    MethodContext.ReplyIntrospectXml(global::System.MemoryExtensions.AsSpan(interfaceXmls, 0, count), childNames);
                 }
                 else
                 {
-                    MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count));
+                    MethodContext.ReplyIntrospectXml(global::System.MemoryExtensions.AsSpan(interfaceXmls, 0, count));
                 }
             }
         }
         internal readonly struct DBusMethod
         {
-            private readonly Func<object, MethodContext, ValueTask> _method;
+            private readonly global::System.Func<object, MethodContext, global::System.Threading.Tasks.ValueTask> _method;
             private readonly object _target;
-            public DBusMethod(Func<object, MethodContext, ValueTask> method, object target)
+            public DBusMethod(global::System.Func<object, MethodContext, global::System.Threading.Tasks.ValueTask> method, object target)
             {
                 _method = method;
                 _target = target;
             }
             public bool HasValue => _method is not null;
-            public ValueTask Invoke(MethodContext context)
+            public global::System.Threading.Tasks.ValueTask Invoke(MethodContext context)
             {
                 return _method?.Invoke(_target, context) ?? default;
             }
         }
-        ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)
+        global::System.Threading.Tasks.ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)
         {
             DBusInterface dbusInterface = ParseInterface(context);
-            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);
+            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, global::System.MemoryExtensions.AsSpan(context.Request.PathAsString))) ? default : FindMethodHandler(context, dbusInterface);
             if (!method.HasValue)
             {
                 return default;
             }
             return HandleAsync(method, context);
         }
-        private ValueTask HandleAsync(DBusMethod method, MethodContext context)
+        private global::System.Threading.Tasks.ValueTask HandleAsync(DBusMethod method, MethodContext context)
         {
-            SynchronizationContext? synchronizationContext = SynchronizationContext;
+            global::System.Threading.SynchronizationContext? synchronizationContext = SynchronizationContext;
             if (synchronizationContext is null)
             {
                 return InvokeAsync(method, context);
@@ -1838,7 +1829,7 @@ namespace Tmds.DBus.Protocol
                 return default;
             }
         }
-        private async ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)
+        private async global::System.Threading.Tasks.ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)
         {
             try
             {
@@ -1893,7 +1884,7 @@ namespace Tmds.DBus.Protocol
             };
             return result;
         }
-        protected DBusInterface GetSupportedInterfaces(ReadOnlySpan<char> path)
+        protected DBusInterface GetSupportedInterfaces(global::System.ReadOnlySpan<char> path)
         {
             DBusInterface interfaces = default;
             return interfaces;

@@ -3,11 +3,6 @@
 #nullable enable
 namespace TestNamespace
 {
-    using System;
-    using Tmds.DBus.Protocol;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
-    using System.Runtime.CompilerServices;
     enum CalculatorProperty
     {
         UnknownProperty = 0,
@@ -19,9 +14,9 @@ namespace TestNamespace
     interface ICalculatorProperties
     {
         double LastResult { get; }
-        ObjectPath CurrentPath { get; }
+        global::Tmds.DBus.Protocol.ObjectPath CurrentPath { get; }
         (string, double) CurrentEntry { get; }
-        ValueTuple<bool> IsActive { get; set; }
+        global::System.ValueTuple<bool> IsActive { get; set; }
     }
     enum WritableCalculatorProperty
     {
@@ -43,56 +38,56 @@ namespace TestNamespace
                     _ => 0
                 };
             }
-            public static DBusHandler.DBusMethod FindMethodHandler(object handler, MethodContext context)
+            public static global::Tmds.DBus.Protocol.DBusHandler.DBusMethod FindMethodHandler(object handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var request = context.Request;
                 if (context.IsPropertiesInterfaceRequest)
                 {
                     return (request.MemberAsString, request.SignatureAsString) switch
                     {
-                        ("Get", "ss") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculatorHandler)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
-                        ("GetAll", "s") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculatorHandler)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
-                        ("Set", "ssv") => new DBusHandler.DBusMethod(static (o, c) => ((ICalculatorHandler)o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),
+                        ("Get", "ss") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => ((ICalculatorHandler)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
+                        ("GetAll", "s") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => ((ICalculatorHandler)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
+                        ("Set", "ssv") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => ((ICalculatorHandler)o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),
                         _ => default
                     };
                 }
                 return (request.MemberAsString, request.SignatureAsString) switch
                 {
-                    ("Clear", "") => new DBusHandler.DBusMethod(static (o, c) => HandleClearAsync((ICalculatorHandler)o, c), handler),
-                    ("GetResult", "") => new DBusHandler.DBusMethod(static (o, c) => HandleGetResultAsync((ICalculatorHandler)o, c), handler),
-                    ("GetStats", "") => new DBusHandler.DBusMethod(static (o, c) => HandleGetStatsAsync((ICalculatorHandler)o, c), handler),
-                    ("Store", "d") => new DBusHandler.DBusMethod(static (o, c) => HandleStoreAsync((ICalculatorHandler)o, c), handler),
-                    ("Square", "d") => new DBusHandler.DBusMethod(static (o, c) => HandleSquareAsync((ICalculatorHandler)o, c), handler),
-                    ("DivMod", "i") => new DBusHandler.DBusMethod(static (o, c) => HandleDivModAsync((ICalculatorHandler)o, c), handler),
-                    ("LogOperation", "sd") => new DBusHandler.DBusMethod(static (o, c) => HandleLogOperationAsync((ICalculatorHandler)o, c), handler),
-                    ("Add", "dd") => new DBusHandler.DBusMethod(static (o, c) => HandleAddAsync((ICalculatorHandler)o, c), handler),
-                    ("Compare", "dd") => new DBusHandler.DBusMethod(static (o, c) => HandleCompareAsync((ICalculatorHandler)o, c), handler),
-                    ("GetEntry", "s") => new DBusHandler.DBusMethod(static (o, c) => HandleGetEntryAsync((ICalculatorHandler)o, c), handler),
-                    ("SetEntry", "(sd)") => new DBusHandler.DBusMethod(static (o, c) => HandleSetEntryAsync((ICalculatorHandler)o, c), handler),
+                    ("Clear", "") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleClearAsync((ICalculatorHandler)o, c), handler),
+                    ("GetResult", "") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleGetResultAsync((ICalculatorHandler)o, c), handler),
+                    ("GetStats", "") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleGetStatsAsync((ICalculatorHandler)o, c), handler),
+                    ("Store", "d") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleStoreAsync((ICalculatorHandler)o, c), handler),
+                    ("Square", "d") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleSquareAsync((ICalculatorHandler)o, c), handler),
+                    ("DivMod", "i") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleDivModAsync((ICalculatorHandler)o, c), handler),
+                    ("LogOperation", "sd") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleLogOperationAsync((ICalculatorHandler)o, c), handler),
+                    ("Add", "dd") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleAddAsync((ICalculatorHandler)o, c), handler),
+                    ("Compare", "dd") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleCompareAsync((ICalculatorHandler)o, c), handler),
+                    ("GetEntry", "s") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleGetEntryAsync((ICalculatorHandler)o, c), handler),
+                    ("SetEntry", "(sd)") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleSetEntryAsync((ICalculatorHandler)o, c), handler),
                     _ => default
                 };
             }
-            static async ValueTask HandleClearAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleClearAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 await handler.ClearAsync().ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
             }
-            static async ValueTask HandleGetResultAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleGetResultAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var result = await handler.GetResultAsync().ConfigureAwait(false);
                 WriteReply(context, result);
-                static void WriteReply(MethodContext context, double result)
+                static void WriteReply(global::Tmds.DBus.Protocol.MethodContext context, double result)
                 {
                     var writer = context.CreateReplyWriter("d");
                     writer.WriteDouble(result);
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleGetStatsAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleGetStatsAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var result = await handler.GetStatsAsync().ConfigureAwait(false);
                 WriteReply(context, result);
-                static void WriteReply(MethodContext context, (uint Count, double Total) result)
+                static void WriteReply(global::Tmds.DBus.Protocol.MethodContext context, (uint Count, double Total) result)
                 {
                     var writer = context.CreateReplyWriter("ud");
                     writer.WriteUInt32(result.Count);
@@ -100,30 +95,30 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleStoreAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleStoreAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var value = MessageReader.Read_d(context.Request);
                 await handler.StoreAsync(value).ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
             }
-            static async ValueTask HandleSquareAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleSquareAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var input = MessageReader.Read_d(context.Request);
                 var result = await handler.SquareAsync(input).ConfigureAwait(false);
                 WriteReply(context, result);
-                static void WriteReply(MethodContext context, double result)
+                static void WriteReply(global::Tmds.DBus.Protocol.MethodContext context, double result)
                 {
                     var writer = context.CreateReplyWriter("d");
                     writer.WriteDouble(result);
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleDivModAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleDivModAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var dividend = MessageReader.Read_i(context.Request);
                 var result = await handler.DivModAsync(dividend).ConfigureAwait(false);
                 WriteReply(context, result);
-                static void WriteReply(MethodContext context, (int Quotient, int Remainder) result)
+                static void WriteReply(global::Tmds.DBus.Protocol.MethodContext context, (int Quotient, int Remainder) result)
                 {
                     var writer = context.CreateReplyWriter("ii");
                     writer.WriteInt32(result.Quotient);
@@ -131,30 +126,30 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleLogOperationAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleLogOperationAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var (operation, value) = MessageReader.Read_sd(context.Request);
                 await handler.LogOperationAsync(operation, value).ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
             }
-            static async ValueTask HandleAddAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleAddAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var (a, b) = MessageReader.Read_dd(context.Request);
                 var result = await handler.AddAsync(a, b).ConfigureAwait(false);
                 WriteReply(context, result);
-                static void WriteReply(MethodContext context, double result)
+                static void WriteReply(global::Tmds.DBus.Protocol.MethodContext context, double result)
                 {
                     var writer = context.CreateReplyWriter("d");
                     writer.WriteDouble(result);
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleCompareAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleCompareAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var (a, b) = MessageReader.Read_dd(context.Request);
                 var result = await handler.CompareAsync(a, b).ConfigureAwait(false);
                 WriteReply(context, result);
-                static void WriteReply(MethodContext context, (bool Equal, double Difference) result)
+                static void WriteReply(global::Tmds.DBus.Protocol.MethodContext context, (bool Equal, double Difference) result)
                 {
                     var writer = context.CreateReplyWriter("bd");
                     writer.WriteBool(result.Equal);
@@ -162,44 +157,44 @@ namespace TestNamespace
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleGetEntryAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleGetEntryAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var key = MessageReader.Read_s(context.Request);
                 var result = await handler.GetEntryAsync(key).ConfigureAwait(false);
                 WriteReply(context, result);
-                static void WriteReply(MethodContext context, (string, double) result)
+                static void WriteReply(global::Tmds.DBus.Protocol.MethodContext context, (string, double) result)
                 {
                     var writer = context.CreateReplyWriter("(sd)");
                     writer.Write_rsdz(result);
                     context.Reply(writer.CreateMessage());
                 }
             }
-            static async ValueTask HandleSetEntryAsync(ICalculatorHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleSetEntryAsync(ICalculatorHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var entry = MessageReader.Read_rsdz(context.Request);
                 await handler.SetEntryAsync(entry).ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
             }
         }
-        ValueTask HandleGetPropertyAsync(GetPropertyContext context);
-        ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);
-        ValueTask HandleSetPropertyAsync(SetPropertyContext context);
-        ValueTask ClearAsync();
-        ValueTask<double> GetResultAsync();
-        ValueTask<(uint Count, double Total)> GetStatsAsync();
-        ValueTask StoreAsync(double value);
-        ValueTask<double> SquareAsync(double input);
-        ValueTask<(int Quotient, int Remainder)> DivModAsync(int dividend);
-        ValueTask LogOperationAsync(string operation, double value);
-        ValueTask<double> AddAsync(double a, double b);
-        ValueTask<(bool Equal, double Difference)> CompareAsync(double a, double b);
-        ValueTask<(string, double)> GetEntryAsync(string key);
-        ValueTask SetEntryAsync((string, double) entry);
-        readonly struct GetPropertyContext : IDisposable
+        global::System.Threading.Tasks.ValueTask HandleGetPropertyAsync(GetPropertyContext context);
+        global::System.Threading.Tasks.ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);
+        global::System.Threading.Tasks.ValueTask HandleSetPropertyAsync(SetPropertyContext context);
+        global::System.Threading.Tasks.ValueTask ClearAsync();
+        global::System.Threading.Tasks.ValueTask<double> GetResultAsync();
+        global::System.Threading.Tasks.ValueTask<(uint Count, double Total)> GetStatsAsync();
+        global::System.Threading.Tasks.ValueTask StoreAsync(double value);
+        global::System.Threading.Tasks.ValueTask<double> SquareAsync(double input);
+        global::System.Threading.Tasks.ValueTask<(int Quotient, int Remainder)> DivModAsync(int dividend);
+        global::System.Threading.Tasks.ValueTask LogOperationAsync(string operation, double value);
+        global::System.Threading.Tasks.ValueTask<double> AddAsync(double a, double b);
+        global::System.Threading.Tasks.ValueTask<(bool Equal, double Difference)> CompareAsync(double a, double b);
+        global::System.Threading.Tasks.ValueTask<(string, double)> GetEntryAsync(string key);
+        global::System.Threading.Tasks.ValueTask SetEntryAsync((string, double) entry);
+        readonly struct GetPropertyContext : global::System.IDisposable
         {
-            public MethodContext MethodContext { get; }
+            public global::Tmds.DBus.Protocol.MethodContext MethodContext { get; }
             public CalculatorProperty Property { get; }
-            public GetPropertyContext(MethodContext methodContext)
+            public GetPropertyContext(global::Tmds.DBus.Protocol.MethodContext methodContext)
             {
                 MethodContext = methodContext;
                 var reader = methodContext.Request.GetBodyReader();
@@ -209,28 +204,28 @@ namespace TestNamespace
             public void Dispose() => MethodContext.Dispose();
             public void ReplyLastResult(double value)
             {
-                System.Diagnostics.Debug.Assert(Property == CalculatorProperty.LastResult);
+                global::System.Diagnostics.Debug.Assert(Property == CalculatorProperty.LastResult);
                 var writer = MethodContext.CreateReplyWriter("v");
                 writer.Write_v_d(value);
                 MethodContext.Reply(writer.CreateMessage());
             }
-            public void ReplyCurrentPath(ObjectPath value)
+            public void ReplyCurrentPath(global::Tmds.DBus.Protocol.ObjectPath value)
             {
-                System.Diagnostics.Debug.Assert(Property == CalculatorProperty.CurrentPath);
+                global::System.Diagnostics.Debug.Assert(Property == CalculatorProperty.CurrentPath);
                 var writer = MethodContext.CreateReplyWriter("v");
                 writer.Write_v_o(value);
                 MethodContext.Reply(writer.CreateMessage());
             }
             public void ReplyCurrentEntry((string, double) value)
             {
-                System.Diagnostics.Debug.Assert(Property == CalculatorProperty.CurrentEntry);
+                global::System.Diagnostics.Debug.Assert(Property == CalculatorProperty.CurrentEntry);
                 var writer = MethodContext.CreateReplyWriter("v");
                 writer.Write_v_rsdz(value);
                 MethodContext.Reply(writer.CreateMessage());
             }
-            public void ReplyIsActive(ValueTuple<bool> value)
+            public void ReplyIsActive(global::System.ValueTuple<bool> value)
             {
-                System.Diagnostics.Debug.Assert(Property == CalculatorProperty.IsActive);
+                global::System.Diagnostics.Debug.Assert(Property == CalculatorProperty.IsActive);
                 var writer = MethodContext.CreateReplyWriter("v");
                 writer.Write_v_rbz(value);
                 MethodContext.Reply(writer.CreateMessage());
@@ -239,7 +234,7 @@ namespace TestNamespace
             {
                 MethodContext.ReplyError("org.freedesktop.DBus.Error.UnknownProperty", $"Unknown property: {Property}");
             }
-            public ValueTask Handle(ICalculatorProperties properties)
+            public global::System.Threading.Tasks.ValueTask Handle(ICalculatorProperties properties)
             {
                 switch (Property)
                 {
@@ -262,15 +257,15 @@ namespace TestNamespace
                 return default;
             }
         }
-        readonly struct GetAllPropertiesContext : IDisposable
+        readonly struct GetAllPropertiesContext : global::System.IDisposable
         {
-            public MethodContext MethodContext { get; }
-            public GetAllPropertiesContext(MethodContext methodContext)
+            public global::Tmds.DBus.Protocol.MethodContext MethodContext { get; }
+            public GetAllPropertiesContext(global::Tmds.DBus.Protocol.MethodContext methodContext)
             {
                 MethodContext = methodContext;
             }
             public void Dispose() => MethodContext.Dispose();
-            public ValueTask Handle(ICalculatorProperties properties)
+            public global::System.Threading.Tasks.ValueTask Handle(ICalculatorProperties properties)
             {
                 var writer = MethodContext.CreateReplyWriter("a{sv}");
                 var dictStart = writer.WriteDictionaryStart();
@@ -290,7 +285,7 @@ namespace TestNamespace
                 MethodContext.Reply(writer.CreateMessage());
                 return default;
             }
-            public ValueTask Handle((string, double)? currentEntry = default, ObjectPath? currentPath = default, ValueTuple<bool>? isActive = default, double? lastResult = default)
+            public global::System.Threading.Tasks.ValueTask Handle((string, double)? currentEntry = default, global::Tmds.DBus.Protocol.ObjectPath? currentPath = default, global::System.ValueTuple<bool>? isActive = default, double? lastResult = default)
             {
                 var writer = MethodContext.CreateReplyWriter("a{sv}");
                 var dictStart = writer.WriteDictionaryStart();
@@ -304,7 +299,7 @@ namespace TestNamespace
                 {
                     writer.WriteDictionaryEntryStart();
                     writer.WriteString("CurrentPath");
-                    writer.Write_v_o((ObjectPath)currentPath);
+                    writer.Write_v_o((global::Tmds.DBus.Protocol.ObjectPath)currentPath);
                 }
                 if (currentEntry is not null)
                 {
@@ -316,18 +311,18 @@ namespace TestNamespace
                 {
                     writer.WriteDictionaryEntryStart();
                     writer.WriteString("IsActive");
-                    writer.Write_v_rbz((ValueTuple<bool>)isActive);
+                    writer.Write_v_rbz((global::System.ValueTuple<bool>)isActive);
                 }
                 writer.WriteDictionaryEnd(dictStart);
                 MethodContext.Reply(writer.CreateMessage());
                 return default;
             }
         }
-        readonly struct SetPropertyContext : IDisposable
+        readonly struct SetPropertyContext : global::System.IDisposable
         {
-            public MethodContext MethodContext { get; }
+            public global::Tmds.DBus.Protocol.MethodContext MethodContext { get; }
             public WritableCalculatorProperty Property { get; }
-            public SetPropertyContext(MethodContext methodContext)
+            public SetPropertyContext(global::Tmds.DBus.Protocol.MethodContext methodContext)
             {
                 MethodContext = methodContext;
                 var reader = methodContext.Request.GetBodyReader();
@@ -335,7 +330,7 @@ namespace TestNamespace
                 Property = (WritableCalculatorProperty)Helper.GetPropertyValue(reader.ReadString());
             }
             public void Dispose() => MethodContext.Dispose();
-            public ValueTuple<bool> ReadIsActive()
+            public global::System.ValueTuple<bool> ReadIsActive()
             {
                 var reader = MethodContext.Request.GetBodyReader();
                 reader.ReadStringAsSpan(); // Skip interface name
@@ -355,7 +350,7 @@ namespace TestNamespace
             {
                 MethodContext.ReplyError("org.freedesktop.DBus.Error.PropertyReadOnly", $"Property is read-only: {Property}");
             }
-            public ValueTask Handle(ICalculatorProperties properties)
+            public global::System.Threading.Tasks.ValueTask Handle(ICalculatorProperties properties)
             {
                 switch (Property)
                 {
@@ -376,7 +371,7 @@ namespace TestNamespace
     }
     static class CalculatorSignal
     {
-        public static void EmitReset(this DBusConnection c, ObjectPath p)
+        public static void EmitReset(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -385,7 +380,7 @@ namespace TestNamespace
                 member: "Reset");
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitError(this DBusConnection c, ObjectPath p, string message)
+        public static void EmitError(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p, string message)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -396,7 +391,7 @@ namespace TestNamespace
             writer.WriteString(message);
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitOperationComplete(this DBusConnection c, ObjectPath p, string operation, double result)
+        public static void EmitOperationComplete(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p, string operation, double result)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -408,7 +403,7 @@ namespace TestNamespace
             writer.WriteDouble(result);
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, ICalculatorProperties properties, ReadOnlySpan<CalculatorProperty> changed, ReadOnlySpan<CalculatorProperty> invalidated = default)
+        public static void EmitPropertiesChanged(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p, ICalculatorProperties properties, global::System.ReadOnlySpan<CalculatorProperty> changed, global::System.ReadOnlySpan<CalculatorProperty> invalidated = default)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -445,7 +440,7 @@ namespace TestNamespace
                 }
             }
             writer.WriteDictionaryEnd(dictStart);
-            var arrayStart = writer.WriteArrayStart(DBusType.String);
+            var arrayStart = writer.WriteArrayStart(global::Tmds.DBus.Protocol.DBusType.String);
             foreach (var property in invalidated)
             {
                 switch (property)
@@ -467,11 +462,11 @@ namespace TestNamespace
             writer.WriteArrayEnd(arrayStart);
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, ICalculatorProperties properties, CalculatorProperty changed)
+        public static void EmitPropertyChanged(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p, ICalculatorProperties properties, CalculatorProperty changed)
         {
             EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);
         }
-        public static void EmitCalculatorPropertiesChanged(this DBusConnection c, ObjectPath p, (string, double)? currentEntry = default, ObjectPath? currentPath = default, ValueTuple<bool>? isActive = default, double? lastResult = default, ReadOnlySpan<CalculatorProperty> invalidated = default)
+        public static void EmitCalculatorPropertiesChanged(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p, (string, double)? currentEntry = default, global::Tmds.DBus.Protocol.ObjectPath? currentPath = default, global::System.ValueTuple<bool>? isActive = default, double? lastResult = default, global::System.ReadOnlySpan<CalculatorProperty> invalidated = default)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -491,7 +486,7 @@ namespace TestNamespace
             {
                 writer.WriteDictionaryEntryStart();
                 writer.WriteString("CurrentPath");
-                writer.Write_v_o((ObjectPath)currentPath);
+                writer.Write_v_o((global::Tmds.DBus.Protocol.ObjectPath)currentPath);
             }
             if (currentEntry is not null)
             {
@@ -503,10 +498,10 @@ namespace TestNamespace
             {
                 writer.WriteDictionaryEntryStart();
                 writer.WriteString("IsActive");
-                writer.Write_v_rbz((ValueTuple<bool>)isActive);
+                writer.Write_v_rbz((global::System.ValueTuple<bool>)isActive);
             }
             writer.WriteDictionaryEnd(dictStart);
-            var arrayStart = writer.WriteArrayStart(DBusType.String);
+            var arrayStart = writer.WriteArrayStart(global::Tmds.DBus.Protocol.DBusType.String);
             foreach (var property in invalidated)
             {
                 switch (property)
@@ -561,40 +556,40 @@ namespace TestNamespace
                     _ => 0
                 };
             }
-            public static DBusHandler.DBusMethod FindMethodHandler(object handler, MethodContext context)
+            public static global::Tmds.DBus.Protocol.DBusHandler.DBusMethod FindMethodHandler(object handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var request = context.Request;
                 if (context.IsPropertiesInterfaceRequest)
                 {
                     return (request.MemberAsString, request.SignatureAsString) switch
                     {
-                        ("Get", "ss") => new DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
-                        ("GetAll", "s") => new DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
-                        ("Set", "ssv") => new DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),
+                        ("Get", "ss") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleGetPropertyAsync(new GetPropertyContext(c)), handler),
+                        ("GetAll", "s") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleGetAllPropertiesAsync(new GetAllPropertiesContext(c)), handler),
+                        ("Set", "ssv") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => ((ISettingsHandler)o).HandleSetPropertyAsync(new SetPropertyContext(c)), handler),
                         _ => default
                     };
                 }
                 return (request.MemberAsString, request.SignatureAsString) switch
                 {
-                    ("Save", "") => new DBusHandler.DBusMethod(static (o, c) => HandleSaveAsync((ISettingsHandler)o, c), handler),
+                    ("Save", "") => new global::Tmds.DBus.Protocol.DBusHandler.DBusMethod(static (o, c) => HandleSaveAsync((ISettingsHandler)o, c), handler),
                     _ => default
                 };
             }
-            static async ValueTask HandleSaveAsync(ISettingsHandler handler, MethodContext context)
+            static async global::System.Threading.Tasks.ValueTask HandleSaveAsync(ISettingsHandler handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 await handler.SaveAsync().ConfigureAwait(false);
                 context.Reply(context.CreateReplyWriter(null).CreateMessage());
             }
         }
-        ValueTask HandleGetPropertyAsync(GetPropertyContext context);
-        ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);
-        ValueTask HandleSetPropertyAsync(SetPropertyContext context);
-        ValueTask SaveAsync();
-        readonly struct GetPropertyContext : IDisposable
+        global::System.Threading.Tasks.ValueTask HandleGetPropertyAsync(GetPropertyContext context);
+        global::System.Threading.Tasks.ValueTask HandleGetAllPropertiesAsync(GetAllPropertiesContext context);
+        global::System.Threading.Tasks.ValueTask HandleSetPropertyAsync(SetPropertyContext context);
+        global::System.Threading.Tasks.ValueTask SaveAsync();
+        readonly struct GetPropertyContext : global::System.IDisposable
         {
-            public MethodContext MethodContext { get; }
+            public global::Tmds.DBus.Protocol.MethodContext MethodContext { get; }
             public SettingsProperty Property { get; }
-            public GetPropertyContext(MethodContext methodContext)
+            public GetPropertyContext(global::Tmds.DBus.Protocol.MethodContext methodContext)
             {
                 MethodContext = methodContext;
                 var reader = methodContext.Request.GetBodyReader();
@@ -604,14 +599,14 @@ namespace TestNamespace
             public void Dispose() => MethodContext.Dispose();
             public void ReplyTheme(string value)
             {
-                System.Diagnostics.Debug.Assert(Property == SettingsProperty.Theme);
+                global::System.Diagnostics.Debug.Assert(Property == SettingsProperty.Theme);
                 var writer = MethodContext.CreateReplyWriter("v");
                 writer.Write_v_s(value);
                 MethodContext.Reply(writer.CreateMessage());
             }
             public void ReplyLanguage(string value)
             {
-                System.Diagnostics.Debug.Assert(Property == SettingsProperty.Language);
+                global::System.Diagnostics.Debug.Assert(Property == SettingsProperty.Language);
                 var writer = MethodContext.CreateReplyWriter("v");
                 writer.Write_v_s(value);
                 MethodContext.Reply(writer.CreateMessage());
@@ -620,7 +615,7 @@ namespace TestNamespace
             {
                 MethodContext.ReplyError("org.freedesktop.DBus.Error.UnknownProperty", $"Unknown property: {Property}");
             }
-            public ValueTask Handle(ISettingsProperties properties)
+            public global::System.Threading.Tasks.ValueTask Handle(ISettingsProperties properties)
             {
                 switch (Property)
                 {
@@ -637,15 +632,15 @@ namespace TestNamespace
                 return default;
             }
         }
-        readonly struct GetAllPropertiesContext : IDisposable
+        readonly struct GetAllPropertiesContext : global::System.IDisposable
         {
-            public MethodContext MethodContext { get; }
-            public GetAllPropertiesContext(MethodContext methodContext)
+            public global::Tmds.DBus.Protocol.MethodContext MethodContext { get; }
+            public GetAllPropertiesContext(global::Tmds.DBus.Protocol.MethodContext methodContext)
             {
                 MethodContext = methodContext;
             }
             public void Dispose() => MethodContext.Dispose();
-            public ValueTask Handle(ISettingsProperties properties)
+            public global::System.Threading.Tasks.ValueTask Handle(ISettingsProperties properties)
             {
                 var writer = MethodContext.CreateReplyWriter("a{sv}");
                 var dictStart = writer.WriteDictionaryStart();
@@ -659,7 +654,7 @@ namespace TestNamespace
                 MethodContext.Reply(writer.CreateMessage());
                 return default;
             }
-            public ValueTask Handle(string? language = default, string? theme = default)
+            public global::System.Threading.Tasks.ValueTask Handle(string? language = default, string? theme = default)
             {
                 var writer = MethodContext.CreateReplyWriter("a{sv}");
                 var dictStart = writer.WriteDictionaryStart();
@@ -680,11 +675,11 @@ namespace TestNamespace
                 return default;
             }
         }
-        readonly struct SetPropertyContext : IDisposable
+        readonly struct SetPropertyContext : global::System.IDisposable
         {
-            public MethodContext MethodContext { get; }
+            public global::Tmds.DBus.Protocol.MethodContext MethodContext { get; }
             public WritableSettingsProperty Property { get; }
-            public SetPropertyContext(MethodContext methodContext)
+            public SetPropertyContext(global::Tmds.DBus.Protocol.MethodContext methodContext)
             {
                 MethodContext = methodContext;
                 var reader = methodContext.Request.GetBodyReader();
@@ -720,7 +715,7 @@ namespace TestNamespace
             {
                 MethodContext.ReplyError("org.freedesktop.DBus.Error.PropertyReadOnly", $"Property is read-only: {Property}");
             }
-            public ValueTask Handle(ISettingsProperties properties)
+            public global::System.Threading.Tasks.ValueTask Handle(ISettingsProperties properties)
             {
                 switch (Property)
                 {
@@ -745,7 +740,7 @@ namespace TestNamespace
     }
     static class SettingsSignal
     {
-        public static void EmitChanged(this DBusConnection c, ObjectPath p)
+        public static void EmitChanged(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -754,7 +749,7 @@ namespace TestNamespace
                 member: "Changed");
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitPropertiesChanged(this DBusConnection c, ObjectPath p, ISettingsProperties properties, ReadOnlySpan<SettingsProperty> changed, ReadOnlySpan<SettingsProperty> invalidated = default)
+        public static void EmitPropertiesChanged(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p, ISettingsProperties properties, global::System.ReadOnlySpan<SettingsProperty> changed, global::System.ReadOnlySpan<SettingsProperty> invalidated = default)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -781,7 +776,7 @@ namespace TestNamespace
                 }
             }
             writer.WriteDictionaryEnd(dictStart);
-            var arrayStart = writer.WriteArrayStart(DBusType.String);
+            var arrayStart = writer.WriteArrayStart(global::Tmds.DBus.Protocol.DBusType.String);
             foreach (var property in invalidated)
             {
                 switch (property)
@@ -797,11 +792,11 @@ namespace TestNamespace
             writer.WriteArrayEnd(arrayStart);
             c.TrySendMessage(writer.CreateMessage());
         }
-        public static void EmitPropertyChanged(this DBusConnection c, ObjectPath p, ISettingsProperties properties, SettingsProperty changed)
+        public static void EmitPropertyChanged(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p, ISettingsProperties properties, SettingsProperty changed)
         {
             EmitPropertiesChanged(c, p, properties, stackalloc[] { changed }, default);
         }
-        public static void EmitSettingsPropertiesChanged(this DBusConnection c, ObjectPath p, string? language = default, string? theme = default, ReadOnlySpan<SettingsProperty> invalidated = default)
+        public static void EmitSettingsPropertiesChanged(this global::Tmds.DBus.Protocol.DBusConnection c, global::Tmds.DBus.Protocol.ObjectPath p, string? language = default, string? theme = default, global::System.ReadOnlySpan<SettingsProperty> invalidated = default)
         {
             var writer = c.GetMessageWriter();
             writer.WriteSignalHeader(
@@ -824,7 +819,7 @@ namespace TestNamespace
                 writer.Write_v_s((string)language);
             }
             writer.WriteDictionaryEnd(dictStart);
-            var arrayStart = writer.WriteArrayStart(DBusType.String);
+            var arrayStart = writer.WriteArrayStart(global::Tmds.DBus.Protocol.DBusType.String);
             foreach (var property in invalidated)
             {
                 switch (property)
@@ -845,7 +840,7 @@ namespace TestNamespace
     {
         internal static class Helper
         {
-            public static DBusHandler.DBusMethod FindMethodHandler(object handler, MethodContext context)
+            public static global::Tmds.DBus.Protocol.DBusHandler.DBusMethod FindMethodHandler(object handler, global::Tmds.DBus.Protocol.MethodContext context)
             {
                 var request = context.Request;
                 return default;
@@ -854,64 +849,64 @@ namespace TestNamespace
     }
     file static class MessageReader
     {
-        public static double Read_d(Message message)
+        public static double Read_d(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             return reader.ReadDouble();
         }
-        public static int Read_i(Message message)
+        public static int Read_i(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             return reader.ReadInt32();
         }
-        public static (string, double) Read_sd(Message message)
+        public static (string, double) Read_sd(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadString();
             var arg1 = reader.ReadDouble();
             return (arg0, arg1);
         }
-        public static (double, double) Read_dd(Message message)
+        public static (double, double) Read_dd(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             var arg0 = reader.ReadDouble();
             var arg1 = reader.ReadDouble();
             return (arg0, arg1);
         }
-        public static string Read_s(Message message)
+        public static string Read_s(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             return reader.ReadString();
         }
-        public static (string, double) Read_rsdz(Message message)
+        public static (string, double) Read_rsdz(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             return reader.Read_rsdz();
         }
-        public static ValueTuple<bool> Read_v_rbz(Message message)
+        public static global::System.ValueTuple<bool> Read_v_rbz(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("(b)"u8);
             return reader.Read_rbz();
         }
-        public static double Read_v_d(Message message)
+        public static double Read_v_d(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("d"u8);
             return reader.ReadDouble();
         }
-        public static string Read_v_s(Message message)
+        public static string Read_v_s(global::Tmds.DBus.Protocol.Message message)
         {
             var reader = message.GetBodyReader();
             reader.ReadSignature("s"u8);
             return reader.ReadString();
         }
-        public static ValueTuple<bool> Read_rbz(this ref Reader reader)
+        public static global::System.ValueTuple<bool> Read_rbz(this ref global::Tmds.DBus.Protocol.Reader reader)
         {
             reader.AlignStruct();
-            return new ValueTuple<bool>(reader.ReadBool());
+            return new global::System.ValueTuple<bool>(reader.ReadBool());
         }
-        public static (string, double) Read_rsdz(this ref Reader reader)
+        public static (string, double) Read_rsdz(this ref global::Tmds.DBus.Protocol.Reader reader)
         {
             reader.AlignStruct();
             return (reader.ReadString(), reader.ReadDouble());
@@ -919,38 +914,38 @@ namespace TestNamespace
     }
     file static class MessageWriterExtensions
     {
-        public static void Write_rsdz(this ref MessageWriter writer, (string, double) value)
+        public static void Write_rsdz(this ref global::Tmds.DBus.Protocol.MessageWriter writer, (string, double) value)
         {
             writer.WriteStructureStart();
             writer.WriteString(value.Item1);
             writer.WriteDouble(value.Item2);
         }
-        public static void Write_v_d(this ref MessageWriter writer, double value)
+        public static void Write_v_d(this ref global::Tmds.DBus.Protocol.MessageWriter writer, double value)
         {
             writer.WriteSignature("d");
             writer.WriteDouble(value);
         }
-        public static void Write_v_o(this ref MessageWriter writer, ObjectPath value)
+        public static void Write_v_o(this ref global::Tmds.DBus.Protocol.MessageWriter writer, global::Tmds.DBus.Protocol.ObjectPath value)
         {
             writer.WriteSignature("o");
             writer.WriteObjectPath(value);
         }
-        public static void Write_v_rsdz(this ref MessageWriter writer, (string, double) value)
+        public static void Write_v_rsdz(this ref global::Tmds.DBus.Protocol.MessageWriter writer, (string, double) value)
         {
             writer.WriteSignature("(sd)");
             writer.Write_rsdz(value);
         }
-        public static void Write_v_rbz(this ref MessageWriter writer, ValueTuple<bool> value)
+        public static void Write_v_rbz(this ref global::Tmds.DBus.Protocol.MessageWriter writer, global::System.ValueTuple<bool> value)
         {
             writer.WriteSignature("(b)");
             writer.Write_rbz(value);
         }
-        public static void Write_rbz(this ref MessageWriter writer, ValueTuple<bool> value)
+        public static void Write_rbz(this ref global::Tmds.DBus.Protocol.MessageWriter writer, global::System.ValueTuple<bool> value)
         {
             writer.WriteStructureStart();
             writer.WriteBool(value.Item1);
         }
-        public static void Write_v_s(this ref MessageWriter writer, string value)
+        public static void Write_v_s(this ref global::Tmds.DBus.Protocol.MessageWriter writer, string value)
         {
             writer.WriteSignature("s");
             writer.WriteString(value);
@@ -963,14 +958,10 @@ namespace TestNamespace
 #nullable enable
 namespace Tmds.DBus.Protocol
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Threading;
-    using System.Threading.Tasks;
     abstract class DBusHandler : IPathMethodHandler
     {
         // Identifies the D-Bus interfaces. Used with SupportsInterface to filter interfaces per path.
-        [Flags]
+        [global::System.Flags]
         public enum DBusInterface
         {
             // OrgFreedesktopDBusIntrospectable = 1,
@@ -978,7 +969,7 @@ namespace Tmds.DBus.Protocol
             OrgExampleMarker = 4,
             OrgExampleSettings = 8,
         }
-        private static ReadOnlyMemory<byte> OrgExampleCalculatorXml { get; } =
+        private static global::System.ReadOnlyMemory<byte> OrgExampleCalculatorXml { get; } =
             """
             <interface name="org.example.Calculator">
               <method name="Clear" />
@@ -1038,12 +1029,12 @@ namespace Tmds.DBus.Protocol
             </interface>
 
             """u8.ToArray();
-        private static ReadOnlyMemory<byte> OrgExampleMarkerXml { get; } =
+        private static global::System.ReadOnlyMemory<byte> OrgExampleMarkerXml { get; } =
             """
             <interface name="org.example.Marker" />
 
             """u8.ToArray();
-        private static ReadOnlyMemory<byte> OrgExampleSettingsXml { get; } =
+        private static global::System.ReadOnlyMemory<byte> OrgExampleSettingsXml { get; } =
             """
             <interface name="org.example.Settings">
               <method name="Save" />
@@ -1054,19 +1045,19 @@ namespace Tmds.DBus.Protocol
             </interface>
 
             """u8.ToArray();
-        private readonly SendOrPostCallback? _postDelegate;
+        private readonly global::System.Threading.SendOrPostCallback? _postDelegate;
         private const DBusInterface OrgFreedesktopDBusIntrospectable = (DBusInterface)1;
         private const DBusInterface InterfacesWithProperties = DBusInterface.OrgExampleCalculator | DBusInterface.OrgExampleSettings;
         public string Path { get; }
         public bool HandlesChildPaths { get; }
         public DBusConnection Connection { get; }
         // The SynchronizationContext on which method handlers are invoked.
-        protected SynchronizationContext? SynchronizationContext { get; }
+        protected global::System.Threading.SynchronizationContext? SynchronizationContext { get; }
         protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, bool handleOnCapturedContext = true)
-            : this(connection, path, handlesChildPaths, handleOnCapturedContext ? SynchronizationContext.Current : null)
+            : this(connection, path, handlesChildPaths, handleOnCapturedContext ? global::System.Threading.SynchronizationContext.Current : null)
         {
         }
-        protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, SynchronizationContext? synchronizationContext)
+        protected DBusHandler(DBusConnection connection, string path, bool handlesChildPaths, global::System.Threading.SynchronizationContext? synchronizationContext)
         {
             Connection = connection;
             Path = path;
@@ -1084,19 +1075,19 @@ namespace Tmds.DBus.Protocol
             }
         }
         // Override to add cross-cutting logic (e.g. logging, error handling) around method invocations.
-        protected virtual async ValueTask InvokeAsync(DBusMethod method, MethodContext context)
+        protected virtual async global::System.Threading.Tasks.ValueTask InvokeAsync(DBusMethod method, MethodContext context)
         {
             try
             {
                 await method.Invoke(context).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (global::System.Exception ex)
             {
                 HandleException(context, ex);
             }
         }
         // Override to customize exception handling for method invocations.
-        protected virtual void HandleException(MethodContext context, Exception ex)
+        protected virtual void HandleException(MethodContext context, global::System.Exception ex)
         {
             if (context.HandleException(ex, shouldDisconnect: false))
             {
@@ -1106,7 +1097,7 @@ namespace Tmds.DBus.Protocol
             {
                 context.ReplyError(dbusEx.ErrorName, dbusEx.ErrorMessage);
             }
-            else if (ex is ArgumentException)
+            else if (ex is global::System.ArgumentException)
             {
                 context.ReplyError("org.freedesktop.DBus.Error.InvalidArgs", ex.Message);
             }
@@ -1116,19 +1107,19 @@ namespace Tmds.DBus.Protocol
             }
         }
         // Override to filter interfaces for specific paths when the handler manages multiple paths.
-        protected virtual bool SupportsInterface(DBusInterface dbusInterface, ReadOnlySpan<char> path)
+        protected virtual bool SupportsInterface(DBusInterface dbusInterface, global::System.ReadOnlySpan<char> path)
         {
             return true;
         }
         // Override to customize introspection, e.g. to include child node names.
-        protected virtual ValueTask HandleIntrospectAsync(IntrospectContext context)
+        protected virtual global::System.Threading.Tasks.ValueTask HandleIntrospectAsync(IntrospectContext context)
         {
-            DBusInterface interfaces = GetSupportedInterfaces(context.MethodContext.Request.PathAsString.AsSpan());
+            DBusInterface interfaces = GetSupportedInterfaces(global::System.MemoryExtensions.AsSpan(context.MethodContext.Request.PathAsString));
             context.Reply(interfaces);
             return default;
         }
         // Context for IntrospectAsync. Call Reply to send the introspection XML response.
-        protected readonly struct IntrospectContext : IDisposable
+        protected readonly struct IntrospectContext : global::System.IDisposable
         {
             public MethodContext MethodContext { get; }
             public IntrospectContext(MethodContext methodContext)
@@ -1136,9 +1127,9 @@ namespace Tmds.DBus.Protocol
                 MethodContext = methodContext;
             }
             public void Dispose() => MethodContext.Dispose();
-            public void Reply(DBusInterface interfaces, IList<string>? childNames = null)
+            public void Reply(DBusInterface interfaces, global::System.Collections.Generic.IList<string>? childNames = null)
             {
-                var interfaceXmls = new ReadOnlyMemory<byte>[4];
+                var interfaceXmls = new global::System.ReadOnlyMemory<byte>[4];
                 int count = 0;
                 if ((interfaces & DBusInterface.OrgExampleCalculator) != 0)
                 {
@@ -1158,42 +1149,42 @@ namespace Tmds.DBus.Protocol
                 }
                 if (childNames is not null)
                 {
-                    MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count), childNames);
+                    MethodContext.ReplyIntrospectXml(global::System.MemoryExtensions.AsSpan(interfaceXmls, 0, count), childNames);
                 }
                 else
                 {
-                    MethodContext.ReplyIntrospectXml(interfaceXmls.AsSpan(0, count));
+                    MethodContext.ReplyIntrospectXml(global::System.MemoryExtensions.AsSpan(interfaceXmls, 0, count));
                 }
             }
         }
         internal readonly struct DBusMethod
         {
-            private readonly Func<object, MethodContext, ValueTask> _method;
+            private readonly global::System.Func<object, MethodContext, global::System.Threading.Tasks.ValueTask> _method;
             private readonly object _target;
-            public DBusMethod(Func<object, MethodContext, ValueTask> method, object target)
+            public DBusMethod(global::System.Func<object, MethodContext, global::System.Threading.Tasks.ValueTask> method, object target)
             {
                 _method = method;
                 _target = target;
             }
             public bool HasValue => _method is not null;
-            public ValueTask Invoke(MethodContext context)
+            public global::System.Threading.Tasks.ValueTask Invoke(MethodContext context)
             {
                 return _method?.Invoke(_target, context) ?? default;
             }
         }
-        ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)
+        global::System.Threading.Tasks.ValueTask IPathMethodHandler.HandleMethodAsync(MethodContext context)
         {
             DBusInterface dbusInterface = ParseInterface(context);
-            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, context.Request.PathAsString.AsSpan())) ? default : FindMethodHandler(context, dbusInterface);
+            DBusMethod method = (dbusInterface != OrgFreedesktopDBusIntrospectable && !SupportsInterface(dbusInterface, global::System.MemoryExtensions.AsSpan(context.Request.PathAsString))) ? default : FindMethodHandler(context, dbusInterface);
             if (!method.HasValue)
             {
                 return default;
             }
             return HandleAsync(method, context);
         }
-        private ValueTask HandleAsync(DBusMethod method, MethodContext context)
+        private global::System.Threading.Tasks.ValueTask HandleAsync(DBusMethod method, MethodContext context)
         {
-            SynchronizationContext? synchronizationContext = SynchronizationContext;
+            global::System.Threading.SynchronizationContext? synchronizationContext = SynchronizationContext;
             if (synchronizationContext is null)
             {
                 return InvokeAsync(method, context);
@@ -1205,7 +1196,7 @@ namespace Tmds.DBus.Protocol
                 return default;
             }
         }
-        private async ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)
+        private async global::System.Threading.Tasks.ValueTask InvokeAndDisposeAsync(DBusMethod method, MethodContext context)
         {
             try
             {
@@ -1266,7 +1257,7 @@ namespace Tmds.DBus.Protocol
             };
             return result;
         }
-        protected DBusInterface GetSupportedInterfaces(ReadOnlySpan<char> path)
+        protected DBusInterface GetSupportedInterfaces(global::System.ReadOnlySpan<char> path)
         {
             DBusInterface interfaces = default;
             if (SupportsInterface(DBusInterface.OrgExampleCalculator, path) && this is TestNamespace.ICalculatorHandler)

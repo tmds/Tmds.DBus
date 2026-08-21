@@ -136,4 +136,85 @@ public class DiagnosticsTests : TestsBase
         Assert.Contains("Invalid", diagnostic.GetMessage());
         Assert.Empty(generatedSources);
     }
+
+    [Fact]
+    public void GenerateCode_WithInvalidVisibility_ReportsDiagnostic()
+    {
+        string xmlContent = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <node>
+              <interface name="org.freedesktop.DBus.Test">
+                <method name="DoSomething">
+                  <arg name="value" direction="in" type="s"/>
+                </method>
+              </interface>
+            </node>
+            """;
+
+        var additionalFiles = new List<AdditionalFile>
+        {
+            new("test.xml", xmlContent, "TestNamespace", DBusGeneratorMode: "Proxy", Visibility: "Invalid")
+        };
+
+        var (diagnostics, generatedSources) = RunGenerator(additionalFiles);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("DBUS1013", diagnostic.Id);
+        Assert.Contains("Invalid", diagnostic.GetMessage());
+        Assert.Empty(generatedSources);
+    }
+
+    [Fact]
+    public void GenerateCode_PublicHandlerWithoutTypeName_ReportsDiagnostic()
+    {
+        string xmlContent = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <node>
+              <interface name="org.freedesktop.DBus.Test">
+                <method name="DoSomething">
+                  <arg name="value" direction="in" type="s"/>
+                </method>
+              </interface>
+            </node>
+            """;
+
+        var additionalFiles = new List<AdditionalFile>
+        {
+            new("test.xml", xmlContent, "TestNamespace", DBusGeneratorMode: "Handler", Visibility: "public")
+        };
+
+        var (diagnostics, generatedSources) = RunGenerator(additionalFiles);
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("DBUS1014", diagnostic.Id);
+        Assert.Contains("DBusHandlerTypeName", diagnostic.GetMessage());
+        Assert.Empty(generatedSources);
+    }
+
+    [Fact]
+    public void GenerateCode_HandlerTypeNameWithoutNamespace_ReportsDiagnostic()
+    {
+        string xmlContent = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <node>
+              <interface name="org.freedesktop.DBus.Test">
+                <method name="DoSomething">
+                  <arg name="value" direction="in" type="s"/>
+                </method>
+              </interface>
+            </node>
+            """;
+
+        var additionalFiles = new List<AdditionalFile>
+        {
+            new("test.xml", xmlContent, "TestNamespace", DBusGeneratorMode: "Handler")
+        };
+
+        var (diagnostics, generatedSources) = RunGenerator(additionalFiles, dbusHandlerTypeName: "MyHandler");
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("DBUS1015", diagnostic.Id);
+        Assert.Contains("MyHandler", diagnostic.GetMessage());
+        Assert.Empty(generatedSources);
+    }
 }

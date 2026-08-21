@@ -3,7 +3,7 @@
 #nullable enable
 namespace TestNamespace
 {
-    enum CalculatorProperty
+    public enum CalculatorProperty
     {
         UnknownProperty = 0,
         LastResult = 1,
@@ -11,14 +11,14 @@ namespace TestNamespace
         CurrentEntry = 3,
         IsActive = 4
     }
-    interface ICalculatorProperties
+    public interface ICalculatorProperties
     {
         double LastResult { get; }
         global::Tmds.DBus.Protocol.ObjectPath CurrentPath { get; }
         (string, double) CurrentEntry { get; }
         global::System.ValueTuple<bool> IsActive { get; set; }
     }
-    interface INullableCalculatorProperties
+    public interface INullableCalculatorProperties
     {
         double? LastResult { get; }
         global::Tmds.DBus.Protocol.ObjectPath? CurrentPath { get; }
@@ -27,14 +27,14 @@ namespace TestNamespace
         bool AreAllPropertiesSet();
         CalculatorProperties EnsureAllPropertiesSet();
     }
-    interface IChangedCalculatorProperties : INullableCalculatorProperties
+    public interface IChangedCalculatorProperties : INullableCalculatorProperties
     {
         bool HasLastResultChanged { get; }
         bool HasCurrentPathChanged { get; }
         bool HasCurrentEntryChanged { get; }
         bool HasIsActiveChanged { get; }
     }
-    sealed class CalculatorProperties : IChangedCalculatorProperties, ICalculatorProperties
+    public sealed class CalculatorProperties : IChangedCalculatorProperties, ICalculatorProperties
     {
         private uint __set;
         private uint __invalidated;
@@ -166,7 +166,7 @@ namespace TestNamespace
             return props;
         }
     }
-    sealed partial class Calculator : global::Tmds.DBus.Protocol.DBusObject
+    public sealed partial class Calculator : global::Tmds.DBus.Protocol.DBusObject
     {
         public const string DBusInterfaceName = "org.example.Calculator";
         public Calculator(global::Tmds.DBus.Protocol.DBusConnection connection, string destination, global::Tmds.DBus.Protocol.ObjectPath path)
@@ -464,31 +464,31 @@ namespace TestNamespace
             return writer.CreateMessage();
         }
     }
-    enum SettingsProperty
+    public enum SettingsProperty
     {
         UnknownProperty = 0,
         Theme = 1,
         Language = 2
     }
-    interface ISettingsProperties
+    public interface ISettingsProperties
     {
         string Theme { get; }
         string Language { get; set; }
         double Volume { set; }
     }
-    interface INullableSettingsProperties
+    public interface INullableSettingsProperties
     {
         string? Theme { get; }
         string? Language { get; }
         bool AreAllPropertiesSet();
         SettingsProperties EnsureAllPropertiesSet();
     }
-    interface IChangedSettingsProperties : INullableSettingsProperties
+    public interface IChangedSettingsProperties : INullableSettingsProperties
     {
         bool HasThemeChanged { get; }
         bool HasLanguageChanged { get; }
     }
-    sealed class SettingsProperties : IChangedSettingsProperties, ISettingsProperties
+    public sealed class SettingsProperties : IChangedSettingsProperties, ISettingsProperties
     {
         private uint __set;
         private uint __invalidated;
@@ -591,7 +591,7 @@ namespace TestNamespace
         }
         double ISettingsProperties.Volume { set { } }
     }
-    sealed partial class Settings : global::Tmds.DBus.Protocol.DBusObject
+    public sealed partial class Settings : global::Tmds.DBus.Protocol.DBusObject
     {
         public const string DBusInterfaceName = "org.example.Settings";
         public Settings(global::Tmds.DBus.Protocol.DBusConnection connection, string destination, global::Tmds.DBus.Protocol.ObjectPath path)
@@ -729,14 +729,14 @@ namespace TestNamespace
             return writer.CreateMessage();
         }
     }
-    sealed partial class Marker : global::Tmds.DBus.Protocol.DBusObject
+    public sealed partial class Marker : global::Tmds.DBus.Protocol.DBusObject
     {
         public const string DBusInterfaceName = "org.example.Marker";
         public Marker(global::Tmds.DBus.Protocol.DBusConnection connection, string destination, global::Tmds.DBus.Protocol.ObjectPath path)
             : base(connection, destination, path)
         { }
     }
-    static partial class ObjectFactory
+    public static partial class ObjectFactory
     {
         public static Calculator CreateCalculator(this global::Tmds.DBus.Protocol.DBusService service, global::Tmds.DBus.Protocol.ObjectPath path) => new Calculator(service.Connection, service.Name, path);
         public static Settings CreateSettings(this global::Tmds.DBus.Protocol.DBusService service, global::Tmds.DBus.Protocol.ObjectPath path) => new Settings(service.Connection, service.Name, path);

@@ -35,18 +35,29 @@ namespace Tmds.DBus.Generator
 
                     fileOptions.TryGetValue("build_metadata.AdditionalFiles.DBusGeneratorMode", out string? generatorMode);
                     fileOptions.TryGetValue("build_metadata.AdditionalFiles.Namespace", out string? ns);
-                    return new AdditionalFile(file, ns, generatorMode);
+                    fileOptions.TryGetValue("build_metadata.AdditionalFiles.Visibility", out string? visibility);
+                    return new AdditionalFile(file, ns, generatorMode, visibility);
                 })
                 .Where(static file => file.HasValue)
                 .Select(static (file, ct) => file!.Value);
             IncrementalValueProvider<ImmutableArray<AdditionalFile>> collectedFiles = additionalFiles.Collect();
 
-            context.RegisterSourceOutput(collectedFiles, GenerateSource);
+            IncrementalValueProvider<string?> dbusHandlerTypeName =
+                context.AnalyzerConfigOptionsProvider
+                .Select(static (options, ct) =>
+                {
+                    options.GlobalOptions.TryGetValue("build_property.DBusHandlerTypeName", out string? value);
+                    return value;
+                });
+
+            var combined = collectedFiles.Combine(dbusHandlerTypeName);
+            context.RegisterSourceOutput(combined, static (spc, pair) => GenerateSource(spc, pair.Left, pair.Right));
         }
 
-        private static void GenerateSource(SourceProductionContext spc, ImmutableArray<AdditionalFile> files)
+        private static void GenerateSource(SourceProductionContext spc, ImmutableArray<AdditionalFile> files, string? dbusHandlerTypeName)
         {
             var xmlFiles = new List<ParsedXmlFile>();
+            bool anyHandlerPublic = false;
 
             foreach (AdditionalFile additionalFile in files)
             {
@@ -81,7 +92,32 @@ namespace Tmds.DBus.Generator
                     continue;
                 }
 
-                ParsedXmlFile? parsed = ParseXmlFile(additionalFile, generateProxy, generateHandler, spc, CancellationToken.None);
+                bool isPublic;
+                string? visibility = additionalFile.Visibility;
+                if (string.IsNullOrEmpty(visibility) || string.Equals(visibility, "internal", StringComparison.OrdinalIgnoreCase))
+                {
+                    isPublic = false;
+                }
+                else if (string.Equals(visibility, "public", StringComparison.OrdinalIgnoreCase))
+                {
+                    isPublic = true;
+                }
+                else
+                {
+                    spc.ReportDiagnostic(Diagnostic.Create(
+                        DiagnosticDescriptors.InvalidVisibility,
+                        Location.None,
+                        System.IO.Path.GetFileName(additionalFile.Text.Path),
+                        visibility));
+                    continue;
+                }
+
+                if (generateHandler && isPublic)
+                {
+                    anyHandlerPublic = true;
+                }
+
+                ParsedXmlFile? parsed = ParseXmlFile(additionalFile, generateProxy, generateHandler, isPublic, spc, CancellationToken.None);
 
                 if (parsed != null)
                 {
@@ -89,9 +125,27 @@ namespace Tmds.DBus.Generator
                 }
             }
 
+            if (anyHandlerPublic && string.IsNullOrEmpty(dbusHandlerTypeName))
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.MissingDBusHandlerTypeName,
+                    Location.None));
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(dbusHandlerTypeName) && !dbusHandlerTypeName.Contains('.'))
+            {
+                spc.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.InvalidDBusHandlerTypeName,
+                    Location.None,
+                    dbusHandlerTypeName));
+                return;
+            }
+
             var settings = new Tool.ProtocolGeneratorSettings
             {
-                GeneratorDescription = GetGeneratorDescription()
+                GeneratorDescription = GetGeneratorDescription(),
+                DBusHandlerTypeName = !string.IsNullOrEmpty(dbusHandlerTypeName) ? dbusHandlerTypeName : "Tmds.DBus.Protocol.DBusHandler"
             };
             var generator = new Tool.ProtocolGenerator(settings);
             bool generateSharedCode = false;
@@ -115,10 +169,12 @@ namespace Tmds.DBus.Generator
                         else if (!merged.GenerateProxy && entry.GenerateProxy)
                         {
                             merged.GenerateProxy = true;
+                            merged.IsProxyPublic = entry.IsProxyPublic;
                         }
                         else if (!merged.GenerateHandler && entry.GenerateHandler)
                         {
                             merged.GenerateHandler = true;
+                            merged.IsHandlerPublic = entry.IsHandlerPublic;
                         }
                         else
                         {
@@ -214,7 +270,7 @@ namespace Tmds.DBus.Generator
             }
         }
 
-        private static ParsedXmlFile? ParseXmlFile(AdditionalFile additionalFile, bool generateProxy, bool generateHandler, SourceProductionContext spc, CancellationToken ct)
+        private static ParsedXmlFile? ParseXmlFile(AdditionalFile additionalFile, bool generateProxy, bool generateHandler, bool isPublic, SourceProductionContext spc, CancellationToken ct)
         {
             string fileName = System.IO.Path.GetFileName(additionalFile.Text.Path);
 
@@ -287,7 +343,9 @@ namespace Tmds.DBus.Generator
                     Name = className,
                     SourceFile = additionalFile.Text.Path,
                     GenerateProxy = generateProxy,
-                    GenerateHandler = generateHandler
+                    GenerateHandler = generateHandler,
+                    IsProxyPublic = generateProxy && isPublic,
+                    IsHandlerPublic = generateHandler && isPublic
                 });
             }
 
@@ -323,6 +381,6 @@ namespace Tmds.DBus.Generator
             public List<Tool.InterfaceDescription> Interfaces { get; }
         }
 
-        private readonly record struct AdditionalFile(AdditionalText Text, string? Namespace, string? GeneratorMode);
+        private readonly record struct AdditionalFile(AdditionalText Text, string? Namespace, string? GeneratorMode, string? Visibility);
     }
 }

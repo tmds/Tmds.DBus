@@ -150,6 +150,58 @@ public class CodeGenerationTests : TestsBase
     }
 
     [Fact]
+    public async Task VerifyGeneratedOutput_ProxyOnly_Public()
+    {
+        var additionalFiles = new List<AdditionalFile>
+        {
+            new("interfaces.xml", XmlContent, "TestNamespace", DBusGeneratorMode: "Proxy", Visibility: "public")
+        };
+
+        var (diagnostics, generatedSources) = RunGenerator(additionalFiles);
+
+        Assert.Empty(diagnostics);
+
+        await Verify(string.Join("\n", generatedSources.Select(s => s.SourceText.ToString())));
+
+        AssertCompiles(generatedSources);
+    }
+
+    [Fact]
+    public async Task VerifyGeneratedOutput_HandlerOnly_Public()
+    {
+        var additionalFiles = new List<AdditionalFile>
+        {
+            new("interfaces.xml", XmlContent, "TestNamespace", DBusGeneratorMode: "Handler", Visibility: "public")
+        };
+
+        var (diagnostics, generatedSources) = RunGenerator(additionalFiles, dbusHandlerTypeName: "TestNamespace.TestHandler");
+
+        Assert.Empty(diagnostics);
+
+        await Verify(string.Join("\n", generatedSources.Select(s => s.SourceText.ToString())));
+
+        AssertCompiles(generatedSources);
+    }
+
+    [Fact]
+    public async Task VerifyGeneratedOutput_MixedVisibility()
+    {
+        var additionalFiles = new List<AdditionalFile>
+        {
+            new("proxy.xml", XmlContent, "PublicNamespace", DBusGeneratorMode: "Proxy", Visibility: "public"),
+            new("handler.xml", XmlContent, "InternalNamespace", DBusGeneratorMode: "Handler")
+        };
+
+        var (diagnostics, generatedSources) = RunGenerator(additionalFiles);
+
+        Assert.Empty(diagnostics);
+
+        await Verify(string.Join("\n", generatedSources.Select(s => s.SourceText.ToString())));
+
+        AssertCompiles(generatedSources);
+    }
+
+    [Fact]
     public async Task VerifyGeneratedOutput_ManyProperties()
     {
         var sb = new StringBuilder();

@@ -3,5 +3,7 @@
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="Namespace" />
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="GenerateDBusTypes" />
     <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="DBusGeneratorMode" />
+    <CompilerVisibleItemMetadata Include="AdditionalFiles" MetadataName="Visibility" />
+    <CompilerVisibleProperty Include="DBusHandlerTypeName" />
   </ItemGroup>
 </Project>

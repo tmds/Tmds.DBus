@@ -136,6 +136,8 @@ Configure the project to generate proxy types. Add the XML file as an `Additiona
 </Project>
 ```
 
+By default, generated types are `internal`. To make them `public`, add `Visibility="public"`.
+
 When the project is built, the source generator creates a `Player` class (derived from the last component of the interface name `org.mpris.MediaPlayer2.Player`) in the `Mpris.DBus` namespace. The class inherits from <xref:Tmds.DBus.Protocol.DBusObject> and contains async methods corresponding to each D-Bus method, signal, and property.
 
 First, update `Program.cs` to connect to the session bus:
@@ -471,6 +473,8 @@ Configure the project to generate handler types. Add the XML file as an `Additio
   </ItemGroup>
 </Project>
 ```
+
+By default, generated types are `internal`. To make them `public`, add `Visibility="public"`. When generating public handlers, you must also set the `DBusHandlerTypeName` project property to a namespace-qualified name for the generated handler base class. When all handlers are `internal`, `Tmds.DBus.Protocol.DBusHandler` is used by default.
 
 ### What the generator produces
 

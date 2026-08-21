@@ -9,6 +9,8 @@ namespace Tmds.DBus.Tool
         public string?  SourceFile { get; set; }
         public bool     GenerateProxy { get; set; }
         public bool     GenerateHandler { get; set; }
+        public bool     IsProxyPublic { get; set; }
+        public bool     IsHandlerPublic { get; set; }
         public string   HandlerName => Name + "Handler";
         public string   InterfaceName => InterfaceXml.Attribute("name")?.Value ?? string.Empty;
     }

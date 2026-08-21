@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Tmds.DBus.Generator.Tests;
 
-public record AdditionalFile(string FileName, string Content, string? Namespace = null, string GenerateDBusTypes = "true", string? DBusGeneratorMode = null);
+public record AdditionalFile(string FileName, string Content, string? Namespace = null, string GenerateDBusTypes = "true", string? DBusGeneratorMode = null, string? Visibility = null);
 
 public record GeneratedSourceResult(SyntaxTree Tree, SourceText SourceText, string HintName);
 
@@ -121,7 +121,7 @@ public abstract class TestsBase : VerifyBase
     }
 
     protected (ImmutableArray<Diagnostic> Diagnostics, ImmutableArray<GeneratedSourceResult> GeneratedSources) RunGenerator(
-        List<AdditionalFile> additionalFiles)
+        List<AdditionalFile> additionalFiles, string? dbusHandlerTypeName = null)
     {
         // Create a compilation with an empty source file
         var sourceCode = "// Empty source file";
@@ -144,7 +144,7 @@ public abstract class TestsBase : VerifyBase
         var additionalTexts = additionalFiles.Select(f => new InMemoryAdditionalText(f.FileName, f.Content)).ToArray();
 
         // Create analyzer config options provider
-        var optionsProvider = new InMemoryAnalyzerConfigOptionsProvider(additionalFiles);
+        var optionsProvider = new InMemoryAnalyzerConfigOptionsProvider(additionalFiles, dbusHandlerTypeName);
 
         // Create and run the generator
         var generator = new DBusSourceGenerator();
@@ -180,13 +180,13 @@ public abstract class TestsBase : VerifyBase
 
     private class InMemoryAnalyzerConfigOptionsProvider : AnalyzerConfigOptionsProvider
     {
-        private readonly Dictionary<string, (string? Namespace, string GenerateDBusTypes, string? DBusGeneratorMode)> _fileOptions;
+        private readonly Dictionary<string, (string? Namespace, string GenerateDBusTypes, string? DBusGeneratorMode, string? Visibility)> _fileOptions;
         private readonly InMemoryAnalyzerConfigOptions _globalOptions;
 
-        public InMemoryAnalyzerConfigOptionsProvider(List<AdditionalFile> additionalFiles)
+        public InMemoryAnalyzerConfigOptionsProvider(List<AdditionalFile> additionalFiles, string? dbusHandlerTypeName)
         {
-            _fileOptions = additionalFiles.ToDictionary(f => f.FileName, f => (f.Namespace, f.GenerateDBusTypes, f.DBusGeneratorMode));
-            _globalOptions = new InMemoryAnalyzerConfigOptions(null, "false", null);
+            _fileOptions = additionalFiles.ToDictionary(f => f.FileName, f => (f.Namespace, f.GenerateDBusTypes, f.DBusGeneratorMode, f.Visibility));
+            _globalOptions = new InMemoryAnalyzerConfigOptions(null, "false", null, null, dbusHandlerTypeName);
         }
 
         public override AnalyzerConfigOptions GlobalOptions => _globalOptions;
@@ -198,9 +198,9 @@ public abstract class TestsBase : VerifyBase
             var fileName = System.IO.Path.GetFileName(textFile.Path);
             if (_fileOptions.TryGetValue(fileName, out var options))
             {
-                return new InMemoryAnalyzerConfigOptions(options.Namespace, options.GenerateDBusTypes, options.DBusGeneratorMode);
+                return new InMemoryAnalyzerConfigOptions(options.Namespace, options.GenerateDBusTypes, options.DBusGeneratorMode, options.Visibility, null);
             }
-            return new InMemoryAnalyzerConfigOptions(null, "false", null);
+            return new InMemoryAnalyzerConfigOptions(null, "false", null, null, null);
         }
 
         private class InMemoryAnalyzerConfigOptions : AnalyzerConfigOptions
@@ -208,12 +208,16 @@ public abstract class TestsBase : VerifyBase
             private readonly string? _namespace;
             private readonly string _generateDBusTypes;
             private readonly string? _dbusGeneratorMode;
+            private readonly string? _visibility;
+            private readonly string? _dbusHandlerTypeName;
 
-            public InMemoryAnalyzerConfigOptions(string? ns, string generateDBusTypes, string? dbusGeneratorMode)
+            public InMemoryAnalyzerConfigOptions(string? ns, string generateDBusTypes, string? dbusGeneratorMode, string? visibility, string? dbusHandlerTypeName)
             {
                 _namespace = ns;
                 _generateDBusTypes = generateDBusTypes;
                 _dbusGeneratorMode = dbusGeneratorMode;
+                _visibility = visibility;
+                _dbusHandlerTypeName = dbusHandlerTypeName;
             }
 
             public override bool TryGetValue(string key, out string? value)
@@ -231,6 +235,16 @@ public abstract class TestsBase : VerifyBase
                 if (key == "build_metadata.AdditionalFiles.DBusGeneratorMode" && _dbusGeneratorMode != null)
                 {
                     value = _dbusGeneratorMode;
+                    return true;
+                }
+                if (key == "build_metadata.AdditionalFiles.Visibility" && _visibility != null)
+                {
+                    value = _visibility;
+                    return true;
+                }
+                if (key == "build_property.DBusHandlerTypeName" && _dbusHandlerTypeName != null)
+                {
+                    value = _dbusHandlerTypeName;
                     return true;
                 }
                 value = null;

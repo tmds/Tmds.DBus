@@ -93,5 +93,29 @@ namespace Tmds.DBus.Generator
             category: Category,
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InvalidVisibility = new DiagnosticDescriptor(
+            id: "DBUS1013",
+            title: "Invalid Visibility",
+            messageFormat: "The AdditionalFile '{0}' has an invalid Visibility '{1}'. Valid values are 'public' and 'internal'.",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor MissingDBusHandlerTypeName = new DiagnosticDescriptor(
+            id: "DBUS1014",
+            title: "Missing DBusHandlerTypeName",
+            messageFormat: "A handler with public visibility requires the project property 'DBusHandlerTypeName' to be set to a namespace-qualified type name (e.g. 'MyNamespace.MyHandler')",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
+
+        public static readonly DiagnosticDescriptor InvalidDBusHandlerTypeName = new DiagnosticDescriptor(
+            id: "DBUS1015",
+            title: "Invalid DBusHandlerTypeName",
+            messageFormat: "The project property 'DBusHandlerTypeName' must be a namespace-qualified type name (e.g. 'MyNamespace.MyHandler'), but got '{0}'",
+            category: Category,
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true);
     }
 }

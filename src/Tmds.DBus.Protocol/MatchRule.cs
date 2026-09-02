@@ -52,11 +52,11 @@ struct MatchRuleData
         Append(sb, "interface", Interface);
         Append(sb, "member", Member);
         Append(sb, "path", Path);
-        Append(sb, "pathNamespace", PathNamespace);
+        Append(sb, "path_namespace", PathNamespace);
         Append(sb, "destination", Destination);
         Append(sb, "arg0", Arg0);
-        Append(sb, "arg0Path", Arg0Path);
-        Append(sb, "arg0Namespace", Arg0Namespace);
+        Append(sb, "arg0path", Arg0Path);
+        Append(sb, "arg0namespace", Arg0Namespace);
 
         return sb.ToString();
 

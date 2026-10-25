@@ -296,6 +296,21 @@ sealed class UnixFdCollection : IReadOnlyList<SafeHandle>, IDisposable
         DisposeHandles(disposing: true);
     }
 
+    // Discards the first count handles of a collection of received handles.
+    internal void DiscardHandles(int count)
+    {
+        Debug.Assert(_rawHandles is not null);
+        for (int i = 0; i < count; i++)
+        {
+            IntPtr rawHandle = _rawHandles![i].RawHandle;
+            if (rawHandle != InvalidRawHandle)
+            {
+                close(rawHandle.ToInt32());
+            }
+        }
+        _rawHandles!.RemoveRange(0, count);
+    }
+
     internal void MoveTo(UnixFdCollection handles, int count)
     {
         if (handles.IsRawHandleCollection != IsRawHandleCollection)

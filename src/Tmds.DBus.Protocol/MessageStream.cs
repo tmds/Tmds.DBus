@@ -11,6 +11,9 @@ class MessageStream : IMessageStream
     private readonly Socket? _socket;
     private readonly Stream _stream;
     private UnixFdCollection? _fdCollection;
+    // Number of handles in _fdCollection that were received by earlier reads and not claimed yet.
+    // They can only belong to the partially received message at the start of the receive buffer.
+    private int _handlesFromEarlierReads;
     private bool _supportsFdPassing;
     private readonly MessagePool _messagePool;
 
@@ -140,13 +143,41 @@ class MessageStream : IMessageStream
 
         void ReadMessages<TState>(ref ReadOnlySequence<byte> buffer, IMessageStream.MessageReceivedHandler<TState> handler, TState state)
         {
+            // A single read can return several messages. Linux returns file descriptors with the first bytes of the
+            // data they were sent with, and ends the read there. So the descriptors of a read belong to a message whose
+            // bytes are in that read, which need not be the first message parsed from it.
+            UnixFdCollection? fdCollection = _fdCollection;
+            int handleCount = fdCollection?.Count ?? 0;
             Message? message;
-            while ((message = Message.TryReadMessage(_messagePool, ref buffer, _fdCollection, _isMonitor)) != null)
+            while ((message = Message.TryReadMessage(_messagePool, ref buffer, fdCollection, _isMonitor)) != null)
             {
-                // Discard any file descriptors that were received but not claimed by the message.
-                _fdCollection?.DiscardHandles();
+                if (_handlesFromEarlierReads > 0)
+                {
+                    // This message started in an earlier read. Discard the handles of earlier reads that it did not claim
+                    // so they don't spill into the next message.
+                    int unclaimed = _handlesFromEarlierReads - (handleCount - fdCollection!.Count);
+                    if (unclaimed > 0)
+                    {
+                        fdCollection.DiscardHandles(unclaimed);
+                    }
+                    _handlesFromEarlierReads = 0;
+                }
 
                 handler(closeReason: null, message, state);
+            }
+
+            if (fdCollection is not null)
+            {
+                if (buffer.IsEmpty)
+                {
+                    // Discard any file descriptors that were received but not claimed by the messages of this read.
+                    fdCollection.DiscardHandles();
+                }
+                else
+                {
+                    // Keep the handles for the partially received message at the end of the buffer.
+                    _handlesFromEarlierReads = fdCollection.Count;
+                }
             }
         }
 

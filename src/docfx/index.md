@@ -286,7 +286,7 @@ The <xref:Tmds.DBus.Protocol.ObserverFlags> enum controls which completion notif
 
 By default, subscribing to a signal adds a match rule on the bus. Pass `ObserverFlags.NoSubscribe` to skip the match rule — for example for monitoring messages that are received without making a subscription for them.
 
-When `IsCompletion` is true, the `Exception` property on the notification contains an `Exception` instance that is suitable for the completion. It can for example be used with `TaskCompletionSource.TrySetException`.
+When `IsCompletion` is true, the `CompletionReason` property on the notification contains an `Exception` instance that is suitable for the completion. It can for example be used with `TaskCompletionSource.TrySetException`.
 
 You can call `Stop` on the notification from within the handler to stop the observer. No further notifications will be delivered and no completion notification is sent for the stop.
 

@@ -19,7 +19,7 @@ public readonly struct Notification
     /// Returns an exception that indicates why the observer completed.
     /// </summary>
     /// <exception cref="InvalidOperationException">The notification is not a completion.</exception>
-    public Exception Exception
+    public Exception CompletionReason
     {
         get
         {
@@ -30,6 +30,13 @@ public readonly struct Notification
             return _observer!.Exception!;
         }
     }
+
+    /// <summary>
+    /// Returns an exception that indicates why the observer completed.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The notification is not a completion.</exception>
+    [Obsolete("Use CompletionReason instead.")]
+    public Exception Exception => CompletionReason;
 
     /// <summary>
     /// Gets the type of notification.
@@ -75,7 +82,7 @@ public readonly struct Notification<T>
     /// Returns an exception that indicates why the observer completed.
     /// </summary>
     /// <exception cref="InvalidOperationException">The notification is not a completion.</exception>
-    public Exception Exception
+    public Exception CompletionReason
     {
         get
         {
@@ -86,6 +93,13 @@ public readonly struct Notification<T>
             return _observer!.Exception!;
         }
     }
+
+    /// <summary>
+    /// Returns an exception that indicates why the observer completed.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The notification is not a completion.</exception>
+    [Obsolete("Use CompletionReason instead.")]
+    public Exception Exception => CompletionReason;
 
     /// <summary>
     /// Gets the type of notification.

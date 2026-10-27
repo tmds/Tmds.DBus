@@ -11,8 +11,6 @@ class MessageStream : IMessageStream
     private readonly Socket? _socket;
     private readonly Stream _stream;
     private UnixFdCollection? _fdCollection;
-    // Number of handles in _fdCollection that were received by earlier reads and not claimed yet.
-    // They can only belong to the partially received message at the start of the receive buffer.
     private int _handlesFromEarlierReads;
     private bool _supportsFdPassing;
     private readonly MessagePool _messagePool;
@@ -153,14 +151,15 @@ class MessageStream : IMessageStream
             {
                 if (_handlesFromEarlierReads > 0)
                 {
-                    // This message started in an earlier read. Discard the handles of earlier reads that it did not claim
-                    // so they don't spill into the next message.
-                    int unclaimed = _handlesFromEarlierReads - (handleCount - fdCollection!.Count);
-                    if (unclaimed > 0)
-                    {
-                        fdCollection.DiscardHandles(unclaimed);
-                    }
+                    // This message started in an earlier read. The handles of earlier reads were sent with it.
+                    bool unclaimed = _handlesFromEarlierReads > handleCount - fdCollection!.Count;
                     _handlesFromEarlierReads = 0;
+                    if (unclaimed)
+                    {
+                        message.ReturnToPool();
+                        fdCollection.DiscardHandles();
+                        throw new DBusReadException("Received more handles than UNIX_FDS.");
+                    }
                 }
 
                 handler(closeReason: null, message, state);
@@ -170,8 +169,12 @@ class MessageStream : IMessageStream
             {
                 if (buffer.IsEmpty)
                 {
-                    // Discard any file descriptors that were received but not claimed by the messages of this read.
-                    fdCollection.DiscardHandles();
+                    // There mustn't be handles without a message.
+                    if (fdCollection.Count > 0)
+                    {
+                        fdCollection.DiscardHandles();
+                        throw new DBusReadException("Received more handles than UNIX_FDS.");
+                    }
                 }
                 else
                 {

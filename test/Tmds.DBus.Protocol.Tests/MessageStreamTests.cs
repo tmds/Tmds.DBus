@@ -35,7 +35,7 @@ namespace Tmds.DBus.Protocol.Tests
         }
 
         [Fact]
-        public async Task UnclaimedHandlesAreNotPassedToMessageFromLaterRead()
+        public async Task MoreHandlesThanUnixFdsCloseTheConnection()
         {
             using var pair = await StreamPair.CreateAsync();
             // The first message carries a handle it does not declare, the second declares a handle but carries none.
@@ -47,11 +47,11 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.Equal("NoHandle", a.Member);
 
             Received b = await pair.ReceiveAsync();
-            Assert.IsType<DBusReadException>(b.CloseReason);
+            AssertMoreHandlesThanUnixFds(b);
         }
 
         [Fact]
-        public async Task UnclaimedHandlesOfMessageSpanningReadsAreNotPassedToNextMessage()
+        public async Task MoreHandlesThanUnixFdsInMessageSpanningReadsCloseTheConnection()
         {
             using var pair = await StreamPair.CreateAsync();
             // The first message spans several reads and carries one handle more than it declares.
@@ -60,11 +60,13 @@ namespace Tmds.DBus.Protocol.Tests
             pair.StartReceiving();
 
             Received a = await pair.ReceiveAsync();
-            Assert.Null(a.CloseReason);
-            Assert.True(a.HandleIsValid);
+            AssertMoreHandlesThanUnixFds(a);
+        }
 
-            Received b = await pair.ReceiveAsync();
-            Assert.IsType<DBusReadException>(b.CloseReason);
+        private static void AssertMoreHandlesThanUnixFds(Received received)
+        {
+            DBusReadException exception = Assert.IsType<DBusReadException>(received.CloseReason);
+            Assert.Equal("Received more handles than UNIX_FDS.", exception.Message);
         }
 
         private static MessageBuffer CreateMessage(uint serial, string member, int unixFds = 0, int arrayLength = 0)

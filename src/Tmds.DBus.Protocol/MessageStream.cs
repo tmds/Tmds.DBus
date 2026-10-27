@@ -11,6 +11,7 @@ class MessageStream : IMessageStream
     private readonly Socket? _socket;
     private readonly Stream _stream;
     private UnixFdCollection? _fdCollection;
+    private int _handlesFromEarlierReads;
     private bool _supportsFdPassing;
     private readonly MessagePool _messagePool;
 
@@ -140,13 +141,46 @@ class MessageStream : IMessageStream
 
         void ReadMessages<TState>(ref ReadOnlySequence<byte> buffer, IMessageStream.MessageReceivedHandler<TState> handler, TState state)
         {
+            // A single read can return several messages. Linux returns file descriptors with the first bytes of the
+            // data they were sent with, and ends the read there. So the descriptors of a read belong to a message whose
+            // bytes are in that read, which need not be the first message parsed from it.
+            UnixFdCollection? fdCollection = _fdCollection;
+            int handleCount = fdCollection?.Count ?? 0;
             Message? message;
-            while ((message = Message.TryReadMessage(_messagePool, ref buffer, _fdCollection, _isMonitor)) != null)
+            while ((message = Message.TryReadMessage(_messagePool, ref buffer, fdCollection, _isMonitor)) != null)
             {
-                // Discard any file descriptors that were received but not claimed by the message.
-                _fdCollection?.DiscardHandles();
+                if (_handlesFromEarlierReads > 0)
+                {
+                    // This message started in an earlier read. The handles of earlier reads were sent with it.
+                    bool unclaimed = _handlesFromEarlierReads > handleCount - fdCollection!.Count;
+                    _handlesFromEarlierReads = 0;
+                    if (unclaimed)
+                    {
+                        message.ReturnToPool();
+                        fdCollection.DiscardHandles();
+                        throw new DBusReadException("Received more handles than UNIX_FDS.");
+                    }
+                }
 
                 handler(closeReason: null, message, state);
+            }
+
+            if (fdCollection is not null)
+            {
+                if (buffer.IsEmpty)
+                {
+                    // There mustn't be handles without a message.
+                    if (fdCollection.Count > 0)
+                    {
+                        fdCollection.DiscardHandles();
+                        throw new DBusReadException("Received more handles than UNIX_FDS.");
+                    }
+                }
+                else
+                {
+                    // Keep the handles for the partially received message at the end of the buffer.
+                    _handlesFromEarlierReads = fdCollection.Count;
+                }
             }
         }
 

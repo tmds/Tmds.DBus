@@ -1,8 +1,17 @@
 <Project>
   <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
   <PropertyGroup>
+    <PackageProjectUrl>https://tmds.github.io/Tmds.DBus</PackageProjectUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <VersionPrefix>0.95.2</VersionPrefix>
     <DeterministicSourcePaths Condition="'$(Configuration)' == 'Release'">true</DeterministicSourcePaths>
+    <Authors>Tom Deseyn</Authors>
+    <Copyright>Tom Deseyn</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>dbus</PackageTags>
+    <PackageIcon>icon_128.png</PackageIcon>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)icon/icon_128.png" Pack="true" PackagePath="/" />
+  </ItemGroup>
 </Project>

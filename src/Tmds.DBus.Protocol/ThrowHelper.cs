@@ -85,7 +85,7 @@ static class ThrowHelper
     [DoesNotReturn]
     internal static void ThrowNotificationExceptionNotAvailable()
     {
-        throw new InvalidOperationException("Exception is not available. Check IsCompletion before accessing Exception.");
+        throw new InvalidOperationException("CompletionReason is not available. Check IsCompletion before accessing CompletionReason.");
     }
 
     internal static string SignatureToStringNoThrow(ReadOnlySpan<byte> signature)

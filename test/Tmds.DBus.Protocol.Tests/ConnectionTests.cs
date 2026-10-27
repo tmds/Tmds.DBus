@@ -690,7 +690,7 @@ namespace Tmds.DBus.Protocol.Tests
             Assert.False(notification.IsCompletion);
             Assert.Equal("hello world", notification.Value);
             Assert.Equal(NotificationType.Value, notification.Type);
-            Assert.Throws<InvalidOperationException>(() => notification.Exception);
+            Assert.Throws<InvalidOperationException>(() => notification.CompletionReason);
         }
 
         [Fact]
@@ -807,8 +807,8 @@ namespace Tmds.DBus.Protocol.Tests
 
             Assert.False(notification.HasValue);
             Assert.True(notification.IsCompletion);
-            Assert.NotNull(notification.Exception);
-            var readException = Assert.IsType<DBusReadException>(notification.Exception);
+            Assert.NotNull(notification.CompletionReason);
+            var readException = Assert.IsType<DBusReadException>(notification.CompletionReason);
             Assert.IsType<InvalidOperationException>(readException.InnerException);
             Assert.Equal("Reader failed", readException.InnerException!.Message);
             Assert.Equal(NotificationType.ReaderFailed, notification.Type);
@@ -851,7 +851,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             Assert.False(notification.HasValue);
             Assert.True(notification.IsCompletion);
-            Assert.NotNull(notification.Exception);
+            Assert.NotNull(notification.CompletionReason);
             Assert.Equal(NotificationType.ConnectionClosed, notification.Type);
         }
 
@@ -892,7 +892,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             Assert.False(notification.HasValue);
             Assert.True(notification.IsCompletion);
-            Assert.NotNull(notification.Exception);
+            Assert.NotNull(notification.CompletionReason);
             Assert.Equal(NotificationType.ObserverDisposed, notification.Type);
         }
 
@@ -934,7 +934,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             Assert.False(notification.HasValue);
             Assert.True(notification.IsCompletion);
-            Assert.NotNull(notification.Exception);
+            Assert.NotNull(notification.CompletionReason);
             Assert.Equal(NotificationType.ConnectionFailed, notification.Type);
         }
 
@@ -1011,7 +1011,7 @@ namespace Tmds.DBus.Protocol.Tests
 
             Assert.False(notification.IsCompletion);
             Assert.Equal(NotificationType.Value, notification.Type);
-            Assert.Throws<InvalidOperationException>(() => notification.Exception);
+            Assert.Throws<InvalidOperationException>(() => notification.CompletionReason);
         }
 
         [Fact]

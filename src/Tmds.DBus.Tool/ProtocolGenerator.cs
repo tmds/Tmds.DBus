@@ -2427,7 +2427,7 @@ namespace Tmds.DBus.Tool
                     upper = true;
                     continue;
                 }
-                sb.Append(upper ? char.ToUpper(c) : first && !startWithUpper ? char.ToLower(c) : c);
+                sb.Append(upper ? char.ToUpperInvariant(c) : first && !startWithUpper ? char.ToLowerInvariant(c) : c);
                 upper = false;
                 first = false;
             }

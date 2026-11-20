@@ -3,7 +3,7 @@
   <PropertyGroup>
     <PackageProjectUrl>https://tmds.github.io/Tmds.DBus</PackageProjectUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <VersionPrefix>0.95.2</VersionPrefix>
+    <VersionPrefix>0.95.3</VersionPrefix>
     <DeterministicSourcePaths Condition="'$(Configuration)' == 'Release'">true</DeterministicSourcePaths>
     <Authors>Tom Deseyn</Authors>
     <Copyright>Tom Deseyn</Copyright>

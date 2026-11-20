@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -229,4 +230,50 @@ public class CodeGenerationTests : TestsBase
         AssertCompiles(generatedSources);
     }
 
+    [Fact]
+    public void GeneratedNames_DoNotDependOnCurrentCulture()
+    {
+        // In the Turkish culture, 'i' upper-cases to 'İ' (U+0130), which would turn the argument
+        // 'idErrors' into 'İdErrors' and an interface method 'item' into 'İtemAsync'.
+        const string xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <node>
+              <interface name="org.example.Menu">
+                <method name="item">
+                  <arg name="ids" direction="in" type="ai"/>
+                  <arg name="updates_needed" direction="out" type="ai"/>
+                  <arg name="id_errors" direction="out" type="ai"/>
+                </method>
+              </interface>
+            </node>
+            """;
+
+        var additionalFiles = new List<AdditionalFile>
+        {
+            new("interfaces.xml", xml, "TestNamespace", DBusGeneratorMode: "Proxy")
+        };
+
+        var invariantOutput = GenerateWithCulture(CultureInfo.InvariantCulture);
+        var turkishOutput = GenerateWithCulture(new CultureInfo("tr-TR"));
+
+        Assert.Contains("IdErrors", invariantOutput);
+        Assert.DoesNotContain("İ", turkishOutput);
+        Assert.Equal(invariantOutput, turkishOutput);
+
+        string GenerateWithCulture(CultureInfo culture)
+        {
+            var previous = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = culture;
+            try
+            {
+                var (diagnostics, generatedSources) = RunGenerator(additionalFiles);
+                Assert.Empty(diagnostics);
+                return string.Join("\n", generatedSources.Select(s => s.SourceText.ToString()));
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previous;
+            }
+        }
+    }
 }
